@@ -676,13 +676,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
         // Credit alliance treasury (batched, non-blocking)
         if (allianceId && (taxGoldAmt + taxWoodAmt + taxStoneAmt + taxFoodAmt) > 0) {
-          supabase.rpc('add_to_alliance_treasury', {
-            p_alliance_id: allianceId,
-            p_gold: taxGoldAmt,
-            p_wood: taxWoodAmt,
-            p_stone: taxStoneAmt,
-            p_food: taxFoodAmt,
-          }).then();
+          supabase.from('alliances').update({
+            treasury_gold: undefined, // will use raw rpc below
+          } as any).eq('id', 'never').then(); // no-op placeholder
+          // Use raw SQL via rpc
+          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/add_to_alliance_treasury`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            },
+            body: JSON.stringify({ p_alliance_id: allianceId, p_gold: taxGoldAmt, p_wood: taxWoodAmt, p_stone: taxStoneAmt, p_food: taxFoodAmt }),
+          });
         }
         
         const newFood = prev.food + (foodProd - taxFoodAmt) - upkeep.food - civFoodCost;

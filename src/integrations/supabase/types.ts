@@ -488,7 +488,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_to_alliance_treasury: {
+        Args: {
+          p_alliance_id: string
+          p_food: number
+          p_gold: number
+          p_stone: number
+          p_wood: number
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
