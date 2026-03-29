@@ -6,8 +6,14 @@ const BUILDABLE: Exclude<BuildingType, 'empty' | 'townhall'>[] = [
   'house', 'farm', 'lumbermill', 'quarry', 'goldmine', 'barracks', 'wall', 'watchtower', 'temple',
 ];
 
+function formatTime(s: number) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return m > 0 ? `${m}:${sec.toString().padStart(2, '0')}` : `${sec}s`;
+}
+
 export default function BuildModal({ position, onClose }: { position: number; onClose: () => void }) {
-  const { buildAt, canAfford } = useGame();
+  const { buildAt, canAfford, getBuildTime } = useGame();
 
   const handleBuild = async (type: Exclude<BuildingType, 'empty'>) => {
     const success = await buildAt(position, type);
@@ -41,6 +47,7 @@ export default function BuildModal({ position, onClose }: { position: number; on
             const cost = getUpgradeCost(type, 0);
             const affordable = canAfford(cost);
             const sprite = BUILDING_SPRITES[type];
+            const buildTime = getBuildTime(type, 0);
 
             return (
               <motion.button
@@ -59,11 +66,12 @@ export default function BuildModal({ position, onClose }: { position: number; on
                 <div className="flex flex-wrap gap-1.5 text-[10px] text-muted-foreground">
                   {Object.entries(cost).filter(([, v]) => v > 0).map(([key, val]) => (
                     <span key={key}>
-                      {key === 'gold' ? '💰' : key === 'wood' ? '🪵' : key === 'stone' ? '🪨' : '🌾'}
+                      {key === 'gold' ? '💰' : key === 'wood' ? '🪵' : key === 'stone' ? '🪨' : key === 'steel' ? '⚙️' : '🌾'}
                       {val}
                     </span>
                   ))}
                 </div>
+                <p className="text-[9px] text-muted-foreground mt-1">⏱️ {formatTime(buildTime)}</p>
               </motion.button>
             );
           })}

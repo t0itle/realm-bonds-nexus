@@ -33,19 +33,20 @@ export interface BuildingInfo {
   maxLevel: number;
   workersPerLevel: number;
   housingPerLevel?: number;
+  buildTime: number; // base seconds to build/upgrade
 }
 
 export const BUILDING_INFO: Record<Exclude<BuildingType, 'empty'>, BuildingInfo> = {
-  townhall: { name: 'Town Hall', icon: '🏰', description: 'Heart of your village. Determines max houses you can build.', baseCost: { gold: 100, wood: 50, stone: 50, food: 0 }, steelCost: 5, maxLevel: 10, workersPerLevel: 0 },
-  house: { name: 'House', icon: '🏠', description: 'Provides housing for civilians. Max houses = Town Hall level × 2.', baseCost: { gold: 20, wood: 40, stone: 20, food: 0 }, maxLevel: 5, workersPerLevel: 0, housingPerLevel: 8 },
-  temple: { name: 'Temple', icon: '⛪', description: 'Increases happiness through religion. Happy people attract more settlers.', baseCost: { gold: 60, wood: 30, stone: 50, food: 0 }, steelCost: 2, maxLevel: 5, workersPerLevel: 1 },
-  farm: { name: 'Farm', icon: '🌾', description: 'Produces food. Each worker boosts output.', baseCost: { gold: 30, wood: 40, stone: 10, food: 0 }, baseProduction: { food: 5 }, maxLevel: 10, workersPerLevel: 1 },
-  lumbermill: { name: 'Lumber Mill', icon: '🪓', description: 'Harvests wood. Workers increase yield.', baseCost: { gold: 30, wood: 10, stone: 20, food: 0 }, baseProduction: { wood: 5 }, maxLevel: 10, workersPerLevel: 1 },
-  quarry: { name: 'Quarry', icon: '⛏️', description: 'Mines stone. Assign workers for more output.', baseCost: { gold: 40, wood: 20, stone: 10, food: 0 }, baseProduction: { stone: 4 }, maxLevel: 10, workersPerLevel: 1 },
-  goldmine: { name: 'Gold Mine', icon: '💰', description: 'Extracts gold. Workers boost production.', baseCost: { gold: 10, wood: 30, stone: 40, food: 0 }, steelCost: 3, baseProduction: { gold: 3 }, maxLevel: 10, workersPerLevel: 1 },
-  barracks: { name: 'Barracks', icon: '⚔️', description: 'Train warriors. Workers here increase army cap.', baseCost: { gold: 80, wood: 60, stone: 40, food: 20 }, steelCost: 8, maxLevel: 8, workersPerLevel: 2 },
-  wall: { name: 'Wall', icon: '🧱', description: 'Fortify your village against invaders.', baseCost: { gold: 20, wood: 10, stone: 60, food: 0 }, steelCost: 4, maxLevel: 10, workersPerLevel: 0 },
-  watchtower: { name: 'Watchtower', icon: '🗼', description: 'Spots incoming threats from afar.', baseCost: { gold: 50, wood: 40, stone: 30, food: 0 }, maxLevel: 5, workersPerLevel: 1 },
+  townhall: { name: 'Town Hall', icon: '🏰', description: 'Heart of your village. Determines max houses you can build.', baseCost: { gold: 100, wood: 50, stone: 50, food: 0 }, steelCost: 5, maxLevel: 10, workersPerLevel: 0, buildTime: 60 },
+  house: { name: 'House', icon: '🏠', description: 'Provides housing for civilians. Max houses = Town Hall level × 2.', baseCost: { gold: 20, wood: 40, stone: 20, food: 0 }, maxLevel: 5, workersPerLevel: 0, housingPerLevel: 8, buildTime: 20 },
+  temple: { name: 'Temple', icon: '⛪', description: 'Increases happiness through religion.', baseCost: { gold: 60, wood: 30, stone: 50, food: 0 }, steelCost: 2, maxLevel: 5, workersPerLevel: 1, buildTime: 45 },
+  farm: { name: 'Farm', icon: '🌾', description: 'Produces food. Each worker boosts output.', baseCost: { gold: 30, wood: 40, stone: 10, food: 0 }, baseProduction: { food: 5 }, maxLevel: 10, workersPerLevel: 1, buildTime: 15 },
+  lumbermill: { name: 'Lumber Mill', icon: '🪓', description: 'Harvests wood. Workers increase yield.', baseCost: { gold: 30, wood: 10, stone: 20, food: 0 }, baseProduction: { wood: 5 }, maxLevel: 10, workersPerLevel: 1, buildTime: 15 },
+  quarry: { name: 'Quarry', icon: '⛏️', description: 'Mines stone. Assign workers for more output.', baseCost: { gold: 40, wood: 20, stone: 10, food: 0 }, baseProduction: { stone: 4 }, maxLevel: 10, workersPerLevel: 1, buildTime: 20 },
+  goldmine: { name: 'Gold Mine', icon: '💰', description: 'Extracts gold. Workers boost production.', baseCost: { gold: 10, wood: 30, stone: 40, food: 0 }, steelCost: 3, baseProduction: { gold: 3 }, maxLevel: 10, workersPerLevel: 1, buildTime: 25 },
+  barracks: { name: 'Barracks', icon: '⚔️', description: 'Train warriors. Workers here increase army cap.', baseCost: { gold: 80, wood: 60, stone: 40, food: 20 }, steelCost: 8, maxLevel: 8, workersPerLevel: 2, buildTime: 40 },
+  wall: { name: 'Wall', icon: '🧱', description: 'Fortify your village against invaders.', baseCost: { gold: 20, wood: 10, stone: 60, food: 0 }, steelCost: 4, maxLevel: 10, workersPerLevel: 0, buildTime: 30 },
+  watchtower: { name: 'Watchtower', icon: '🗼', description: 'Spots incoming threats from afar.', baseCost: { gold: 50, wood: 40, stone: 30, food: 0 }, maxLevel: 5, workersPerLevel: 1, buildTime: 25 },
 };
 
 export function getUpgradeCost(type: Exclude<BuildingType, 'empty'>, level: number): Resources & { steel: number } {
@@ -121,6 +122,13 @@ export interface TrainingQueue {
   finishTime: number;
 }
 
+export interface BuildQueue {
+  buildingId: string;
+  buildingType: BuildingType;
+  targetLevel: number;
+  finishTime: number;
+}
+
 export interface BattleLog {
   id: string;
   target: string;
@@ -178,6 +186,7 @@ interface GameContextType {
   loading: boolean;
   army: Army;
   trainingQueue: TrainingQueue[];
+  buildQueue: BuildQueue[];
   battleLogs: BattleLog[];
   trainTroops: (type: TroopType, count: number) => boolean;
   getBarracksLevel: () => number;
@@ -197,6 +206,8 @@ interface GameContextType {
   setPopTaxRate: (r: number) => void;
   popFoodCost: number;
   popTaxIncome: number;
+  isBuildingUpgrading: (buildingId: string) => BuildQueue | undefined;
+  getBuildTime: (type: Exclude<BuildingType, 'empty'>, level: number) => number;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -217,6 +228,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [army, setArmy] = useState<Army>({ ...EMPTY_ARMY });
   const [trainingQueue, setTrainingQueue] = useState<TrainingQueue[]>([]);
   const [battleLogs, setBattleLogs] = useState<BattleLog[]>([]);
+  const [buildQueue, setBuildQueue] = useState<BuildQueue[]>([]);
   const [workerAssignments, setWorkerAssignments] = useState<WorkerAssignments>({});
   const [populationBase, setPopulationBase] = useState(10);
   const [maxPopBase, setMaxPopBase] = useState(20);
@@ -513,6 +525,36 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval);
   }, [trainingQueue.length]);
 
+  // Build queue processing
+  useEffect(() => {
+    if (buildQueue.length === 0) return;
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setBuildQueue(prev => {
+        const completed = prev.filter(q => q.finishTime <= now);
+        const remaining = prev.filter(q => q.finishTime > now);
+        if (completed.length > 0) {
+          completed.forEach(q => {
+            // Apply the level upgrade
+            supabase.from('buildings').update({ level: q.targetLevel }).eq('id', q.buildingId).then();
+            setBuildings(prevB => prevB.map(b => b.id === q.buildingId ? { ...b, level: q.targetLevel } : b));
+          });
+        }
+        return remaining;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [buildQueue.length]);
+
+  const getBuildTime = useCallback((type: Exclude<BuildingType, 'empty'>, level: number) => {
+    const info = BUILDING_INFO[type];
+    return Math.floor(info.buildTime * Math.pow(1.3, level)); // scales with level
+  }, []);
+
+  const isBuildingUpgrading = useCallback((buildingId: string) => {
+    return buildQueue.find(q => q.buildingId === buildingId);
+  }, [buildQueue]);
+
   const getBarracksLevel = useCallback(() => {
     const barracks = buildings.find(b => b.type === 'barracks');
     return barracks?.level || 0;
@@ -619,48 +661,52 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const buildAt = useCallback(async (position: number, type: Exclude<BuildingType, 'empty'>) => {
     if (!villageId || !user) return false;
-    // House limit check
     if (type === 'house' && currentHouses >= maxHouses) return false;
     const cost = getUpgradeCost(type, 0);
     if (!canAfford(cost)) return false;
     if (cost.steel > 0 && !canAffordSteel(cost.steel)) return false;
     const newResources = { gold: resources.gold - cost.gold, wood: resources.wood - cost.wood, stone: resources.stone - cost.stone, food: resources.food - cost.food };
-    const { data, error } = await supabase.from('buildings').insert({ village_id: villageId, user_id: user.id, type, level: 1, position }).select().single();
+    // Insert building at level 0 (under construction), queue will set it to 1
+    const { data, error } = await supabase.from('buildings').insert({ village_id: villageId, user_id: user.id, type, level: 0, position }).select().single();
     if (error) return false;
     await supabase.from('villages').update(newResources).eq('id', villageId);
     setResources(newResources);
     if (cost.steel > 0) setSteel(prev => prev - cost.steel);
-    setBuildings(prev => [...prev, { id: data.id, type: type as BuildingType, level: 1, position, village_id: villageId }]);
+    setBuildings(prev => [...prev, { id: data.id, type: type as BuildingType, level: 0, position, village_id: villageId }]);
+    const buildTime = getBuildTime(type, 0);
+    setBuildQueue(prev => [...prev, { buildingId: data.id, buildingType: type as BuildingType, targetLevel: 1, finishTime: Date.now() + buildTime * 1000 }]);
     return true;
-  }, [villageId, user, resources, canAfford, canAffordSteel, currentHouses, maxHouses]);
+  }, [villageId, user, resources, canAfford, canAffordSteel, currentHouses, maxHouses, getBuildTime]);
 
   const upgradeBuilding = useCallback(async (id: string) => {
     if (!villageId || !user) return false;
     const building = buildings.find(b => b.id === id);
     if (!building || building.type === 'empty') return false;
+    // Check if already upgrading
+    if (buildQueue.some(q => q.buildingId === id)) return false;
     const info = BUILDING_INFO[building.type];
     if (building.level >= info.maxLevel) return false;
     const cost = getUpgradeCost(building.type, building.level);
     if (!canAfford(cost)) return false;
     if (cost.steel > 0 && !canAffordSteel(cost.steel)) return false;
     const newResources = { gold: resources.gold - cost.gold, wood: resources.wood - cost.wood, stone: resources.stone - cost.stone, food: resources.food - cost.food };
-    const newLevel = building.level + 1;
-    const { error } = await supabase.from('buildings').update({ level: newLevel }).eq('id', id);
-    if (error) return false;
     await supabase.from('villages').update(newResources).eq('id', villageId);
     setResources(newResources);
     if (cost.steel > 0) setSteel(prev => prev - cost.steel);
-    setBuildings(prev => prev.map(b => b.id === id ? { ...b, level: newLevel } : b));
+    const newLevel = building.level + 1;
+    const buildTime = getBuildTime(building.type, building.level);
+    setBuildQueue(prev => [...prev, { buildingId: id, buildingType: building.type as BuildingType, targetLevel: newLevel, finishTime: Date.now() + buildTime * 1000 }]);
     return true;
-  }, [buildings, villageId, user, resources, canAfford, canAffordSteel]);
+  }, [buildings, villageId, user, resources, canAfford, canAffordSteel, buildQueue, getBuildTime]);
 
   return (
     <GameContext.Provider value={{
       resources, steel, buildings, villageName, villageId, playerLevel, displayName,
       buildAt, upgradeBuilding, canAfford, canAffordSteel, totalProduction, allVillages, loading,
-      army, trainingQueue, battleLogs, trainTroops, getBarracksLevel, totalArmyPower, addResources, addSteel, attackTarget, armyUpkeep,
+      army, trainingQueue, buildQueue, battleLogs, trainTroops, getBarracksLevel, totalArmyPower, addResources, addSteel, attackTarget, armyUpkeep,
       population, workerAssignments, assignWorker, unassignWorker, getMaxWorkers,
       rations, setRations, popTaxRate, setPopTaxRate, popFoodCost, popTaxIncome,
+      isBuildingUpgrading, getBuildTime,
     }}>
       {children}
     </GameContext.Provider>
