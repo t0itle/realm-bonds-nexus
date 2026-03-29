@@ -1262,6 +1262,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       rations, setRations, popTaxRate, setPopTaxRate, popFoodCost, popTaxIncome,
       isBuildingUpgrading, getBuildTime,
       spies, trainSpies, sendSpyMission, activeSpyMissions, intelReports, getWatchtowerLevel,
+      attackPlayer, vassalages, payRansom, attemptRebellion, getWallLevel,
     }}>
       {children}
     </GameContext.Provider>
