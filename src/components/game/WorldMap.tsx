@@ -4,6 +4,28 @@ import { useGame, TroopType, Resources } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
+// Map sprites
+import mapCastleHostile from '@/assets/sprites/map-castle-hostile.png';
+import mapCastleNeutral from '@/assets/sprites/map-castle-neutral.png';
+import mapCastleFriendly from '@/assets/sprites/map-castle-friendly.png';
+import mapEventDanger from '@/assets/sprites/map-event-danger.png';
+import mapEventOpportunity from '@/assets/sprites/map-event-opportunity.png';
+import mapEventMystery from '@/assets/sprites/map-event-mystery.png';
+import mapMine from '@/assets/sprites/map-mine.png';
+import mapPlayer from '@/assets/sprites/map-player.png';
+
+const REALM_SPRITES: Record<string, string> = {
+  hostile: mapCastleHostile,
+  neutral: mapCastleNeutral,
+  friendly: mapCastleFriendly,
+};
+
+const EVENT_SPRITES: Record<string, string> = {
+  danger: mapEventDanger,
+  opportunity: mapEventOpportunity,
+  mystery: mapEventMystery,
+};
+
 // ── Seeded random for deterministic procedural generation ──
 function seededRandom(seed: number) {
   let s = seed % 2147483647;
@@ -900,10 +922,13 @@ export default function WorldMap() {
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'npc', data: realm }); }}
               className="absolute flex flex-col items-center z-10 hover:z-20"
               style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
-              <div className={`rounded-full ${TYPE_COLORS[realm.type]} flex items-center justify-center shadow-lg border-2 border-background/30`}
-                style={{ width: iconSize, height: iconSize, fontSize: iconSize * 0.5 }}>
-                {realm.emoji}
-              </div>
+              <img
+                src={REALM_SPRITES[realm.type]}
+                alt={realm.name}
+                loading="lazy"
+                className="drop-shadow-lg"
+                style={{ width: iconSize, height: iconSize, imageRendering: 'auto' }}
+              />
               {iconSize > 28 && (
                 <div className="text-center bg-background/80 rounded mt-0.5 px-1.5 py-0.5">
                   <p className="font-display text-foreground leading-tight whitespace-nowrap" style={{ fontSize: Math.max(8, fontSize - 2) }}>{realm.name}</p>
@@ -923,9 +948,15 @@ export default function WorldMap() {
           return (
             <button key={event.id} data-map-item
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'event', data: event, chunkKey: '', index: 0 }); }}
-              className={`absolute z-20 rounded-full border-2 ${EVENT_COLORS[event.type]} flex items-center justify-center shadow-md animate-float`}
-              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', width: eventSize, height: eventSize, fontSize: eventSize * 0.5 }}>
-              {event.emoji}
+              className="absolute z-20"
+              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
+              <img
+                src={EVENT_SPRITES[event.type]}
+                alt={event.name}
+                loading="lazy"
+                className="drop-shadow-lg"
+                style={{ width: eventSize, height: eventSize, imageRendering: 'auto' }}
+              />
             </button>
           );
         })}
@@ -938,11 +969,15 @@ export default function WorldMap() {
           return (
             <button key={mine.id} data-map-item
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'mine', data: mine }); }}
-              className={`absolute z-20 rounded-lg border-2 flex items-center justify-center shadow-md ${
-                isCaptured ? 'border-primary/60 bg-primary/20 animate-pulse-gold' : 'border-muted-foreground/40 bg-muted/60'
-              }`}
-              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', width: eventSize, height: eventSize, fontSize: eventSize * 0.5 }}>
-              ⚙️
+              className={`absolute z-20 ${isCaptured ? 'animate-pulse-gold' : ''}`}
+              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
+              <img
+                src={mapMine}
+                alt={mine.name}
+                loading="lazy"
+                className={`drop-shadow-lg ${isCaptured ? 'brightness-125' : 'brightness-75'}`}
+                style={{ width: eventSize, height: eventSize, imageRendering: 'auto' }}
+              />
             </button>
           );
         }))}
@@ -957,9 +992,14 @@ export default function WorldMap() {
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'player', data: pv }); }}
               className="absolute z-30 flex flex-col items-center hover:z-40"
               style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
-              <div className={`rounded-lg flex items-center justify-center shadow-lg ${
-                isMe ? 'bg-primary animate-pulse-gold ring-2 ring-primary/50' : 'bg-secondary border border-border'
-              }`} style={{ width: iconSize * 0.9, height: iconSize * 0.9, fontSize: iconSize * 0.45 }}>🏰</div>
+              <img
+                src={mapPlayer}
+                alt={pv.profile.display_name}
+                loading="lazy"
+                className={`drop-shadow-lg ${isMe ? 'brightness-110' : 'brightness-75 grayscale-[30%]'}`}
+                style={{ width: iconSize * 0.9, height: iconSize * 0.9, imageRendering: 'auto' }}
+              />
+              {isMe && <div className="absolute -inset-1 rounded-lg ring-2 ring-primary/50 pointer-events-none" />}
               {iconSize > 28 && (
                 <div className="text-center bg-background/80 rounded mt-0.5 px-1 py-0.5">
                   <p className="font-display text-foreground whitespace-nowrap" style={{ fontSize: Math.max(7, fontSize - 2) }}>{isMe ? '⭐ You' : pv.profile.display_name}</p>
