@@ -6,12 +6,17 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  signUp: (email: string, password: string, displayName: string) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (displayName: string, password: string, email?: string) => Promise<{ error: any }>;
+  signIn: (identifier: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
+
+function usernameToEmail(username: string): string {
+  const sanitized = username.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+  return `${sanitized}@realm.local`;
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -34,9 +39,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, displayName: string) => {
+  const signUp = async (displayName: string, password: string, email?: string) => {
+    const finalEmail = email && email.trim() ? email.trim() : usernameToEmail(displayName);
     const { error } = await supabase.auth.signUp({
-      email,
+      email: finalEmail,
       password,
       options: {
         data: { display_name: displayName },
@@ -46,7 +52,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (identifier: string, password: string) => {
+    // If identifier looks like an email, use it directly; otherwise convert username to email
+    const email = identifier.includes('@') ? identifier : usernameToEmail(identifier);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error };
   };

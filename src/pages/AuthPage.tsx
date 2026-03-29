@@ -5,9 +5,10 @@ import { motion } from 'framer-motion';
 export default function AuthPage() {
   const { signIn, signUp } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
+  const [showEmail, setShowEmail] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -16,12 +17,24 @@ export default function AuthPage() {
     setError('');
     setLoading(true);
 
-    const result = isSignUp
-      ? await signUp(email, password, displayName || 'Wanderer')
-      : await signIn(email, password);
-
-    if (result.error) {
-      setError(result.error.message);
+    if (isSignUp) {
+      if (!username.trim()) {
+        setError('Ruler name is required');
+        setLoading(false);
+        return;
+      }
+      const result = await signUp(username.trim(), password, showEmail ? email : undefined);
+      if (result.error) setError(result.error.message);
+    } else {
+      // Sign in: accept username or email
+      const identifier = email.trim() || username.trim();
+      if (!identifier) {
+        setError('Enter your username or email');
+        setLoading(false);
+        return;
+      }
+      const result = await signIn(identifier, password);
+      if (result.error) setError(result.error.message);
     }
     setLoading(false);
   };
@@ -52,30 +65,46 @@ export default function AuthPage() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-3">
-          {isSignUp && (
-            <div>
-              <label className="text-xs font-display text-muted-foreground block mb-1">Ruler Name</label>
-              <input
-                type="text"
-                value={displayName}
-                onChange={e => setDisplayName(e.target.value)}
-                placeholder="Lord Shadowmere"
-                className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-            </div>
-          )}
-
           <div>
-            <label className="text-xs font-display text-muted-foreground block mb-1">Email</label>
+            <label className="text-xs font-display text-muted-foreground block mb-1">
+              {isSignUp ? 'Ruler Name' : 'Username or Email'}
+            </label>
             <input
-              type="email"
+              type="text"
+              value={isSignUp ? username : (email || username)}
+              onChange={e => isSignUp ? setUsername(e.target.value) : (e.target.value.includes('@') ? setEmail(e.target.value) : setUsername(e.target.value))}
+              placeholder={isSignUp ? 'Lord Shadowmere' : 'Username or email'}
               required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="ruler@realm.com"
               className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
+
+          {isSignUp && (
+            <>
+              {showEmail ? (
+                <div>
+                  <label className="text-xs font-display text-muted-foreground block mb-1">
+                    Email <span className="text-muted-foreground/60">(optional)</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="ruler@realm.com"
+                    className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowEmail(true)}
+                  className="text-[10px] text-primary hover:underline"
+                >
+                  + Add email (optional, for password recovery)
+                </button>
+              )}
+            </>
+          )}
 
           <div>
             <label className="text-xs font-display text-muted-foreground block mb-1">Password</label>
@@ -105,7 +134,7 @@ export default function AuthPage() {
         </form>
 
         <button
-          onClick={() => { setIsSignUp(!isSignUp); setError(''); }}
+          onClick={() => { setIsSignUp(!isSignUp); setError(''); setShowEmail(false); setEmail(''); setUsername(''); }}
           className="w-full text-center text-xs text-muted-foreground hover:text-primary transition-colors"
         >
           {isSignUp ? 'Already have a kingdom? Sign in' : "New ruler? Create your kingdom"}
