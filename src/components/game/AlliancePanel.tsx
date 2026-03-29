@@ -3,6 +3,9 @@ import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import AllianceResourceSharing from './AllianceResourceSharing';
+import GuildChat from './GuildChat';
+import GuildTaxPanel from './GuildTaxPanel';
+import GuildContracts from './GuildContracts';
 
 interface Alliance {
   id: string;
