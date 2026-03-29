@@ -228,6 +228,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [army, setArmy] = useState<Army>({ ...EMPTY_ARMY });
   const [trainingQueue, setTrainingQueue] = useState<TrainingQueue[]>([]);
   const [battleLogs, setBattleLogs] = useState<BattleLog[]>([]);
+  const [buildQueue, setBuildQueue] = useState<BuildQueue[]>([]);
   const [workerAssignments, setWorkerAssignments] = useState<WorkerAssignments>({});
   const [populationBase, setPopulationBase] = useState(10);
   const [maxPopBase, setMaxPopBase] = useState(20);
@@ -523,6 +524,36 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }, 1000);
     return () => clearInterval(interval);
   }, [trainingQueue.length]);
+
+  // Build queue processing
+  useEffect(() => {
+    if (buildQueue.length === 0) return;
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setBuildQueue(prev => {
+        const completed = prev.filter(q => q.finishTime <= now);
+        const remaining = prev.filter(q => q.finishTime > now);
+        if (completed.length > 0) {
+          completed.forEach(q => {
+            // Apply the level upgrade
+            supabase.from('buildings').update({ level: q.targetLevel }).eq('id', q.buildingId).then();
+            setBuildings(prevB => prevB.map(b => b.id === q.buildingId ? { ...b, level: q.targetLevel } : b));
+          });
+        }
+        return remaining;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [buildQueue.length]);
+
+  const getBuildTime = useCallback((type: Exclude<BuildingType, 'empty'>, level: number) => {
+    const info = BUILDING_INFO[type];
+    return Math.floor(info.buildTime * Math.pow(1.3, level)); // scales with level
+  }, []);
+
+  const isBuildingUpgrading = useCallback((buildingId: string) => {
+    return buildQueue.find(q => q.buildingId === buildingId);
+  }, [buildQueue]);
 
   const getBarracksLevel = useCallback(() => {
     const barracks = buildings.find(b => b.type === 'barracks');
