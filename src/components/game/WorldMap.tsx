@@ -37,10 +37,20 @@ interface TerrainFeature {
   name: string;
 }
 
+interface SteelMine {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  steelPerTick: number;
+  power: number; // garrison power to defeat
+}
+
 interface ChunkData {
   realms: ProceduralRealm[];
   events: ProceduralEvent[];
   terrain: TerrainFeature[];
+  steelMines: SteelMine[];
   regionName: string;
   regionBiome: string;
 }
