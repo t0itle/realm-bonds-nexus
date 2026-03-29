@@ -46,6 +46,53 @@ export type Database = {
           },
         ]
       }
+      alliance_resource_transfers: {
+        Row: {
+          alliance_id: string
+          created_at: string
+          food: number
+          gold: number
+          id: string
+          message: string | null
+          receiver_id: string
+          sender_id: string
+          stone: number
+          wood: number
+        }
+        Insert: {
+          alliance_id: string
+          created_at?: string
+          food?: number
+          gold?: number
+          id?: string
+          message?: string | null
+          receiver_id: string
+          sender_id: string
+          stone?: number
+          wood?: number
+        }
+        Update: {
+          alliance_id?: string
+          created_at?: string
+          food?: number
+          gold?: number
+          id?: string
+          message?: string | null
+          receiver_id?: string
+          sender_id?: string
+          stone?: number
+          wood?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alliance_resource_transfers_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alliances: {
         Row: {
           created_at: string

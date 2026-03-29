@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import AllianceResourceSharing from './AllianceResourceSharing';
 
 interface Alliance {
   id: string;
@@ -162,6 +163,11 @@ export default function AlliancePanel() {
           </>
         )}
       </div>
+
+      {/* Resource sharing for alliance members */}
+      {myAlliance && (
+        <AllianceResourceSharing allianceId={myAlliance} />
+      )}
 
       {/* Alliance rankings */}
       <div>
