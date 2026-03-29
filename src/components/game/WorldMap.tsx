@@ -405,7 +405,7 @@ export default function WorldMap() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="px-3 pt-2 pb-1 flex items-center justify-between">
-        <h2 className="font-display text-sm text-foreground text-shadow-gold">World Map</h2>
+        <h2 className="font-display text-sm text-foreground text-shadow-gold">Map</h2>
         <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
           <span>⚔️{power.attack} 🛡️{power.defense}</span>
           <span>×{(camera.ppu * 1000).toFixed(1)}</span>
