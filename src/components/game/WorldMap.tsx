@@ -343,13 +343,20 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
   return { realms, events, terrain, steelMines, regionName, regionBiome };
 }
 
-// ── Chunk cache ──
+// ── Chunk cache (time-keyed so events rotate) ──
 const chunkCache = new Map<string, ChunkData>();
+let chunkCacheTimeSeed = Math.floor(Date.now() / (1000 * 60 * 30));
+
 function getChunk(cx: number, cy: number): ChunkData {
+  const currentTimeSeed = Math.floor(Date.now() / (1000 * 60 * 30));
+  // Invalidate cache when time seed changes (events rotate every 30min)
+  if (currentTimeSeed !== chunkCacheTimeSeed) {
+    chunkCache.clear();
+    chunkCacheTimeSeed = currentTimeSeed;
+  }
   const key = `${cx},${cy}`;
   if (!chunkCache.has(key)) {
     chunkCache.set(key, generateChunk(cx, cy));
-    // Evict old chunks if cache gets too large
     if (chunkCache.size > 200) {
       const first = chunkCache.keys().next().value;
       if (first) chunkCache.delete(first);
