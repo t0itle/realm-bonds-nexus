@@ -1,14 +1,52 @@
-import { useGame, TROOP_INFO, TroopType, BUILDING_INFO, BuildingType } from '@/hooks/useGameState';
+import { useGame, TROOP_INFO, TroopType, BUILDING_INFO, BuildingType, RATIONS_INFO, RationsLevel } from '@/hooks/useGameState';
 
 export default function StatSheet() {
-  const { population, army, armyUpkeep, totalProduction, resources, steel, buildings, workerAssignments, assignWorker, unassignWorker, getMaxWorkers } = useGame();
+  const {
+    population, army, armyUpkeep, totalProduction, resources, steel, buildings,
+    workerAssignments, assignWorker, unassignWorker, getMaxWorkers,
+    rations, setRations, popTaxRate, setPopTaxRate, popFoodCost, popTaxIncome,
+  } = useGame();
   const upkeep = armyUpkeep();
-
   const totalTroops = Object.values(army).reduce((s, v) => s + v, 0);
+
+  const happinessColor = population.happiness >= 70 ? 'text-emerald-500' : population.happiness >= 40 ? 'text-amber-500' : 'text-destructive';
+  const happinessEmoji = population.happiness >= 70 ? '😊' : population.happiness >= 40 ? '😐' : '😞';
 
   return (
     <div className="flex-1 flex flex-col p-3 space-y-3 overflow-y-auto pb-20">
       <h2 className="font-display text-lg text-foreground text-shadow-gold">Kingdom Stats</h2>
+
+      {/* Happiness */}
+      <div className="game-panel border-glow rounded-xl p-3 space-y-2">
+        <h3 className="font-display text-xs text-foreground flex items-center gap-1">{happinessEmoji} Happiness</h3>
+        <div className="flex items-center gap-2">
+          <div className="flex-1 bg-muted rounded-full h-3 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${population.happiness >= 70 ? 'bg-emerald-500' : population.happiness >= 40 ? 'bg-amber-500' : 'bg-destructive'}`}
+              style={{ width: `${population.happiness}%` }}
+            />
+          </div>
+          <span className={`text-xs font-bold tabular-nums ${happinessColor}`}>{population.happiness}%</span>
+        </div>
+        <div className="text-[9px] text-muted-foreground space-y-0.5">
+          <p>⛪ Temples boost happiness through religion</p>
+          <p>🍖 Generous rations increase happiness, scarce lowers it</p>
+          <p>🏠 Overcrowding and high taxes reduce happiness</p>
+          <p>😊 High happiness attracts more settlers</p>
+        </div>
+      </div>
+
+      {/* Housing */}
+      <div className="game-panel border-glow rounded-xl p-3 space-y-2">
+        <h3 className="font-display text-xs text-foreground flex items-center gap-1">🏠 Housing</h3>
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="flex justify-between"><span className="text-muted-foreground">Housing Capacity</span><span className="text-foreground font-bold">{population.housingCapacity}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Current Pop</span><span className="text-foreground font-bold">{population.current}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Houses Built</span><span className="text-foreground font-bold">{population.currentHouses}/{population.maxHouses}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Available Slots</span><span className={`font-bold ${population.housingCapacity - population.current > 0 ? 'text-emerald-500' : 'text-destructive'}`}>{Math.max(0, population.housingCapacity - population.current)}</span></div>
+        </div>
+        <p className="text-[9px] text-muted-foreground">Max houses = Town Hall level × 2. Upgrade Town Hall to build more.</p>
+      </div>
 
       {/* Population Overview */}
       <div className="game-panel border-glow rounded-xl p-3 space-y-2">
@@ -40,12 +78,64 @@ export default function StatSheet() {
         <p className="text-[9px] text-muted-foreground">Army Cap: ⚔️ {population.armyCap} (from Barracks + workers)</p>
       </div>
 
+      {/* Rations Control */}
+      <div className="game-panel border-glow rounded-xl p-3 space-y-2">
+        <h3 className="font-display text-xs text-foreground flex items-center gap-1">🍖 Rations</h3>
+        <div className="grid grid-cols-3 gap-1.5">
+          {(['scarce', 'normal', 'generous'] as RationsLevel[]).map(r => {
+            const info = RATIONS_INFO[r];
+            const active = rations === r;
+            return (
+              <button
+                key={r}
+                onClick={() => setRations(r)}
+                className={`rounded-lg p-2 text-center transition-all border ${
+                  active ? 'border-primary bg-primary/10 text-foreground' : 'border-border bg-muted/30 text-muted-foreground'
+                }`}
+              >
+                <p className="text-xs font-display font-bold">{info.label}</p>
+                <p className="text-[8px]">{info.foodMultiplier}× food</p>
+                <p className={`text-[8px] ${info.happinessBonus > 0 ? 'text-emerald-500' : info.happinessBonus < 0 ? 'text-destructive' : ''}`}>
+                  {info.happinessBonus > 0 ? '+' : ''}{info.happinessBonus} 😊
+                </p>
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground">Pop Food Cost</span>
+          <span className="text-destructive">🌾 -{popFoodCost}/min</span>
+        </div>
+      </div>
+
+      {/* Tax Control */}
+      <div className="game-panel border-glow rounded-xl p-3 space-y-2">
+        <h3 className="font-display text-xs text-foreground flex items-center gap-1">💰 Population Tax</h3>
+        <div className="flex items-center gap-3">
+          <input
+            type="range"
+            min={0} max={30} step={1}
+            value={popTaxRate}
+            onChange={e => setPopTaxRate(Number(e.target.value))}
+            className="flex-1 accent-primary"
+          />
+          <span className="text-xs font-bold text-foreground w-8 text-right">{popTaxRate}%</span>
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground">Tax Income</span>
+          <span className="text-emerald-500">💰 +{popTaxIncome}/min</span>
+        </div>
+        {popTaxRate > 10 && (
+          <p className="text-[9px] text-destructive">⚠️ High taxes reduce happiness by -{(popTaxRate - 10) * 2}</p>
+        )}
+      </div>
+
       {/* Resources & Steel */}
       <div className="game-panel border-glow rounded-xl p-3 space-y-1.5">
         <h3 className="font-display text-xs text-foreground">📊 Resource Summary</h3>
         <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
           <div className="flex justify-between"><span className="text-muted-foreground">💰 Gold</span><span className="text-foreground">{resources.gold.toLocaleString()}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">+/min</span><span className="text-primary">+{totalProduction.gold}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">+/min</span><span className="text-primary">+{totalProduction.gold + popTaxIncome}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">🪵 Wood</span><span className="text-foreground">{resources.wood.toLocaleString()}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">+/min</span><span className="text-primary">+{totalProduction.wood}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">🪨 Stone</span><span className="text-foreground">{resources.stone.toLocaleString()}</span></div>
@@ -83,8 +173,8 @@ export default function StatSheet() {
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Net Food</span>
-            <span className={totalProduction.food - upkeep.food * 60 >= 0 ? 'text-emerald-500' : 'text-destructive'}>
-              {totalProduction.food - upkeep.food * 60 >= 0 ? '+' : ''}{totalProduction.food - upkeep.food * 60}/min
+            <span className={totalProduction.food - upkeep.food * 60 - popFoodCost >= 0 ? 'text-emerald-500' : 'text-destructive'}>
+              {totalProduction.food - upkeep.food * 60 - popFoodCost >= 0 ? '+' : ''}{totalProduction.food - upkeep.food * 60 - popFoodCost}/min
             </span>
           </div>
         </div>
@@ -133,9 +223,9 @@ export default function StatSheet() {
         <h3 className="font-display text-xs text-foreground">🏠 Civilian Costs</h3>
         <div className="flex justify-between text-xs">
           <span className="text-muted-foreground">Civilian food consumption</span>
-          <span className="text-destructive">🌾-{Math.floor(population.civilians * 0.5)}/min</span>
+          <span className="text-destructive">🌾-{popFoodCost}/min</span>
         </div>
-        <p className="text-[9px] text-muted-foreground">Each idle civilian consumes 0.5 food/min. Workers and soldiers have separate upkeep.</p>
+        <p className="text-[9px] text-muted-foreground">Based on rations: {RATIONS_INFO[rations].description}</p>
       </div>
     </div>
   );
