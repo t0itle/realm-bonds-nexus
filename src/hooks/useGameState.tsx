@@ -288,6 +288,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [happinessBase, setHappinessBase] = useState(50);
   const [rations, setRations] = useState<RationsLevel>('normal');
   const [popTaxRate, setPopTaxRate] = useState(5);
+  const [spies, setSpies] = useState(0);
+  const [activeSpyMissions, setActiveSpyMissions] = useState<ActiveSpyMission[]>([]);
+  const [intelReports, setIntelReports] = useState<IntelReport[]>([]);
 
   // Load player data
   useEffect(() => {
