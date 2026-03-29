@@ -121,13 +121,15 @@ export default function GameLayout() {
             transition={{ duration: 0.15 }}
             className="absolute inset-0 flex flex-col overflow-y-auto"
           >
-            {activeTab === 'village' && <VillageGrid />}
-            {activeTab === 'military' && <MilitaryPanel />}
-            {activeTab === 'stats' && <StatSheet />}
-            {activeTab === 'map' && <WorldMap />}
-            {activeTab === 'messages' && <MessagesPanel initialDm={dmTarget} onDmHandled={() => setDmTarget(null)} />}
-            {activeTab === 'alliance' && <AlliancePanel />}
-            {activeTab === 'profile' && <ProfilePanel />}
+            <Suspense fallback={<TabFallback />}>
+              {activeTab === 'village' && <VillageGrid />}
+              {activeTab === 'military' && <MilitaryPanel />}
+              {activeTab === 'stats' && <StatSheet />}
+              {activeTab === 'map' && <WorldMap />}
+              {activeTab === 'messages' && <MessagesPanel initialDm={dmTarget} onDmHandled={() => setDmTarget(null)} />}
+              {activeTab === 'alliance' && <AlliancePanel />}
+              {activeTab === 'profile' && <ProfilePanel />}
+            </Suspense>
           </motion.div>
         </AnimatePresence>
       </div>
