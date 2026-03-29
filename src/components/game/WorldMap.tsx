@@ -246,11 +246,9 @@ export default function WorldMap() {
         {/* Grid lines rendered as screen-space SVG */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible' }}>
           {(() => {
-            const rect = containerRef.current;
-            if (!rect) return null;
-            const w = rect.clientWidth;
-            const h = rect.clientHeight;
-            // Determine grid spacing based on zoom
+            const w = containerSize.w;
+            const h = containerSize.h;
+            if (w === 0 || h === 0) return null;
             const gridStep = camera.ppu > 0.01 ? 10000 : camera.ppu > 0.003 ? 20000 : camera.ppu > 0.001 ? 50000 : 100000;
             const lines: JSX.Element[] = [];
             const startX = Math.floor((camera.cx - w / 2 / camera.ppu) / gridStep) * gridStep;
@@ -274,6 +272,9 @@ export default function WorldMap() {
               lines.push(
                 <text key={`ly-${gy}`} x={4} y={sy - 4} fill="hsl(42 72% 52% / 0.3)" fontSize={10} fontFamily="Inter">{(gy / 1000).toFixed(0)}k</text>
               );
+            }
+            return lines;
+          })()}
             }
             return lines;
           })()}
