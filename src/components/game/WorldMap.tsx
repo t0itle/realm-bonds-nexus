@@ -132,7 +132,7 @@ export default function WorldMap() {
     if (!dragStart.current) return;
     const dx = e.clientX - dragStart.current.x;
     const dy = e.clientY - dragStart.current.y;
-    setCamera(prev => ({
+    safeSetCamera(prev => ({
       ...prev,
       cx: dragStart.current!.cx - dx / prev.ppu,
       cy: dragStart.current!.cy - dy / prev.ppu,
@@ -152,7 +152,7 @@ export default function WorldMap() {
     if (e.touches.length === 2 && lastTouchDist.current) {
       const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
       const scale = d / lastTouchDist.current;
-      setCamera(prev => ({ ...prev, ppu: Math.max(0.0005, Math.min(0.05, prev.ppu * scale)) }));
+      safeSetCamera(prev => ({ ...prev, ppu: Math.max(0.0005, Math.min(0.05, prev.ppu * scale)) }));
       lastTouchDist.current = d;
     }
   }, []);
@@ -378,9 +378,9 @@ export default function WorldMap() {
 
         {/* Zoom controls */}
         <div className="absolute bottom-3 right-3 flex flex-col gap-1 z-50">
-          <button onClick={() => setCamera(prev => ({ ...prev, ppu: Math.min(0.05, prev.ppu * 1.5) }))}
+          <button onClick={() => safeSetCamera(prev => ({ ...prev, ppu: Math.min(0.05, prev.ppu * 1.5) }))}
             className="w-8 h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-sm font-bold">+</button>
-          <button onClick={() => setCamera(prev => ({ ...prev, ppu: Math.max(0.0005, prev.ppu / 1.5) }))}
+          <button onClick={() => safeSetCamera(prev => ({ ...prev, ppu: Math.max(0.0005, prev.ppu / 1.5) }))}
             className="w-8 h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-sm font-bold">−</button>
           <button onClick={goHome}
             className="w-8 h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-[9px]">⌂</button>
