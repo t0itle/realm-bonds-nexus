@@ -186,6 +186,7 @@ interface GameContextType {
   loading: boolean;
   army: Army;
   trainingQueue: TrainingQueue[];
+  buildQueue: BuildQueue[];
   battleLogs: BattleLog[];
   trainTroops: (type: TroopType, count: number) => boolean;
   getBarracksLevel: () => number;
@@ -205,6 +206,8 @@ interface GameContextType {
   setPopTaxRate: (r: number) => void;
   popFoodCost: number;
   popTaxIncome: number;
+  isBuildingUpgrading: (buildingId: string) => BuildQueue | undefined;
+  getBuildTime: (type: Exclude<BuildingType, 'empty'>, level: number) => number;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
