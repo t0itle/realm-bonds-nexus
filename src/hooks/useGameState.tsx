@@ -129,6 +129,52 @@ export interface BuildQueue {
   finishTime: number;
 }
 
+// === ESPIONAGE SYSTEM ===
+export type SpyMission = 'scout' | 'sabotage' | 'demoralize';
+
+export interface SpyMissionInfo {
+  name: string;
+  emoji: string;
+  description: string;
+  goldCost: number;
+  baseSuccessRate: number; // 0-1
+  spiesRequired: number;
+}
+
+export const SPY_MISSION_INFO: Record<SpyMission, SpyMissionInfo> = {
+  scout: { name: 'Scout', emoji: '🔍', description: 'Gather intel on a target. Reveals troops, resources, and defenses.', goldCost: 50, baseSuccessRate: 0.75, spiesRequired: 1 },
+  sabotage: { name: 'Sabotage', emoji: '💣', description: 'Destroy resources and damage buildings. High risk.', goldCost: 120, baseSuccessRate: 0.45, spiesRequired: 2 },
+  demoralize: { name: 'Demoralize', emoji: '😈', description: 'Spread propaganda to decrease target happiness.', goldCost: 80, baseSuccessRate: 0.55, spiesRequired: 1 },
+};
+
+export interface IntelReport {
+  id: string;
+  targetName: string;
+  targetId: string;
+  mission: SpyMission;
+  result: 'success' | 'failure' | 'caught';
+  timestamp: number;
+  data?: {
+    troops?: Partial<Army>;
+    resources?: Partial<Resources>;
+    defenses?: number;
+    happinessDrop?: number;
+    resourcesDestroyed?: Partial<Resources>;
+  };
+}
+
+export interface ActiveSpyMission {
+  id: string;
+  mission: SpyMission;
+  targetName: string;
+  targetId: string;
+  spiesCount: number;
+  departTime: number;
+  arrivalTime: number;
+  returnTime: number;
+  phase: 'traveling' | 'operating' | 'returning';
+}
+
 export interface BattleLog {
   id: string;
   target: string;
@@ -208,6 +254,13 @@ interface GameContextType {
   popTaxIncome: number;
   isBuildingUpgrading: (buildingId: string) => BuildQueue | undefined;
   getBuildTime: (type: Exclude<BuildingType, 'empty'>, level: number) => number;
+  // Espionage
+  spies: number;
+  trainSpies: (count: number) => boolean;
+  sendSpyMission: (mission: SpyMission, targetName: string, targetId: string, targetX: number, targetY: number, spiesCount: number) => boolean;
+  activeSpyMissions: ActiveSpyMission[];
+  intelReports: IntelReport[];
+  getWatchtowerLevel: () => number;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
