@@ -399,6 +399,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [spies, setSpies] = useState(0);
   const [activeSpyMissions, setActiveSpyMissions] = useState<ActiveSpyMission[]>([]);
   const [intelReports, setIntelReports] = useState<IntelReport[]>([]);
+  const [vassalages, setVassalages] = useState<Vassalage[]>([]);
 
   // Wrap setRations and setPopTaxRate to immediately persist to DB
   const setRations = useCallback((r: RationsLevel) => {
