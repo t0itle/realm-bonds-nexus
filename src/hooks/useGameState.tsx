@@ -173,6 +173,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setVillageName(village.name);
         setPlayerLevel(village.level);
         setResources({ gold: Number(village.gold), wood: Number(village.wood), stone: Number(village.stone), food: Number(village.food) });
+        // Load persisted army
+        setArmy({
+          militia: (village as any).army_militia ?? 0,
+          archer: (village as any).army_archer ?? 0,
+          knight: (village as any).army_knight ?? 0,
+          cavalry: (village as any).army_cavalry ?? 0,
+          siege: (village as any).army_siege ?? 0,
+        });
 
         const { data: blds } = await supabase.from('buildings').select('*').eq('village_id', village.id);
         if (blds) {
