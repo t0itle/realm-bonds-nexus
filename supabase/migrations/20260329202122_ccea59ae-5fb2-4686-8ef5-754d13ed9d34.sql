@@ -1,0 +1,4 @@
+ALTER TABLE public.villages 
+  ADD COLUMN IF NOT EXISTS happiness integer NOT NULL DEFAULT 50,
+  ADD COLUMN IF NOT EXISTS rations text NOT NULL DEFAULT 'normal',
+  ADD COLUMN IF NOT EXISTS pop_tax_rate integer NOT NULL DEFAULT 5;
