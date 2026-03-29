@@ -324,11 +324,11 @@ export default function WorldMap() {
 
         {/* Zoom controls */}
         <div className="absolute bottom-3 right-3 flex flex-col gap-1 z-50">
-          <button onClick={() => setZoom(prev => Math.min(MAX_ZOOM, prev + 0.15))}
+          <button onClick={() => setZoom(prev => Math.min(MAX_ZOOM, prev * 1.5))}
             className="w-8 h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-sm font-bold">+</button>
-          <button onClick={() => setZoom(prev => Math.max(MIN_ZOOM, prev - 0.15))}
+          <button onClick={() => setZoom(prev => Math.max(MIN_ZOOM, prev / 1.5))}
             className="w-8 h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-sm font-bold">−</button>
-          <button onClick={() => { setZoom(0.5); setOffset({ x: -600, y: -600 }); }}
+          <button onClick={() => { setZoom(0.05); setOffset({ x: -50000, y: -50000 }); }}
             className="w-8 h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-[9px]">⌂</button>
         </div>
 
