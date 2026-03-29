@@ -267,20 +267,21 @@ export default function WorldMap() {
               key={realm.id}
               data-map-item
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'npc', data: realm }); }}
-              className="absolute flex flex-col items-center gap-0.5 -translate-x-1/2 -translate-y-1/2 z-10 hover:z-20"
+              className="absolute flex flex-col items-center -translate-x-1/2 -translate-y-1/2 z-10 hover:z-20"
               style={{ left: realm.x, top: realm.y }}
             >
               <div className="relative">
-                <div className={`w-10 h-10 rounded-full ${TYPE_COLORS[realm.type]} flex items-center justify-center text-lg shadow-lg border-2 border-background/30`}>
+                <div className={`rounded-full ${TYPE_COLORS[realm.type]} flex items-center justify-center shadow-lg border-background/30`}
+                  style={{ width: 800, height: 800, fontSize: 400, borderWidth: 16 }}>
                   {realm.emoji}
                 </div>
                 {realm.type === 'hostile' && (
-                  <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-destructive animate-pulse border border-background" />
+                  <div className="absolute bg-destructive animate-pulse border-background rounded-full" style={{ top: -80, right: -80, width: 240, height: 240, borderWidth: 8 }} />
                 )}
               </div>
-              <div className="text-center bg-background/80 px-1.5 py-0.5 rounded">
-                <p className="text-[8px] font-display text-foreground leading-tight whitespace-nowrap">{realm.name}</p>
-                <p className="text-[7px] text-muted-foreground">⚔️{realm.power}</p>
+              <div className="text-center bg-background/80 rounded" style={{ padding: '40px 120px', marginTop: 40 }}>
+                <p className="font-display text-foreground leading-tight whitespace-nowrap" style={{ fontSize: 200 }}>{realm.name}</p>
+                <p className="text-muted-foreground" style={{ fontSize: 160 }}>⚔️{realm.power}</p>
               </div>
             </button>
           ))}
@@ -291,8 +292,8 @@ export default function WorldMap() {
               key={event.id}
               data-map-item
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'event', data: event, index: i }); }}
-              className={`absolute -translate-x-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full border-2 ${EVENT_COLORS[event.type]} flex items-center justify-center text-sm shadow-md`}
-              style={{ left: event.x, top: event.y, animation: `float 3s ease-in-out infinite ${i * 0.3}s` }}
+              className={`absolute -translate-x-1/2 -translate-y-1/2 z-20 rounded-full border-2 ${EVENT_COLORS[event.type]} flex items-center justify-center shadow-md`}
+              style={{ left: event.x, top: event.y, width: 600, height: 600, fontSize: 300, animation: `float 3s ease-in-out infinite ${i * 0.3}s` }}
             >
               {event.emoji}
             </button>
@@ -307,15 +308,15 @@ export default function WorldMap() {
                 key={pv.village.id}
                 data-map-item
                 onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'player', data: pv }); }}
-                className="absolute -translate-x-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-0.5 hover:z-40"
-                style={{ left: pos.x, top: pos.y }}
+                className="absolute -translate-x-1/2 -translate-y-1/2 z-30 flex flex-col items-center hover:z-40"
+                style={{ left: pos.x, top: pos.y, gap: 40 }}
               >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-base shadow-lg ${
-                  isMe ? 'bg-primary animate-pulse-gold ring-2 ring-primary/50' : 'bg-secondary border border-border'
-                }`}>🏰</div>
-                <div className="text-center bg-background/80 px-1 py-0.5 rounded">
-                  <p className="text-[8px] font-display text-foreground whitespace-nowrap">{isMe ? '⭐ You' : pv.profile.display_name}</p>
-                  <p className="text-[7px] text-muted-foreground">Lv.{pv.village.level}</p>
+                <div className={`rounded-lg flex items-center justify-center shadow-lg ${
+                  isMe ? 'bg-primary animate-pulse-gold ring-primary/50' : 'bg-secondary border-border'
+                }`} style={{ width: 640, height: 640, fontSize: 320, borderWidth: isMe ? 0 : 8, boxShadow: isMe ? '0 0 200px hsl(var(--primary) / 0.5)' : undefined }}>🏰</div>
+                <div className="text-center bg-background/80 rounded" style={{ padding: '30px 80px' }}>
+                  <p className="font-display text-foreground whitespace-nowrap" style={{ fontSize: 180 }}>{isMe ? '⭐ You' : pv.profile.display_name}</p>
+                  <p className="text-muted-foreground" style={{ fontSize: 140 }}>Lv.{pv.village.level}</p>
                 </div>
               </button>
             );
