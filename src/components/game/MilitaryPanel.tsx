@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useGame, TROOP_INFO, TroopType, SPY_MISSION_INFO, SpyMission } from '@/hooks/useGameState';
+import ResourceIcon, { getResourceType } from './ResourceIcon';
 
 const TROOP_TYPES: TroopType[] = ['militia', 'archer', 'knight', 'cavalry', 'siege'];
 const SPY_MISSIONS: SpyMission[] = ['scout', 'sabotage', 'demoralize'];
@@ -71,7 +72,7 @@ export default function MilitaryPanel() {
         <div className="border-t border-border/50 mt-2 pt-2 flex items-center justify-between text-[9px]">
           <span className="text-muted-foreground">Army: {population.soldiers}/{population.armyCap} cap</span>
           {(upkeep.food > 0 || upkeep.gold > 0) && (
-            <span className="text-destructive">Upkeep: 🌾{upkeep.food * 60}/min 💰{upkeep.gold * 60}/min</span>
+            <span className="text-destructive flex items-center gap-1">Upkeep: <ResourceIcon type="food" size={10} />{upkeep.food * 60}/min <ResourceIcon type="gold" size={10} />{upkeep.gold * 60}/min</span>
           )}
         </div>
       </div>
@@ -116,7 +117,7 @@ export default function MilitaryPanel() {
           {/* Recruit */}
           <div className="space-y-2">
             <h3 className="font-display text-sm text-foreground">Recruit Troops</h3>
-            <p className="text-[10px] text-muted-foreground">Barracks Level {barracksLevel} · Civilians: {population.civilians} · ⚙️ Steel: {steel}</p>
+            <p className="text-[10px] text-muted-foreground flex items-center gap-0.5">Barracks Level {barracksLevel} · Civilians: {population.civilians} · <ResourceIcon type="steel" size={10} /> Steel: {steel}</p>
 
             {TROOP_TYPES.map(type => {
               const info = TROOP_INFO[type];
@@ -144,9 +145,9 @@ export default function MilitaryPanel() {
                         <span>⚔️{info.attack}</span>
                         <span>🛡️{info.defense}</span>
                         <span>💨{info.speed}</span>
-                        <span>⏱️{info.trainTime}s</span>
-                        <span>👥{info.popCost}</span>
-                        {info.steelCost > 0 && <span>⚙️{info.steelCost}</span>}
+                        <span className="flex items-center gap-px"><ResourceIcon type="timer" size={8} />{info.trainTime}s</span>
+                        <span className="flex items-center gap-px"><ResourceIcon type="population" size={8} />{info.popCost}</span>
+                        {info.steelCost > 0 && <span className="flex items-center gap-px"><ResourceIcon type="steel" size={8} />{info.steelCost}</span>}
                       </div>
                     </div>
                   </div>
@@ -167,9 +168,9 @@ export default function MilitaryPanel() {
                       </div>
                       <div className="flex-1 flex flex-wrap gap-1 text-[9px] text-muted-foreground">
                         {Object.entries(totalCost).filter(([, v]) => v > 0).map(([k, v]) => (
-                          <span key={k}>{k === 'gold' ? '💰' : k === 'wood' ? '🪵' : k === 'stone' ? '🪨' : '🌾'}{v}</span>
+                          <span key={k} className="flex items-center gap-px">{(() => { const rt = getResourceType(k); return rt ? <ResourceIcon type={rt} size={9} /> : k; })()}{v}</span>
                         ))}
-                        {totalSteelCost > 0 && <span>⚙️{totalSteelCost}</span>}
+                        {totalSteelCost > 0 && <span className="flex items-center gap-px"><ResourceIcon type="steel" size={9} />{totalSteelCost}</span>}
                       </div>
                       <motion.button whileTap={{ scale: 0.95 }}
                         onClick={() => { if (trainTroops(type, count)) setTrainCount(p => ({ ...p, [type]: 1 })); }}
@@ -279,7 +280,7 @@ function EspionagePanel({
               className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">+</motion.button>
           </div>
           <div className="flex-1 text-[9px] text-muted-foreground">
-            💰{40 * spyTrainCount} 🌾{20 * spyTrainCount} 👥{spyTrainCount} · ⏱️{20 * spyTrainCount}s
+            <ResourceIcon type="gold" size={10} />{40 * spyTrainCount} <ResourceIcon type="food" size={10} />{20 * spyTrainCount} <ResourceIcon type="population" size={10} />{spyTrainCount} · <ResourceIcon type="timer" size={10} />{20 * spyTrainCount}s
           </div>
           <motion.button whileTap={{ scale: 0.95 }}
             onClick={() => { if (trainSpies(spyTrainCount)) setSpyTrainCount(1); }}
@@ -348,7 +349,7 @@ function EspionagePanel({
                     <div className="text-center">
                       <span className="text-lg block">{info.emoji}</span>
                       <span className="font-display block">{info.name}</span>
-                      <span className="text-[8px] block mt-0.5">💰{info.goldCost} · 🕵️{info.spiesRequired}</span>
+                      <span className="text-[8px] block mt-0.5 flex items-center justify-center gap-0.5"><ResourceIcon type="gold" size={8} />{info.goldCost} · 🕵️{info.spiesRequired}</span>
                     </div>
                   </button>
                 );
@@ -392,7 +393,7 @@ function EspionagePanel({
             className={`w-full font-display text-[11px] py-2 rounded-lg ${
               canSend ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'
             }`}>
-            {missionInfo.emoji} Send {missionInfo.name} Mission (💰{missionInfo.goldCost})
+            {missionInfo.emoji} Send {missionInfo.name} Mission (<ResourceIcon type="gold" size={10} />{missionInfo.goldCost})
           </motion.button>
         </div>
       )}
@@ -435,10 +436,10 @@ function EspionagePanel({
                   <div className="text-[9px]">
                     <p className="text-muted-foreground font-display">Est. Resources:</p>
                     <div className="flex gap-2 text-foreground">
-                      <span>💰{report.data.resources.gold}</span>
-                      <span>🪵{report.data.resources.wood}</span>
-                      <span>🪨{report.data.resources.stone}</span>
-                      <span>🌾{report.data.resources.food}</span>
+                      <span className="flex items-center gap-0.5"><ResourceIcon type="gold" size={10} />{report.data.resources.gold}</span>
+                      <span className="flex items-center gap-0.5"><ResourceIcon type="wood" size={10} />{report.data.resources.wood}</span>
+                      <span className="flex items-center gap-0.5"><ResourceIcon type="stone" size={10} />{report.data.resources.stone}</span>
+                      <span className="flex items-center gap-0.5"><ResourceIcon type="food" size={10} />{report.data.resources.food}</span>
                     </div>
                   </div>
                 )}
