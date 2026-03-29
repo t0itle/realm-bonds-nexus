@@ -1025,23 +1025,21 @@ export default function WorldMap() {
                   }`}>{selected.data.type}</span>
                 </div>
                 <p className="text-[10px] text-muted-foreground">{selected.data.desc}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-foreground font-bold">⚔️ Power: {selected.data.power}</span>
-                  <div className="flex gap-1.5">
-                    {selected.data.type !== 'hostile' && (
-                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleEnvoy(selected.data)}
-                        className="bg-primary/20 text-primary font-display text-[10px] py-1.5 px-3 rounded-lg">
-                        📜 Trade Deal 💰{Math.floor(selected.data.power * 0.3)}
-                      </motion.button>
-                    )}
-                    {tradeContracts.some(c => c.realmId === selected.data.id) && (
-                      <span className="text-[9px] text-food font-bold">📜 Active Trade</span>
-                    )}
-                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleAttackNPC(selected.data)}
-                      className="bg-destructive/20 text-destructive font-display text-[10px] py-1.5 px-3 rounded-lg">
-                      ⚔️ Attack
+                <span className="text-[10px] text-foreground font-bold">⚔️ Power: {selected.data.power}</span>
+                {tradeContracts.some(c => c.realmId === selected.data.id) && (
+                  <span className="text-[9px] text-food font-bold">📜 Active Trade</span>
+                )}
+                <div className="flex gap-2 mt-1">
+                  {selected.data.type !== 'hostile' && (
+                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleEnvoy(selected.data)}
+                      className="flex-1 bg-primary/20 text-primary font-display text-[11px] py-2.5 px-3 rounded-lg active:bg-primary/30 transition-colors">
+                      📜 Trade 💰{Math.floor(selected.data.power * 0.3)}
                     </motion.button>
-                  </div>
+                  )}
+                  <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleAttackNPC(selected.data)}
+                    className="flex-1 bg-destructive/20 text-destructive font-display text-[11px] py-2.5 px-3 rounded-lg active:bg-destructive/30 transition-colors">
+                    ⚔️ Attack
+                  </motion.button>
                 </div>
               </div>
             )}
