@@ -666,9 +666,27 @@ export function GameProvider({ children }: { children: ReactNode }) {
         const stoneProd = Math.max(1, Math.floor(grossProduction.stone / 20));
         const goldProd = Math.max(0, Math.floor(grossProduction.gold / 20));
         const taxGold = Math.floor(popTaxIncome / 20);
+
+        // Guild tax: deduct % of gross production gains for the alliance treasury
+        const taxFraction = allianceTaxRate / 100;
+        const taxGoldAmt = Math.floor(goldProd * taxFraction);
+        const taxWoodAmt = Math.floor(woodProd * taxFraction);
+        const taxStoneAmt = Math.floor(stoneProd * taxFraction);
+        const taxFoodAmt = Math.floor(foodProd * taxFraction);
+
+        // Credit alliance treasury (batched, non-blocking)
+        if (allianceId && (taxGoldAmt + taxWoodAmt + taxStoneAmt + taxFoodAmt) > 0) {
+          supabase.rpc('add_to_alliance_treasury', {
+            p_alliance_id: allianceId,
+            p_gold: taxGoldAmt,
+            p_wood: taxWoodAmt,
+            p_stone: taxStoneAmt,
+            p_food: taxFoodAmt,
+          }).then();
+        }
         
-        const newFood = prev.food + foodProd - upkeep.food - civFoodCost;
-        const newGold = prev.gold + goldProd - upkeep.gold + taxGold;
+        const newFood = prev.food + (foodProd - taxFoodAmt) - upkeep.food - civFoodCost;
+        const newGold = prev.gold + (goldProd - taxGoldAmt) - upkeep.gold + taxGold;
         
         if (newFood < 0) {
           setArmy(prevArmy => {
@@ -681,8 +699,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }
         return {
           gold: Math.max(0, newGold),
-          wood: prev.wood + woodProd,
-          stone: prev.stone + stoneProd,
+          wood: prev.wood + (woodProd - taxWoodAmt),
+          stone: prev.stone + (stoneProd - taxStoneAmt),
           food: Math.max(0, newFood),
         };
       });
