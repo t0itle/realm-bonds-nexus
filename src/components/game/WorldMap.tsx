@@ -175,7 +175,7 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
     });
   }
 
-  return { realms, events };
+  return { realms, events, regionName, regionBiome };
 }
 
 // ── Chunk cache ──
