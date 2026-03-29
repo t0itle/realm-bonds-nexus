@@ -12,8 +12,23 @@ export default {
         "2xl": "1400px",
       },
     },
+    fontFamily: {
+      display: ['Cinzel', 'serif'],
+      body: ['Inter', 'sans-serif'],
+    },
     extend: {
       colors: {
+        gold: {
+          DEFAULT: "hsl(var(--gold))",
+          glow: "hsl(var(--gold-glow))",
+        },
+        wood: "hsl(var(--wood))",
+        stone: "hsl(var(--stone))",
+        food: "hsl(var(--food))",
+        parchment: {
+          DEFAULT: "hsl(var(--parchment))",
+          dark: "hsl(var(--parchment-dark))",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
