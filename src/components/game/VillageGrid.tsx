@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useGame, BUILDING_INFO, getUpgradeCost, getProduction, BuildingType, Building } from '@/hooks/useGameState';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BUILDING_SPRITES, WORKERS_SPRITE, WORKER_FOR_BUILDING } from './sprites';
@@ -6,10 +6,24 @@ import BuildModal from './BuildModal';
 
 const GRID_SIZE = 9;
 
+function formatTime(ms: number) {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return m > 0 ? `${m}:${sec.toString().padStart(2, '0')}` : `${sec}s`;
+}
+
 export default function VillageGrid() {
-  const { buildings, upgradeBuilding, canAfford } = useGame();
+  const { buildings, upgradeBuilding, canAfford, isBuildingUpgrading, getBuildTime } = useGame();
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [buildPosition, setBuildPosition] = useState<number | null>(null);
+  const [, forceUpdate] = useState(0);
+
+  // Force re-render every second for countdown timers
+  useEffect(() => {
+    const interval = setInterval(() => forceUpdate(v => v + 1), 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const grid = Array.from({ length: GRID_SIZE }, (_, i) => {
     return buildings.find(b => b.position === i) || null;
@@ -23,14 +37,16 @@ export default function VillageGrid() {
             const type = building?.type as Exclude<BuildingType, 'empty'> | undefined;
             const sprite = type ? BUILDING_SPRITES[type] : null;
             const worker = type ? WORKER_FOR_BUILDING[type] : null;
+            const upgrading = building ? isBuildingUpgrading(building.id) : undefined;
+            const isUnderConstruction = building && building.level === 0;
 
             return (
               <motion.button
                 key={i}
                 whileTap={{ scale: 0.93 }}
                 onClick={() => {
-                  if (building) setSelectedBuilding(building);
-                  else setBuildPosition(i);
+                  if (building && !isUnderConstruction) setSelectedBuilding(building);
+                  else if (!building) setBuildPosition(i);
                 }}
                 className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all relative overflow-hidden ${
                   building
@@ -43,11 +59,25 @@ export default function VillageGrid() {
                     <img
                       src={sprite}
                       alt={BUILDING_INFO[type!].name}
-                      className="w-16 h-16 object-contain drop-shadow-lg"
+                      className={`w-16 h-16 object-contain drop-shadow-lg ${(upgrading || isUnderConstruction) ? 'opacity-50 grayscale' : ''}`}
                       loading="lazy"
                     />
+                    {/* Build/upgrade timer overlay */}
+                    {(upgrading || isUnderConstruction) && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 rounded-xl">
+                        <span className="text-lg animate-pulse">🔨</span>
+                        {upgrading && (
+                          <span className="text-[10px] font-display text-primary font-bold">
+                            {formatTime(upgrading.finishTime - Date.now())}
+                          </span>
+                        )}
+                        <span className="text-[8px] text-muted-foreground">
+                          {isUnderConstruction ? 'Building...' : `→ Lv.${upgrading?.targetLevel}`}
+                        </span>
+                      </div>
+                    )}
                     {/* Worker sprite */}
-                    {worker && building.level > 0 && (
+                    {worker && building.level > 0 && !upgrading && (
                       <div className="absolute bottom-7 right-1 w-5 h-5 overflow-hidden">
                         <img
                           src={WORKERS_SPRITE}
@@ -61,12 +91,16 @@ export default function VillageGrid() {
                         />
                       </div>
                     )}
-                    <span className="text-[9px] font-display text-foreground/80 truncate w-full text-center px-1">
-                      {BUILDING_INFO[type!].name}
-                    </span>
-                    <span className="text-[8px] text-primary font-bold bg-background/60 px-1.5 rounded-full">
-                      Lv.{building.level}
-                    </span>
+                    {!upgrading && !isUnderConstruction && (
+                      <>
+                        <span className="text-[9px] font-display text-foreground/80 truncate w-full text-center px-1">
+                          {BUILDING_INFO[type!].name}
+                        </span>
+                        <span className="text-[8px] text-primary font-bold bg-background/60 px-1.5 rounded-full">
+                          Lv.{building.level}
+                        </span>
+                      </>
+                    )}
                   </>
                 ) : (
                   <span className="text-2xl opacity-30">＋</span>
@@ -96,10 +130,13 @@ export default function VillageGrid() {
               onUpgrade={async () => {
                 const success = await upgradeBuilding(selectedBuilding.id);
                 if (success) {
-                  setSelectedBuilding(prev => prev ? { ...prev, level: prev.level + 1 } : null);
+                  // Don't update level immediately — build queue will handle it
+                  setSelectedBuilding(null);
                 }
               }}
               canAfford={canAfford}
+              isBuildingUpgrading={isBuildingUpgrading}
+              getBuildTime={getBuildTime}
             />
           </motion.div>
         )}
@@ -117,10 +154,12 @@ export default function VillageGrid() {
   );
 }
 
-function BuildingDetail({ building, onUpgrade, canAfford }: {
+function BuildingDetail({ building, onUpgrade, canAfford, isBuildingUpgrading, getBuildTime }: {
   building: Building;
   onUpgrade: () => void;
   canAfford: (cost: any) => boolean;
+  isBuildingUpgrading: (id: string) => any;
+  getBuildTime: (type: Exclude<BuildingType, 'empty'>, level: number) => number;
 }) {
   const type = building.type as Exclude<BuildingType, 'empty'>;
   const info = BUILDING_INFO[type];
@@ -129,6 +168,8 @@ function BuildingDetail({ building, onUpgrade, canAfford }: {
   const production = getProduction(type, building.level);
   const affordable = canAfford(upgradeCost);
   const maxed = building.level >= info.maxLevel;
+  const upgrading = isBuildingUpgrading(building.id);
+  const buildTime = getBuildTime(type, building.level);
 
   return (
     <div className="space-y-3">
@@ -150,17 +191,25 @@ function BuildingDetail({ building, onUpgrade, canAfford }: {
         </div>
       )}
 
-      {!maxed && (
+      {upgrading && (
+        <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 text-center space-y-1">
+          <p className="text-xs font-display text-primary animate-pulse">🔨 Upgrading to Level {upgrading.targetLevel}...</p>
+          <p className="text-sm font-bold text-foreground">{formatTime(upgrading.finishTime - Date.now())}</p>
+        </div>
+      )}
+
+      {!maxed && !upgrading && (
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground font-display">Upgrade Cost:</p>
           <div className="flex gap-3 text-xs">
             {Object.entries(upgradeCost).filter(([, v]) => v > 0).map(([key, val]) => (
               <span key={key} className="text-foreground">
-                {key === 'gold' ? '💰' : key === 'wood' ? '🪵' : key === 'stone' ? '🪨' : '🌾'}
+                {key === 'gold' ? '💰' : key === 'wood' ? '🪵' : key === 'stone' ? '🪨' : key === 'steel' ? '⚙️' : '🌾'}
                 {val}
               </span>
             ))}
           </div>
+          <p className="text-[10px] text-muted-foreground">⏱️ Build time: {formatTime(buildTime * 1000)}</p>
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={onUpgrade}
@@ -176,7 +225,7 @@ function BuildingDetail({ building, onUpgrade, canAfford }: {
         </div>
       )}
 
-      {maxed && (
+      {maxed && !upgrading && (
         <div className="text-center py-2 text-primary font-display text-sm animate-pulse-gold rounded-lg border border-primary/30">
           ✦ Maximum Level ✦
         </div>
