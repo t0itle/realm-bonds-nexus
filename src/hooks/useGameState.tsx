@@ -232,9 +232,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     for (const [type, count] of Object.entries(army)) {
       const info = TROOP_INFO[type as TroopType];
       foodCost += info.foodUpkeep * count;
-      goldCost += Math.ceil(info.foodUpkeep * 0.25) * count;
+      goldCost += Math.ceil(info.foodUpkeep * 0.1) * count; // Gold is ~10% of food upkeep
     }
-    // Upkeep per tick (every 3s = 1/60 of a minute) — much lighter drain
+    // Upkeep per tick (every 3s = 1/60 of a minute)
     return { food: Math.max(0, Math.floor(foodCost / 60)), gold: Math.max(0, Math.floor(goldCost / 60)) };
   }, [army]);
 
