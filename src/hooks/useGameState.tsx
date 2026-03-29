@@ -286,11 +286,26 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [populationBase, setPopulationBase] = useState(10);
   const [maxPopBase, setMaxPopBase] = useState(20);
   const [happinessBase, setHappinessBase] = useState(50);
-  const [rations, setRations] = useState<RationsLevel>('normal');
-  const [popTaxRate, setPopTaxRate] = useState(5);
+  const [rations, setRationsLocal] = useState<RationsLevel>('normal');
+  const [popTaxRate, setPopTaxRateLocal] = useState(5);
   const [spies, setSpies] = useState(0);
   const [activeSpyMissions, setActiveSpyMissions] = useState<ActiveSpyMission[]>([]);
   const [intelReports, setIntelReports] = useState<IntelReport[]>([]);
+
+  // Wrap setRations and setPopTaxRate to immediately persist to DB
+  const setRations = useCallback((r: RationsLevel) => {
+    setRationsLocal(r);
+    if (villageId) {
+      supabase.from('villages').update({ rations: r } as any).eq('id', villageId).then();
+    }
+  }, [villageId]);
+
+  const setPopTaxRate = useCallback((rate: number) => {
+    setPopTaxRateLocal(rate);
+    if (villageId) {
+      supabase.from('villages').update({ pop_tax_rate: rate } as any).eq('id', villageId).then();
+    }
+  }, [villageId]);
 
   // Load player data
   useEffect(() => {
