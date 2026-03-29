@@ -1,7 +1,5 @@
-import { useState } from 'react';
 import { useGame, BUILDING_INFO, BuildingType, TROOP_INFO, TroopType } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
-import { lovable } from '@/integrations/lovable';
 import { motion } from 'framer-motion';
 
 export default function ProfilePanel() {
