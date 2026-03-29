@@ -646,7 +646,130 @@ export default function WorldMap() {
           })()}
         </svg>
 
-        {/* Region labels */}
+        {/* ── Terrain Features ── */}
+        {visibleChunks.map(chunk => chunk.data.terrain.map((t, ti) => {
+          if (t.type === 'lake') {
+            const { sx, sy } = worldToScreen(t.x, t.y);
+            const w = t.width * camera.ppu;
+            const h = t.height * camera.ppu;
+            if (w < 6 && h < 6) return null;
+            const labelSize = Math.max(7, Math.min(13, w / 6));
+            return (
+              <div key={`lake-${chunk.cx}-${chunk.cy}-${ti}`} className="absolute pointer-events-none"
+                style={{ left: sx, top: sy, transform: `translate(-50%, -50%) rotate(${t.rotation || 0}deg)` }}>
+                <div style={{ width: w, height: h, borderRadius: '50%', background: 'radial-gradient(ellipse, hsl(200 70% 45% / 0.5), hsl(210 80% 30% / 0.25) 70%, transparent)', boxShadow: '0 0 20px hsl(200 70% 45% / 0.2)', border: '1px solid hsl(200 60% 50% / 0.15)' }} />
+                {w > 30 && (
+                  <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 font-display text-sky-200/60 whitespace-nowrap"
+                    style={{ fontSize: labelSize, transform: `translate(-50%, -50%) rotate(${-(t.rotation || 0)}deg)` }}>
+                    🌊 {t.name}
+                  </span>
+                )}
+              </div>
+            );
+          }
+          if (t.type === 'mountain') {
+            const { sx, sy } = worldToScreen(t.x, t.y);
+            const w = t.width * camera.ppu;
+            const h = t.height * camera.ppu;
+            if (w < 6) return null;
+            const labelSize = Math.max(7, Math.min(12, w / 5));
+            return (
+              <div key={`mtn-${chunk.cx}-${chunk.cy}-${ti}`} className="absolute pointer-events-none"
+                style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
+                <svg width={w} height={h} viewBox="0 0 100 100" style={{ overflow: 'visible' }}>
+                  <polygon points="50,5 10,95 90,95" fill="hsl(30 20% 35% / 0.4)" stroke="hsl(30 30% 50% / 0.3)" strokeWidth={1.5} />
+                  <polygon points="50,5 40,30 60,30" fill="hsl(210 20% 85% / 0.5)" stroke="none" />
+                  <polygon points="35,50 20,95 50,95" fill="hsl(30 15% 30% / 0.25)" stroke="none" />
+                </svg>
+                {w > 25 && (
+                  <span className="absolute left-1/2 whitespace-nowrap font-display text-amber-200/50" style={{ fontSize: labelSize, bottom: -labelSize - 2, transform: 'translateX(-50%)' }}>
+                    ⛰️ {t.name}
+                  </span>
+                )}
+              </div>
+            );
+          }
+          if (t.type === 'island') {
+            const { sx, sy } = worldToScreen(t.x, t.y);
+            const w = t.width * camera.ppu;
+            const h = t.height * camera.ppu;
+            if (w < 8) return null;
+            const labelSize = Math.max(7, Math.min(11, w / 5));
+            return (
+              <div key={`isle-${chunk.cx}-${chunk.cy}-${ti}`} className="absolute pointer-events-none"
+                style={{ left: sx, top: sy, transform: `translate(-50%, -50%) rotate(${t.rotation || 0}deg)` }}>
+                {/* Water around island */}
+                <div style={{ width: w * 1.5, height: h * 1.5, borderRadius: '50%', background: 'radial-gradient(ellipse, hsl(200 65% 40% / 0.35), transparent 70%)', position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }} />
+                {/* Island mass */}
+                <div style={{ width: w, height: h, borderRadius: '45% 55% 60% 40% / 50% 45% 55% 50%', background: 'radial-gradient(ellipse, hsl(100 35% 40% / 0.6), hsl(80 30% 30% / 0.4))', border: '1px solid hsl(50 40% 55% / 0.2)', position: 'relative', zIndex: 1 }} />
+                {w > 25 && (
+                  <span className="absolute left-1/2 whitespace-nowrap font-display text-emerald-200/50"
+                    style={{ fontSize: labelSize, bottom: -labelSize - 4, transform: `translateX(-50%) rotate(${-(t.rotation || 0)}deg)`, zIndex: 2 }}>
+                    🏝️ {t.name}
+                  </span>
+                )}
+              </div>
+            );
+          }
+          if (t.type === 'river' && t.points && t.points.length > 1) {
+            const screenPoints = t.points.map(p => worldToScreen(p.x, p.y));
+            // Check if any point is visible
+            const anyVisible = screenPoints.some(p => p.sx > -200 && p.sx < containerSize.w + 200 && p.sy > -200 && p.sy < containerSize.h + 200);
+            if (!anyVisible) return null;
+            const strokeW = Math.max(2, t.width * camera.ppu);
+            // Build SVG path
+            let d = `M ${screenPoints[0].sx} ${screenPoints[0].sy}`;
+            for (let i = 1; i < screenPoints.length; i++) {
+              const prev = screenPoints[i - 1];
+              const cur = screenPoints[i];
+              const cpx = (prev.sx + cur.sx) / 2 + (i % 2 === 0 ? 10 : -10);
+              const cpy = (prev.sy + cur.sy) / 2;
+              d += ` Q ${cpx} ${cpy} ${cur.sx} ${cur.sy}`;
+            }
+            const labelSize = Math.max(8, Math.min(12, strokeW * 2));
+            const midIdx = Math.floor(screenPoints.length / 2);
+            const midPt = screenPoints[midIdx];
+            return (
+              <div key={`river-${chunk.cx}-${chunk.cy}-${ti}`} className="absolute inset-0 pointer-events-none" style={{ overflow: 'visible' }}>
+                <svg className="absolute inset-0 w-full h-full" style={{ overflow: 'visible' }}>
+                  {/* River glow */}
+                  <path d={d} fill="none" stroke="hsl(200 70% 50% / 0.15)" strokeWidth={strokeW * 3} strokeLinecap="round" strokeLinejoin="round" />
+                  {/* River body */}
+                  <path d={d} fill="none" stroke="hsl(205 75% 45% / 0.45)" strokeWidth={strokeW} strokeLinecap="round" strokeLinejoin="round" />
+                  {/* River highlight */}
+                  <path d={d} fill="none" stroke="hsl(195 80% 65% / 0.2)" strokeWidth={strokeW * 0.4} strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                {/* River name */}
+                {strokeW > 3 && (
+                  <span className="absolute font-display text-sky-300/40 whitespace-nowrap" style={{ left: midPt.sx, top: midPt.sy - strokeW - 4, fontSize: labelSize, transform: 'translateX(-50%)' }}>
+                    {t.name}
+                  </span>
+                )}
+                {/* Bridges */}
+                {t.bridgeAt?.map((bp, bi) => {
+                  const { sx: bsx, sy: bsy } = worldToScreen(bp.x, bp.y);
+                  const bridgeW = Math.max(12, strokeW * 2.5);
+                  if (bridgeW < 8) return null;
+                  return (
+                    <div key={`bridge-${bi}`} className="absolute flex flex-col items-center" style={{ left: bsx, top: bsy, transform: 'translate(-50%, -50%)', zIndex: 5 }}>
+                      <div style={{
+                        width: bridgeW,
+                        height: bridgeW * 0.5,
+                        background: 'linear-gradient(180deg, hsl(30 40% 50% / 0.7), hsl(25 35% 35% / 0.6))',
+                        borderRadius: `${bridgeW * 0.5}px ${bridgeW * 0.5}px 2px 2px`,
+                        border: '1px solid hsl(30 30% 60% / 0.4)',
+                        boxShadow: '0 2px 6px hsl(0 0% 0% / 0.3)',
+                      }} />
+                      {bridgeW > 15 && <span style={{ fontSize: 7 }} className="text-amber-200/50 mt-0.5">🌉</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          }
+          return null;
+        }))}
+
         {visibleChunks.map(chunk => {
           const centerX = chunk.cx * CHUNK_SIZE + CHUNK_SIZE / 2;
           const centerY = chunk.cy * CHUNK_SIZE + CHUNK_SIZE / 2;
