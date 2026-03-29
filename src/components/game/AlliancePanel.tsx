@@ -103,8 +103,8 @@ export default function AlliancePanel() {
   };
 
   return (
-    <div className="flex-1 flex flex-col p-4 space-y-4">
-      <h2 className="font-display text-lg text-foreground text-shadow-gold">Alliances</h2>
+    <div className="flex-1 flex flex-col p-4 space-y-4 overflow-y-auto">
+      <h2 className="font-display text-lg text-foreground text-shadow-gold">Guild</h2>
 
       {/* Your alliance status */}
       <div className="game-panel border-glow rounded-xl p-4 text-center space-y-2">
