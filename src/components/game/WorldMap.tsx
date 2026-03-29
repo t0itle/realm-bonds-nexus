@@ -86,8 +86,8 @@ export default function WorldMap() {
   const [events, setEvents] = useState(() => generateEvents());
 
   // Pan/zoom state
-  const [offset, setOffset] = useState({ x: -600, y: -600 });
-  const [zoom, setZoom] = useState(0.5);
+  const [offset, setOffset] = useState({ x: -50000, y: -50000 });
+  const [zoom, setZoom] = useState(0.05);
   const containerRef = useRef<HTMLDivElement>(null);
   const dragStart = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
   const lastTouchDist = useRef<number | null>(null);
@@ -130,7 +130,7 @@ export default function WorldMap() {
 
   const getPlayerPos = (id: string, index: number) => {
     const hash = id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-    return { x: 600 + (hash * 13 + index * 137) % 800, y: 600 + (hash * 17 + index * 173) % 800 };
+    return { x: 80000 + (hash * 1300 + index * 13700) % 40000, y: 80000 + (hash * 1700 + index * 17300) % 40000 };
   };
 
   const handleInvestigate = useCallback((event: WorldEvent, index: number) => {
@@ -227,19 +227,19 @@ export default function WorldMap() {
           <svg className="absolute inset-0 w-full h-full opacity-10">
             {Array.from({ length: 21 }, (_, i) => (
               <g key={i}>
-                <line x1={i * 100} y1={0} x2={i * 100} y2={MAP_SIZE} stroke="hsl(42 72% 52%)" strokeWidth={0.5} />
-                <line x1={0} y1={i * 100} x2={MAP_SIZE} y2={i * 100} stroke="hsl(42 72% 52%)" strokeWidth={0.5} />
+                <line x1={i * 10000} y1={0} x2={i * 10000} y2={MAP_SIZE} stroke="hsl(42 72% 52%)" strokeWidth={50} />
+                <line x1={0} y1={i * 10000} x2={MAP_SIZE} y2={i * 10000} stroke="hsl(42 72% 52%)" strokeWidth={50} />
               </g>
             ))}
           </svg>
 
           {/* Coordinate labels */}
-          {Array.from({ length: 5 }, (_, i) => {
-            const pos = i * 500;
+          {Array.from({ length: 11 }, (_, i) => {
+            const pos = i * 20000;
             return (
               <g key={`coords-${i}`}>
-                <text x={pos + 5} y={15} fill="hsl(42 72% 52% / 0.4)" fontSize={10} fontFamily="Cinzel">{pos}</text>
-                <text x={5} y={pos + 15} fill="hsl(42 72% 52% / 0.4)" fontSize={10} fontFamily="Cinzel">{pos}</text>
+                <text x={pos + 200} y={800} fill="hsl(42 72% 52% / 0.4)" fontSize={600} fontFamily="Cinzel">{pos / 1000}k</text>
+                <text x={200} y={pos + 800} fill="hsl(42 72% 52% / 0.4)" fontSize={600} fontFamily="Cinzel">{pos / 1000}k</text>
               </g>
             );
           })}
