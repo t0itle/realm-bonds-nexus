@@ -178,10 +178,113 @@ export interface ActiveSpyMission {
 export interface BattleLog {
   id: string;
   target: string;
+  targetUserId?: string;
   result: 'victory' | 'defeat';
   troopsLost: Partial<Army>;
+  defenderTroopsLost?: Partial<Army>;
   resourcesGained?: Partial<Resources>;
+  buildingDamaged?: string;
+  buildingDamageLevels?: number;
+  vassalized?: boolean;
   timestamp: number;
+}
+
+// Troop-type counter system: each type has advantages
+// cavalry > archer, archer > militia, militia > cavalry (triangle)
+// knight is defensive all-rounder, siege bypasses defenses
+export const TROOP_COUNTERS: Record<TroopType, { strongVs: TroopType[]; weakVs: TroopType[] }> = {
+  militia: { strongVs: ['cavalry'], weakVs: ['archer'] },
+  archer: { strongVs: ['militia'], weakVs: ['cavalry'] },
+  knight: { strongVs: ['militia', 'archer'], weakVs: ['siege'] },
+  cavalry: { strongVs: ['archer', 'siege'], weakVs: ['militia', 'knight'] },
+  siege: { strongVs: ['knight'], weakVs: ['cavalry'] },
+};
+
+export interface Vassalage {
+  id: string;
+  lord_id: string;
+  vassal_id: string;
+  tribute_rate: number;
+  rebellion_available_at: string;
+  ransom_gold: number;
+  status: string;
+  created_at: string;
+}
+
+export function resolveCombat(
+  attackerArmy: Army,
+  defenderArmy: Army,
+  attackerWallLevel: number = 0,
+  defenderWallLevel: number = 0,
+): {
+  victory: boolean;
+  attackerLosses: Partial<Army>;
+  defenderLosses: Partial<Army>;
+  powerRatio: number;
+} {
+  // Calculate effective power with counter bonuses
+  const calcEffectivePower = (army: Army, enemyArmy: Army, isDefender: boolean, wallLevel: number) => {
+    let totalAtk = 0;
+    let totalDef = 0;
+    for (const [type, count] of Object.entries(army) as [TroopType, number][]) {
+      if (count <= 0) continue;
+      const info = TROOP_INFO[type];
+      let atk = info.attack * count;
+      let def = info.defense * count;
+      
+      // Counter bonuses
+      const counters = TROOP_COUNTERS[type];
+      for (const [enemyType, enemyCount] of Object.entries(enemyArmy) as [TroopType, number][]) {
+        if (enemyCount <= 0) continue;
+        if (counters.strongVs.includes(enemyType)) {
+          atk += info.attack * count * 0.3; // 30% bonus vs countered types
+        }
+        if (counters.weakVs.includes(enemyType)) {
+          atk -= info.attack * count * 0.15; // 15% penalty vs counter types
+        }
+      }
+      totalAtk += Math.max(0, atk);
+      totalDef += def;
+    }
+    // Wall bonus for defender
+    if (isDefender) {
+      totalDef += wallLevel * 20;
+    }
+    return { attack: totalAtk, defense: totalDef };
+  };
+
+  const atkPower = calcEffectivePower(attackerArmy, defenderArmy, false, 0);
+  const defPower = calcEffectivePower(defenderArmy, attackerArmy, true, defenderWallLevel);
+  
+  const attackerScore = atkPower.attack * (0.85 + Math.random() * 0.3); // ±15% randomness
+  const defenderScore = defPower.attack + defPower.defense * 0.5;
+  
+  const victory = attackerScore > defenderScore;
+  const powerRatio = attackerScore / Math.max(1, defenderScore);
+  
+  // Calculate losses based on power ratio
+  const attackerLossRate = victory 
+    ? Math.min(0.4, 1 / (powerRatio * 2))
+    : Math.min(0.8, 0.3 + 1 / (powerRatio * 3));
+  const defenderLossRate = victory 
+    ? Math.min(0.7, powerRatio * 0.3)
+    : Math.min(0.3, powerRatio * 0.15);
+  
+  const attackerLosses: Partial<Army> = {};
+  const defenderLosses: Partial<Army> = {};
+  
+  for (const [type, count] of Object.entries(attackerArmy) as [TroopType, number][]) {
+    if (count > 0) {
+      attackerLosses[type] = Math.max(1, Math.floor(count * attackerLossRate));
+    }
+  }
+  for (const [type, count] of Object.entries(defenderArmy) as [TroopType, number][]) {
+    if (count > 0) {
+      defenderLosses[type] = Math.max(1, Math.floor(count * defenderLossRate));
+    }
+  }
+  
+  return { victory, attackerLosses, defenderLosses, powerRatio };
 }
 
 export interface Village {
