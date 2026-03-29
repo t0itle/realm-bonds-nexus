@@ -5,24 +5,30 @@ import { useAuth } from '@/hooks/useAuth';
 import worldmapBg from '@/assets/worldmap-bg.jpg';
 import { toast } from 'sonner';
 
-// Map is 2000x2000 virtual units
-const MAP_SIZE = 2000;
-const MIN_ZOOM = 0.3;
-const MAX_ZOOM = 1.5;
+// Map is 200000x200000 virtual units (massive world)
+const MAP_SIZE = 200000;
+const MIN_ZOOM = 0.01;
+const MAX_ZOOM = 2.0;
 
 const NPC_REALMS = [
-  { id: 'npc-1', name: 'Iron Dominion', ruler: 'King Valthor', power: 120, x: 200, y: 250, emoji: '👑', type: 'hostile' as const, desc: 'An aggressive militaristic kingdom. Their iron legions threaten all neighbors.', territory: 180 },
-  { id: 'npc-2', name: 'Thornwood Enclave', ruler: 'Elder Moss', power: 80, x: 450, y: 600, emoji: '🌿', type: 'neutral' as const, desc: 'Ancient druids who guard the deep forest. They trade rare herbs for peace.', territory: 150 },
-  { id: 'npc-3', name: 'Ashfall Citadel', ruler: 'Warlord Cindra', power: 200, x: 1500, y: 300, emoji: '🔥', type: 'hostile' as const, desc: 'Built atop a dormant volcano. Their fire mages are feared across the realm.', territory: 200 },
-  { id: 'npc-4', name: 'Frostgate Hold', ruler: 'Jarl Hrimfaxi', power: 150, x: 300, y: 1500, emoji: '❄️', type: 'neutral' as const, desc: 'Mountain dwellers who control the northern passes. Expert smiths and miners.', territory: 170 },
-  { id: 'npc-5', name: 'Sunspire Sanctum', ruler: 'High Priestess Solara', power: 60, x: 1700, y: 1600, emoji: '☀️', type: 'friendly' as const, desc: 'A holy order that offers healing and blessings to worthy allies.', territory: 120 },
-  { id: 'npc-6', name: "Dragon's Maw", ruler: 'The Broodmother', power: 350, x: 1000, y: 150, emoji: '🐉', type: 'hostile' as const, desc: "A dragon's lair. Only the bravest dare approach. Legendary rewards await.", territory: 250 },
-  { id: 'npc-7', name: 'Mistwood Coven', ruler: 'The Three Sisters', power: 130, x: 700, y: 1200, emoji: '🌙', type: 'neutral' as const, desc: 'Witches who brew potions and cast curses. They offer dark bargains.', territory: 140 },
-  { id: 'npc-8', name: 'Goldport Haven', ruler: 'Merchant Prince Auric', power: 50, x: 1800, y: 900, emoji: '⚓', type: 'friendly' as const, desc: 'A bustling trade port. Lucrative trade routes for allied kingdoms.', territory: 130 },
-  { id: 'npc-9', name: 'The Blighted Wastes', ruler: 'Lich King Mordrath', power: 400, x: 1200, y: 800, emoji: '💀', type: 'hostile' as const, desc: 'An undead wasteland ruled by a powerful lich. Dark magic permeates everything.', territory: 220 },
-  { id: 'npc-10', name: 'Emerald Coast', ruler: 'Admiral Sirena', power: 90, x: 1900, y: 400, emoji: '🌊', type: 'friendly' as const, desc: 'Seafaring traders who control the eastern coast. Great allies for naval support.', territory: 160 },
-  { id: 'npc-11', name: 'Obsidian Forge', ruler: 'Master Smith Kragg', power: 110, x: 500, y: 900, emoji: '🔨', type: 'neutral' as const, desc: 'Legendary blacksmiths who forge weapons of immense power for the right price.', territory: 100 },
-  { id: 'npc-12', name: 'Whispering Ruins', ruler: 'The Oracle', power: 70, x: 900, y: 1700, emoji: '🏛️', type: 'neutral' as const, desc: 'Ancient ruins housing a powerful oracle. Seek wisdom for a price.', territory: 90 },
+  { id: 'npc-1', name: 'Iron Dominion', ruler: 'King Valthor', power: 120, x: 15000, y: 18000, emoji: '👑', type: 'hostile' as const, desc: 'An aggressive militaristic kingdom. Their iron legions threaten all neighbors.', territory: 12000 },
+  { id: 'npc-2', name: 'Thornwood Enclave', ruler: 'Elder Moss', power: 80, x: 42000, y: 55000, emoji: '🌿', type: 'neutral' as const, desc: 'Ancient druids who guard the deep forest. They trade rare herbs for peace.', territory: 10000 },
+  { id: 'npc-3', name: 'Ashfall Citadel', ruler: 'Warlord Cindra', power: 200, x: 145000, y: 22000, emoji: '🔥', type: 'hostile' as const, desc: 'Built atop a dormant volcano. Their fire mages are feared across the realm.', territory: 15000 },
+  { id: 'npc-4', name: 'Frostgate Hold', ruler: 'Jarl Hrimfaxi', power: 150, x: 25000, y: 150000, emoji: '❄️', type: 'neutral' as const, desc: 'Mountain dwellers who control the northern passes. Expert smiths and miners.', territory: 13000 },
+  { id: 'npc-5', name: 'Sunspire Sanctum', ruler: 'High Priestess Solara', power: 60, x: 170000, y: 165000, emoji: '☀️', type: 'friendly' as const, desc: 'A holy order that offers healing and blessings to worthy allies.', territory: 8000 },
+  { id: 'npc-6', name: "Dragon's Maw", ruler: 'The Broodmother', power: 350, x: 100000, y: 8000, emoji: '🐉', type: 'hostile' as const, desc: "A dragon's lair. Only the bravest dare approach. Legendary rewards await.", territory: 20000 },
+  { id: 'npc-7', name: 'Mistwood Coven', ruler: 'The Three Sisters', power: 130, x: 60000, y: 120000, emoji: '🌙', type: 'neutral' as const, desc: 'Witches who brew potions and cast curses. They offer dark bargains.', territory: 11000 },
+  { id: 'npc-8', name: 'Goldport Haven', ruler: 'Merchant Prince Auric', power: 50, x: 185000, y: 90000, emoji: '⚓', type: 'friendly' as const, desc: 'A bustling trade port. Lucrative trade routes for allied kingdoms.', territory: 9000 },
+  { id: 'npc-9', name: 'The Blighted Wastes', ruler: 'Lich King Mordrath', power: 400, x: 120000, y: 80000, emoji: '💀', type: 'hostile' as const, desc: 'An undead wasteland ruled by a powerful lich. Dark magic permeates everything.', territory: 18000 },
+  { id: 'npc-10', name: 'Emerald Coast', ruler: 'Admiral Sirena', power: 90, x: 190000, y: 35000, emoji: '🌊', type: 'friendly' as const, desc: 'Seafaring traders who control the eastern coast. Great allies for naval support.', territory: 14000 },
+  { id: 'npc-11', name: 'Obsidian Forge', ruler: 'Master Smith Kragg', power: 110, x: 48000, y: 90000, emoji: '🔨', type: 'neutral' as const, desc: 'Legendary blacksmiths who forge weapons of immense power for the right price.', territory: 7000 },
+  { id: 'npc-12', name: 'Whispering Ruins', ruler: 'The Oracle', power: 70, x: 85000, y: 175000, emoji: '🏛️', type: 'neutral' as const, desc: 'Ancient ruins housing a powerful oracle. Seek wisdom for a price.', territory: 6000 },
+  { id: 'npc-13', name: 'Shadowfen Marshes', ruler: 'Bog Queen Miretha', power: 95, x: 70000, y: 40000, emoji: '🐊', type: 'hostile' as const, desc: 'Toxic swamplands teeming with monstrous beasts and poisonous fog.', territory: 16000 },
+  { id: 'npc-14', name: 'Skyreach Eyrie', ruler: 'Storm Lord Aethon', power: 280, x: 130000, y: 140000, emoji: '⚡', type: 'hostile' as const, desc: 'A floating fortress above the clouds. Lightning strikes all who approach uninvited.', territory: 14000 },
+  { id: 'npc-15', name: 'Verdant Republic', ruler: 'Chancellor Thalia', power: 75, x: 160000, y: 60000, emoji: '🏰', type: 'friendly' as const, desc: 'A prosperous democracy of farmers and scholars. They value knowledge above all.', territory: 11000 },
+  { id: 'npc-16', name: 'Crimson Horde', ruler: 'Khan Bloodfang', power: 310, x: 35000, y: 170000, emoji: '🐺', type: 'hostile' as const, desc: 'Nomadic warriors who roam the southern steppes. Unstoppable cavalry charges.', territory: 19000 },
+  { id: 'npc-17', name: 'Crystal Depths', ruler: 'Gem King Prismo', power: 140, x: 110000, y: 110000, emoji: '💎', type: 'neutral' as const, desc: 'Underground caverns filled with magical crystals. Rare resources abound.', territory: 10000 },
+  { id: 'npc-18', name: 'Ashen Theocracy', ruler: 'Prophet Ignatius', power: 180, x: 80000, y: 65000, emoji: '⛪', type: 'neutral' as const, desc: 'Fanatical fire worshippers who command devastating rituals.', territory: 13000 },
 ];
 
 interface WorldEvent {
