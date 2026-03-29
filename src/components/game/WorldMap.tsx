@@ -84,30 +84,36 @@ export default function WorldMap() {
 
   // Camera: center is world coordinate the viewport is looking at
   // pixelsPerUnit: how many screen pixels per world unit
-  const [camera, setCamera] = useState({ cx: 100000, cy: 100000, ppu: 0.003 });
+  const [camera, setCamera] = useState(() => ({ cx: 100000, cy: 100000, ppu: 0.003 }));
   const containerRef = useRef<HTMLDivElement>(null);
   const dragStart = useRef<{ x: number; y: number; cx: number; cy: number } | null>(null);
   const lastTouchDist = useRef<number | null>(null);
+  const [containerSize, setContainerSize] = useState({ w: 400, h: 600 });
 
-  // Convert world coord to screen pixel (relative to container)
+  // Track container size safely via effect instead of reading ref during render
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => setContainerSize({ w: el.clientWidth, h: el.clientHeight });
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Convert world coord to screen pixel
   const worldToScreen = useCallback((wx: number, wy: number) => {
-    const rect = containerRef.current;
-    if (!rect) return { sx: 0, sy: 0 };
-    const w = rect.clientWidth;
-    const h = rect.clientHeight;
     return {
-      sx: (wx - camera.cx) * camera.ppu + w / 2,
-      sy: (wy - camera.cy) * camera.ppu + h / 2,
+      sx: (wx - camera.cx) * camera.ppu + containerSize.w / 2,
+      sy: (wy - camera.cy) * camera.ppu + containerSize.h / 2,
     };
-  }, [camera]);
+  }, [camera, containerSize]);
 
   // Check if a world point is visible with margin
   const isVisible = useCallback((wx: number, wy: number, margin = 60) => {
-    const rect = containerRef.current;
-    if (!rect) return true;
     const { sx, sy } = worldToScreen(wx, wy);
-    return sx > -margin && sx < rect.clientWidth + margin && sy > -margin && rect.clientHeight + margin > sy;
-  }, [worldToScreen]);
+    return sx > -margin && sx < containerSize.w + margin && sy > -margin && containerSize.h + margin > sy;
+  }, [worldToScreen, containerSize]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if ((e.target as HTMLElement).closest('[data-map-item]')) return;
