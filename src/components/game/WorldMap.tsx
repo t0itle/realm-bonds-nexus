@@ -1,22 +1,30 @@
-import { useState, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useGame } from '@/hooks/useGameState';
+import { useGame, TROOP_INFO, TroopType } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
 import worldmapBg from '@/assets/worldmap-bg.jpg';
+import { toast } from 'sonner';
 
-// NPC Realms - persistent on map
+// Map is 2000x2000 virtual units
+const MAP_SIZE = 2000;
+const MIN_ZOOM = 0.3;
+const MAX_ZOOM = 1.5;
+
 const NPC_REALMS = [
-  { id: 'npc-1', name: 'Iron Dominion', ruler: 'King Valthor', power: 12500, x: 12, y: 15, emoji: '👑', type: 'hostile' as const, desc: 'An aggressive militaristic kingdom. Their iron legions threaten all neighbors.' },
-  { id: 'npc-2', name: 'Thornwood Enclave', ruler: 'Elder Moss', power: 8200, x: 22, y: 35, emoji: '🌿', type: 'neutral' as const, desc: 'Ancient druids who guard the deep forest. They trade rare herbs for peace.' },
-  { id: 'npc-3', name: 'Ashfall Citadel', ruler: 'Warlord Cindra', power: 15000, x: 75, y: 18, emoji: '🔥', type: 'hostile' as const, desc: 'Built atop a dormant volcano. Their fire mages are feared across the realm.' },
-  { id: 'npc-4', name: 'Frostgate Hold', ruler: 'Jarl Hrimfaxi', power: 9800, x: 15, y: 72, emoji: '❄️', type: 'neutral' as const, desc: 'Mountain dwellers who control the northern passes. Expert smiths and miners.' },
-  { id: 'npc-5', name: 'Sunspire Sanctum', ruler: 'High Priestess Solara', power: 7500, x: 82, y: 75, emoji: '☀️', type: 'friendly' as const, desc: 'A holy order that offers healing and blessings to worthy allies.' },
-  { id: 'npc-6', name: "Dragon's Maw", ruler: 'The Broodmother', power: 25000, x: 50, y: 12, emoji: '🐉', type: 'hostile' as const, desc: 'A dragon\'s lair surrounded by scorched earth. Only the bravest dare approach.' },
-  { id: 'npc-7', name: 'Mistwood Coven', ruler: 'The Three Sisters', power: 11000, x: 35, y: 60, emoji: '🌙', type: 'neutral' as const, desc: 'Witches who brew potions and cast curses. They offer dark bargains.' },
-  { id: 'npc-8', name: 'Goldport Haven', ruler: 'Merchant Prince Auric', power: 6000, x: 88, y: 48, emoji: '⚓', type: 'friendly' as const, desc: 'A bustling trade port. They offer lucrative trade routes to allied kingdoms.' },
+  { id: 'npc-1', name: 'Iron Dominion', ruler: 'King Valthor', power: 120, x: 200, y: 250, emoji: '👑', type: 'hostile' as const, desc: 'An aggressive militaristic kingdom. Their iron legions threaten all neighbors.', territory: 180 },
+  { id: 'npc-2', name: 'Thornwood Enclave', ruler: 'Elder Moss', power: 80, x: 450, y: 600, emoji: '🌿', type: 'neutral' as const, desc: 'Ancient druids who guard the deep forest. They trade rare herbs for peace.', territory: 150 },
+  { id: 'npc-3', name: 'Ashfall Citadel', ruler: 'Warlord Cindra', power: 200, x: 1500, y: 300, emoji: '🔥', type: 'hostile' as const, desc: 'Built atop a dormant volcano. Their fire mages are feared across the realm.', territory: 200 },
+  { id: 'npc-4', name: 'Frostgate Hold', ruler: 'Jarl Hrimfaxi', power: 150, x: 300, y: 1500, emoji: '❄️', type: 'neutral' as const, desc: 'Mountain dwellers who control the northern passes. Expert smiths and miners.', territory: 170 },
+  { id: 'npc-5', name: 'Sunspire Sanctum', ruler: 'High Priestess Solara', power: 60, x: 1700, y: 1600, emoji: '☀️', type: 'friendly' as const, desc: 'A holy order that offers healing and blessings to worthy allies.', territory: 120 },
+  { id: 'npc-6', name: "Dragon's Maw", ruler: 'The Broodmother', power: 350, x: 1000, y: 150, emoji: '🐉', type: 'hostile' as const, desc: "A dragon's lair. Only the bravest dare approach. Legendary rewards await.", territory: 250 },
+  { id: 'npc-7', name: 'Mistwood Coven', ruler: 'The Three Sisters', power: 130, x: 700, y: 1200, emoji: '🌙', type: 'neutral' as const, desc: 'Witches who brew potions and cast curses. They offer dark bargains.', territory: 140 },
+  { id: 'npc-8', name: 'Goldport Haven', ruler: 'Merchant Prince Auric', power: 50, x: 1800, y: 900, emoji: '⚓', type: 'friendly' as const, desc: 'A bustling trade port. Lucrative trade routes for allied kingdoms.', territory: 130 },
+  { id: 'npc-9', name: 'The Blighted Wastes', ruler: 'Lich King Mordrath', power: 400, x: 1200, y: 800, emoji: '💀', type: 'hostile' as const, desc: 'An undead wasteland ruled by a powerful lich. Dark magic permeates everything.', territory: 220 },
+  { id: 'npc-10', name: 'Emerald Coast', ruler: 'Admiral Sirena', power: 90, x: 1900, y: 400, emoji: '🌊', type: 'friendly' as const, desc: 'Seafaring traders who control the eastern coast. Great allies for naval support.', territory: 160 },
+  { id: 'npc-11', name: 'Obsidian Forge', ruler: 'Master Smith Kragg', power: 110, x: 500, y: 900, emoji: '🔨', type: 'neutral' as const, desc: 'Legendary blacksmiths who forge weapons of immense power for the right price.', territory: 100 },
+  { id: 'npc-12', name: 'Whispering Ruins', ruler: 'The Oracle', power: 70, x: 900, y: 1700, emoji: '🏛️', type: 'neutral' as const, desc: 'Ancient ruins housing a powerful oracle. Seek wisdom for a price.', territory: 90 },
 ];
 
-// Dynamic world events
 interface WorldEvent {
   id: string;
   name: string;
@@ -25,162 +33,306 @@ interface WorldEvent {
   x: number;
   y: number;
   type: 'danger' | 'opportunity' | 'mystery';
-  reward?: string;
+  reward: { gold?: number; wood?: number; stone?: number; food?: number };
+  power: number;
+  claimed: boolean;
 }
 
 function generateEvents(): WorldEvent[] {
   const templates = [
-    { name: 'Goblin Raid', description: 'A horde of goblins terrorizes the countryside. Defeat them for gold!', emoji: '👺', type: 'danger' as const, reward: '+200 Gold' },
-    { name: 'Ancient Ruins', description: 'Crumbling ruins have been discovered. Explore for hidden treasures.', emoji: '🏛️', type: 'mystery' as const, reward: '+150 Stone' },
-    { name: 'Wandering Merchant', description: 'A rare merchant offers exotic goods at discount prices.', emoji: '🧙', type: 'opportunity' as const, reward: 'Trade Bonus' },
-    { name: 'Dragon Sighting', description: 'A young dragon has been spotted. Will you slay it or tame it?', emoji: '🐲', type: 'danger' as const, reward: '+500 Gold' },
-    { name: 'Harvest Festival', description: 'A neighboring village celebrates. Join for resource bonuses!', emoji: '🎪', type: 'opportunity' as const, reward: '+100 Food' },
-    { name: 'Dark Portal', description: 'A mysterious portal pulses with dark energy. What lies within?', emoji: '🌀', type: 'mystery' as const, reward: '??? Mystery' },
-    { name: 'Bandit Camp', description: 'Bandits have set up camp on a trade route. Clear them out!', emoji: '⚔️', type: 'danger' as const, reward: '+300 Gold' },
-    { name: 'Lost Caravan', description: 'An abandoned supply caravan sits along the road. Claim it!', emoji: '🏕️', type: 'opportunity' as const, reward: '+100 Wood' },
-    { name: 'Cursed Tomb', description: 'An ancient tomb emanates an eerie glow. Dare you enter?', emoji: '💀', type: 'mystery' as const, reward: 'Ancient Artifact' },
-    { name: 'Sacred Grove', description: 'A hidden grove radiates magical energy. Meditate for blessings.', emoji: '✨', type: 'opportunity' as const, reward: '+50 All Resources' },
+    { name: 'Goblin Raid', description: 'A horde of goblins terrorizes nearby.', emoji: '👺', type: 'danger' as const, reward: { gold: 200 }, power: 40 },
+    { name: 'Ancient Ruins', description: 'Crumbling ruins with hidden treasures.', emoji: '🏛️', type: 'mystery' as const, reward: { stone: 150, gold: 100 }, power: 30 },
+    { name: 'Wandering Merchant', description: 'A rare merchant offers exotic goods.', emoji: '🧙', type: 'opportunity' as const, reward: { gold: 80, wood: 80, stone: 80, food: 80 }, power: 0 },
+    { name: 'Dragon Sighting', description: 'A young dragon roams. Slay or tame it?', emoji: '🐲', type: 'danger' as const, reward: { gold: 500 }, power: 100 },
+    { name: 'Harvest Festival', description: 'A nearby village celebrates harvest.', emoji: '🎪', type: 'opportunity' as const, reward: { food: 200 }, power: 0 },
+    { name: 'Dark Portal', description: 'A mysterious portal pulses with energy.', emoji: '🌀', type: 'mystery' as const, reward: { gold: 300, stone: 200 }, power: 80 },
+    { name: 'Bandit Camp', description: 'Bandits block a trade route. Clear them!', emoji: '🗡️', type: 'danger' as const, reward: { gold: 300 }, power: 50 },
+    { name: 'Lost Caravan', description: 'An abandoned supply caravan. Claim it!', emoji: '🏕️', type: 'opportunity' as const, reward: { wood: 150, food: 100 }, power: 0 },
+    { name: 'Cursed Tomb', description: 'An ancient tomb emanates eerie glow.', emoji: '⚰️', type: 'mystery' as const, reward: { gold: 400 }, power: 70 },
+    { name: 'Sacred Grove', description: 'A hidden grove with magical energy.', emoji: '✨', type: 'opportunity' as const, reward: { gold: 50, wood: 50, stone: 50, food: 50 }, power: 0 },
+    { name: 'Orc Warband', description: 'Orcs march towards settlements!', emoji: '👹', type: 'danger' as const, reward: { gold: 250, food: 150 }, power: 60 },
+    { name: 'Fairy Ring', description: 'Mysterious mushroom circle glows.', emoji: '🍄', type: 'mystery' as const, reward: { food: 300 }, power: 20 },
+    { name: 'Iron Deposits', description: 'Rich mineral veins discovered!', emoji: '⛰️', type: 'opportunity' as const, reward: { stone: 250, gold: 100 }, power: 0 },
+    { name: 'Pirate Cove', description: 'Pirates hoard stolen treasure here.', emoji: '🏴‍☠️', type: 'danger' as const, reward: { gold: 600 }, power: 90 },
   ];
-
-  // Pick 4-6 random events
-  const count = 4 + Math.floor(Math.random() * 3);
+  const count = 8 + Math.floor(Math.random() * 6);
   const shuffled = [...templates].sort(() => Math.random() - 0.5).slice(0, count);
-
   return shuffled.map((t, i) => ({
-    ...t,
-    id: `event-${i}`,
-    x: 20 + Math.random() * 60,
-    y: 20 + Math.random() * 60,
+    ...t, id: `event-${i}`, claimed: false,
+    x: 100 + Math.random() * (MAP_SIZE - 200),
+    y: 100 + Math.random() * (MAP_SIZE - 200),
   }));
 }
 
-const TYPE_COLORS = {
-  hostile: 'bg-destructive',
-  neutral: 'bg-muted-foreground',
-  friendly: 'bg-food',
-};
+const TYPE_COLORS = { hostile: 'bg-destructive', neutral: 'bg-muted-foreground', friendly: 'bg-food' };
+const EVENT_COLORS = { danger: 'border-destructive/60 bg-destructive/20', opportunity: 'border-primary/60 bg-primary/20', mystery: 'border-accent/60 bg-accent/20' };
 
-const EVENT_COLORS = {
-  danger: 'border-destructive/60 bg-destructive/20',
-  opportunity: 'border-primary/60 bg-primary/20',
-  mystery: 'border-accent/60 bg-accent/20',
-};
-
-type SelectedItem = 
+type SelectedItem =
   | { kind: 'npc'; data: typeof NPC_REALMS[number] }
-  | { kind: 'event'; data: WorldEvent }
+  | { kind: 'event'; data: WorldEvent; index: number }
   | { kind: 'player'; data: any }
   | null;
 
 export default function WorldMap() {
-  const { allVillages } = useGame();
+  const { allVillages, addResources, army, totalArmyPower, attackTarget } = useGame();
   const { user } = useAuth();
   const [selected, setSelected] = useState<SelectedItem>(null);
-  const events = useMemo(() => generateEvents(), []);
+  const [events, setEvents] = useState(() => generateEvents());
 
-  const getPosition = (id: string, index: number) => {
+  // Pan/zoom state
+  const [offset, setOffset] = useState({ x: -600, y: -600 });
+  const [zoom, setZoom] = useState(0.5);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragStart = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+  const lastTouchDist = useRef<number | null>(null);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if ((e.target as HTMLElement).closest('[data-map-item]')) return;
+    dragStart.current = { x: e.clientX, y: e.clientY, ox: offset.x, oy: offset.y };
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+  }, [offset]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragStart.current) return;
+    const dx = e.clientX - dragStart.current.x;
+    const dy = e.clientY - dragStart.current.y;
+    setOffset({ x: dragStart.current.ox + dx, y: dragStart.current.oy + dy });
+  }, []);
+
+  const handlePointerUp = useCallback(() => { dragStart.current = null; }, []);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      lastTouchDist.current = d;
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2 && lastTouchDist.current) {
+      const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      const scale = d / lastTouchDist.current;
+      setZoom(prev => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev * scale)));
+      lastTouchDist.current = d;
+    }
+  }, []);
+
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    setZoom(prev => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev - e.deltaY * 0.001)));
+  }, []);
+
+  const getPlayerPos = (id: string, index: number) => {
     const hash = id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-    return {
-      x: 30 + (hash * 13 + index * 37) % 40,
-      y: 30 + (hash * 17 + index * 43) % 40,
-    };
+    return { x: 600 + (hash * 13 + index * 137) % 800, y: 600 + (hash * 17 + index * 173) % 800 };
   };
 
+  const handleInvestigate = useCallback((event: WorldEvent, index: number) => {
+    if (event.claimed) return;
+    const hasTroops = Object.values(army).some(v => v > 0);
+
+    if (event.power > 0 && !hasTroops) {
+      toast.error('You need troops to investigate dangerous events!');
+      return;
+    }
+
+    if (event.power > 0) {
+      const log = attackTarget(event.name, event.power);
+      if (log.result === 'victory') {
+        addResources(event.reward);
+        setEvents(prev => prev.map((e, i) => i === index ? { ...e, claimed: true } : e));
+        toast.success(`Victory at ${event.name}! Resources gained.`);
+      } else {
+        toast.error(`Defeated at ${event.name}! Your troops suffered losses.`);
+      }
+    } else {
+      addResources(event.reward);
+      setEvents(prev => prev.map((e, i) => i === index ? { ...e, claimed: true } : e));
+      toast.success(`${event.name} — Resources claimed!`);
+    }
+    setSelected(null);
+  }, [army, attackTarget, addResources]);
+
+  const handleAttackNPC = useCallback((realm: typeof NPC_REALMS[number]) => {
+    const hasTroops = Object.values(army).some(v => v > 0);
+    if (!hasTroops) { toast.error('You need troops to attack!'); return; }
+    const log = attackTarget(realm.name, realm.power);
+    if (log.result === 'victory') {
+      toast.success(`Victory against ${realm.name}! Spoils of war collected.`);
+    } else {
+      toast.error(`Defeated by ${realm.name}! Retreat and rebuild.`);
+    }
+    setSelected(null);
+  }, [army, attackTarget]);
+
+  const handleEnvoy = useCallback((realm: typeof NPC_REALMS[number]) => {
+    const tribute = { gold: Math.floor(realm.power * 0.3) };
+    addResources({ gold: -tribute.gold });
+    const reward = realm.type === 'friendly'
+      ? { gold: Math.floor(realm.power * 0.5), food: Math.floor(realm.power * 0.3) }
+      : { gold: Math.floor(realm.power * 0.2), wood: Math.floor(realm.power * 0.15) };
+    setTimeout(() => {
+      addResources(reward);
+      toast.success(`${realm.name} accepted your envoy! Trade deal secured.`);
+    }, 1000);
+    toast('Envoy dispatched with tribute...');
+    setSelected(null);
+  }, [addResources]);
+
+  const power = totalArmyPower();
+
   return (
-    <div className="flex-1 flex flex-col p-3">
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="font-display text-lg text-foreground text-shadow-gold">World Map</h2>
-        <span className="text-[10px] text-muted-foreground">{allVillages.length} players • {NPC_REALMS.length} NPC realms • {events.length} events</span>
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Map header */}
+      <div className="px-3 pt-2 pb-1 flex items-center justify-between">
+        <h2 className="font-display text-sm text-foreground text-shadow-gold">World Map</h2>
+        <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
+          <span>⚔️{power.attack} 🛡️{power.defense}</span>
+          <span>Zoom: {Math.round(zoom * 100)}%</span>
+        </div>
       </div>
 
-      <div className="flex-1 rounded-xl relative overflow-hidden min-h-[420px] border border-border">
-        {/* Map background */}
-        <img
-          src={worldmapBg}
-          alt="World Map"
-          className="absolute inset-0 w-full h-full object-cover opacity-70"
-        />
-        <div className="absolute inset-0 bg-background/30" />
+      {/* Pannable map */}
+      <div
+        ref={containerRef}
+        className="flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing touch-none"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onWheel={handleWheel}
+      >
+        <div
+          className="absolute"
+          style={{
+            width: MAP_SIZE,
+            height: MAP_SIZE,
+            transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+            transformOrigin: '0 0',
+          }}
+        >
+          {/* Background tiles */}
+          <img src={worldmapBg} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ imageRendering: 'auto' }} />
+          <div className="absolute inset-0 bg-background/20" />
 
-        {/* NPC Realms */}
-        {NPC_REALMS.map((realm, i) => (
-          <motion.button
-            key={realm.id}
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: i * 0.05 }}
-            whileTap={{ scale: 0.85 }}
-            onClick={() => setSelected({ kind: 'npc', data: realm })}
-            className="absolute flex flex-col items-center gap-0.5 -translate-x-1/2 -translate-y-1/2 z-10"
-            style={{ left: `${realm.x}%`, top: `${realm.y}%` }}
-          >
-            <div className="relative">
-              <div className={`w-6 h-6 rounded-full ${TYPE_COLORS[realm.type]} flex items-center justify-center text-xs shadow-lg`}>
-                {realm.emoji}
-              </div>
-              {realm.type === 'hostile' && (
-                <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-destructive animate-pulse" />
-              )}
-            </div>
-            <span className="text-[7px] font-display text-foreground bg-background/70 px-1 rounded whitespace-nowrap">
-              {realm.name}
-            </span>
-          </motion.button>
-        ))}
+          {/* Grid lines */}
+          <svg className="absolute inset-0 w-full h-full opacity-10">
+            {Array.from({ length: 21 }, (_, i) => (
+              <g key={i}>
+                <line x1={i * 100} y1={0} x2={i * 100} y2={MAP_SIZE} stroke="hsl(42 72% 52%)" strokeWidth={0.5} />
+                <line x1={0} y1={i * 100} x2={MAP_SIZE} y2={i * 100} stroke="hsl(42 72% 52%)" strokeWidth={0.5} />
+              </g>
+            ))}
+          </svg>
 
-        {/* World Events */}
-        {events.map((event, i) => (
-          <motion.button
-            key={event.id}
-            initial={{ scale: 0 }}
-            animate={{ scale: [0, 1.2, 1] }}
-            transition={{ delay: 0.5 + i * 0.1 }}
-            whileTap={{ scale: 0.85 }}
-            onClick={() => setSelected({ kind: 'event', data: event })}
-            className={`absolute -translate-x-1/2 -translate-y-1/2 z-20 w-5 h-5 rounded-full border ${EVENT_COLORS[event.type]} flex items-center justify-center text-[10px] animate-float shadow-md`}
-            style={{
-              left: `${event.x}%`,
-              top: `${event.y}%`,
-              animationDelay: `${i * 0.5}s`,
-            }}
-          >
-            {event.emoji}
-          </motion.button>
-        ))}
+          {/* Coordinate labels */}
+          {Array.from({ length: 5 }, (_, i) => {
+            const pos = i * 500;
+            return (
+              <g key={`coords-${i}`}>
+                <text x={pos + 5} y={15} fill="hsl(42 72% 52% / 0.4)" fontSize={10} fontFamily="Cinzel">{pos}</text>
+                <text x={5} y={pos + 15} fill="hsl(42 72% 52% / 0.4)" fontSize={10} fontFamily="Cinzel">{pos}</text>
+              </g>
+            );
+          })}
 
-        {/* Player villages */}
-        {allVillages.map((pv, i) => {
-          const pos = getPosition(pv.village.id, i);
-          const isMe = pv.village.user_id === user?.id;
-          return (
-            <motion.button
-              key={pv.village.id}
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.3 + i * 0.08 }}
-              whileTap={{ scale: 0.85 }}
-              onClick={() => setSelected({ kind: 'player', data: pv })}
-              className="absolute -translate-x-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-0.5"
-              style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+          {/* NPC territory circles */}
+          {NPC_REALMS.map(realm => (
+            <div
+              key={`territory-${realm.id}`}
+              className={`absolute rounded-full border opacity-10 ${
+                realm.type === 'hostile' ? 'border-destructive bg-destructive' :
+                realm.type === 'friendly' ? 'border-food bg-food' : 'border-muted-foreground bg-muted-foreground'
+              }`}
+              style={{
+                left: realm.x - realm.territory / 2,
+                top: realm.y - realm.territory / 2,
+                width: realm.territory,
+                height: realm.territory,
+              }}
+            />
+          ))}
+
+          {/* NPC Realms */}
+          {NPC_REALMS.map(realm => (
+            <button
+              key={realm.id}
+              data-map-item
+              onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'npc', data: realm }); }}
+              className="absolute flex flex-col items-center gap-0.5 -translate-x-1/2 -translate-y-1/2 z-10 hover:z-20"
+              style={{ left: realm.x, top: realm.y }}
             >
-              <div className={`w-5 h-5 rounded-sm flex items-center justify-center text-[10px] shadow-lg ${
-                isMe ? 'bg-primary animate-pulse-gold ring-2 ring-primary/50' : 'bg-secondary'
-              }`}>
-                🏰
+              <div className="relative">
+                <div className={`w-10 h-10 rounded-full ${TYPE_COLORS[realm.type]} flex items-center justify-center text-lg shadow-lg border-2 border-background/30`}>
+                  {realm.emoji}
+                </div>
+                {realm.type === 'hostile' && (
+                  <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-destructive animate-pulse border border-background" />
+                )}
               </div>
-              <span className="text-[7px] font-display text-foreground bg-background/70 px-1 rounded whitespace-nowrap">
-                {isMe ? 'You' : pv.profile.display_name}
-              </span>
-            </motion.button>
-          );
-        })}
+              <div className="text-center bg-background/80 px-1.5 py-0.5 rounded">
+                <p className="text-[8px] font-display text-foreground leading-tight whitespace-nowrap">{realm.name}</p>
+                <p className="text-[7px] text-muted-foreground">⚔️{realm.power}</p>
+              </div>
+            </button>
+          ))}
+
+          {/* Events */}
+          {events.map((event, i) => !event.claimed && (
+            <button
+              key={event.id}
+              data-map-item
+              onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'event', data: event, index: i }); }}
+              className={`absolute -translate-x-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full border-2 ${EVENT_COLORS[event.type]} flex items-center justify-center text-sm shadow-md`}
+              style={{ left: event.x, top: event.y, animation: `float 3s ease-in-out infinite ${i * 0.3}s` }}
+            >
+              {event.emoji}
+            </button>
+          ))}
+
+          {/* Player villages */}
+          {allVillages.map((pv, i) => {
+            const pos = getPlayerPos(pv.village.id, i);
+            const isMe = pv.village.user_id === user?.id;
+            return (
+              <button
+                key={pv.village.id}
+                data-map-item
+                onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'player', data: pv }); }}
+                className="absolute -translate-x-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-0.5 hover:z-40"
+                style={{ left: pos.x, top: pos.y }}
+              >
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-base shadow-lg ${
+                  isMe ? 'bg-primary animate-pulse-gold ring-2 ring-primary/50' : 'bg-secondary border border-border'
+                }`}>🏰</div>
+                <div className="text-center bg-background/80 px-1 py-0.5 rounded">
+                  <p className="text-[8px] font-display text-foreground whitespace-nowrap">{isMe ? '⭐ You' : pv.profile.display_name}</p>
+                  <p className="text-[7px] text-muted-foreground">Lv.{pv.village.level}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Zoom controls */}
+        <div className="absolute bottom-3 right-3 flex flex-col gap-1 z-50">
+          <button onClick={() => setZoom(prev => Math.min(MAX_ZOOM, prev + 0.15))}
+            className="w-8 h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-sm font-bold">+</button>
+          <button onClick={() => setZoom(prev => Math.max(MIN_ZOOM, prev - 0.15))}
+            className="w-8 h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-sm font-bold">−</button>
+          <button onClick={() => { setZoom(0.5); setOffset({ x: -600, y: -600 }); }}
+            className="w-8 h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-[9px]">⌂</button>
+        </div>
 
         {/* Legend */}
-        <div className="absolute bottom-2 left-2 bg-background/80 backdrop-blur-sm rounded-lg p-1.5 space-y-0.5 text-[8px] z-40">
-          <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-destructive" /> Hostile</div>
-          <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-muted-foreground" /> Neutral</div>
-          <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-food" /> Friendly</div>
-          <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full border border-primary bg-primary/20" /> Event</div>
+        <div className="absolute bottom-3 left-3 bg-background/90 backdrop-blur-sm rounded-lg p-2 space-y-1 text-[8px] z-50 border border-border">
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-destructive" /><span className="text-foreground">Hostile NPC</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-muted-foreground" /><span className="text-foreground">Neutral NPC</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-food" /><span className="text-foreground">Friendly NPC</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full border border-primary bg-primary/20" /><span className="text-foreground">Event</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-lg bg-secondary" /><span className="text-foreground">Player</span></div>
         </div>
       </div>
 
@@ -188,74 +340,77 @@ export default function WorldMap() {
       <AnimatePresence>
         {selected && (
           <motion.div
-            initial={{ y: 20, opacity: 0 }}
+            initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 20, opacity: 0 }}
-            className="game-panel border-glow rounded-xl p-3 mt-2 relative"
+            exit={{ y: 100, opacity: 0 }}
+            className="absolute bottom-14 inset-x-0 z-50 mx-3 game-panel border-glow rounded-xl p-3"
           >
             <button onClick={() => setSelected(null)} className="absolute top-2 right-2 text-muted-foreground text-xs">✕</button>
 
             {selected.kind === 'npc' && (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">{selected.data.emoji}</span>
-                  <div>
+                  <span className="text-3xl">{selected.data.emoji}</span>
+                  <div className="flex-1">
                     <h3 className="font-display text-sm text-foreground">{selected.data.name}</h3>
                     <p className="text-[10px] text-muted-foreground">Ruled by {selected.data.ruler}</p>
                   </div>
-                  <span className={`ml-auto text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
                     selected.data.type === 'hostile' ? 'bg-destructive/20 text-destructive' :
-                    selected.data.type === 'friendly' ? 'bg-food/20 text-food' :
-                    'bg-muted text-muted-foreground'
+                    selected.data.type === 'friendly' ? 'bg-food/20 text-food' : 'bg-muted text-muted-foreground'
                   }`}>{selected.data.type}</span>
                 </div>
-                <p className="text-xs text-muted-foreground">{selected.data.desc}</p>
+                <p className="text-[10px] text-muted-foreground">{selected.data.desc}</p>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-foreground">Power: {selected.data.power.toLocaleString()}</span>
-                  {selected.data.type !== 'hostile' && (
-                    <motion.button whileTap={{ scale: 0.95 }}
-                      className="bg-primary/20 text-primary font-display text-[10px] py-1 px-3 rounded-lg">
-                      Send Envoy
+                  <span className="text-[10px] text-foreground font-bold">⚔️ Power: {selected.data.power}</span>
+                  <div className="flex gap-1.5">
+                    {selected.data.type !== 'hostile' && (
+                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleEnvoy(selected.data)}
+                        className="bg-primary/20 text-primary font-display text-[10px] py-1.5 px-3 rounded-lg">
+                        Send Envoy 💰{Math.floor(selected.data.power * 0.3)}
+                      </motion.button>
+                    )}
+                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleAttackNPC(selected.data)}
+                      className="bg-destructive/20 text-destructive font-display text-[10px] py-1.5 px-3 rounded-lg">
+                      ⚔️ Attack
                     </motion.button>
-                  )}
-                  {selected.data.type === 'hostile' && (
-                    <motion.button whileTap={{ scale: 0.95 }}
-                      className="bg-destructive/20 text-destructive font-display text-[10px] py-1 px-3 rounded-lg">
-                      Scout Forces
-                    </motion.button>
-                  )}
+                  </div>
                 </div>
               </div>
             )}
 
             {selected.kind === 'event' && (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">{selected.data.emoji}</span>
-                  <div>
+                  <span className="text-3xl">{selected.data.emoji}</span>
+                  <div className="flex-1">
                     <h3 className="font-display text-sm text-foreground">{selected.data.name}</h3>
                     <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
                       selected.data.type === 'danger' ? 'bg-destructive/20 text-destructive' :
-                      selected.data.type === 'opportunity' ? 'bg-primary/20 text-primary' :
-                      'bg-accent/20 text-accent-foreground'
-                    }`}>{selected.data.type}</span>
+                      selected.data.type === 'opportunity' ? 'bg-primary/20 text-primary' : 'bg-accent/20 text-accent-foreground'
+                    }`}>{selected.data.type}{selected.data.power > 0 ? ` ⚔️${selected.data.power}` : ''}</span>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">{selected.data.description}</p>
+                <p className="text-[10px] text-muted-foreground">{selected.data.description}</p>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-primary font-bold">Reward: {selected.data.reward}</span>
+                  <div className="flex gap-1.5 text-[10px] text-primary font-bold">
+                    {Object.entries(selected.data.reward).filter(([, v]) => v > 0).map(([k, v]) => (
+                      <span key={k}>+{v} {k}</span>
+                    ))}
+                  </div>
                   <motion.button whileTap={{ scale: 0.95 }}
-                    className="bg-primary text-primary-foreground font-display text-[10px] py-1 px-3 rounded-lg glow-gold-sm">
-                    Investigate
+                    onClick={() => handleInvestigate(selected.data, selected.index)}
+                    className="bg-primary text-primary-foreground font-display text-[10px] py-1.5 px-4 rounded-lg glow-gold-sm">
+                    {selected.data.power > 0 ? '⚔️ Fight & Claim' : '✋ Claim'}
                   </motion.button>
                 </div>
               </div>
             )}
 
             {selected.kind === 'player' && (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">🏰</span>
+                  <span className="text-3xl">🏰</span>
                   <div>
                     <h3 className="font-display text-sm text-foreground">{selected.data.village.name}</h3>
                     <p className="text-[10px] text-muted-foreground">{selected.data.profile.display_name} • Lv.{selected.data.village.level}</p>
@@ -264,12 +419,19 @@ export default function WorldMap() {
                 {selected.data.village.user_id !== user?.id && (
                   <div className="flex gap-2">
                     <motion.button whileTap={{ scale: 0.95 }}
-                      className="flex-1 bg-primary/20 text-primary font-display text-[10px] py-1 rounded-lg">
-                      Send Message
+                      className="flex-1 bg-primary/20 text-primary font-display text-[10px] py-1.5 rounded-lg">
+                      📨 Message
                     </motion.button>
                     <motion.button whileTap={{ scale: 0.95 }}
-                      className="flex-1 bg-destructive/20 text-destructive font-display text-[10px] py-1 rounded-lg">
-                      Scout
+                      onClick={() => {
+                        const hasTroops = Object.values(army).some(v => v > 0);
+                        if (!hasTroops) { toast.error('You need troops to attack!'); return; }
+                        attackTarget(selected.data.village.name, selected.data.village.level * 30);
+                        toast.success('Attack launched!');
+                        setSelected(null);
+                      }}
+                      className="flex-1 bg-destructive/20 text-destructive font-display text-[10px] py-1.5 rounded-lg">
+                      ⚔️ Attack
                     </motion.button>
                   </div>
                 )}

@@ -4,21 +4,24 @@ import ResourceBar from './ResourceBar';
 import VillageGrid from './VillageGrid';
 import WorldMap from './WorldMap';
 import AlliancePanel from './AlliancePanel';
+import MilitaryPanel from './MilitaryPanel';
 import ProfilePanel from './ProfilePanel';
 import { useGame } from '@/hooks/useGameState';
 
-type Tab = 'village' | 'map' | 'alliance' | 'profile';
+type Tab = 'village' | 'map' | 'military' | 'alliance' | 'profile';
 
 const TABS: { id: Tab; icon: string; label: string }[] = [
   { id: 'village', icon: '🏘️', label: 'Village' },
+  { id: 'military', icon: '⚔️', label: 'Army' },
   { id: 'map', icon: '🗺️', label: 'World' },
-  { id: 'alliance', icon: '⚔️', label: 'Alliance' },
+  { id: 'alliance', icon: '🤝', label: 'Alliance' },
   { id: 'profile', icon: '👤', label: 'Profile' },
 ];
 
 export default function GameLayout() {
   const [activeTab, setActiveTab] = useState<Tab>('village');
-  const { villageName, playerLevel, loading, displayName } = useGame();
+  const { villageName, playerLevel, loading, displayName, army, trainingQueue } = useGame();
+  const totalTroops = Object.values(army).reduce((s, v) => s + v, 0);
 
   if (loading) {
     return (
@@ -36,8 +39,13 @@ export default function GameLayout() {
           <h1 className="font-display text-sm font-bold text-foreground text-shadow-gold">{villageName || displayName}</h1>
           <span className="text-[10px] text-primary font-semibold">Level {playerLevel}</span>
         </div>
-        <div className="font-display text-xs text-muted-foreground tracking-widest uppercase">
-          Realm of Shadows
+        <div className="flex items-center gap-3">
+          {totalTroops > 0 && (
+            <span className="text-[10px] text-foreground bg-secondary px-2 py-0.5 rounded-full">⚔️ {totalTroops} troops</span>
+          )}
+          {trainingQueue.length > 0 && (
+            <span className="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full animate-pulse">🔨 Training</span>
+          )}
         </div>
       </div>
 
@@ -50,10 +58,11 @@ export default function GameLayout() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.15 }}
             className="absolute inset-0 flex flex-col overflow-y-auto"
           >
             {activeTab === 'village' && <VillageGrid />}
+            {activeTab === 'military' && <MilitaryPanel />}
             {activeTab === 'map' && <WorldMap />}
             {activeTab === 'alliance' && <AlliancePanel />}
             {activeTab === 'profile' && <ProfilePanel />}
@@ -62,18 +71,18 @@ export default function GameLayout() {
       </div>
 
       <nav className="game-panel border-t border-glow safe-bottom">
-        <div className="flex items-center justify-around py-2">
+        <div className="flex items-center justify-around py-1.5">
           {TABS.map(tab => (
             <motion.button
               key={tab.id}
               whileTap={{ scale: 0.9 }}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center gap-0.5 px-4 py-1 rounded-lg transition-colors relative ${
+              className={`flex flex-col items-center gap-0 px-2 py-0.5 rounded-lg transition-colors relative ${
                 activeTab === tab.id ? 'text-primary' : 'text-muted-foreground'
               }`}
             >
-              <span className="text-lg">{tab.icon}</span>
-              <span className={`text-[10px] font-semibold ${activeTab === tab.id ? 'font-display' : ''}`}>
+              <span className="text-base">{tab.icon}</span>
+              <span className={`text-[9px] font-semibold ${activeTab === tab.id ? 'font-display' : ''}`}>
                 {tab.label}
               </span>
             </motion.button>
