@@ -37,10 +37,20 @@ interface TerrainFeature {
   name: string;
 }
 
+interface SteelMine {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  steelPerTick: number;
+  power: number; // garrison power to defeat
+}
+
 interface ChunkData {
   realms: ProceduralRealm[];
   events: ProceduralEvent[];
   terrain: TerrainFeature[];
+  steelMines: SteelMine[];
   regionName: string;
   regionBiome: string;
 }
@@ -279,7 +289,22 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
     });
   }
 
-  return { realms, events, terrain, regionName, regionBiome };
+  // Steel mines (0-1 per chunk, more common in Highlands/Badlands)
+  const MINE_NAMES = ['Iron Vein', 'Deep Forge', 'Obsidian Pit', 'Steelcrag Mine', 'The Black Seam', 'Titan\'s Quarry', 'Shadowsteel Delve', 'Ore Hollow', 'Molten Core', 'The Crucible'];
+  const steelMines: SteelMine[] = [];
+  const mineChance = regionBiome === 'Highlands' || regionBiome === 'Badlands' ? 0.6 : regionBiome === 'Tundra' ? 0.4 : 0.15;
+  if (rng() < mineChance) {
+    steelMines.push({
+      id: `mine-${chunkX}-${chunkY}`,
+      name: MINE_NAMES[Math.floor(rng() * MINE_NAMES.length)],
+      x: worldBaseX + 8000 + rng() * (CHUNK_SIZE - 16000),
+      y: worldBaseY + 8000 + rng() * (CHUNK_SIZE - 16000),
+      steelPerTick: 1 + Math.floor(rng() * 3 * difficultyMult),
+      power: Math.floor((30 + rng() * 80) * difficultyMult),
+    });
+  }
+
+  return { realms, events, terrain, steelMines, regionName, regionBiome };
 }
 
 // ── Chunk cache ──
@@ -304,15 +329,36 @@ type SelectedItem =
   | { kind: 'npc'; data: ProceduralRealm }
   | { kind: 'event'; data: ProceduralEvent; chunkKey: string; index: number }
   | { kind: 'player'; data: any }
+  | { kind: 'mine'; data: SteelMine }
   | null;
 
 export default function WorldMap() {
-  const { allVillages, addResources, army, totalArmyPower, attackTarget } = useGame();
+  const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget } = useGame();
   const { user } = useAuth();
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
+  const [capturedMines, setCapturedMines] = useState<Set<string>>(new Set());
   const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; action: () => void }[]>([]);
   const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
+
+  // Steel production from captured mines
+  useEffect(() => {
+    if (capturedMines.size === 0) return;
+    const interval = setInterval(() => {
+      let totalSteel = 0;
+      // Find all captured mines across visible chunks and sum steel
+      for (const mineId of capturedMines) {
+        // Parse chunk coords from mine id
+        const parts = mineId.split('-');
+        const cx = parseInt(parts[1]), cy = parseInt(parts[2]);
+        const chunk = getChunk(cx, cy);
+        const mine = chunk.steelMines.find(m => m.id === mineId);
+        if (mine) totalSteel += mine.steelPerTick;
+      }
+      if (totalSteel > 0) addSteel(totalSteel);
+    }, 10000); // every 10s
+    return () => clearInterval(interval);
+  }, [capturedMines, addSteel]);
 
   // Process marches
   useEffect(() => {
@@ -840,7 +886,23 @@ export default function WorldMap() {
           );
         })}
 
-        {/* Player villages */}
+        {/* Steel Mines */}
+        {visibleChunks.map(chunk => chunk.data.steelMines.map(mine => {
+          if (!isVisible(mine.x, mine.y, 60)) return null;
+          const { sx, sy } = worldToScreen(mine.x, mine.y);
+          const isCaptured = capturedMines.has(mine.id);
+          return (
+            <button key={mine.id} data-map-item
+              onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'mine', data: mine }); }}
+              className={`absolute z-20 rounded-lg border-2 flex items-center justify-center shadow-md ${
+                isCaptured ? 'border-primary/60 bg-primary/20 animate-pulse-gold' : 'border-muted-foreground/40 bg-muted/60'
+              }`}
+              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', width: eventSize, height: eventSize, fontSize: eventSize * 0.5 }}>
+              ⚙️
+            </button>
+          );
+        }))}
+
         {allVillages.map((pv) => {
           const pos = getPlayerPos(pv.village.id);
           if (!isVisible(pos.x, pos.y, 80)) return null;
@@ -885,6 +947,7 @@ export default function WorldMap() {
           <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5" style={{ background: 'hsl(30 20% 35% / 0.6)', clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }} /><span className="text-foreground">Mountain</span></div>
           <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: 'hsl(100 35% 40% / 0.6)' }} /><span className="text-foreground">Island</span></div>
           <div className="flex items-center gap-1.5"><div className="w-2.5 h-1" style={{ background: 'hsl(205 75% 45% / 0.6)', borderRadius: 2 }} /><span className="text-foreground">River</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded border border-muted-foreground/40 bg-muted/60 flex items-center justify-center text-[6px]">⚙️</div><span className="text-foreground">Steel Mine</span></div>
         </div>
       </div>
 
@@ -1002,6 +1065,52 @@ export default function WorldMap() {
                       ⚔️ Attack
                     </motion.button>
                   </div>
+                )}
+              </div>
+            )}
+
+            {selected.kind === 'mine' && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-3xl">⚙️</span>
+                  <div className="flex-1">
+                    <h3 className="font-display text-sm text-foreground">{selected.data.name}</h3>
+                    <p className="text-[10px] text-muted-foreground">Steel Mine · Produces ⚙️{selected.data.steelPerTick}/tick</p>
+                  </div>
+                  {capturedMines.has(selected.data.id) && (
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary">✅ Captured</span>
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  {capturedMines.has(selected.data.id)
+                    ? 'This mine is under your control and producing steel.'
+                    : `Defeat the garrison (⚔️${selected.data.power}) to capture this mine and start producing steel.`}
+                </p>
+                {!capturedMines.has(selected.data.id) && (
+                  <motion.button whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      const hasTroops = Object.values(army).some(v => v > 0);
+                      if (!hasTroops) { toast.error('You need troops to capture a mine!'); return; }
+                      const travelSec = calcTravelTime(selected.data.x, selected.data.y);
+                      const mineData = selected.data;
+                      toast(`⚔️ Troops marching to ${mineData.name}... ETA ${travelSec}s`);
+                      setMarches(prev => [...prev, {
+                        id: `mine-${Date.now()}`, targetName: mineData.name, arrivalTime: Date.now() + travelSec * 1000,
+                        action: () => {
+                          const log = attackTarget(mineData.name, mineData.power);
+                          if (log.result === 'victory') {
+                            setCapturedMines(prev => new Set([...prev, mineData.id]));
+                            toast.success(`⚙️ ${mineData.name} captured! Producing steel.`);
+                          } else {
+                            toast.error('Defeat! The garrison held.');
+                          }
+                        },
+                      }]);
+                      setSelected(null);
+                    }}
+                    className="w-full bg-primary text-primary-foreground font-display text-[10px] py-1.5 rounded-lg glow-gold-sm">
+                    ⚔️ Capture Mine (Garrison: ⚔️{selected.data.power})
+                  </motion.button>
                 )}
               </div>
             )}

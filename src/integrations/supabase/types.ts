@@ -334,7 +334,10 @@ export type Database = {
           id: string
           last_resource_tick: string
           level: number
+          max_population: number
           name: string
+          population: number
+          steel: number
           stone: number
           updated_at: string
           user_id: string
@@ -352,7 +355,10 @@ export type Database = {
           id?: string
           last_resource_tick?: string
           level?: number
+          max_population?: number
           name?: string
+          population?: number
+          steel?: number
           stone?: number
           updated_at?: string
           user_id: string
@@ -370,7 +376,10 @@ export type Database = {
           id?: string
           last_resource_tick?: string
           level?: number
+          max_population?: number
           name?: string
+          population?: number
+          steel?: number
           stone?: number
           updated_at?: string
           user_id?: string
