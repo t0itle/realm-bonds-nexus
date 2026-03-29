@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
+import ThemeToggle from '@/components/ThemeToggle';
 
 function InlineAuth() {
   const { signIn, signUp } = useAuth();
@@ -175,6 +176,11 @@ const FEATURES = [
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background overflow-y-auto">
+      {/* Top bar with theme toggle */}
+      <div className="absolute top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
+
       {/* Hero */}
       <section className="relative flex flex-col items-center justify-center px-6 pt-16 pb-12 text-center">
         {/* Ambient glow */}
