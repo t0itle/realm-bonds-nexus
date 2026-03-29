@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useGame, BUILDING_INFO, getUpgradeCost, getProduction, BuildingType, Building } from '@/hooks/useGameState';
 import { motion, AnimatePresence } from 'framer-motion';
+import { BUILDING_SPRITES, WORKERS_SPRITE, WORKER_FOR_BUILDING } from './sprites';
 import BuildModal from './BuildModal';
 
 const GRID_SIZE = 9;
@@ -16,39 +17,67 @@ export default function VillageGrid() {
 
   return (
     <>
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-4">
-        <div className="grid grid-cols-3 gap-3 w-full max-w-xs">
-          {grid.map((building, i) => (
-            <motion.button
-              key={i}
-              whileTap={{ scale: 0.93 }}
-              whileHover={{ scale: 1.03 }}
-              onClick={() => {
-                if (building) setSelectedBuilding(building);
-                else setBuildPosition(i);
-              }}
-              className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-1 transition-all ${
-                building
-                  ? 'game-panel border-glow glow-gold-sm'
-                  : 'border-2 border-dashed border-border/50 bg-muted/30 hover:border-primary/50'
-              }`}
-            >
-              {building ? (
-                <>
-                  <span className="text-2xl">{BUILDING_INFO[building.type as Exclude<BuildingType, 'empty'>].icon}</span>
-                  <span className="text-[10px] font-display text-foreground/80 truncate w-full text-center px-1">
-                    {BUILDING_INFO[building.type as Exclude<BuildingType, 'empty'>].name}
-                  </span>
-                  <span className="text-[9px] text-primary font-bold">Lv.{building.level}</span>
-                </>
-              ) : (
-                <span className="text-2xl opacity-30">＋</span>
-              )}
-            </motion.button>
-          ))}
+      <div className="flex-1 flex flex-col items-center justify-center px-3 py-3">
+        <div className="grid grid-cols-3 gap-2.5 w-full max-w-xs">
+          {grid.map((building, i) => {
+            const type = building?.type as Exclude<BuildingType, 'empty'> | undefined;
+            const sprite = type ? BUILDING_SPRITES[type] : null;
+            const worker = type ? WORKER_FOR_BUILDING[type] : null;
+
+            return (
+              <motion.button
+                key={i}
+                whileTap={{ scale: 0.93 }}
+                onClick={() => {
+                  if (building) setSelectedBuilding(building);
+                  else setBuildPosition(i);
+                }}
+                className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all relative overflow-hidden ${
+                  building
+                    ? 'game-panel border-glow'
+                    : 'border-2 border-dashed border-border/50 bg-muted/30 hover:border-primary/50'
+                }`}
+              >
+                {building && sprite ? (
+                  <>
+                    <img
+                      src={sprite}
+                      alt={BUILDING_INFO[type!].name}
+                      className="w-16 h-16 object-contain drop-shadow-lg"
+                      loading="lazy"
+                    />
+                    {/* Worker sprite */}
+                    {worker && building.level > 0 && (
+                      <div className="absolute bottom-7 right-1 w-5 h-5 overflow-hidden">
+                        <img
+                          src={WORKERS_SPRITE}
+                          alt={worker.name}
+                          className="h-5 object-cover animate-float"
+                          style={{
+                            objectPosition: `${worker.clipX}% center`,
+                            width: '20px',
+                          }}
+                          loading="lazy"
+                        />
+                      </div>
+                    )}
+                    <span className="text-[9px] font-display text-foreground/80 truncate w-full text-center px-1">
+                      {BUILDING_INFO[type!].name}
+                    </span>
+                    <span className="text-[8px] text-primary font-bold bg-background/60 px-1.5 rounded-full">
+                      Lv.{building.level}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-2xl opacity-30">＋</span>
+                )}
+              </motion.button>
+            );
+          })}
         </div>
       </div>
 
+      {/* Building detail sheet */}
       <AnimatePresence>
         {selectedBuilding && selectedBuilding.type !== 'empty' && (
           <motion.div
@@ -95,6 +124,7 @@ function BuildingDetail({ building, onUpgrade, canAfford }: {
 }) {
   const type = building.type as Exclude<BuildingType, 'empty'>;
   const info = BUILDING_INFO[type];
+  const sprite = BUILDING_SPRITES[type];
   const upgradeCost = getUpgradeCost(type, building.level);
   const production = getProduction(type, building.level);
   const affordable = canAfford(upgradeCost);
@@ -103,7 +133,7 @@ function BuildingDetail({ building, onUpgrade, canAfford }: {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
-        <span className="text-4xl">{info.icon}</span>
+        <img src={sprite} alt={info.name} className="w-16 h-16 object-contain" />
         <div>
           <h3 className="font-display text-lg text-foreground">{info.name}</h3>
           <p className="text-xs text-primary font-bold">Level {building.level} / {info.maxLevel}</p>
