@@ -43,6 +43,9 @@ export default function MilitaryPanel() {
         <div className="text-right">
           <p className="text-xs text-primary font-bold">⚔️ {power.attack}</p>
           <p className="text-xs text-foreground">🛡️ {power.defense}</p>
+          {(upkeep.food > 0 || upkeep.gold > 0) && (
+            <p className="text-[9px] text-destructive mt-0.5">Upkeep: 🌾{upkeep.food * 20}/min 💰{upkeep.gold * 20}/min</p>
+          )}
         </div>
       </div>
 
