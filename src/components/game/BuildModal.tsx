@@ -3,7 +3,7 @@ import { useGame, BuildingType, BUILDING_INFO, getUpgradeCost } from '@/hooks/us
 import { BUILDING_SPRITES } from './sprites';
 
 const BUILDABLE: Exclude<BuildingType, 'empty' | 'townhall'>[] = [
-  'farm', 'lumbermill', 'quarry', 'goldmine', 'barracks', 'wall', 'watchtower',
+  'house', 'farm', 'lumbermill', 'quarry', 'goldmine', 'barracks', 'wall', 'watchtower', 'temple',
 ];
 
 export default function BuildModal({ position, onClose }: { position: number; onClose: () => void }) {

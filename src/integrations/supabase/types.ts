@@ -331,12 +331,15 @@ export type Database = {
           created_at: string
           food: number
           gold: number
+          happiness: number
           id: string
           last_resource_tick: string
           level: number
           max_population: number
           name: string
+          pop_tax_rate: number
           population: number
+          rations: string
           steel: number
           stone: number
           updated_at: string
@@ -352,12 +355,15 @@ export type Database = {
           created_at?: string
           food?: number
           gold?: number
+          happiness?: number
           id?: string
           last_resource_tick?: string
           level?: number
           max_population?: number
           name?: string
+          pop_tax_rate?: number
           population?: number
+          rations?: string
           steel?: number
           stone?: number
           updated_at?: string
@@ -373,12 +379,15 @@ export type Database = {
           created_at?: string
           food?: number
           gold?: number
+          happiness?: number
           id?: string
           last_resource_tick?: string
           level?: number
           max_population?: number
           name?: string
+          pop_tax_rate?: number
           population?: number
+          rations?: string
           steel?: number
           stone?: number
           updated_at?: string
