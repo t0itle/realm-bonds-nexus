@@ -24,9 +24,23 @@ function hashCoords(cx: number, cy: number, salt = 0): number {
 // ── Chunk-based procedural world ──
 const CHUNK_SIZE = 50000; // world units per chunk
 
+interface TerrainFeature {
+  type: 'lake' | 'mountain' | 'island' | 'river';
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation?: number;
+  // River-specific
+  points?: { x: number; y: number }[];
+  bridgeAt?: { x: number; y: number }[];
+  name: string;
+}
+
 interface ChunkData {
   realms: ProceduralRealm[];
   events: ProceduralEvent[];
+  terrain: TerrainFeature[];
   regionName: string;
   regionBiome: string;
 }
@@ -175,7 +189,97 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
     });
   }
 
-  return { realms, events, regionName, regionBiome };
+  // ── Terrain features ──
+  const LAKE_NAMES = ['Mirror Lake', 'Lake Sorrow', 'Azure Pool', 'Dead Mere', 'Crystal Waters', 'Shadow Pond', 'Moonwell', 'Serpent Lake', 'Frozen Tarn', 'Emerald Basin'];
+  const MTN_NAMES = ['Mt. Dread', 'Frostpeak', 'Ironjaw Summit', 'The Spire', 'Ashcrown', 'Thunder Ridge', 'Skullcap Peak', 'Dragonspine', 'The Anvil', 'Stormbreak'];
+  const RIVER_NAMES = ['River Styx', 'Goldrun', 'Silvervein', 'The Serpent', 'Whitewater', 'Blackflow', 'Crimson Creek', 'Mistbrook', 'Thornstream', 'Deepchannel'];
+  const ISLAND_NAMES = ['Isle of Bones', 'Verdant Atoll', 'Skull Rock', 'Trader\'s Rest', 'Phantom Isle', 'Coral Haven', 'Driftwood Key', 'Ember Isle', 'Windward Cay', 'Smuggler\'s Den'];
+
+  const terrain: TerrainFeature[] = [];
+
+  // Lakes (0-2 per chunk, more in Coast/Marsh/Jungle biomes)
+  const lakeChance = regionBiome === 'Coast' || regionBiome === 'Marsh' || regionBiome === 'Jungle' ? 0.8 : 0.35;
+  const lakeCount = rng() < lakeChance ? (rng() < 0.4 ? 2 : 1) : 0;
+  for (let i = 0; i < lakeCount; i++) {
+    terrain.push({
+      type: 'lake',
+      x: worldBaseX + 8000 + rng() * (CHUNK_SIZE - 16000),
+      y: worldBaseY + 8000 + rng() * (CHUNK_SIZE - 16000),
+      width: 4000 + rng() * 10000,
+      height: 3000 + rng() * 7000,
+      rotation: rng() * 360,
+      name: LAKE_NAMES[Math.floor(rng() * LAKE_NAMES.length)],
+    });
+  }
+
+  // Mountains (0-3 per chunk, more in Highlands/Tundra/Badlands)
+  const mtnChance = regionBiome === 'Highlands' || regionBiome === 'Tundra' || regionBiome === 'Badlands' ? 0.9 : 0.3;
+  const mtnCount = rng() < mtnChance ? 1 + Math.floor(rng() * 3) : 0;
+  for (let i = 0; i < mtnCount; i++) {
+    terrain.push({
+      type: 'mountain',
+      x: worldBaseX + 5000 + rng() * (CHUNK_SIZE - 10000),
+      y: worldBaseY + 5000 + rng() * (CHUNK_SIZE - 10000),
+      width: 3000 + rng() * 8000,
+      height: 3000 + rng() * 8000,
+      name: MTN_NAMES[Math.floor(rng() * MTN_NAMES.length)],
+    });
+  }
+
+  // Rivers (0-1 per chunk, with bridges)
+  if (rng() < 0.45) {
+    const riverPoints: { x: number; y: number }[] = [];
+    const segments = 5 + Math.floor(rng() * 4);
+    const startEdge = Math.floor(rng() * 4); // 0=top, 1=right, 2=bottom, 3=left
+    let rx = worldBaseX, ry = worldBaseY;
+    if (startEdge === 0) { rx = worldBaseX + rng() * CHUNK_SIZE; ry = worldBaseY; }
+    else if (startEdge === 1) { rx = worldBaseX + CHUNK_SIZE; ry = worldBaseY + rng() * CHUNK_SIZE; }
+    else if (startEdge === 2) { rx = worldBaseX + rng() * CHUNK_SIZE; ry = worldBaseY + CHUNK_SIZE; }
+    else { rx = worldBaseX; ry = worldBaseY + rng() * CHUNK_SIZE; }
+    riverPoints.push({ x: rx, y: ry });
+    for (let s = 1; s <= segments; s++) {
+      const t = s / segments;
+      const targetX = startEdge === 1 ? worldBaseX : startEdge === 3 ? worldBaseX + CHUNK_SIZE : worldBaseX + rng() * CHUNK_SIZE;
+      const targetY = startEdge === 0 ? worldBaseY + CHUNK_SIZE : startEdge === 2 ? worldBaseY : worldBaseY + rng() * CHUNK_SIZE;
+      rx = rx + (targetX - rx) * t + (rng() - 0.5) * 8000;
+      ry = ry + (targetY - ry) * t + (rng() - 0.5) * 8000;
+      rx = Math.max(worldBaseX, Math.min(worldBaseX + CHUNK_SIZE, rx));
+      ry = Math.max(worldBaseY, Math.min(worldBaseY + CHUNK_SIZE, ry));
+      riverPoints.push({ x: rx, y: ry });
+    }
+    // Place 1-2 bridges along the river
+    const bridges: { x: number; y: number }[] = [];
+    const bridgeCount = 1 + Math.floor(rng() * 2);
+    for (let b = 0; b < bridgeCount; b++) {
+      const idx = 1 + Math.floor(rng() * (riverPoints.length - 2));
+      bridges.push(riverPoints[idx]);
+    }
+    terrain.push({
+      type: 'river',
+      x: riverPoints[0].x,
+      y: riverPoints[0].y,
+      width: 800 + rng() * 1500,
+      height: 0,
+      points: riverPoints,
+      bridgeAt: bridges,
+      name: RIVER_NAMES[Math.floor(rng() * RIVER_NAMES.length)],
+    });
+  }
+
+  // Islands (only in Coast biome or near lakes, 0-1)
+  if (regionBiome === 'Coast' || (lakeCount > 0 && rng() < 0.4)) {
+    terrain.push({
+      type: 'island',
+      x: worldBaseX + 10000 + rng() * (CHUNK_SIZE - 20000),
+      y: worldBaseY + 10000 + rng() * (CHUNK_SIZE - 20000),
+      width: 3000 + rng() * 6000,
+      height: 2000 + rng() * 4000,
+      rotation: rng() * 360,
+      name: ISLAND_NAMES[Math.floor(rng() * ISLAND_NAMES.length)],
+    });
+  }
+
+  return { realms, events, terrain, regionName, regionBiome };
 }
 
 // ── Chunk cache ──
@@ -542,7 +646,130 @@ export default function WorldMap() {
           })()}
         </svg>
 
-        {/* Region labels */}
+        {/* ── Terrain Features ── */}
+        {visibleChunks.map(chunk => chunk.data.terrain.map((t, ti) => {
+          if (t.type === 'lake') {
+            const { sx, sy } = worldToScreen(t.x, t.y);
+            const w = t.width * camera.ppu;
+            const h = t.height * camera.ppu;
+            if (w < 6 && h < 6) return null;
+            const labelSize = Math.max(7, Math.min(13, w / 6));
+            return (
+              <div key={`lake-${chunk.cx}-${chunk.cy}-${ti}`} className="absolute pointer-events-none"
+                style={{ left: sx, top: sy, transform: `translate(-50%, -50%) rotate(${t.rotation || 0}deg)` }}>
+                <div style={{ width: w, height: h, borderRadius: '50%', background: 'radial-gradient(ellipse, hsl(200 70% 45% / 0.5), hsl(210 80% 30% / 0.25) 70%, transparent)', boxShadow: '0 0 20px hsl(200 70% 45% / 0.2)', border: '1px solid hsl(200 60% 50% / 0.15)' }} />
+                {w > 30 && (
+                  <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 font-display text-sky-200/60 whitespace-nowrap"
+                    style={{ fontSize: labelSize, transform: `translate(-50%, -50%) rotate(${-(t.rotation || 0)}deg)` }}>
+                    🌊 {t.name}
+                  </span>
+                )}
+              </div>
+            );
+          }
+          if (t.type === 'mountain') {
+            const { sx, sy } = worldToScreen(t.x, t.y);
+            const w = t.width * camera.ppu;
+            const h = t.height * camera.ppu;
+            if (w < 6) return null;
+            const labelSize = Math.max(7, Math.min(12, w / 5));
+            return (
+              <div key={`mtn-${chunk.cx}-${chunk.cy}-${ti}`} className="absolute pointer-events-none"
+                style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
+                <svg width={w} height={h} viewBox="0 0 100 100" style={{ overflow: 'visible' }}>
+                  <polygon points="50,5 10,95 90,95" fill="hsl(30 20% 35% / 0.4)" stroke="hsl(30 30% 50% / 0.3)" strokeWidth={1.5} />
+                  <polygon points="50,5 40,30 60,30" fill="hsl(210 20% 85% / 0.5)" stroke="none" />
+                  <polygon points="35,50 20,95 50,95" fill="hsl(30 15% 30% / 0.25)" stroke="none" />
+                </svg>
+                {w > 25 && (
+                  <span className="absolute left-1/2 whitespace-nowrap font-display text-amber-200/50" style={{ fontSize: labelSize, bottom: -labelSize - 2, transform: 'translateX(-50%)' }}>
+                    ⛰️ {t.name}
+                  </span>
+                )}
+              </div>
+            );
+          }
+          if (t.type === 'island') {
+            const { sx, sy } = worldToScreen(t.x, t.y);
+            const w = t.width * camera.ppu;
+            const h = t.height * camera.ppu;
+            if (w < 8) return null;
+            const labelSize = Math.max(7, Math.min(11, w / 5));
+            return (
+              <div key={`isle-${chunk.cx}-${chunk.cy}-${ti}`} className="absolute pointer-events-none"
+                style={{ left: sx, top: sy, transform: `translate(-50%, -50%) rotate(${t.rotation || 0}deg)` }}>
+                {/* Water around island */}
+                <div style={{ width: w * 1.5, height: h * 1.5, borderRadius: '50%', background: 'radial-gradient(ellipse, hsl(200 65% 40% / 0.35), transparent 70%)', position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }} />
+                {/* Island mass */}
+                <div style={{ width: w, height: h, borderRadius: '45% 55% 60% 40% / 50% 45% 55% 50%', background: 'radial-gradient(ellipse, hsl(100 35% 40% / 0.6), hsl(80 30% 30% / 0.4))', border: '1px solid hsl(50 40% 55% / 0.2)', position: 'relative', zIndex: 1 }} />
+                {w > 25 && (
+                  <span className="absolute left-1/2 whitespace-nowrap font-display text-emerald-200/50"
+                    style={{ fontSize: labelSize, bottom: -labelSize - 4, transform: `translateX(-50%) rotate(${-(t.rotation || 0)}deg)`, zIndex: 2 }}>
+                    🏝️ {t.name}
+                  </span>
+                )}
+              </div>
+            );
+          }
+          if (t.type === 'river' && t.points && t.points.length > 1) {
+            const screenPoints = t.points.map(p => worldToScreen(p.x, p.y));
+            // Check if any point is visible
+            const anyVisible = screenPoints.some(p => p.sx > -200 && p.sx < containerSize.w + 200 && p.sy > -200 && p.sy < containerSize.h + 200);
+            if (!anyVisible) return null;
+            const strokeW = Math.max(2, t.width * camera.ppu);
+            // Build SVG path
+            let d = `M ${screenPoints[0].sx} ${screenPoints[0].sy}`;
+            for (let i = 1; i < screenPoints.length; i++) {
+              const prev = screenPoints[i - 1];
+              const cur = screenPoints[i];
+              const cpx = (prev.sx + cur.sx) / 2 + (i % 2 === 0 ? 10 : -10);
+              const cpy = (prev.sy + cur.sy) / 2;
+              d += ` Q ${cpx} ${cpy} ${cur.sx} ${cur.sy}`;
+            }
+            const labelSize = Math.max(8, Math.min(12, strokeW * 2));
+            const midIdx = Math.floor(screenPoints.length / 2);
+            const midPt = screenPoints[midIdx];
+            return (
+              <div key={`river-${chunk.cx}-${chunk.cy}-${ti}`} className="absolute inset-0 pointer-events-none" style={{ overflow: 'visible' }}>
+                <svg className="absolute inset-0 w-full h-full" style={{ overflow: 'visible' }}>
+                  {/* River glow */}
+                  <path d={d} fill="none" stroke="hsl(200 70% 50% / 0.15)" strokeWidth={strokeW * 3} strokeLinecap="round" strokeLinejoin="round" />
+                  {/* River body */}
+                  <path d={d} fill="none" stroke="hsl(205 75% 45% / 0.45)" strokeWidth={strokeW} strokeLinecap="round" strokeLinejoin="round" />
+                  {/* River highlight */}
+                  <path d={d} fill="none" stroke="hsl(195 80% 65% / 0.2)" strokeWidth={strokeW * 0.4} strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                {/* River name */}
+                {strokeW > 3 && (
+                  <span className="absolute font-display text-sky-300/40 whitespace-nowrap" style={{ left: midPt.sx, top: midPt.sy - strokeW - 4, fontSize: labelSize, transform: 'translateX(-50%)' }}>
+                    {t.name}
+                  </span>
+                )}
+                {/* Bridges */}
+                {t.bridgeAt?.map((bp, bi) => {
+                  const { sx: bsx, sy: bsy } = worldToScreen(bp.x, bp.y);
+                  const bridgeW = Math.max(12, strokeW * 2.5);
+                  if (bridgeW < 8) return null;
+                  return (
+                    <div key={`bridge-${bi}`} className="absolute flex flex-col items-center" style={{ left: bsx, top: bsy, transform: 'translate(-50%, -50%)', zIndex: 5 }}>
+                      <div style={{
+                        width: bridgeW,
+                        height: bridgeW * 0.5,
+                        background: 'linear-gradient(180deg, hsl(30 40% 50% / 0.7), hsl(25 35% 35% / 0.6))',
+                        borderRadius: `${bridgeW * 0.5}px ${bridgeW * 0.5}px 2px 2px`,
+                        border: '1px solid hsl(30 30% 60% / 0.4)',
+                        boxShadow: '0 2px 6px hsl(0 0% 0% / 0.3)',
+                      }} />
+                      {bridgeW > 15 && <span style={{ fontSize: 7 }} className="text-amber-200/50 mt-0.5">🌉</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          }
+          return null;
+        }))}
+
         {visibleChunks.map(chunk => {
           const centerX = chunk.cx * CHUNK_SIZE + CHUNK_SIZE / 2;
           const centerY = chunk.cy * CHUNK_SIZE + CHUNK_SIZE / 2;
@@ -654,6 +881,10 @@ export default function WorldMap() {
           <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-food" /><span className="text-foreground">Friendly</span></div>
           <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full border border-primary bg-primary/20" /><span className="text-foreground">Event</span></div>
           <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-lg bg-secondary" /><span className="text-foreground">Player</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: 'hsl(200 70% 45% / 0.5)' }} /><span className="text-foreground">Water</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5" style={{ background: 'hsl(30 20% 35% / 0.6)', clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }} /><span className="text-foreground">Mountain</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: 'hsl(100 35% 40% / 0.6)' }} /><span className="text-foreground">Island</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-1" style={{ background: 'hsl(205 75% 45% / 0.6)', borderRadius: 2 }} /><span className="text-foreground">River</span></div>
         </div>
       </div>
 
