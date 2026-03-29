@@ -1057,15 +1057,15 @@ export default function WorldMap() {
                   </div>
                 </div>
                 <p className="text-[10px] text-muted-foreground">{selected.data.description}</p>
-                <div className="flex items-center justify-between">
-                  <div className="flex gap-1.5 text-[10px] text-primary font-bold">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex gap-1.5 text-[10px] text-primary font-bold flex-wrap">
                     {Object.entries(selected.data.reward).filter(([, v]) => v && v > 0).map(([k, v]) => (
                       <span key={k}>+{v} {k}</span>
                     ))}
                   </div>
                   <motion.button whileTap={{ scale: 0.95 }}
                     onClick={() => handleInvestigate(selected.data)}
-                    className="bg-primary text-primary-foreground font-display text-[10px] py-1.5 px-4 rounded-lg glow-gold-sm">
+                    className="bg-primary text-primary-foreground font-display text-[11px] py-2.5 px-4 rounded-lg glow-gold-sm active:scale-95 transition-transform whitespace-nowrap">
                     {selected.data.power > 0 ? '⚔️ Fight & Claim' : '✋ Claim'}
                   </motion.button>
                 </div>
