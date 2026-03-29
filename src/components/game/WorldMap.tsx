@@ -54,25 +54,50 @@ interface ProceduralEvent {
   power: number;
 }
 
-const REALM_NAMES = [
-  'Iron Dominion', 'Thornwood Enclave', 'Ashfall Citadel', 'Frostgate Hold',
-  'Sunspire Sanctum', "Dragon's Maw", 'Mistwood Coven', 'Goldport Haven',
-  'Blighted Wastes', 'Emerald Coast', 'Obsidian Forge', 'Whispering Ruins',
-  'Shadowfen Marshes', 'Skyreach Eyrie', 'Verdant Republic', 'Crimson Horde',
-  'Crystal Depths', 'Ashen Theocracy', 'Stormwall Keep', 'Duskhollow Vale',
-  'Brightmoor Abbey', 'Blackthorn Bastion', 'Silver Spires', 'Rotwood Bog',
-  'Jade Pavilion', 'Ember Peak', 'Moonshade Grotto', 'Ironclaw Garrison',
-  'Windveil Plateau', 'Deepstone Mines', 'Starfall Citadel', 'Thornhelm Ridge',
-];
-const RULER_NAMES = [
-  'King Valthor', 'Elder Moss', 'Warlord Cindra', 'Jarl Hrimfaxi',
-  'High Priestess Solara', 'The Broodmother', 'The Three Sisters', 'Merchant Prince Auric',
-  'Lich King Mordrath', 'Admiral Sirena', 'Master Smith Kragg', 'The Oracle',
-  'Bog Queen Miretha', 'Storm Lord Aethon', 'Chancellor Thalia', 'Khan Bloodfang',
-  'Gem King Prismo', 'Prophet Ignatius', 'Duke Ashmark', 'Lady Nightbloom',
-  'Baron Ironfist', 'Witch of the Wilds', 'Commander Steelgaze', 'Archmage Lunaris',
-];
+// ── Procedural name generation ──
+const NAME_PREFIXES = ['Iron', 'Thorn', 'Ash', 'Frost', 'Sun', 'Shadow', 'Storm', 'Ember', 'Moon', 'Dusk', 'Bright', 'Black', 'Silver', 'Rot', 'Jade', 'Wind', 'Deep', 'Star', 'Crimson', 'Gold', 'Obsidian', 'Whispering', 'Crystal', 'Verdant', 'Blighted', 'Mist', 'Dragon', 'Blood', 'Raven', 'Oak', 'Copper', 'Ghost', 'Hollow', 'Grim', 'Stone', 'Wolf', 'Bone', 'Flame', 'Silk', 'Rust'];
+const NAME_MIDS = ['wood', 'fall', 'gate', 'spire', 'maw', 'port', 'fen', 'reach', 'moor', 'thorn', 'claw', 'veil', 'stone', 'shade', 'helm', 'vale', 'haven', 'peak', 'brook', 'ford', 'mere', 'glen', 'ridge', 'holm', 'dell', 'crest', 'bane', 'mark', 'burn', 'wold'];
+const NAME_SUFFIXES = ['Dominion', 'Enclave', 'Citadel', 'Hold', 'Sanctum', 'Coven', 'Wastes', 'Forge', 'Ruins', 'Marshes', 'Eyrie', 'Republic', 'Horde', 'Depths', 'Keep', 'Abbey', 'Bastion', 'Bog', 'Garrison', 'Plateau', 'Mines', 'Grotto', 'Kingdom', 'Reach', 'Barony', 'Expanse'];
+
+const RULER_TITLES = ['King', 'Queen', 'Elder', 'Warlord', 'Jarl', 'High Priestess', 'Baron', 'Duchess', 'Archmage', 'Prophet', 'Khan', 'Commander', 'Lord', 'Lady', 'Chancellor', 'Chieftain'];
+const RULER_FIRST = ['Valthor', 'Cindra', 'Solara', 'Mordrath', 'Sirena', 'Kragg', 'Miretha', 'Aethon', 'Thalia', 'Auric', 'Prismo', 'Ignatius', 'Nightbloom', 'Steelgaze', 'Lunaris', 'Hrimfaxi', 'Draven', 'Serith', 'Kael', 'Ysolde', 'Tharion', 'Morgause', 'Balric', 'Fennara', 'Ozrik', 'Veyra', 'Quillan', 'Ashara', 'Tormund', 'Lirael'];
+
 const REALM_EMOJIS = ['👑', '🌿', '🔥', '❄️', '☀️', '🐉', '🌙', '⚓', '💀', '🌊', '🔨', '🏛️', '🐊', '⚡', '🏰', '🐺', '💎', '⛪', '🦅', '🕸️'];
+
+// ── Region / biome name generation ──
+const BIOME_TYPES = ['Plains', 'Highlands', 'Marsh', 'Desert', 'Tundra', 'Forest', 'Steppe', 'Badlands', 'Coast', 'Jungle'];
+const BIOME_ADJECTIVES = ['Scorched', 'Frozen', 'Verdant', 'Ashen', 'Golden', 'Twilight', 'Shattered', 'Ancient', 'Cursed', 'Sacred', 'Howling', 'Silent', 'Bleeding', 'Ethereal', 'Sunken', 'Wailing', 'Eternal', 'Forsaken', 'Glimmering', 'Savage'];
+
+function generateName(rng: () => number): string {
+  const style = rng();
+  if (style < 0.4) {
+    // "Prefix + Mid + Suffix" e.g. "Irongate Hold"
+    return `${NAME_PREFIXES[Math.floor(rng() * NAME_PREFIXES.length)]}${NAME_MIDS[Math.floor(rng() * NAME_MIDS.length)]} ${NAME_SUFFIXES[Math.floor(rng() * NAME_SUFFIXES.length)]}`;
+  } else if (style < 0.7) {
+    // "The Prefix Suffix" e.g. "The Crimson Wastes"
+    return `The ${NAME_PREFIXES[Math.floor(rng() * NAME_PREFIXES.length)]} ${NAME_SUFFIXES[Math.floor(rng() * NAME_SUFFIXES.length)]}`;
+  } else {
+    // "Prefix's Mid" e.g. "Dragon's Reach"
+    const prefix = NAME_PREFIXES[Math.floor(rng() * NAME_PREFIXES.length)];
+    const suffix = NAME_SUFFIXES[Math.floor(rng() * NAME_SUFFIXES.length)];
+    return `${prefix}'s ${suffix}`;
+  }
+}
+
+function generateRulerName(rng: () => number): string {
+  return `${RULER_TITLES[Math.floor(rng() * RULER_TITLES.length)]} ${RULER_FIRST[Math.floor(rng() * RULER_FIRST.length)]}`;
+}
+
+function generateRegionName(rng: () => number): string {
+  const adj = BIOME_ADJECTIVES[Math.floor(rng() * BIOME_ADJECTIVES.length)];
+  const biome = BIOME_TYPES[Math.floor(rng() * BIOME_TYPES.length)];
+  return `${adj} ${biome}`;
+}
+
+const REGION_EMOJIS: Record<string, string> = {
+  Plains: '🌾', Highlands: '⛰️', Marsh: '🐸', Desert: '🏜️', Tundra: '🧊',
+  Forest: '🌲', Steppe: '🌿', Badlands: '🌋', Coast: '⚓', Jungle: '🌴',
+};
 const EVENT_TEMPLATES = [
   { name: 'Goblin Raid', description: 'A horde of goblins terrorizes nearby.', emoji: '👺', type: 'danger' as const, power: 40 },
   { name: 'Ancient Ruins', description: 'Crumbling ruins with hidden treasures.', emoji: '🏛️', type: 'mystery' as const, power: 30 },
