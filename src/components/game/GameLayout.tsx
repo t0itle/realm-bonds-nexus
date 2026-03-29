@@ -6,6 +6,7 @@ import WorldMap from './WorldMap';
 import AlliancePanel from './AlliancePanel';
 import MilitaryPanel from './MilitaryPanel';
 import ProfilePanel from './ProfilePanel';
+import ThemeToggle from '@/components/ThemeToggle';
 import { useGame } from '@/hooks/useGameState';
 
 type Tab = 'village' | 'map' | 'military' | 'alliance' | 'profile';
@@ -39,13 +40,14 @@ export default function GameLayout() {
           <h1 className="font-display text-sm font-bold text-foreground text-shadow-gold">{villageName || displayName}</h1>
           <span className="text-[10px] text-primary font-semibold">Level {playerLevel}</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {totalTroops > 0 && (
             <span className="text-[10px] text-foreground bg-secondary px-2 py-0.5 rounded-full">⚔️ {totalTroops} troops</span>
           )}
           {trainingQueue.length > 0 && (
             <span className="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full animate-pulse">🔨 Training</span>
           )}
+          <ThemeToggle />
         </div>
       </div>
 
