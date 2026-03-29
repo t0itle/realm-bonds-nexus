@@ -6,6 +6,7 @@ import WorldMap from './WorldMap';
 import AlliancePanel from './AlliancePanel';
 import MilitaryPanel from './MilitaryPanel';
 import ProfilePanel from './ProfilePanel';
+import MessagesPanel from './MessagesPanel';
 import ThemeToggle from '@/components/ThemeToggle';
 import { useGame } from '@/hooks/useGameState';
 
@@ -67,6 +68,7 @@ export default function GameLayout() {
             {activeTab === 'village' && <VillageGrid />}
             {activeTab === 'military' && <MilitaryPanel />}
             {activeTab === 'map' && <WorldMap />}
+            {activeTab === 'messages' && <MessagesPanel />}
             {activeTab === 'alliance' && <AlliancePanel />}
             {activeTab === 'profile' && <ProfilePanel />}
           </motion.div>
