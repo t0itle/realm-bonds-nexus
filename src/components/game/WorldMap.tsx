@@ -127,20 +127,22 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
   const dist = Math.sqrt(chunkX * chunkX + chunkY * chunkY);
   const difficultyMult = 1 + dist * 0.15;
 
+  // Generate region name for this chunk
+  const regionName = generateRegionName(rng);
+  const regionBiome = BIOME_TYPES[Math.floor(rng() * BIOME_TYPES.length)];
+
   // 0-2 realms per chunk
   const realmCount = rng() < 0.3 ? 0 : rng() < 0.7 ? 1 : 2;
   const realms: ProceduralRealm[] = [];
   for (let i = 0; i < realmCount; i++) {
-    const nameIdx = Math.floor(rng() * REALM_NAMES.length);
-    const rulerIdx = Math.floor(rng() * RULER_NAMES.length);
     const emojiIdx = Math.floor(rng() * REALM_EMOJIS.length);
     const typeRoll = rng();
     const type = typeRoll < 0.4 ? 'hostile' : typeRoll < 0.7 ? 'neutral' : 'friendly';
     const basePower = 50 + Math.floor(rng() * 300);
     realms.push({
       id: `realm-${chunkX}-${chunkY}-${i}`,
-      name: REALM_NAMES[nameIdx],
-      ruler: RULER_NAMES[rulerIdx],
+      name: generateName(rng),
+      ruler: generateRulerName(rng),
       power: Math.floor(basePower * difficultyMult),
       x: worldBaseX + 5000 + rng() * (CHUNK_SIZE - 10000),
       y: worldBaseY + 5000 + rng() * (CHUNK_SIZE - 10000),
