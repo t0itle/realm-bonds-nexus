@@ -167,9 +167,14 @@ export default function AlliancePanel() {
         )}
       </div>
 
-      {/* Resource sharing for alliance members */}
+      {/* Guild features for members */}
       {myAlliance && (
-        <AllianceResourceSharing allianceId={myAlliance} />
+        <>
+          <GuildChat allianceId={myAlliance} />
+          <GuildTaxPanel allianceId={myAlliance} isLeader={alliances.find(a => a.id === myAlliance)?.leader_id === user?.id} />
+          <GuildContracts allianceId={myAlliance} isLeader={alliances.find(a => a.id === myAlliance)?.leader_id === user?.id} />
+          <AllianceResourceSharing allianceId={myAlliance} />
+        </>
       )}
 
       {/* Alliance rankings */}
