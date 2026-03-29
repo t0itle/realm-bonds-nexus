@@ -820,34 +820,238 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setSteel(prev => prev + amount);
   }, []);
 
+  const getWallLevel = useCallback(() => {
+    const wall = buildings.find(b => b.type === 'wall');
+    return wall?.level || 0;
+  }, [buildings]);
+
   const attackTarget = useCallback((targetName: string, targetPower: number) => {
-    const myPower = totalArmyPower();
-    const totalAttack = myPower.attack;
-    const roll = Math.random() * 0.4 + 0.8;
-    const effectiveAttack = totalAttack * roll;
-    const victory = effectiveAttack > targetPower;
-    const lossRatio = victory ? Math.min(0.3, targetPower / (totalAttack * 2)) : Math.min(0.7, 0.3 + targetPower / (totalAttack * 3));
-    const troopsLost: Partial<Army> = {};
+    // NPC combat - use simplified version with counter system
+    const fakeDefenderArmy: Army = {
+      militia: Math.floor(targetPower / 8),
+      archer: Math.floor(targetPower / 16),
+      knight: Math.floor(targetPower / 25),
+      cavalry: Math.floor(targetPower / 30),
+      siege: 0,
+    };
+    const result = resolveCombat(army, fakeDefenderArmy, 0, Math.floor(targetPower / 50));
+    
     const newArmy = { ...army };
-    for (const [type, count] of Object.entries(army)) {
-      if (count > 0) {
-        const lost = Math.max(1, Math.floor(count * lossRatio));
-        troopsLost[type as TroopType] = Math.min(lost, count);
-        newArmy[type as TroopType] = Math.max(0, count - lost);
-      }
+    for (const [type, lost] of Object.entries(result.attackerLosses) as [TroopType, number][]) {
+      newArmy[type] = Math.max(0, (newArmy[type] || 0) - lost);
     }
     setArmy(newArmy);
-    const resourcesGained = victory ? {
+    
+    const resourcesGained = result.victory ? {
       gold: Math.floor(targetPower * 0.5 + Math.random() * 200),
       wood: Math.floor(targetPower * 0.3 + Math.random() * 100),
       stone: Math.floor(targetPower * 0.2 + Math.random() * 80),
       food: Math.floor(targetPower * 0.1 + Math.random() * 50),
     } : undefined;
     if (resourcesGained) addResources(resourcesGained);
-    const log: BattleLog = { id: Date.now().toString(), target: targetName, result: victory ? 'victory' : 'defeat', troopsLost, resourcesGained, timestamp: Date.now() };
+    
+    const log: BattleLog = {
+      id: Date.now().toString(), target: targetName, result: result.victory ? 'victory' : 'defeat',
+      troopsLost: result.attackerLosses, defenderTroopsLost: result.defenderLosses,
+      resourcesGained, timestamp: Date.now(),
+    };
     setBattleLogs(prev => [log, ...prev].slice(0, 20));
     return log;
-  }, [army, totalArmyPower, addResources]);
+  }, [army, addResources]);
+
+  // PvP attack against another player
+  const attackPlayer = useCallback(async (targetUserId: string, targetName: string, targetVillageId: string): Promise<BattleLog | null> => {
+    if (!user || !villageId) return null;
+    
+    // Fetch defender's village data (troops, resources, buildings)
+    const { data: defVillage } = await supabase.from('villages').select('*').eq('id', targetVillageId).single();
+    if (!defVillage) return null;
+    
+    const defArmy: Army = {
+      militia: (defVillage as any).army_militia ?? 0,
+      archer: (defVillage as any).army_archer ?? 0,
+      knight: (defVillage as any).army_knight ?? 0,
+      cavalry: (defVillage as any).army_cavalry ?? 0,
+      siege: (defVillage as any).army_siege ?? 0,
+    };
+    
+    // Get defender's wall level
+    const { data: defBuildings } = await supabase.from('buildings').select('*').eq('village_id', targetVillageId);
+    const defWall = defBuildings?.find(b => b.type === 'wall');
+    const defWallLevel = defWall?.level || 0;
+    
+    const result = resolveCombat(army, defArmy, getWallLevel(), defWallLevel);
+    
+    // Apply attacker losses
+    const newArmy = { ...army };
+    for (const [type, lost] of Object.entries(result.attackerLosses) as [TroopType, number][]) {
+      newArmy[type] = Math.max(0, (newArmy[type] || 0) - lost);
+    }
+    setArmy(newArmy);
+    
+    // Apply defender losses to their village
+    const defNewArmy = { ...defArmy };
+    for (const [type, lost] of Object.entries(result.defenderLosses) as [TroopType, number][]) {
+      defNewArmy[type] = Math.max(0, (defNewArmy[type] || 0) - lost);
+    }
+    await supabase.from('villages').update({
+      army_militia: defNewArmy.militia, army_archer: defNewArmy.archer,
+      army_knight: defNewArmy.knight, army_cavalry: defNewArmy.cavalry, army_siege: defNewArmy.siege,
+    } as any).eq('id', targetVillageId);
+    
+    let resourcesRaided: Partial<Resources> | undefined;
+    let buildingDamaged: string | undefined;
+    let buildingDamageLevels = 0;
+    let vassalized = false;
+    
+    if (result.victory) {
+      // Raid resources: steal 15-30% based on power ratio
+      const raidPercent = Math.min(0.3, 0.15 + result.powerRatio * 0.05);
+      resourcesRaided = {
+        gold: Math.floor(Number(defVillage.gold) * raidPercent),
+        wood: Math.floor(Number(defVillage.wood) * raidPercent),
+        stone: Math.floor(Number(defVillage.stone) * raidPercent),
+        food: Math.floor(Number(defVillage.food) * raidPercent),
+      };
+      
+      // Take resources from defender, give to attacker
+      addResources(resourcesRaided);
+      await supabase.from('villages').update({
+        gold: Math.max(0, Number(defVillage.gold) - (resourcesRaided.gold || 0)),
+        wood: Math.max(0, Number(defVillage.wood) - (resourcesRaided.wood || 0)),
+        stone: Math.max(0, Number(defVillage.stone) - (resourcesRaided.stone || 0)),
+        food: Math.max(0, Number(defVillage.food) - (resourcesRaided.food || 0)),
+      } as any).eq('id', targetVillageId);
+      
+      // Building damage: random building loses 1 level if power ratio > 1.5
+      if (result.powerRatio > 1.5 && defBuildings && defBuildings.length > 0) {
+        const damageable = defBuildings.filter(b => b.level > 1 && b.type !== 'townhall');
+        if (damageable.length > 0) {
+          const target = damageable[Math.floor(Math.random() * damageable.length)];
+          buildingDamaged = target.type;
+          buildingDamageLevels = 1;
+          await supabase.from('buildings').update({ level: target.level - 1 }).eq('id', target.id);
+        }
+      }
+      
+      // Vassalization: if power ratio >= 3:1
+      if (result.powerRatio >= 3) {
+        const { data: existingVassal } = await supabase.from('vassalages')
+          .select('*').eq('lord_id', user.id).eq('vassal_id', targetUserId).eq('status', 'active').maybeSingle();
+        
+        if (!existingVassal) {
+          const ransomGold = Math.floor(
+            (Number(defVillage.gold) + Number(defVillage.wood) + Number(defVillage.stone)) * 0.5
+          );
+          const { data: newVassal } = await supabase.from('vassalages').insert({
+            lord_id: user.id,
+            vassal_id: targetUserId,
+            tribute_rate: 10,
+            ransom_gold: Math.max(500, ransomGold),
+          } as any).select().single();
+          
+          if (newVassal) {
+            vassalized = true;
+            setVassalages(prev => [...prev, newVassal as any as Vassalage]);
+          }
+        }
+      }
+    }
+    
+    const log: BattleLog = {
+      id: Date.now().toString(),
+      target: targetName,
+      targetUserId,
+      result: result.victory ? 'victory' : 'defeat',
+      troopsLost: result.attackerLosses,
+      defenderTroopsLost: result.defenderLosses,
+      resourcesGained: resourcesRaided,
+      buildingDamaged,
+      buildingDamageLevels,
+      vassalized,
+      timestamp: Date.now(),
+    };
+    setBattleLogs(prev => [log, ...prev].slice(0, 20));
+    
+    // Save battle report to DB
+    await supabase.from('battle_reports').insert({
+      attacker_id: user.id,
+      defender_id: targetUserId,
+      attacker_name: displayName,
+      defender_name: targetName,
+      result: log.result,
+      attacker_troops_sent: army,
+      attacker_troops_lost: result.attackerLosses,
+      defender_troops_lost: result.defenderLosses,
+      resources_raided: resourcesRaided || {},
+      building_damaged: buildingDamaged,
+      building_damage_levels: buildingDamageLevels,
+      vassalized,
+    } as any);
+    
+    return log;
+  }, [army, user, villageId, addResources, displayName, getWallLevel]);
+
+  // Vassal: pay ransom to break free
+  const payRansom = useCallback(async (vassalageId: string): Promise<boolean> => {
+    const v = vassalages.find(va => va.id === vassalageId);
+    if (!v || v.vassal_id !== user?.id) return false;
+    if (resources.gold < v.ransom_gold) return false;
+    
+    setResources(prev => ({ ...prev, gold: prev.gold - v.ransom_gold }));
+    await supabase.from('vassalages').update({ status: 'ended', ended_at: new Date().toISOString() } as any).eq('id', vassalageId);
+    setVassalages(prev => prev.filter(va => va.id !== vassalageId));
+    return true;
+  }, [vassalages, user, resources]);
+
+  // Vassal: attempt rebellion (combat check after 24h)
+  const attemptRebellion = useCallback(async (vassalageId: string): Promise<boolean> => {
+    const v = vassalages.find(va => va.id === vassalageId);
+    if (!v || v.vassal_id !== user?.id) return false;
+    if (new Date(v.rebellion_available_at) > new Date()) return false;
+    
+    // Fetch lord's army
+    const { data: lordVillage } = await supabase.from('villages').select('*').eq('user_id', v.lord_id).single();
+    if (!lordVillage) return false;
+    
+    const lordArmy: Army = {
+      militia: (lordVillage as any).army_militia ?? 0,
+      archer: (lordVillage as any).army_archer ?? 0,
+      knight: (lordVillage as any).army_knight ?? 0,
+      cavalry: (lordVillage as any).army_cavalry ?? 0,
+      siege: (lordVillage as any).army_siege ?? 0,
+    };
+    
+    // Rebellion: vassal attacks with their army vs lord's army (reduced - lords don't send full force)
+    const reducedLordArmy: Army = {
+      militia: Math.floor(lordArmy.militia * 0.5),
+      archer: Math.floor(lordArmy.archer * 0.5),
+      knight: Math.floor(lordArmy.knight * 0.5),
+      cavalry: Math.floor(lordArmy.cavalry * 0.5),
+      siege: Math.floor(lordArmy.siege * 0.5),
+    };
+    
+    const result = resolveCombat(army, reducedLordArmy, 0, 0);
+    
+    // Apply losses
+    const newArmy = { ...army };
+    for (const [type, lost] of Object.entries(result.attackerLosses) as [TroopType, number][]) {
+      newArmy[type] = Math.max(0, (newArmy[type] || 0) - lost);
+    }
+    setArmy(newArmy);
+    
+    if (result.victory) {
+      await supabase.from('vassalages').update({ status: 'ended', ended_at: new Date().toISOString() } as any).eq('id', vassalageId);
+      setVassalages(prev => prev.filter(va => va.id !== vassalageId));
+      return true;
+    } else {
+      // Failed rebellion — reset timer
+      const newTimer = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      await supabase.from('vassalages').update({ rebellion_available_at: newTimer } as any).eq('id', vassalageId);
+      setVassalages(prev => prev.map(va => va.id === vassalageId ? { ...va, rebellion_available_at: newTimer } : va));
+      return false;
+    }
+  }, [vassalages, user, army]);
 
   // Worker assignment system
   const getMaxWorkers = useCallback((building: Building) => {
