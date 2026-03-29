@@ -195,24 +195,44 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
     });
   }
 
-  // 1-4 events per chunk
-  const eventCount = 1 + Math.floor(rng() * 4);
+  // 1-4 events per chunk — use time-based seed rotation so events change periodically
+  const timeSeed = Math.floor(Date.now() / (1000 * 60 * 30)); // rotates every 30 minutes
+  const eventRng = seededRandom(hashCoords(chunkX, chunkY, timeSeed + 99));
+  const eventCount = 1 + Math.floor(eventRng() * 4);
   const events: ProceduralEvent[] = [];
   for (let i = 0; i < eventCount; i++) {
-    const tplIdx = Math.floor(rng() * EVENT_TEMPLATES.length);
-    const tpl = EVENT_TEMPLATES[tplIdx];
+    const baseIdx = Math.floor(eventRng() * EVENT_BASES.length);
+    const base = EVENT_BASES[baseIdx];
+    const nameIdx = Math.floor(eventRng() * base.names.length);
+    const descIdx = Math.floor(eventRng() * base.descs.length);
+    // Optionally add an adjective or location for extra variety
+    let eventName = base.names[nameIdx];
+    const adjRoll = eventRng();
+    if (adjRoll < 0.3) {
+      eventName = `${EVENT_ADJECTIVES[Math.floor(eventRng() * EVENT_ADJECTIVES.length)]} ${eventName}`;
+    }
+    let eventDesc = `${eventName} ${base.descs[descIdx]}`;
+    const locRoll = eventRng();
+    if (locRoll < 0.5) {
+      eventDesc += ` ${EVENT_LOCATIONS[Math.floor(eventRng() * EVENT_LOCATIONS.length)]}`;
+    }
     const rewardMult = difficultyMult;
     events.push({
-      ...tpl,
-      id: `event-${chunkX}-${chunkY}-${i}`,
-      power: Math.floor(tpl.power * difficultyMult),
-      x: worldBaseX + 2000 + rng() * (CHUNK_SIZE - 4000),
-      y: worldBaseY + 2000 + rng() * (CHUNK_SIZE - 4000),
+      id: `event-${chunkX}-${chunkY}-${i}-${timeSeed}`,
+      name: eventName,
+      description: eventDesc + '.',
+      emoji: base.emoji,
+      type: base.type,
+      power: Math.floor(base.basePower * difficultyMult),
+      x: worldBaseX + 2000 + eventRng() * (CHUNK_SIZE - 4000),
+      y: worldBaseY + 2000 + eventRng() * (CHUNK_SIZE - 4000),
       reward: {
-        gold: Math.floor((50 + rng() * 200) * rewardMult),
-        wood: tpl.type === 'opportunity' ? Math.floor((30 + rng() * 100) * rewardMult) : 0,
-        stone: tpl.type === 'mystery' ? Math.floor((40 + rng() * 120) * rewardMult) : 0,
-        food: tpl.type === 'opportunity' ? Math.floor((30 + rng() * 80) * rewardMult) : 0,
+        gold: Math.floor((50 + eventRng() * 200) * rewardMult),
+        wood: base.type === 'opportunity' ? Math.floor((30 + eventRng() * 100) * rewardMult) : 0,
+        stone: base.type === 'mystery' ? Math.floor((40 + eventRng() * 120) * rewardMult) : 0,
+        food: base.type === 'opportunity' ? Math.floor((30 + eventRng() * 80) * rewardMult) : 0,
+      },
+    });
       },
     });
   }
