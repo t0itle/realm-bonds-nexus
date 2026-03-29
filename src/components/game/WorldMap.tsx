@@ -1008,8 +1008,8 @@ export default function WorldMap() {
         {selected && (
           <motion.div
             initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
-            className="absolute bottom-14 inset-x-0 z-50 mx-3 game-panel border-glow rounded-xl p-3">
-            <button onClick={() => setSelected(null)} className="absolute top-2 right-2 text-muted-foreground text-xs">✕</button>
+            className="absolute bottom-16 sm:bottom-14 inset-x-0 z-50 mx-2 sm:mx-3 game-panel border-glow rounded-xl p-3 max-h-[45vh] overflow-y-auto safe-bottom">
+            <button onClick={() => setSelected(null)} className="absolute top-2 right-2 text-muted-foreground text-sm w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted/50 active:scale-90 transition-transform">✕</button>
 
             {selected.kind === 'npc' && (
               <div className="space-y-2">
