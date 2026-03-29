@@ -140,6 +140,7 @@ interface GameContextType {
   totalArmyPower: () => { attack: number; defense: number };
   addResources: (r: Partial<Resources>) => void;
   attackTarget: (targetName: string, targetPower: number) => BattleLog;
+  armyUpkeep: () => { food: number; gold: number };
 }
 
 const GameContext = createContext<GameContextType | null>(null);
