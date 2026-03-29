@@ -1068,6 +1068,52 @@ export default function WorldMap() {
                 )}
               </div>
             )}
+
+            {selected.kind === 'mine' && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-3xl">⚙️</span>
+                  <div className="flex-1">
+                    <h3 className="font-display text-sm text-foreground">{selected.data.name}</h3>
+                    <p className="text-[10px] text-muted-foreground">Steel Mine · Produces ⚙️{selected.data.steelPerTick}/tick</p>
+                  </div>
+                  {capturedMines.has(selected.data.id) && (
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary">✅ Captured</span>
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  {capturedMines.has(selected.data.id)
+                    ? 'This mine is under your control and producing steel.'
+                    : `Defeat the garrison (⚔️${selected.data.power}) to capture this mine and start producing steel.`}
+                </p>
+                {!capturedMines.has(selected.data.id) && (
+                  <motion.button whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      const hasTroops = Object.values(army).some(v => v > 0);
+                      if (!hasTroops) { toast.error('You need troops to capture a mine!'); return; }
+                      const travelSec = calcTravelTime(selected.data.x, selected.data.y);
+                      const mineData = selected.data;
+                      toast(`⚔️ Troops marching to ${mineData.name}... ETA ${travelSec}s`);
+                      setMarches(prev => [...prev, {
+                        id: `mine-${Date.now()}`, targetName: mineData.name, arrivalTime: Date.now() + travelSec * 1000,
+                        action: () => {
+                          const log = attackTarget(mineData.name, mineData.power);
+                          if (log.result === 'victory') {
+                            setCapturedMines(prev => new Set([...prev, mineData.id]));
+                            toast.success(`⚙️ ${mineData.name} captured! Producing steel.`);
+                          } else {
+                            toast.error('Defeat! The garrison held.');
+                          }
+                        },
+                      }]);
+                      setSelected(null);
+                    }}
+                    className="w-full bg-primary text-primary-foreground font-display text-[10px] py-1.5 rounded-lg glow-gold-sm">
+                    ⚔️ Capture Mine (Garrison: ⚔️{selected.data.power})
+                  </motion.button>
+                )}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
