@@ -5,7 +5,7 @@ import { useGame, TROOP_INFO, TroopType } from '@/hooks/useGameState';
 const TROOP_TYPES: TroopType[] = ['militia', 'archer', 'knight', 'cavalry', 'siege'];
 
 export default function MilitaryPanel() {
-  const { army, trainingQueue, battleLogs, trainTroops, getBarracksLevel, canAfford, totalArmyPower, armyUpkeep } = useGame();
+  const { army, trainingQueue, battleLogs, trainTroops, getBarracksLevel, canAfford, canAffordSteel, totalArmyPower, armyUpkeep, population, steel } = useGame();
   const [trainCount, setTrainCount] = useState<Record<TroopType, number>>({ militia: 1, archer: 1, knight: 1, cavalry: 1, siege: 1 });
   const barracksLevel = getBarracksLevel();
   const power = totalArmyPower();
@@ -26,25 +26,30 @@ export default function MilitaryPanel() {
       <h2 className="font-display text-lg text-foreground text-shadow-gold">Military</h2>
 
       {/* Army overview */}
-      <div className="game-panel border-glow rounded-xl p-3 flex items-center justify-between">
-        <div>
-          <p className="text-[10px] text-muted-foreground font-display">Total Army</p>
-          <div className="flex gap-2 mt-1">
-            {TROOP_TYPES.map(type => army[type] > 0 && (
-              <span key={type} className="text-xs text-foreground">
-                {TROOP_INFO[type].emoji}{army[type]}
-              </span>
-            ))}
-            {Object.values(army).every(v => v === 0) && (
-              <span className="text-xs text-muted-foreground">No troops</span>
-            )}
+      <div className="game-panel border-glow rounded-xl p-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[10px] text-muted-foreground font-display">Total Army</p>
+            <div className="flex gap-2 mt-1">
+              {TROOP_TYPES.map(type => army[type] > 0 && (
+                <span key={type} className="text-xs text-foreground">
+                  {TROOP_INFO[type].emoji}{army[type]}
+                </span>
+              ))}
+              {Object.values(army).every(v => v === 0) && (
+                <span className="text-xs text-muted-foreground">No troops</span>
+              )}
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-primary font-bold">⚔️ {power.attack}</p>
+            <p className="text-xs text-foreground">🛡️ {power.defense}</p>
           </div>
         </div>
-        <div className="text-right">
-          <p className="text-xs text-primary font-bold">⚔️ {power.attack}</p>
-          <p className="text-xs text-foreground">🛡️ {power.defense}</p>
+        <div className="border-t border-border/50 mt-2 pt-2 flex items-center justify-between text-[9px]">
+          <span className="text-muted-foreground">Army: {population.soldiers}/{population.armyCap} cap</span>
           {(upkeep.food > 0 || upkeep.gold > 0) && (
-            <p className="text-[9px] text-destructive mt-0.5">Upkeep: 🌾{upkeep.food * 60}/min 💰{upkeep.gold * 60}/min</p>
+            <span className="text-destructive">Upkeep: 🌾{upkeep.food * 60}/min 💰{upkeep.gold * 60}/min</span>
           )}
         </div>
       </div>
@@ -69,7 +74,7 @@ export default function MilitaryPanel() {
       {/* Recruit */}
       <div className="space-y-2">
         <h3 className="font-display text-sm text-foreground">Recruit Troops</h3>
-        <p className="text-[10px] text-muted-foreground">Barracks Level {barracksLevel}</p>
+        <p className="text-[10px] text-muted-foreground">Barracks Level {barracksLevel} · Civilians: {population.civilians} · ⚙️ Steel: {steel}</p>
 
         {TROOP_TYPES.map(type => {
           const info = TROOP_INFO[type];
@@ -79,7 +84,9 @@ export default function MilitaryPanel() {
             gold: info.cost.gold * count, wood: info.cost.wood * count,
             stone: info.cost.stone * count, food: info.cost.food * count,
           };
-          const affordable = unlocked && canAfford(totalCost);
+          const totalSteelCost = info.steelCost * count;
+          const popNeeded = info.popCost * count;
+          const affordable = unlocked && canAfford(totalCost) && canAffordSteel(totalSteelCost) && population.civilians >= popNeeded && population.soldiers + popNeeded <= population.armyCap;
 
           return (
             <div key={type} className={`game-panel rounded-xl p-3 ${unlocked ? 'border-glow' : 'opacity-40'}`}>
@@ -96,6 +103,8 @@ export default function MilitaryPanel() {
                     <span>🛡️{info.defense}</span>
                     <span>💨{info.speed}</span>
                     <span>⏱️{info.trainTime}s</span>
+                    <span>👥{info.popCost}</span>
+                    {info.steelCost > 0 && <span>⚙️{info.steelCost}</span>}
                   </div>
                 </div>
               </div>
@@ -118,6 +127,7 @@ export default function MilitaryPanel() {
                     {Object.entries(totalCost).filter(([, v]) => v > 0).map(([k, v]) => (
                       <span key={k}>{k === 'gold' ? '💰' : k === 'wood' ? '🪵' : k === 'stone' ? '🪨' : '🌾'}{v}</span>
                     ))}
+                    {totalSteelCost > 0 && <span>⚙️{totalSteelCost}</span>}
                   </div>
                   <motion.button whileTap={{ scale: 0.95 }}
                     onClick={() => { if (trainTroops(type, count)) setTrainCount(p => ({ ...p, [type]: 1 })); }}
