@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useGame, TROOP_INFO, TroopType } from '@/hooks/useGameState';
+import { useGame } from '@/hooks/useGameState';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import ResourceIcon from './ResourceIcon';
 
 export default function VassalPanel() {
   const { vassalages, payRansom, attemptRebellion, resources, army, allVillages } = useGame();
-  const { user } = require('@/hooks/useAuth').useAuth();
+  const { user } = useAuth();
   const [rebelling, setRebelling] = useState<string | null>(null);
 
   if (vassalages.length === 0) return null;
