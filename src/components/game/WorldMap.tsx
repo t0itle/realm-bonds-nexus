@@ -386,7 +386,7 @@ export default function WorldMap() {
       <div
         ref={containerRef}
         className="flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing touch-none"
-        style={{ background: 'linear-gradient(135deg, hsl(216 28% 5%), hsl(216 28% 10%), hsl(216 25% 7%))' }}
+        style={{ background: 'linear-gradient(135deg, hsl(var(--map-bg-1)), hsl(var(--map-bg-2)), hsl(var(--map-bg-3)))' }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
