@@ -2,13 +2,10 @@ import { useState, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame, TROOP_INFO, TroopType } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
-import worldmapBg from '@/assets/worldmap-bg.jpg';
 import { toast } from 'sonner';
 
-// Map is 200000x200000 virtual units (massive world)
+// Virtual world coordinates (large logical space)
 const MAP_SIZE = 200000;
-const MIN_ZOOM = 0.01;
-const MAX_ZOOM = 2.0;
 
 const NPC_REALMS = [
   { id: 'npc-1', name: 'Iron Dominion', ruler: 'King Valthor', power: 120, x: 15000, y: 18000, emoji: '👑', type: 'hostile' as const, desc: 'An aggressive militaristic kingdom. Their iron legions threaten all neighbors.', territory: 12000 },
@@ -65,8 +62,8 @@ function generateEvents(): WorldEvent[] {
   const shuffled = [...templates].sort(() => Math.random() - 0.5).slice(0, count);
   return shuffled.map((t, i) => ({
     ...t, id: `event-${i}`, claimed: false,
-    x: 100 + Math.random() * (MAP_SIZE - 200),
-    y: 100 + Math.random() * (MAP_SIZE - 200),
+    x: 5000 + Math.random() * (MAP_SIZE - 10000),
+    y: 5000 + Math.random() * (MAP_SIZE - 10000),
   }));
 }
 
@@ -85,24 +82,48 @@ export default function WorldMap() {
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [events, setEvents] = useState(() => generateEvents());
 
-  // Pan/zoom state
-  const [offset, setOffset] = useState({ x: -50000, y: -50000 });
-  const [zoom, setZoom] = useState(0.05);
+  // Camera: center is world coordinate the viewport is looking at
+  // pixelsPerUnit: how many screen pixels per world unit
+  const [camera, setCamera] = useState({ cx: 100000, cy: 100000, ppu: 0.003 });
   const containerRef = useRef<HTMLDivElement>(null);
-  const dragStart = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+  const dragStart = useRef<{ x: number; y: number; cx: number; cy: number } | null>(null);
   const lastTouchDist = useRef<number | null>(null);
+
+  // Convert world coord to screen pixel (relative to container)
+  const worldToScreen = useCallback((wx: number, wy: number) => {
+    const rect = containerRef.current;
+    if (!rect) return { sx: 0, sy: 0 };
+    const w = rect.clientWidth;
+    const h = rect.clientHeight;
+    return {
+      sx: (wx - camera.cx) * camera.ppu + w / 2,
+      sy: (wy - camera.cy) * camera.ppu + h / 2,
+    };
+  }, [camera]);
+
+  // Check if a world point is visible with margin
+  const isVisible = useCallback((wx: number, wy: number, margin = 60) => {
+    const rect = containerRef.current;
+    if (!rect) return true;
+    const { sx, sy } = worldToScreen(wx, wy);
+    return sx > -margin && sx < rect.clientWidth + margin && sy > -margin && rect.clientHeight + margin > sy;
+  }, [worldToScreen]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if ((e.target as HTMLElement).closest('[data-map-item]')) return;
-    dragStart.current = { x: e.clientX, y: e.clientY, ox: offset.x, oy: offset.y };
+    dragStart.current = { x: e.clientX, y: e.clientY, cx: camera.cx, cy: camera.cy };
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-  }, [offset]);
+  }, [camera]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!dragStart.current) return;
     const dx = e.clientX - dragStart.current.x;
     const dy = e.clientY - dragStart.current.y;
-    setOffset({ x: dragStart.current.ox + dx, y: dragStart.current.oy + dy });
+    setCamera(prev => ({
+      ...prev,
+      cx: dragStart.current!.cx - dx / prev.ppu,
+      cy: dragStart.current!.cy - dy / prev.ppu,
+    }));
   }, []);
 
   const handlePointerUp = useCallback(() => { dragStart.current = null; }, []);
@@ -118,15 +139,15 @@ export default function WorldMap() {
     if (e.touches.length === 2 && lastTouchDist.current) {
       const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
       const scale = d / lastTouchDist.current;
-      setZoom(prev => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev * scale)));
+      setCamera(prev => ({ ...prev, ppu: Math.max(0.0005, Math.min(0.05, prev.ppu * scale)) }));
       lastTouchDist.current = d;
     }
   }, []);
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
-    const factor = e.deltaY > 0 ? 0.9 : 1.1;
-    setZoom(prev => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev * factor)));
+    const factor = e.deltaY > 0 ? 0.85 : 1.18;
+    setCamera(prev => ({ ...prev, ppu: Math.max(0.0005, Math.min(0.05, prev.ppu * factor)) }));
   }, []);
 
   const getPlayerPos = (id: string, index: number) => {
@@ -134,15 +155,14 @@ export default function WorldMap() {
     return { x: 80000 + (hash * 1300 + index * 13700) % 40000, y: 80000 + (hash * 1700 + index * 17300) % 40000 };
   };
 
+  const goHome = useCallback(() => {
+    setCamera({ cx: 100000, cy: 100000, ppu: 0.003 });
+  }, []);
+
   const handleInvestigate = useCallback((event: WorldEvent, index: number) => {
     if (event.claimed) return;
     const hasTroops = Object.values(army).some(v => v > 0);
-
-    if (event.power > 0 && !hasTroops) {
-      toast.error('You need troops to investigate dangerous events!');
-      return;
-    }
-
+    if (event.power > 0 && !hasTroops) { toast.error('You need troops to investigate dangerous events!'); return; }
     if (event.power > 0) {
       const log = attackTarget(event.name, event.power);
       if (log.result === 'victory') {
@@ -188,6 +208,11 @@ export default function WorldMap() {
 
   const power = totalArmyPower();
 
+  // Compute icon sizes based on zoom
+  const iconSize = Math.max(24, Math.min(64, camera.ppu * 8000));
+  const fontSize = Math.max(9, Math.min(14, camera.ppu * 3000));
+  const eventSize = Math.max(20, Math.min(48, camera.ppu * 6000));
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Map header */}
@@ -195,7 +220,7 @@ export default function WorldMap() {
         <h2 className="font-display text-sm text-foreground text-shadow-gold">World Map</h2>
         <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
           <span>⚔️{power.attack} 🛡️{power.defense}</span>
-          <span>Zoom: {Math.round(zoom * 100)}%</span>
+          <span>×{(camera.ppu * 1000).toFixed(1)}</span>
         </div>
       </div>
 
@@ -203,6 +228,7 @@ export default function WorldMap() {
       <div
         ref={containerRef}
         className="flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing touch-none"
+        style={{ background: 'linear-gradient(135deg, hsl(216 28% 5%), hsl(216 28% 10%), hsl(216 25% 7%))' }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -211,134 +237,149 @@ export default function WorldMap() {
         onTouchMove={handleTouchMove}
         onWheel={handleWheel}
       >
-        <div
-          className="absolute"
-          style={{
-            width: MAP_SIZE,
-            height: MAP_SIZE,
-            transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
-            transformOrigin: '0 0',
-          }}
-        >
-          {/* Background tiles */}
-          <img src={worldmapBg} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ imageRendering: 'auto' }} />
-          <div className="absolute inset-0 bg-background/20" />
+        {/* Grid lines rendered as screen-space SVG */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible' }}>
+          {(() => {
+            const rect = containerRef.current;
+            if (!rect) return null;
+            const w = rect.clientWidth;
+            const h = rect.clientHeight;
+            // Determine grid spacing based on zoom
+            const gridStep = camera.ppu > 0.01 ? 10000 : camera.ppu > 0.003 ? 20000 : camera.ppu > 0.001 ? 50000 : 100000;
+            const lines: JSX.Element[] = [];
+            const startX = Math.floor((camera.cx - w / 2 / camera.ppu) / gridStep) * gridStep;
+            const endX = camera.cx + w / 2 / camera.ppu;
+            const startY = Math.floor((camera.cy - h / 2 / camera.ppu) / gridStep) * gridStep;
+            const endY = camera.cy + h / 2 / camera.ppu;
+            for (let gx = startX; gx <= endX; gx += gridStep) {
+              const { sx } = worldToScreen(gx, 0);
+              lines.push(
+                <line key={`gx-${gx}`} x1={sx} y1={0} x2={sx} y2={h} stroke="hsl(42 72% 52% / 0.08)" strokeWidth={1} />,
+              );
+              lines.push(
+                <text key={`lx-${gx}`} x={sx + 4} y={14} fill="hsl(42 72% 52% / 0.3)" fontSize={10} fontFamily="Inter">{(gx / 1000).toFixed(0)}k</text>
+              );
+            }
+            for (let gy = startY; gy <= endY; gy += gridStep) {
+              const { sy } = worldToScreen(0, gy);
+              lines.push(
+                <line key={`gy-${gy}`} x1={0} y1={sy} x2={w} y2={sy} stroke="hsl(42 72% 52% / 0.08)" strokeWidth={1} />,
+              );
+              lines.push(
+                <text key={`ly-${gy}`} x={4} y={sy - 4} fill="hsl(42 72% 52% / 0.3)" fontSize={10} fontFamily="Inter">{(gy / 1000).toFixed(0)}k</text>
+              );
+            }
+            return lines;
+          })()}
+        </svg>
 
-          {/* Grid lines */}
-          <svg className="absolute inset-0 w-full h-full opacity-10">
-            {Array.from({ length: 21 }, (_, i) => (
-              <g key={i}>
-                <line x1={i * 10000} y1={0} x2={i * 10000} y2={MAP_SIZE} stroke="hsl(42 72% 52%)" strokeWidth={50} />
-                <line x1={0} y1={i * 10000} x2={MAP_SIZE} y2={i * 10000} stroke="hsl(42 72% 52%)" strokeWidth={50} />
-              </g>
-            ))}
-          </svg>
-
-          {/* Coordinate labels */}
-          {Array.from({ length: 11 }, (_, i) => {
-            const pos = i * 20000;
-            return (
-              <g key={`coords-${i}`}>
-                <text x={pos + 200} y={800} fill="hsl(42 72% 52% / 0.4)" fontSize={600} fontFamily="Cinzel">{pos / 1000}k</text>
-                <text x={200} y={pos + 800} fill="hsl(42 72% 52% / 0.4)" fontSize={600} fontFamily="Cinzel">{pos / 1000}k</text>
-              </g>
-            );
-          })}
-
-          {/* NPC territory circles */}
-          {NPC_REALMS.map(realm => (
+        {/* NPC territory circles */}
+        {NPC_REALMS.map(realm => {
+          const { sx, sy } = worldToScreen(realm.x, realm.y);
+          const r = realm.territory * camera.ppu;
+          if (r < 3) return null; // too small to see
+          const borderColor = realm.type === 'hostile' ? 'hsl(0 72% 50% / 0.15)' : realm.type === 'friendly' ? 'hsl(130 45% 40% / 0.15)' : 'hsl(216 12% 50% / 0.15)';
+          return (
             <div
-              key={`territory-${realm.id}`}
-              className={`absolute rounded-full border opacity-10 ${
-                realm.type === 'hostile' ? 'border-destructive bg-destructive' :
-                realm.type === 'friendly' ? 'border-food bg-food' : 'border-muted-foreground bg-muted-foreground'
-              }`}
+              key={`t-${realm.id}`}
+              className="absolute rounded-full pointer-events-none"
               style={{
-                left: realm.x - realm.territory / 2,
-                top: realm.y - realm.territory / 2,
-                width: realm.territory,
-                height: realm.territory,
+                left: sx - r, top: sy - r, width: r * 2, height: r * 2,
+                background: `radial-gradient(circle, ${borderColor}, transparent 70%)`,
               }}
             />
-          ))}
+          );
+        })}
 
-          {/* NPC Realms */}
-          {NPC_REALMS.map(realm => (
+        {/* NPC Realms */}
+        {NPC_REALMS.map(realm => {
+          if (!isVisible(realm.x, realm.y, 100)) return null;
+          const { sx, sy } = worldToScreen(realm.x, realm.y);
+          return (
             <button
               key={realm.id}
               data-map-item
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'npc', data: realm }); }}
-              className="absolute flex flex-col items-center -translate-x-1/2 -translate-y-1/2 z-10 hover:z-20"
-              style={{ left: realm.x, top: realm.y }}
+              className="absolute flex flex-col items-center z-10 hover:z-20"
+              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}
             >
-              <div className="relative">
-                <div className={`rounded-full ${TYPE_COLORS[realm.type]} flex items-center justify-center shadow-lg border-background/30`}
-                  style={{ width: 800, height: 800, fontSize: 400, borderWidth: 16 }}>
-                  {realm.emoji}
+              <div className={`rounded-full ${TYPE_COLORS[realm.type]} flex items-center justify-center shadow-lg border-2 border-background/30`}
+                style={{ width: iconSize, height: iconSize, fontSize: iconSize * 0.5 }}>
+                {realm.emoji}
+              </div>
+              {iconSize > 28 && (
+                <div className="text-center bg-background/80 rounded mt-0.5 px-1.5 py-0.5">
+                  <p className="font-display text-foreground leading-tight whitespace-nowrap" style={{ fontSize: Math.max(8, fontSize - 2) }}>{realm.name}</p>
+                  <p className="text-muted-foreground" style={{ fontSize: Math.max(7, fontSize - 3) }}>⚔️{realm.power}</p>
                 </div>
-                {realm.type === 'hostile' && (
-                  <div className="absolute bg-destructive animate-pulse border-background rounded-full" style={{ top: -80, right: -80, width: 240, height: 240, borderWidth: 8 }} />
-                )}
-              </div>
-              <div className="text-center bg-background/80 rounded" style={{ padding: '40px 120px', marginTop: 40 }}>
-                <p className="font-display text-foreground leading-tight whitespace-nowrap" style={{ fontSize: 200 }}>{realm.name}</p>
-                <p className="text-muted-foreground" style={{ fontSize: 160 }}>⚔️{realm.power}</p>
-              </div>
+              )}
+              {realm.type === 'hostile' && (
+                <div className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-destructive animate-pulse border border-background" />
+              )}
             </button>
-          ))}
+          );
+        })}
 
-          {/* Events */}
-          {events.map((event, i) => !event.claimed && (
+        {/* Events */}
+        {events.map((event, i) => {
+          if (event.claimed) return null;
+          if (!isVisible(event.x, event.y, 60)) return null;
+          const { sx, sy } = worldToScreen(event.x, event.y);
+          return (
             <button
               key={event.id}
               data-map-item
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'event', data: event, index: i }); }}
-              className={`absolute -translate-x-1/2 -translate-y-1/2 z-20 rounded-full border-2 ${EVENT_COLORS[event.type]} flex items-center justify-center shadow-md`}
-              style={{ left: event.x, top: event.y, width: 600, height: 600, fontSize: 300, animation: `float 3s ease-in-out infinite ${i * 0.3}s` }}
+              className={`absolute z-20 rounded-full border-2 ${EVENT_COLORS[event.type]} flex items-center justify-center shadow-md animate-float`}
+              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', width: eventSize, height: eventSize, fontSize: eventSize * 0.5, animationDelay: `${i * 0.3}s` }}
             >
               {event.emoji}
             </button>
-          ))}
+          );
+        })}
 
-          {/* Player villages */}
-          {allVillages.map((pv, i) => {
-            const pos = getPlayerPos(pv.village.id, i);
-            const isMe = pv.village.user_id === user?.id;
-            return (
-              <button
-                key={pv.village.id}
-                data-map-item
-                onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'player', data: pv }); }}
-                className="absolute -translate-x-1/2 -translate-y-1/2 z-30 flex flex-col items-center hover:z-40"
-                style={{ left: pos.x, top: pos.y, gap: 40 }}
-              >
-                <div className={`rounded-lg flex items-center justify-center shadow-lg ${
-                  isMe ? 'bg-primary animate-pulse-gold ring-primary/50' : 'bg-secondary border-border'
-                }`} style={{ width: 640, height: 640, fontSize: 320, borderWidth: isMe ? 0 : 8, boxShadow: isMe ? '0 0 200px hsl(var(--primary) / 0.5)' : undefined }}>🏰</div>
-                <div className="text-center bg-background/80 rounded" style={{ padding: '30px 80px' }}>
-                  <p className="font-display text-foreground whitespace-nowrap" style={{ fontSize: 180 }}>{isMe ? '⭐ You' : pv.profile.display_name}</p>
-                  <p className="text-muted-foreground" style={{ fontSize: 140 }}>Lv.{pv.village.level}</p>
+        {/* Player villages */}
+        {allVillages.map((pv, i) => {
+          const pos = getPlayerPos(pv.village.id, i);
+          if (!isVisible(pos.x, pos.y, 80)) return null;
+          const { sx, sy } = worldToScreen(pos.x, pos.y);
+          const isMe = pv.village.user_id === user?.id;
+          return (
+            <button
+              key={pv.village.id}
+              data-map-item
+              onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'player', data: pv }); }}
+              className="absolute z-30 flex flex-col items-center hover:z-40"
+              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}
+            >
+              <div className={`rounded-lg flex items-center justify-center shadow-lg ${
+                isMe ? 'bg-primary animate-pulse-gold ring-2 ring-primary/50' : 'bg-secondary border border-border'
+              }`} style={{ width: iconSize * 0.9, height: iconSize * 0.9, fontSize: iconSize * 0.45 }}>🏰</div>
+              {iconSize > 28 && (
+                <div className="text-center bg-background/80 rounded mt-0.5 px-1 py-0.5">
+                  <p className="font-display text-foreground whitespace-nowrap" style={{ fontSize: Math.max(7, fontSize - 2) }}>{isMe ? '⭐ You' : pv.profile.display_name}</p>
+                  <p className="text-muted-foreground" style={{ fontSize: Math.max(6, fontSize - 3) }}>Lv.{pv.village.level}</p>
                 </div>
-              </button>
-            );
-          })}
-        </div>
+              )}
+            </button>
+          );
+        })}
 
         {/* Zoom controls */}
         <div className="absolute bottom-3 right-3 flex flex-col gap-1 z-50">
-          <button onClick={() => setZoom(prev => Math.min(MAX_ZOOM, prev * 1.5))}
+          <button onClick={() => setCamera(prev => ({ ...prev, ppu: Math.min(0.05, prev.ppu * 1.5) }))}
             className="w-8 h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-sm font-bold">+</button>
-          <button onClick={() => setZoom(prev => Math.max(MIN_ZOOM, prev / 1.5))}
+          <button onClick={() => setCamera(prev => ({ ...prev, ppu: Math.max(0.0005, prev.ppu / 1.5) }))}
             className="w-8 h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-sm font-bold">−</button>
-          <button onClick={() => { setZoom(0.05); setOffset({ x: -50000, y: -50000 }); }}
+          <button onClick={goHome}
             className="w-8 h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-[9px]">⌂</button>
         </div>
 
         {/* Legend */}
         <div className="absolute bottom-3 left-3 bg-background/90 backdrop-blur-sm rounded-lg p-2 space-y-1 text-[8px] z-50 border border-border">
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-destructive" /><span className="text-foreground">Hostile NPC</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-muted-foreground" /><span className="text-foreground">Neutral NPC</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-food" /><span className="text-foreground">Friendly NPC</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-destructive" /><span className="text-foreground">Hostile</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-muted-foreground" /><span className="text-foreground">Neutral</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-food" /><span className="text-foreground">Friendly</span></div>
           <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full border border-primary bg-primary/20" /><span className="text-foreground">Event</span></div>
           <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-lg bg-secondary" /><span className="text-foreground">Player</span></div>
         </div>
