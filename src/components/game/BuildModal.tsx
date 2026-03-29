@@ -1,11 +1,10 @@
 import { motion } from 'framer-motion';
-import { useGame, BuildingType } from '@/hooks/useGameState';
+import { useGame, BuildingType, BUILDING_INFO, getUpgradeCost } from '@/hooks/useGameState';
+import { BUILDING_SPRITES } from './sprites';
 
 const BUILDABLE: Exclude<BuildingType, 'empty' | 'townhall'>[] = [
   'farm', 'lumbermill', 'quarry', 'goldmine', 'barracks', 'wall', 'watchtower',
 ];
-
-import { BUILDING_INFO, getUpgradeCost } from '@/hooks/useGameState';
 
 export default function BuildModal({ position, onClose }: { position: number; onClose: () => void }) {
   const { buildAt, canAfford } = useGame();
@@ -41,6 +40,7 @@ export default function BuildModal({ position, onClose }: { position: number; on
             const info = BUILDING_INFO[type];
             const cost = getUpgradeCost(type, 0);
             const affordable = canAfford(cost);
+            const sprite = BUILDING_SPRITES[type];
 
             return (
               <motion.button
@@ -53,7 +53,7 @@ export default function BuildModal({ position, onClose }: { position: number; on
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xl">{info.icon}</span>
+                  <img src={sprite} alt={info.name} className="w-10 h-10 object-contain" loading="lazy" />
                   <span className="font-display text-xs text-foreground">{info.name}</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5 text-[10px] text-muted-foreground">
