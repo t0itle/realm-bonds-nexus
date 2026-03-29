@@ -256,13 +256,18 @@ export default function WorldMap() {
   }, [camera]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!dragStart.current) return;
-    const dx = e.clientX - dragStart.current.x;
-    const dy = e.clientY - dragStart.current.y;
+    const drag = dragStart.current;
+    if (!drag) return;
+
+    const dx = e.clientX - drag.x;
+    const dy = e.clientY - drag.y;
+    const startCx = drag.cx;
+    const startCy = drag.cy;
+
     safeSetCamera(prev => ({
       ...prev,
-      cx: dragStart.current!.cx - dx / prev.ppu,
-      cy: dragStart.current!.cy - dy / prev.ppu,
+      cx: startCx - dx / prev.ppu,
+      cy: startCy - dy / prev.ppu,
     }));
   }, [safeSetCamera]);
 
