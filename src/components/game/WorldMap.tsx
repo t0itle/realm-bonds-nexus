@@ -233,8 +233,6 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
         food: base.type === 'opportunity' ? Math.floor((30 + eventRng() * 80) * rewardMult) : 0,
       },
     });
-      },
-    });
   }
 
   // ── Terrain features ──
