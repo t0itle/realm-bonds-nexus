@@ -226,6 +226,57 @@ export type Database = {
         }
         Relationships: []
       }
+      battle_reports: {
+        Row: {
+          attacker_id: string
+          attacker_name: string
+          attacker_troops_lost: Json
+          attacker_troops_sent: Json
+          building_damage_levels: number | null
+          building_damaged: string | null
+          created_at: string
+          defender_id: string
+          defender_name: string
+          defender_troops_lost: Json
+          id: string
+          resources_raided: Json
+          result: string
+          vassalized: boolean | null
+        }
+        Insert: {
+          attacker_id: string
+          attacker_name?: string
+          attacker_troops_lost?: Json
+          attacker_troops_sent?: Json
+          building_damage_levels?: number | null
+          building_damaged?: string | null
+          created_at?: string
+          defender_id: string
+          defender_name?: string
+          defender_troops_lost?: Json
+          id?: string
+          resources_raided?: Json
+          result?: string
+          vassalized?: boolean | null
+        }
+        Update: {
+          attacker_id?: string
+          attacker_name?: string
+          attacker_troops_lost?: Json
+          attacker_troops_sent?: Json
+          building_damage_levels?: number | null
+          building_damaged?: string | null
+          created_at?: string
+          defender_id?: string
+          defender_name?: string
+          defender_troops_lost?: Json
+          id?: string
+          resources_raided?: Json
+          result?: string
+          vassalized?: boolean | null
+        }
+        Relationships: []
+      }
       buildings: {
         Row: {
           created_at: string
@@ -318,6 +369,42 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      vassalages: {
+        Row: {
+          created_at: string
+          ended_at: string | null
+          id: string
+          lord_id: string
+          ransom_gold: number
+          rebellion_available_at: string
+          status: string
+          tribute_rate: number
+          vassal_id: string
+        }
+        Insert: {
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          lord_id: string
+          ransom_gold?: number
+          rebellion_available_at?: string
+          status?: string
+          tribute_rate?: number
+          vassal_id: string
+        }
+        Update: {
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          lord_id?: string
+          ransom_gold?: number
+          rebellion_available_at?: string
+          status?: string
+          tribute_rate?: number
+          vassal_id?: string
         }
         Relationships: []
       }
