@@ -359,6 +359,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setResources({ gold: Number(v.gold), wood: Number(v.wood), stone: Number(v.stone), food: Number(v.food) });
         setVillageName(v.name as string);
         setPlayerLevel(v.level as number);
+        setSteel((v as any).steel ?? 0);
+        setPopulationBase((v as any).population ?? 10);
+        setMaxPopBase((v as any).max_population ?? 20);
+        setHappinessBase((v as any).happiness ?? 50);
+        setRationsLocal(((v as any).rations as RationsLevel) ?? 'normal');
+        setPopTaxRateLocal((v as any).pop_tax_rate ?? 5);
       }).subscribe();
 
     return () => { supabase.removeChannel(villageChannel); };
