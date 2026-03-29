@@ -1,17 +1,26 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ResourceBar from './ResourceBar';
-import VillageGrid from './VillageGrid';
-import WorldMap from './WorldMap';
-import AlliancePanel from './AlliancePanel';
-import MilitaryPanel from './MilitaryPanel';
-import ProfilePanel from './ProfilePanel';
-import MessagesPanel from './MessagesPanel';
-import StatSheet from './StatSheet';
 import ThemeToggle from '@/components/ThemeToggle';
 import { useGame } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+
+const VillageGrid = lazy(() => import('./VillageGrid'));
+const WorldMap = lazy(() => import('./WorldMap'));
+const AlliancePanel = lazy(() => import('./AlliancePanel'));
+const MilitaryPanel = lazy(() => import('./MilitaryPanel'));
+const ProfilePanel = lazy(() => import('./ProfilePanel'));
+const MessagesPanel = lazy(() => import('./MessagesPanel'));
+const StatSheet = lazy(() => import('./StatSheet'));
+
+function TabFallback() {
+  return (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="text-2xl animate-float">⏳</div>
+    </div>
+  );
+}
 
 type Tab = 'village' | 'map' | 'military' | 'alliance' | 'messages' | 'profile' | 'stats';
 
