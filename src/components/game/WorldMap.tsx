@@ -383,6 +383,7 @@ export default function WorldMap() {
   const [capturedMines, setCapturedMines] = useState<Set<string>>(new Set());
   const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; action: () => void }[]>([]);
   const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
+  const [legendOpen, setLegendOpen] = useState(false);
 
   // Steel production from captured mines
   useEffect(() => {
