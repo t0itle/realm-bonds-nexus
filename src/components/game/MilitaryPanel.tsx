@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useGame, TROOP_INFO, TroopType, SPY_MISSION_INFO, SpyMission } from '@/hooks/useGameState';
 import ResourceIcon, { getResourceType } from './ResourceIcon';
+import VassalPanel from './VassalPanel';
+import ResourceIcon, { getResourceType } from './ResourceIcon';
 
 const TROOP_TYPES: TroopType[] = ['militia', 'archer', 'knight', 'cavalry', 'siege'];
 const SPY_MISSIONS: SpyMission[] = ['scout', 'sabotage', 'demoralize'];
