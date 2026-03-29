@@ -1,4 +1,4 @@
 project_id = "axomurdwnszgulrfvnsb"
 
 [auth.security]
-manual_linking_enabled = true
+manual_linking_enabled = false
