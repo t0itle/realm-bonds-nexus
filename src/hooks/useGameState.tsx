@@ -726,6 +726,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
       });
     }, 3000);
 
+    // Periodically refresh alliance tax rate (every 60s)
+    const taxRefresh = setInterval(async () => {
+      if (!allianceId) return;
+      const { data } = await supabase.from('alliances').select('tax_rate').eq('id', allianceId).single();
+      if (data) setAllianceTaxRate(data.tax_rate);
+    }, 60000);
+
     const saveInterval = setInterval(() => {
       setResources(current => {
         setArmy(currentArmy => {
@@ -741,8 +748,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
         return current;
       });
     }, 30000);
-    return () => { clearInterval(tickInterval); clearInterval(saveInterval); };
-  }, [villageId, user, grossProduction, armyUpkeep, popFoodCost, popTaxIncome, maxPopulation, steel, populationBase, happiness, rations, popTaxRate]);
+    return () => { clearInterval(tickInterval); clearInterval(saveInterval); clearInterval(taxRefresh); };
+  }, [villageId, user, grossProduction, armyUpkeep, popFoodCost, popTaxIncome, maxPopulation, steel, populationBase, happiness, rations, popTaxRate, allianceTaxRate, allianceId]);
 
   useEffect(() => {
     if (!villageId) return;
