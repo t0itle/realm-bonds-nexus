@@ -383,6 +383,7 @@ export default function WorldMap() {
   const [capturedMines, setCapturedMines] = useState<Set<string>>(new Set());
   const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; action: () => void }[]>([]);
   const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
+  const [legendOpen, setLegendOpen] = useState(false);
 
   // Steel production from captured mines
   useEffect(() => {
@@ -969,28 +970,36 @@ export default function WorldMap() {
           );
         })}
 
-        {/* Zoom controls */}
-        <div className="absolute bottom-3 right-3 flex flex-col gap-1 z-50">
+        {/* Zoom controls — larger touch targets on mobile */}
+        <div className="absolute bottom-3 right-3 flex flex-col gap-1.5 z-50">
           <button onClick={() => safeSetCamera(prev => ({ ...prev, ppu: Math.min(0.05, prev.ppu * 1.5) }))}
-            className="w-8 h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-sm font-bold">+</button>
+            className="w-10 h-10 sm:w-8 sm:h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-base sm:text-sm font-bold active:scale-90 transition-transform">+</button>
           <button onClick={() => safeSetCamera(prev => ({ ...prev, ppu: Math.max(0.00005, prev.ppu / 1.5) }))}
-            className="w-8 h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-sm font-bold">−</button>
+            className="w-10 h-10 sm:w-8 sm:h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-base sm:text-sm font-bold active:scale-90 transition-transform">−</button>
           <button onClick={goHome}
-            className="w-8 h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-[9px]">⌂</button>
+            className="w-10 h-10 sm:w-8 sm:h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-sm sm:text-[9px] active:scale-90 transition-transform">⌂</button>
         </div>
 
-        {/* Legend */}
-        <div className="absolute bottom-3 left-3 bg-background/90 backdrop-blur-sm rounded-lg p-2 space-y-1 text-[8px] z-50 border border-border">
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-destructive" /><span className="text-foreground">Hostile</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-muted-foreground" /><span className="text-foreground">Neutral</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-food" /><span className="text-foreground">Friendly</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full border border-primary bg-primary/20" /><span className="text-foreground">Event</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-lg bg-secondary" /><span className="text-foreground">Player</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: 'hsl(200 70% 45% / 0.5)' }} /><span className="text-foreground">Water</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5" style={{ background: 'hsl(30 20% 35% / 0.6)', clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }} /><span className="text-foreground">Mountain</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: 'hsl(100 35% 40% / 0.6)' }} /><span className="text-foreground">Island</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-1" style={{ background: 'hsl(205 75% 45% / 0.6)', borderRadius: 2 }} /><span className="text-foreground">River</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded border border-muted-foreground/40 bg-muted/60 flex items-center justify-center text-[6px]">⚙️</div><span className="text-foreground">Steel Mine</span></div>
+        {/* Legend — collapsible on mobile */}
+        <div className="absolute bottom-3 left-3 z-50">
+          <button
+            onClick={() => setLegendOpen(prev => !prev)}
+            className="game-panel border-glow rounded-lg px-2 py-1.5 text-[9px] text-foreground font-display flex items-center gap-1 sm:hidden active:scale-95 transition-transform"
+          >
+            🗺️ Legend {legendOpen ? '▾' : '▸'}
+          </button>
+          <div className={`${legendOpen ? 'flex' : 'hidden'} sm:flex flex-col bg-background/90 backdrop-blur-sm rounded-lg p-2 space-y-1 text-[8px] border border-border mt-1 sm:mt-0`}>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-destructive" /><span className="text-foreground">Hostile</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-muted-foreground" /><span className="text-foreground">Neutral</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-food" /><span className="text-foreground">Friendly</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full border border-primary bg-primary/20" /><span className="text-foreground">Event</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-lg bg-secondary" /><span className="text-foreground">Player</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: 'hsl(200 70% 45% / 0.5)' }} /><span className="text-foreground">Water</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5" style={{ background: 'hsl(30 20% 35% / 0.6)', clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }} /><span className="text-foreground">Mountain</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: 'hsl(100 35% 40% / 0.6)' }} /><span className="text-foreground">Island</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-1" style={{ background: 'hsl(205 75% 45% / 0.6)', borderRadius: 2 }} /><span className="text-foreground">River</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded border border-muted-foreground/40 bg-muted/60 flex items-center justify-center text-[6px]">⚙️</div><span className="text-foreground">Steel Mine</span></div>
+          </div>
         </div>
       </div>
 
@@ -999,8 +1008,8 @@ export default function WorldMap() {
         {selected && (
           <motion.div
             initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
-            className="absolute bottom-14 inset-x-0 z-50 mx-3 game-panel border-glow rounded-xl p-3">
-            <button onClick={() => setSelected(null)} className="absolute top-2 right-2 text-muted-foreground text-xs">✕</button>
+            className="absolute bottom-16 sm:bottom-14 inset-x-0 z-50 mx-2 sm:mx-3 game-panel border-glow rounded-xl p-3 max-h-[45vh] overflow-y-auto safe-bottom">
+            <button onClick={() => setSelected(null)} className="absolute top-2 right-2 text-muted-foreground text-sm w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted/50 active:scale-90 transition-transform">✕</button>
 
             {selected.kind === 'npc' && (
               <div className="space-y-2">
@@ -1016,23 +1025,21 @@ export default function WorldMap() {
                   }`}>{selected.data.type}</span>
                 </div>
                 <p className="text-[10px] text-muted-foreground">{selected.data.desc}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-foreground font-bold">⚔️ Power: {selected.data.power}</span>
-                  <div className="flex gap-1.5">
-                    {selected.data.type !== 'hostile' && (
-                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleEnvoy(selected.data)}
-                        className="bg-primary/20 text-primary font-display text-[10px] py-1.5 px-3 rounded-lg">
-                        📜 Trade Deal 💰{Math.floor(selected.data.power * 0.3)}
-                      </motion.button>
-                    )}
-                    {tradeContracts.some(c => c.realmId === selected.data.id) && (
-                      <span className="text-[9px] text-food font-bold">📜 Active Trade</span>
-                    )}
-                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleAttackNPC(selected.data)}
-                      className="bg-destructive/20 text-destructive font-display text-[10px] py-1.5 px-3 rounded-lg">
-                      ⚔️ Attack
+                <span className="text-[10px] text-foreground font-bold">⚔️ Power: {selected.data.power}</span>
+                {tradeContracts.some(c => c.realmId === selected.data.id) && (
+                  <span className="text-[9px] text-food font-bold">📜 Active Trade</span>
+                )}
+                <div className="flex gap-2 mt-1">
+                  {selected.data.type !== 'hostile' && (
+                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleEnvoy(selected.data)}
+                      className="flex-1 bg-primary/20 text-primary font-display text-[11px] py-2.5 px-3 rounded-lg active:bg-primary/30 transition-colors">
+                      📜 Trade 💰{Math.floor(selected.data.power * 0.3)}
                     </motion.button>
-                  </div>
+                  )}
+                  <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleAttackNPC(selected.data)}
+                    className="flex-1 bg-destructive/20 text-destructive font-display text-[11px] py-2.5 px-3 rounded-lg active:bg-destructive/30 transition-colors">
+                    ⚔️ Attack
+                  </motion.button>
                 </div>
               </div>
             )}
@@ -1050,15 +1057,15 @@ export default function WorldMap() {
                   </div>
                 </div>
                 <p className="text-[10px] text-muted-foreground">{selected.data.description}</p>
-                <div className="flex items-center justify-between">
-                  <div className="flex gap-1.5 text-[10px] text-primary font-bold">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex gap-1.5 text-[10px] text-primary font-bold flex-wrap">
                     {Object.entries(selected.data.reward).filter(([, v]) => v && v > 0).map(([k, v]) => (
                       <span key={k}>+{v} {k}</span>
                     ))}
                   </div>
                   <motion.button whileTap={{ scale: 0.95 }}
                     onClick={() => handleInvestigate(selected.data)}
-                    className="bg-primary text-primary-foreground font-display text-[10px] py-1.5 px-4 rounded-lg glow-gold-sm">
+                    className="bg-primary text-primary-foreground font-display text-[11px] py-2.5 px-4 rounded-lg glow-gold-sm active:scale-95 transition-transform whitespace-nowrap">
                     {selected.data.power > 0 ? '⚔️ Fight & Claim' : '✋ Claim'}
                   </motion.button>
                 </div>
@@ -1081,10 +1088,9 @@ export default function WorldMap() {
                         const targetId = selected.data.village.user_id;
                         const targetName = selected.data.profile.display_name;
                         setSelected(null);
-                        // Dispatch custom event to switch to messages tab with this player
                         window.dispatchEvent(new CustomEvent('open-dm', { detail: { userId: targetId, name: targetName } }));
                       }}
-                      className="flex-1 bg-primary/20 text-primary font-display text-[10px] py-1.5 rounded-lg">
+                      className="flex-1 bg-primary/20 text-primary font-display text-[11px] py-2.5 rounded-lg active:bg-primary/30 transition-colors">
                       📨 Message
                     </motion.button>
                     <motion.button whileTap={{ scale: 0.95 }}
@@ -1104,7 +1110,7 @@ export default function WorldMap() {
                         }]);
                         setSelected(null);
                       }}
-                      className="flex-1 bg-destructive/20 text-destructive font-display text-[10px] py-1.5 rounded-lg">
+                      className="flex-1 bg-destructive/20 text-destructive font-display text-[11px] py-2.5 rounded-lg active:bg-destructive/30 transition-colors">
                       ⚔️ Attack
                     </motion.button>
                   </div>
@@ -1151,7 +1157,7 @@ export default function WorldMap() {
                       }]);
                       setSelected(null);
                     }}
-                    className="w-full bg-primary text-primary-foreground font-display text-[10px] py-1.5 rounded-lg glow-gold-sm">
+                    className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2.5 rounded-lg glow-gold-sm active:scale-95 transition-transform">
                     ⚔️ Capture Mine (Garrison: ⚔️{selected.data.power})
                   </motion.button>
                 )}
