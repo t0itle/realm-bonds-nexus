@@ -283,11 +283,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!villageId) return;
     const save = () => {
-      supabase.from('villages').update({ gold: resources.gold, wood: resources.wood, stone: resources.stone, food: resources.food }).eq('id', villageId).then();
+      supabase.from('villages').update({
+        gold: resources.gold, wood: resources.wood, stone: resources.stone, food: resources.food,
+        army_militia: army.militia, army_archer: army.archer,
+        army_knight: army.knight, army_cavalry: army.cavalry, army_siege: army.siege,
+      } as any).eq('id', villageId).then();
     };
     window.addEventListener('beforeunload', save);
     return () => window.removeEventListener('beforeunload', save);
-  }, [villageId, resources]);
+  }, [villageId, resources, army]);
 
   // Training queue processing
   useEffect(() => {
