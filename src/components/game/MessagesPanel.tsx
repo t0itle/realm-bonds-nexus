@@ -15,7 +15,12 @@ interface Message {
   sender_name?: string;
 }
 
-export default function MessagesPanel() {
+interface MessagesPanelProps {
+  initialDm?: { userId: string; name: string } | null;
+  onDmHandled?: () => void;
+}
+
+export default function MessagesPanel({ initialDm, onDmHandled }: MessagesPanelProps) {
   const { user } = useAuth();
   const { allVillages } = useGame();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -26,6 +31,15 @@ export default function MessagesPanel() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const profileMap = new Map(allVillages.map(v => [v.village.user_id, v.profile.display_name]));
+
+  // Handle incoming DM target from map
+  useEffect(() => {
+    if (initialDm) {
+      setActiveConvo(initialDm.userId);
+      setComposing(false);
+      onDmHandled?.();
+    }
+  }, [initialDm]);
 
   useEffect(() => {
     if (!user) return;
