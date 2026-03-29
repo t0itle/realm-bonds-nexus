@@ -140,6 +140,7 @@ interface GameContextType {
   totalArmyPower: () => { attack: number; defense: number };
   addResources: (r: Partial<Resources>) => void;
   attackTarget: (targetName: string, targetPower: number) => BattleLog;
+  armyUpkeep: () => { food: number; gold: number };
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -173,6 +174,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setVillageName(village.name);
         setPlayerLevel(village.level);
         setResources({ gold: Number(village.gold), wood: Number(village.wood), stone: Number(village.stone), food: Number(village.food) });
+        // Load persisted army
+        setArmy({
+          militia: (village as any).army_militia ?? 0,
+          archer: (village as any).army_archer ?? 0,
+          knight: (village as any).army_knight ?? 0,
+          cavalry: (village as any).army_cavalry ?? 0,
+          siege: (village as any).army_siege ?? 0,
+        });
 
         const { data: blds } = await supabase.from('buildings').select('*').eq('village_id', village.id);
         if (blds) {
@@ -217,34 +226,73 @@ export function GameProvider({ children }: { children: ReactNode }) {
     { gold: 0, wood: 0, stone: 0, food: 0 }
   );
 
-  // Resource tick
+  // Calculate army upkeep per tick (food & gold cost)
+  const armyUpkeep = useCallback(() => {
+    let foodCost = 0, goldCost = 0;
+    for (const [type, count] of Object.entries(army)) {
+      const info = TROOP_INFO[type as TroopType];
+      foodCost += info.foodUpkeep * count;
+      goldCost += Math.ceil(info.foodUpkeep * 0.5) * count;
+    }
+    // Upkeep per tick (every 3s = 1/20 of a minute)
+    return { food: Math.ceil(foodCost / 20), gold: Math.ceil(goldCost / 20) };
+  }, [army]);
+
+  // Resource tick with upkeep
   useEffect(() => {
     if (!villageId || !user) return;
     const tickInterval = setInterval(() => {
-      setResources(prev => ({
-        gold: prev.gold + Math.max(1, Math.floor(totalProduction.gold / 20)),
-        wood: prev.wood + Math.max(1, Math.floor(totalProduction.wood / 20)),
-        stone: prev.stone + Math.max(1, Math.floor(totalProduction.stone / 20)),
-        food: prev.food + Math.max(1, Math.floor(totalProduction.food / 20)),
-      }));
+      const upkeep = armyUpkeep();
+      setResources(prev => {
+        const newFood = prev.food + Math.max(1, Math.floor(totalProduction.food / 20)) - upkeep.food;
+        const newGold = prev.gold + Math.max(1, Math.floor(totalProduction.gold / 20)) - upkeep.gold;
+        // If food goes negative, troops desert
+        if (newFood < 0) {
+          setArmy(prevArmy => {
+            const updated = { ...prevArmy };
+            // Remove 1 of the most expensive troop type
+            for (const t of ['siege', 'cavalry', 'knight', 'archer', 'militia'] as TroopType[]) {
+              if (updated[t] > 0) { updated[t]--; break; }
+            }
+            return updated;
+          });
+        }
+        return {
+          gold: Math.max(0, newGold),
+          wood: prev.wood + Math.max(1, Math.floor(totalProduction.wood / 20)),
+          stone: prev.stone + Math.max(1, Math.floor(totalProduction.stone / 20)),
+          food: Math.max(0, newFood),
+        };
+      });
     }, 3000);
     const saveInterval = setInterval(() => {
       setResources(current => {
-        supabase.from('villages').update({ gold: current.gold, wood: current.wood, stone: current.stone, food: current.food }).eq('id', villageId).then();
+        setArmy(currentArmy => {
+          supabase.from('villages').update({
+            gold: current.gold, wood: current.wood, stone: current.stone, food: current.food,
+            army_militia: currentArmy.militia, army_archer: currentArmy.archer,
+            army_knight: currentArmy.knight, army_cavalry: currentArmy.cavalry, army_siege: currentArmy.siege,
+          } as any).eq('id', villageId).then();
+          return currentArmy;
+        });
         return current;
       });
     }, 30000);
     return () => { clearInterval(tickInterval); clearInterval(saveInterval); };
-  }, [villageId, user, totalProduction]);
+  }, [villageId, user, totalProduction, armyUpkeep]);
 
   useEffect(() => {
     if (!villageId) return;
     const save = () => {
-      supabase.from('villages').update({ gold: resources.gold, wood: resources.wood, stone: resources.stone, food: resources.food }).eq('id', villageId).then();
+      supabase.from('villages').update({
+        gold: resources.gold, wood: resources.wood, stone: resources.stone, food: resources.food,
+        army_militia: army.militia, army_archer: army.archer,
+        army_knight: army.knight, army_cavalry: army.cavalry, army_siege: army.siege,
+      } as any).eq('id', villageId).then();
     };
     window.addEventListener('beforeunload', save);
     return () => window.removeEventListener('beforeunload', save);
-  }, [villageId, resources]);
+  }, [villageId, resources, army]);
 
   // Training queue processing
   useEffect(() => {
@@ -383,7 +431,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     <GameContext.Provider value={{
       resources, buildings, villageName, villageId, playerLevel, displayName,
       buildAt, upgradeBuilding, canAfford, totalProduction, allVillages, loading,
-      army, trainingQueue, battleLogs, trainTroops, getBarracksLevel, totalArmyPower, addResources, attackTarget,
+      army, trainingQueue, battleLogs, trainTroops, getBarracksLevel, totalArmyPower, addResources, attackTarget, armyUpkeep,
     }}>
       {children}
     </GameContext.Provider>

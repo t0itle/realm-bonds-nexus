@@ -323,6 +323,11 @@ export type Database = {
       }
       villages: {
         Row: {
+          army_archer: number
+          army_cavalry: number
+          army_knight: number
+          army_militia: number
+          army_siege: number
           created_at: string
           food: number
           gold: number
@@ -336,6 +341,11 @@ export type Database = {
           wood: number
         }
         Insert: {
+          army_archer?: number
+          army_cavalry?: number
+          army_knight?: number
+          army_militia?: number
+          army_siege?: number
           created_at?: string
           food?: number
           gold?: number
@@ -349,6 +359,11 @@ export type Database = {
           wood?: number
         }
         Update: {
+          army_archer?: number
+          army_cavalry?: number
+          army_knight?: number
+          army_militia?: number
+          army_siege?: number
           created_at?: string
           food?: number
           gold?: number

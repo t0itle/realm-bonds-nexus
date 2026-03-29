@@ -1,0 +1,7 @@
+
+ALTER TABLE public.villages
+  ADD COLUMN IF NOT EXISTS army_militia integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS army_archer integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS army_knight integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS army_cavalry integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS army_siege integer NOT NULL DEFAULT 0;

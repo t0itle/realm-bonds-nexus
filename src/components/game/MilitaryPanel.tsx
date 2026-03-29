@@ -5,10 +5,11 @@ import { useGame, TROOP_INFO, TroopType } from '@/hooks/useGameState';
 const TROOP_TYPES: TroopType[] = ['militia', 'archer', 'knight', 'cavalry', 'siege'];
 
 export default function MilitaryPanel() {
-  const { army, trainingQueue, battleLogs, trainTroops, getBarracksLevel, canAfford, totalArmyPower } = useGame();
+  const { army, trainingQueue, battleLogs, trainTroops, getBarracksLevel, canAfford, totalArmyPower, armyUpkeep } = useGame();
   const [trainCount, setTrainCount] = useState<Record<TroopType, number>>({ militia: 1, archer: 1, knight: 1, cavalry: 1, siege: 1 });
   const barracksLevel = getBarracksLevel();
   const power = totalArmyPower();
+  const upkeep = armyUpkeep();
 
   if (barracksLevel === 0) {
     return (
@@ -42,6 +43,9 @@ export default function MilitaryPanel() {
         <div className="text-right">
           <p className="text-xs text-primary font-bold">⚔️ {power.attack}</p>
           <p className="text-xs text-foreground">🛡️ {power.defense}</p>
+          {(upkeep.food > 0 || upkeep.gold > 0) && (
+            <p className="text-[9px] text-destructive mt-0.5">Upkeep: 🌾{upkeep.food * 20}/min 💰{upkeep.gold * 20}/min</p>
+          )}
         </div>
       </div>
 
