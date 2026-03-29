@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useGame, BUILDING_INFO, BuildingType, TROOP_INFO, TroopType } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable';
 import { motion } from 'framer-motion';
 
 export default function ProfilePanel() {
@@ -20,9 +20,9 @@ export default function ProfilePanel() {
     setLinkLoading(true);
     setLinkMsg('');
     try {
-      const { error } = await supabase.auth.linkIdentity({
-        provider: 'google',
-        options: { redirectTo: window.location.origin },
+      const { error } = await lovable.auth.signInWithOAuth('google', {
+        redirect_uri: window.location.origin,
+        extraParams: { prompt: 'select_account' },
       });
       if (error) setLinkMsg(error.message);
     } catch (err: any) {
