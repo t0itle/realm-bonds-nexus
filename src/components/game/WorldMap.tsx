@@ -124,22 +124,40 @@ const REGION_EMOJIS: Record<string, string> = {
   Plains: '🌾', Highlands: '⛰️', Marsh: '🐸', Desert: '🏜️', Tundra: '🧊',
   Forest: '🌲', Steppe: '🌿', Badlands: '🌋', Coast: '⚓', Jungle: '🌴',
 };
-const EVENT_TEMPLATES = [
-  { name: 'Goblin Raid', description: 'A horde of goblins terrorizes nearby.', emoji: '👺', type: 'danger' as const, power: 40 },
-  { name: 'Ancient Ruins', description: 'Crumbling ruins with hidden treasures.', emoji: '🏛️', type: 'mystery' as const, power: 30 },
-  { name: 'Wandering Merchant', description: 'A rare merchant offers exotic goods.', emoji: '🧙', type: 'opportunity' as const, power: 0 },
-  { name: 'Dragon Sighting', description: 'A young dragon roams. Slay or tame it?', emoji: '🐲', type: 'danger' as const, power: 100 },
-  { name: 'Harvest Festival', description: 'A nearby village celebrates harvest.', emoji: '🎪', type: 'opportunity' as const, power: 0 },
-  { name: 'Dark Portal', description: 'A mysterious portal pulses with energy.', emoji: '🌀', type: 'mystery' as const, power: 80 },
-  { name: 'Bandit Camp', description: 'Bandits block a trade route. Clear them!', emoji: '🗡️', type: 'danger' as const, power: 50 },
-  { name: 'Lost Caravan', description: 'An abandoned supply caravan. Claim it!', emoji: '🏕️', type: 'opportunity' as const, power: 0 },
-  { name: 'Cursed Tomb', description: 'An ancient tomb emanates eerie glow.', emoji: '⚰️', type: 'mystery' as const, power: 70 },
-  { name: 'Sacred Grove', description: 'A hidden grove with magical energy.', emoji: '✨', type: 'opportunity' as const, power: 0 },
-  { name: 'Orc Warband', description: 'Orcs march towards settlements!', emoji: '👹', type: 'danger' as const, power: 60 },
-  { name: 'Fairy Ring', description: 'Mysterious mushroom circle glows.', emoji: '🍄', type: 'mystery' as const, power: 20 },
-  { name: 'Iron Deposits', description: 'Rich mineral veins discovered!', emoji: '⛰️', type: 'opportunity' as const, power: 0 },
-  { name: 'Pirate Cove', description: 'Pirates hoard stolen treasure here.', emoji: '🏴‍☠️', type: 'danger' as const, power: 90 },
+// ── Event variety system ──
+const EVENT_BASES = [
+  // DANGER events
+  { names: ['Goblin Raid', 'Goblin Ambush', 'Goblin Warparty', 'Goblin Scouts', 'Goblin Pillagers'], descs: ['terrorizes nearby travelers', 'has set up camp along the road', 'is raiding supply lines', 'prowls the countryside', 'demands tribute from passersby'], emoji: '👺', type: 'danger' as const, basePower: 40 },
+  { names: ['Dragon Sighting', 'Dragon\'s Lair', 'Wyrm Awakening', 'Drake Hunt', 'Wyvern Nest'], descs: ['roams the skies above', 'has been spotted near settlements', 'threatens livestock and farms', 'guards a hoard of treasure', 'circles overhead menacingly'], emoji: '🐲', type: 'danger' as const, basePower: 100 },
+  { names: ['Bandit Camp', 'Highwayman\'s Den', 'Outlaw Hideout', 'Rogue Encampment', 'Brigand Stronghold'], descs: ['blocks a key trade route', 'ambushes merchant caravans', 'extorts travelers for safe passage', 'has been raiding nearby villages', 'hoards stolen goods in the hills'], emoji: '🗡️', type: 'danger' as const, basePower: 50 },
+  { names: ['Orc Warband', 'Orcish Vanguard', 'Orc Siege Force', 'Orc Raiding Party', 'Orcish War Camp'], descs: ['marches towards settlements', 'burns farmsteads in its path', 'is mustering for a larger assault', 'demands submission or destruction', 'has enslaved local villagers'], emoji: '👹', type: 'danger' as const, basePower: 60 },
+  { names: ['Pirate Cove', 'Smuggler\'s Bay', 'Sea Raider Camp', 'Corsair Haven', 'Buccaneer Inlet'], descs: ['hoards stolen treasure here', 'launches raids on coastal towns', 'shelters a fleet of raider ships', 'trades in stolen goods', 'terrorizes fishermen and merchants'], emoji: '🏴‍☠️', type: 'danger' as const, basePower: 90 },
+  { names: ['Undead Rising', 'Skeleton Horde', 'Zombie Outbreak', 'Revenant March', 'Ghoul Swarm'], descs: ['claws its way from ancient graves', 'shambles across the countryside', 'has overrun a nearby graveyard', 'is drawn to the scent of the living', 'grows stronger each night'], emoji: '💀', type: 'danger' as const, basePower: 55 },
+  { names: ['Troll Bridge', 'Hill Troll\'s Domain', 'Cave Troll Lair', 'Swamp Troll Crossing', 'Stone Troll Blockade'], descs: ['demands payment to cross', 'attacks anyone who approaches', 'has claimed the only bridge for miles', 'lurks beneath the stonework', 'regenerates from every wound'], emoji: '🧌', type: 'danger' as const, basePower: 45 },
+  { names: ['Dark Cult Gathering', 'Blood Ritual Site', 'Heretic Assembly', 'Shadow Coven', 'Forbidden Ceremony'], descs: ['channels dark energies', 'sacrifices captives under moonlight', 'summons entities from beyond', 'corrupts the land around them', 'spreads madness to the unwary'], emoji: '🕯️', type: 'danger' as const, basePower: 70 },
+  { names: ['Giant Spider Nest', 'Arachnid Colony', 'Webbed Hollow', 'Silk Spinner Den', 'Broodmother\'s Lair'], descs: ['has cocooned several travelers', 'spreads webs across the path', 'breeds at an alarming rate', 'ambushes prey from above', 'guards egg sacs the size of barrels'], emoji: '🕷️', type: 'danger' as const, basePower: 35 },
+  { names: ['Wolves\' Hunting Ground', 'Dire Wolf Pack', 'Warg Riders', 'Shadow Wolves', 'Alpha\'s Territory'], descs: ['hunts in packs at dusk', 'has grown bold near settlements', 'attacks livestock nightly', 'eyes glow in the darkness', 'howls echo through the valley'], emoji: '🐺', type: 'danger' as const, basePower: 30 },
+  // OPPORTUNITY events
+  { names: ['Wandering Merchant', 'Traveling Trader', 'Exotic Bazaar', 'Nomad Market', 'Caravan Rest Stop'], descs: ['offers exotic goods from distant lands', 'sells rare materials at fair prices', 'barters wonders from across the sea', 'has unusual artifacts for sale', 'trades stories as freely as wares'], emoji: '🧙', type: 'opportunity' as const, basePower: 0 },
+  { names: ['Harvest Festival', 'Autumn Celebration', 'Mead Hall Feast', 'Village Fair', 'Summer Solstice Gathering'], descs: ['welcomes all travelers to join', 'fills the air with music and laughter', 'offers bountiful food and drink', 'trades goods and shares news', 'celebrates a record harvest season'], emoji: '🎪', type: 'opportunity' as const, basePower: 0 },
+  { names: ['Lost Caravan', 'Abandoned Wagons', 'Overturned Supply Cart', 'Deserted Merchant Train', 'Forgotten Stockpile'], descs: ['sits untouched by the road', 'was abandoned in haste — supplies intact', 'contains barrels of provisions', 'still has valuable cargo aboard', 'shows no sign of its owners returning'], emoji: '🏕️', type: 'opportunity' as const, basePower: 0 },
+  { names: ['Sacred Grove', 'Enchanted Glade', 'Blessed Spring', 'Druid Circle', 'Ancient Wellspring'], descs: ['hums with restorative energy', 'heals wounds and lifts spirits', 'grants visions of the future', 'blooms with rare medicinal herbs', 'is tended by forest spirits'], emoji: '✨', type: 'opportunity' as const, basePower: 0 },
+  { names: ['Iron Deposits', 'Mineral Vein', 'Ore Outcrop', 'Crystal Formation', 'Rich Lode'], descs: ['glints in the hillside', 'promises excellent yields', 'has been exposed by a landslide', 'could supply a forge for months', 'is remarkably pure and abundant'], emoji: '⛰️', type: 'opportunity' as const, basePower: 0 },
+  { names: ['Refugee Camp', 'Displaced Villagers', 'War Survivors', 'Homeless Settlers', 'Orphaned Hamlet'], descs: ['seeks a safe place to settle', 'would join a kind lord willingly', 'offers labor in exchange for shelter', 'brings skilled craftsmen among them', 'has nowhere else to go'], emoji: '🏚️', type: 'opportunity' as const, basePower: 0 },
+  { names: ['Fishing Bounty', 'River Shoal', 'Spawning Run', 'Lake of Plenty', 'Teeming Waters'], descs: ['overflows with fish this season', 'promises a season of full nets', 'attracts fishermen from miles away', 'provides food for any who cast a line', 'is a natural wonder of abundance'], emoji: '🐟', type: 'opportunity' as const, basePower: 0 },
+  // MYSTERY events
+  { names: ['Ancient Ruins', 'Crumbling Temple', 'Forgotten Citadel', 'Lost Library', 'Sunken Palace'], descs: ['hides secrets beneath the rubble', 'contains inscriptions in a dead language', 'may hold artifacts of immense power', 'echoes with whispers of the past', 'is partially reclaimed by nature'], emoji: '🏛️', type: 'mystery' as const, basePower: 30 },
+  { names: ['Dark Portal', 'Void Rift', 'Dimensional Tear', 'Shadow Gate', 'Eldritch Doorway'], descs: ['pulses with unstable energy', 'warps reality around it', 'crackles with otherworldly light', 'draws creatures from other realms', 'could lead anywhere — or nowhere'], emoji: '🌀', type: 'mystery' as const, basePower: 80 },
+  { names: ['Cursed Tomb', 'Haunted Crypt', 'Sealed Mausoleum', 'Pharaoh\'s Rest', 'Witch King\'s Barrow'], descs: ['emanates an eerie, cold glow', 'is sealed with ancient wards', 'whispers to those who draw near', 'promises treasure and terrible curses', 'has been undisturbed for millennia'], emoji: '⚰️', type: 'mystery' as const, basePower: 70 },
+  { names: ['Fairy Ring', 'Mushroom Circle', 'Fey Crossing', 'Pixie Hollow', 'Sprite Clearing'], descs: ['glows softly at midnight', 'transports the unwary to strange places', 'is surrounded by dancing lights', 'grants wishes with a terrible price', 'shifts position with the seasons'], emoji: '🍄', type: 'mystery' as const, basePower: 20 },
+  { names: ['Meteor Crash Site', 'Star Fall Crater', 'Sky Stone Impact', 'Celestial Fragment', 'Fallen Star'], descs: ['smolders with otherworldly heat', 'contains a strange glowing metal', 'has warped the ground around it', 'draws scholars and fortune seekers', 'pulses with an unknown energy'], emoji: '☄️', type: 'mystery' as const, basePower: 65 },
+  { names: ['Whispering Stones', 'Standing Monoliths', 'Runestone Circle', 'Oracle Pillars', 'Singing Megaliths'], descs: ['hum with ancient power', 'reveal visions when touched', 'align with the stars above', 'speak prophecies to the worthy', 'were placed here by a forgotten race'], emoji: '🗿', type: 'mystery' as const, basePower: 25 },
+  { names: ['Floating Island', 'Sky Ruin', 'Levitating Sanctuary', 'Cloud Fortress', 'Aerial Temple'], descs: ['drifts silently overhead', 'defies all known laws of nature', 'casts a vast shadow below', 'is accessible only by magic or flight', 'holds treasures from the Age of Wonders'], emoji: '🏝️', type: 'mystery' as const, basePower: 85 },
 ];
+
+// Adjective modifiers for extra name variety
+const EVENT_ADJECTIVES = ['Ancient', 'Fearsome', 'Legendary', 'Mysterious', 'Forgotten', 'Cursed', 'Hidden', 'Burning', 'Frozen', 'Savage', 'Haunted', 'Sacred', 'Dire', 'Grand', 'Lesser', 'Greater', 'Elder', 'Young', 'Spectral', 'Corrupted'];
+const EVENT_LOCATIONS = ['of the Northern Pass', 'by the River Crossing', 'near the Old Road', 'in the Deep Valley', 'at the Mountain\'s Base', 'beyond the Treeline', 'along the Coast', 'beneath the Cliffs', 'on the High Plains', 'within the Mist', 'beside the Ancient Oak', 'atop the Hill', 'under the Crags', 'past the Ruins', 'outside the Swamp'];
 
 function generateChunk(chunkX: number, chunkY: number): ChunkData {
   const seed = hashCoords(chunkX, chunkY, 42);
@@ -177,24 +195,42 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
     });
   }
 
-  // 1-4 events per chunk
-  const eventCount = 1 + Math.floor(rng() * 4);
+  // 1-4 events per chunk — use time-based seed rotation so events change periodically
+  const timeSeed = Math.floor(Date.now() / (1000 * 60 * 30)); // rotates every 30 minutes
+  const eventRng = seededRandom(hashCoords(chunkX, chunkY, timeSeed + 99));
+  const eventCount = 1 + Math.floor(eventRng() * 4);
   const events: ProceduralEvent[] = [];
   for (let i = 0; i < eventCount; i++) {
-    const tplIdx = Math.floor(rng() * EVENT_TEMPLATES.length);
-    const tpl = EVENT_TEMPLATES[tplIdx];
+    const baseIdx = Math.floor(eventRng() * EVENT_BASES.length);
+    const base = EVENT_BASES[baseIdx];
+    const nameIdx = Math.floor(eventRng() * base.names.length);
+    const descIdx = Math.floor(eventRng() * base.descs.length);
+    // Optionally add an adjective or location for extra variety
+    let eventName = base.names[nameIdx];
+    const adjRoll = eventRng();
+    if (adjRoll < 0.3) {
+      eventName = `${EVENT_ADJECTIVES[Math.floor(eventRng() * EVENT_ADJECTIVES.length)]} ${eventName}`;
+    }
+    let eventDesc = `${eventName} ${base.descs[descIdx]}`;
+    const locRoll = eventRng();
+    if (locRoll < 0.5) {
+      eventDesc += ` ${EVENT_LOCATIONS[Math.floor(eventRng() * EVENT_LOCATIONS.length)]}`;
+    }
     const rewardMult = difficultyMult;
     events.push({
-      ...tpl,
-      id: `event-${chunkX}-${chunkY}-${i}`,
-      power: Math.floor(tpl.power * difficultyMult),
-      x: worldBaseX + 2000 + rng() * (CHUNK_SIZE - 4000),
-      y: worldBaseY + 2000 + rng() * (CHUNK_SIZE - 4000),
+      id: `event-${chunkX}-${chunkY}-${i}-${timeSeed}`,
+      name: eventName,
+      description: eventDesc + '.',
+      emoji: base.emoji,
+      type: base.type,
+      power: Math.floor(base.basePower * difficultyMult),
+      x: worldBaseX + 2000 + eventRng() * (CHUNK_SIZE - 4000),
+      y: worldBaseY + 2000 + eventRng() * (CHUNK_SIZE - 4000),
       reward: {
-        gold: Math.floor((50 + rng() * 200) * rewardMult),
-        wood: tpl.type === 'opportunity' ? Math.floor((30 + rng() * 100) * rewardMult) : 0,
-        stone: tpl.type === 'mystery' ? Math.floor((40 + rng() * 120) * rewardMult) : 0,
-        food: tpl.type === 'opportunity' ? Math.floor((30 + rng() * 80) * rewardMult) : 0,
+        gold: Math.floor((50 + eventRng() * 200) * rewardMult),
+        wood: base.type === 'opportunity' ? Math.floor((30 + eventRng() * 100) * rewardMult) : 0,
+        stone: base.type === 'mystery' ? Math.floor((40 + eventRng() * 120) * rewardMult) : 0,
+        food: base.type === 'opportunity' ? Math.floor((30 + eventRng() * 80) * rewardMult) : 0,
       },
     });
   }
@@ -307,13 +343,20 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
   return { realms, events, terrain, steelMines, regionName, regionBiome };
 }
 
-// ── Chunk cache ──
+// ── Chunk cache (time-keyed so events rotate) ──
 const chunkCache = new Map<string, ChunkData>();
+let chunkCacheTimeSeed = Math.floor(Date.now() / (1000 * 60 * 30));
+
 function getChunk(cx: number, cy: number): ChunkData {
+  const currentTimeSeed = Math.floor(Date.now() / (1000 * 60 * 30));
+  // Invalidate cache when time seed changes (events rotate every 30min)
+  if (currentTimeSeed !== chunkCacheTimeSeed) {
+    chunkCache.clear();
+    chunkCacheTimeSeed = currentTimeSeed;
+  }
   const key = `${cx},${cy}`;
   if (!chunkCache.has(key)) {
     chunkCache.set(key, generateChunk(cx, cy));
-    // Evict old chunks if cache gets too large
     if (chunkCache.size > 200) {
       const first = chunkCache.keys().next().value;
       if (first) chunkCache.delete(first);
