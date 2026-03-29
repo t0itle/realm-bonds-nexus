@@ -343,6 +343,11 @@ interface GameContextType {
   addResources: (r: Partial<Resources>) => void;
   addSteel: (amount: number) => void;
   attackTarget: (targetName: string, targetPower: number) => BattleLog;
+  attackPlayer: (targetUserId: string, targetName: string, targetVillageId: string) => Promise<BattleLog | null>;
+  vassalages: Vassalage[];
+  payRansom: (vassalageId: string) => Promise<boolean>;
+  attemptRebellion: (vassalageId: string) => Promise<boolean>;
+  getWallLevel: () => number;
   armyUpkeep: () => { food: number; gold: number };
   population: PopulationStats;
   workerAssignments: WorkerAssignments;
