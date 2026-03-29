@@ -121,6 +121,13 @@ export interface TrainingQueue {
   finishTime: number;
 }
 
+export interface BuildQueue {
+  buildingId: string;
+  buildingType: BuildingType;
+  targetLevel: number;
+  finishTime: number;
+}
+
 export interface BattleLog {
   id: string;
   target: string;
