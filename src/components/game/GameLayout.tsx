@@ -6,13 +6,26 @@ import { useGame } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
-const VillageGrid = lazy(() => import('./VillageGrid'));
-const WorldMap = lazy(() => import('./WorldMap'));
-const AlliancePanel = lazy(() => import('./AlliancePanel'));
-const MilitaryPanel = lazy(() => import('./MilitaryPanel'));
-const ProfilePanel = lazy(() => import('./ProfilePanel'));
-const MessagesPanel = lazy(() => import('./MessagesPanel'));
-const StatSheet = lazy(() => import('./StatSheet'));
+function lazyRetry<T extends { default: React.ComponentType<any> }>(
+  fn: () => Promise<T>
+): React.LazyExoticComponent<T['default']> {
+  return lazy(() =>
+    fn().catch(() => {
+      // Retry once after a brief delay (handles stale HMR cache)
+      return new Promise<T>((resolve) => {
+        setTimeout(() => resolve(fn()), 1500);
+      });
+    })
+  );
+}
+
+const VillageGrid = lazyRetry(() => import('./VillageGrid'));
+const WorldMap = lazyRetry(() => import('./WorldMap'));
+const AlliancePanel = lazyRetry(() => import('./AlliancePanel'));
+const MilitaryPanel = lazyRetry(() => import('./MilitaryPanel'));
+const ProfilePanel = lazyRetry(() => import('./ProfilePanel'));
+const MessagesPanel = lazyRetry(() => import('./MessagesPanel'));
+const StatSheet = lazyRetry(() => import('./StatSheet'));
 
 function TabFallback() {
   return (
