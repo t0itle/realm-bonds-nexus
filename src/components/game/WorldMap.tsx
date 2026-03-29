@@ -274,6 +274,7 @@ export default function WorldMap() {
               );
             }
             return lines;
+          })()}
         </svg>
 
         {/* NPC territory circles */}
