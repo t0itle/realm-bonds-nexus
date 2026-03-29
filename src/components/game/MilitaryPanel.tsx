@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useGame, TROOP_INFO, TroopType, SPY_MISSION_INFO, SpyMission } from '@/hooks/useGameState';
 import ResourceIcon, { getResourceType } from './ResourceIcon';
+import VassalPanel from './VassalPanel';
 
 const TROOP_TYPES: TroopType[] = ['militia', 'archer', 'knight', 'cavalry', 'siege'];
 const SPY_MISSIONS: SpyMission[] = ['scout', 'sabotage', 'demoralize'];
@@ -187,6 +188,9 @@ export default function MilitaryPanel() {
             })}
           </div>
 
+          {/* Vassal status */}
+          <VassalPanel />
+
           {/* Battle logs */}
           {battleLogs.length > 0 && (
             <div className="space-y-2">
@@ -202,16 +206,32 @@ export default function MilitaryPanel() {
                     </span>
                   </div>
                   <div className="flex gap-2 text-[9px] text-muted-foreground mt-1">
+                    <span className="text-destructive/70">Your losses:</span>
                     {Object.entries(log.troopsLost).filter(([, v]) => v && v > 0).map(([type, count]) => (
                       <span key={type}>-{count} {TROOP_INFO[type as TroopType].emoji}</span>
                     ))}
                   </div>
+                  {log.defenderTroopsLost && Object.values(log.defenderTroopsLost).some(v => v && v > 0) && (
+                    <div className="flex gap-2 text-[9px] text-muted-foreground mt-0.5">
+                      <span className="text-food/70">Enemy losses:</span>
+                      {Object.entries(log.defenderTroopsLost).filter(([, v]) => v && v > 0).map(([type, count]) => (
+                        <span key={type}>-{count} {TROOP_INFO[type as TroopType].emoji}</span>
+                      ))}
+                    </div>
+                  )}
                   {log.resourcesGained && (
                     <div className="flex gap-2 text-[9px] text-primary mt-0.5">
+                      <span>Raided:</span>
                       {Object.entries(log.resourcesGained).filter(([, v]) => v && v > 0).map(([k, v]) => (
                         <span key={k}>+{v} {k}</span>
                       ))}
                     </div>
+                  )}
+                  {log.buildingDamaged && (
+                    <p className="text-[9px] text-destructive mt-0.5">🏚️ Damaged enemy {log.buildingDamaged} (-{log.buildingDamageLevels} level)</p>
+                  )}
+                  {log.vassalized && (
+                    <p className="text-[9px] text-primary font-bold mt-0.5">👑 Enemy vassalized!</p>
                   )}
                 </div>
               ))}

@@ -1,0 +1,112 @@
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { useGame } from '@/hooks/useGameState';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
+import ResourceIcon from './ResourceIcon';
+
+export default function VassalPanel() {
+  const { vassalages, payRansom, attemptRebellion, resources, army, allVillages } = useGame();
+  const { user } = useAuth();
+  const [rebelling, setRebelling] = useState<string | null>(null);
+
+  if (vassalages.length === 0) return null;
+
+  const myVassals = vassalages.filter(v => v.lord_id === user?.id);
+  const myLords = vassalages.filter(v => v.vassal_id === user?.id);
+
+  return (
+    <div className="space-y-3">
+      {/* I am a vassal */}
+      {myLords.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="font-display text-sm text-destructive">⛓️ Vassalage</h3>
+          {myLords.map(v => {
+            const lordVillage = allVillages.find(av => av.village.user_id === v.lord_id);
+            const lordName = lordVillage?.profile.display_name || 'Unknown Lord';
+            const canRebel = new Date(v.rebellion_available_at) <= new Date();
+            const rebellionTime = new Date(v.rebellion_available_at);
+            const canPayRansom = resources.gold >= v.ransom_gold;
+            const hasTroops = Object.values(army).some(val => val > 0);
+
+            return (
+              <div key={v.id} className="game-panel border-glow rounded-xl p-3 space-y-2 border-destructive/30">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-display text-xs text-foreground">Vassal of <span className="text-destructive">{lordName}</span></p>
+                    <p className="text-[9px] text-muted-foreground">Tribute: {v.tribute_rate}% of production</p>
+                  </div>
+                  <span className="text-2xl">⛓️</span>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  {/* Pay ransom */}
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    disabled={!canPayRansom}
+                    onClick={async () => {
+                      const success = await payRansom(v.id);
+                      if (success) toast.success('Freedom bought! You are no longer a vassal.');
+                      else toast.error('Failed to pay ransom.');
+                    }}
+                    className={`w-full font-display text-[10px] py-2 rounded-lg flex items-center justify-center gap-1 ${
+                      canPayRansom ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    💰 Pay Ransom (<ResourceIcon type="gold" size={10} />{v.ransom_gold})
+                  </motion.button>
+
+                  {/* Rebellion */}
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    disabled={!canRebel || !hasTroops || rebelling === v.id}
+                    onClick={async () => {
+                      if (!hasTroops) { toast.error('You need troops to rebel!'); return; }
+                      setRebelling(v.id);
+                      const success = await attemptRebellion(v.id);
+                      setRebelling(null);
+                      if (success) toast.success('⚔️ Rebellion successful! You are free!');
+                      else toast.error('⚔️ Rebellion failed! Timer reset to 24h.');
+                    }}
+                    className={`w-full font-display text-[10px] py-2 rounded-lg ${
+                      canRebel && hasTroops ? 'bg-destructive/20 text-destructive' : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {rebelling === v.id ? '⚔️ Fighting...' : canRebel ? '⚔️ Rebel!' : `⚔️ Rebellion in ${Math.ceil((rebellionTime.getTime() - Date.now()) / 3600000)}h`}
+                  </motion.button>
+
+                  <p className="text-[8px] text-muted-foreground text-center">
+                    Alliance members can also attack your lord to free you
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* I am a lord */}
+      {myVassals.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="font-display text-sm text-primary">👑 My Vassals</h3>
+          {myVassals.map(v => {
+            const vassalVillage = allVillages.find(av => av.village.user_id === v.vassal_id);
+            const vassalName = vassalVillage?.profile.display_name || 'Unknown';
+
+            return (
+              <div key={v.id} className="game-panel border-glow rounded-xl p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-display text-xs text-foreground">{vassalName}</p>
+                    <p className="text-[9px] text-muted-foreground">Tribute: {v.tribute_rate}% · Ransom: {v.ransom_gold}💰</p>
+                  </div>
+                  <span className="text-[9px] text-primary font-bold">👑 Vassal</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}

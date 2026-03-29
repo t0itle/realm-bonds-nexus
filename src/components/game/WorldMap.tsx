@@ -398,7 +398,7 @@ type SelectedItem =
   | null;
 
 export default function WorldMap() {
-  const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget } = useGame();
+  const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer } = useGame();
   const { user } = useAuth();
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
@@ -1139,13 +1139,25 @@ export default function WorldMap() {
                         if (!hasTroops) { toast.error('You need troops to attack!'); return; }
                         const targetPos = getPlayerPos(selected.data.village.id);
                         const travelSec = calcTravelTime(targetPos.x, targetPos.y);
+                        const targetData = selected.data;
                         toast(`⚔️ Troops marching... ETA ${travelSec}s`);
                         setMarches(prev => [...prev, {
-                          id: `pvp-${Date.now()}`, targetName: selected.data.village.name, arrivalTime: Date.now() + travelSec * 1000,
-                          action: () => {
-                            const log = attackTarget(selected.data.village.name, selected.data.village.level * 30);
-                            if (log.result === 'victory') toast.success('Victory!');
-                            else toast.error('Defeat!');
+                          id: `pvp-${Date.now()}`, targetName: targetData.village.name, arrivalTime: Date.now() + travelSec * 1000,
+                          action: async () => {
+                            const log = await attackPlayer(targetData.village.user_id, targetData.profile.display_name, targetData.village.id);
+                            if (!log) { toast.error('Attack failed!'); return; }
+                            if (log.result === 'victory') {
+                              let msg = `⚔️ Victory against ${targetData.profile.display_name}!`;
+                              if (log.resourcesGained) {
+                                const r = log.resourcesGained;
+                                msg += ` Raided: ${r.gold || 0}💰 ${r.wood || 0}🪵 ${r.stone || 0}🪨 ${r.food || 0}🌾`;
+                              }
+                              if (log.buildingDamaged) msg += ` Damaged their ${log.buildingDamaged}!`;
+                              if (log.vassalized) msg += ` 👑 They are now your vassal!`;
+                              toast.success(msg);
+                            } else {
+                              toast.error(`Defeated by ${targetData.profile.display_name}!`);
+                            }
                           },
                         }]);
                         setSelected(null);
