@@ -400,6 +400,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [activeSpyMissions, setActiveSpyMissions] = useState<ActiveSpyMission[]>([]);
   const [intelReports, setIntelReports] = useState<IntelReport[]>([]);
   const [vassalages, setVassalages] = useState<Vassalage[]>([]);
+  const [allianceTaxRate, setAllianceTaxRate] = useState(0);
+  const [allianceId, setAllianceId] = useState<string | null>(null);
 
   // Wrap setRations and setPopTaxRate to immediately persist to DB
   const setRations = useCallback((r: RationsLevel) => {
@@ -465,6 +467,21 @@ export function GameProvider({ children }: { children: ReactNode }) {
         .or(`lord_id.eq.${user.id},vassal_id.eq.${user.id}`)
         .eq('status', 'active');
       if (vassals) setVassalages(vassals as any as Vassalage[]);
+
+      // Load alliance membership & tax rate
+      const { data: membership } = await supabase.from('alliance_members')
+        .select('alliance_id')
+        .eq('user_id', user.id)
+        .limit(1);
+      if (membership && membership.length > 0) {
+        const aid = membership[0].alliance_id;
+        setAllianceId(aid);
+        const { data: alliance } = await supabase.from('alliances')
+          .select('tax_rate')
+          .eq('id', aid)
+          .single();
+        if (alliance) setAllianceTaxRate(alliance.tax_rate);
+      }
 
       setLoading(false);
     };
@@ -649,9 +666,32 @@ export function GameProvider({ children }: { children: ReactNode }) {
         const stoneProd = Math.max(1, Math.floor(grossProduction.stone / 20));
         const goldProd = Math.max(0, Math.floor(grossProduction.gold / 20));
         const taxGold = Math.floor(popTaxIncome / 20);
+
+        // Guild tax: deduct % of gross production gains for the alliance treasury
+        const taxFraction = allianceTaxRate / 100;
+        const taxGoldAmt = Math.floor(goldProd * taxFraction);
+        const taxWoodAmt = Math.floor(woodProd * taxFraction);
+        const taxStoneAmt = Math.floor(stoneProd * taxFraction);
+        const taxFoodAmt = Math.floor(foodProd * taxFraction);
+
+        // Credit alliance treasury (batched, non-blocking)
+        if (allianceId && (taxGoldAmt + taxWoodAmt + taxStoneAmt + taxFoodAmt) > 0) {
+          supabase.auth.getSession().then(({ data: { session } }) => {
+            if (!session) return;
+            fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/add_to_alliance_treasury`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                'Authorization': `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({ p_alliance_id: allianceId, p_gold: taxGoldAmt, p_wood: taxWoodAmt, p_stone: taxStoneAmt, p_food: taxFoodAmt }),
+            });
+          });
+        }
         
-        const newFood = prev.food + foodProd - upkeep.food - civFoodCost;
-        const newGold = prev.gold + goldProd - upkeep.gold + taxGold;
+        const newFood = prev.food + (foodProd - taxFoodAmt) - upkeep.food - civFoodCost;
+        const newGold = prev.gold + (goldProd - taxGoldAmt) - upkeep.gold + taxGold;
         
         if (newFood < 0) {
           setArmy(prevArmy => {
@@ -664,8 +704,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }
         return {
           gold: Math.max(0, newGold),
-          wood: prev.wood + woodProd,
-          stone: prev.stone + stoneProd,
+          wood: prev.wood + (woodProd - taxWoodAmt),
+          stone: prev.stone + (stoneProd - taxStoneAmt),
           food: Math.max(0, newFood),
         };
       });
@@ -686,6 +726,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
       });
     }, 3000);
 
+    // Periodically refresh alliance tax rate (every 60s)
+    const taxRefresh = setInterval(async () => {
+      if (!allianceId) return;
+      const { data } = await supabase.from('alliances').select('tax_rate').eq('id', allianceId).single();
+      if (data) setAllianceTaxRate(data.tax_rate);
+    }, 60000);
+
     const saveInterval = setInterval(() => {
       setResources(current => {
         setArmy(currentArmy => {
@@ -701,8 +748,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
         return current;
       });
     }, 30000);
-    return () => { clearInterval(tickInterval); clearInterval(saveInterval); };
-  }, [villageId, user, grossProduction, armyUpkeep, popFoodCost, popTaxIncome, maxPopulation, steel, populationBase, happiness, rations, popTaxRate]);
+    return () => { clearInterval(tickInterval); clearInterval(saveInterval); clearInterval(taxRefresh); };
+  }, [villageId, user, grossProduction, armyUpkeep, popFoodCost, popTaxIncome, maxPopulation, steel, populationBase, happiness, rations, popTaxRate, allianceTaxRate, allianceId]);
 
   useEffect(() => {
     if (!villageId) return;
