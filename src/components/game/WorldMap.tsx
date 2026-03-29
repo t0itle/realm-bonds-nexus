@@ -189,7 +189,97 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
     });
   }
 
-  return { realms, events, regionName, regionBiome };
+  // ── Terrain features ──
+  const LAKE_NAMES = ['Mirror Lake', 'Lake Sorrow', 'Azure Pool', 'Dead Mere', 'Crystal Waters', 'Shadow Pond', 'Moonwell', 'Serpent Lake', 'Frozen Tarn', 'Emerald Basin'];
+  const MTN_NAMES = ['Mt. Dread', 'Frostpeak', 'Ironjaw Summit', 'The Spire', 'Ashcrown', 'Thunder Ridge', 'Skullcap Peak', 'Dragonspine', 'The Anvil', 'Stormbreak'];
+  const RIVER_NAMES = ['River Styx', 'Goldrun', 'Silvervein', 'The Serpent', 'Whitewater', 'Blackflow', 'Crimson Creek', 'Mistbrook', 'Thornstream', 'Deepchannel'];
+  const ISLAND_NAMES = ['Isle of Bones', 'Verdant Atoll', 'Skull Rock', 'Trader\'s Rest', 'Phantom Isle', 'Coral Haven', 'Driftwood Key', 'Ember Isle', 'Windward Cay', 'Smuggler\'s Den'];
+
+  const terrain: TerrainFeature[] = [];
+
+  // Lakes (0-2 per chunk, more in Coast/Marsh/Jungle biomes)
+  const lakeChance = regionBiome === 'Coast' || regionBiome === 'Marsh' || regionBiome === 'Jungle' ? 0.8 : 0.35;
+  const lakeCount = rng() < lakeChance ? (rng() < 0.4 ? 2 : 1) : 0;
+  for (let i = 0; i < lakeCount; i++) {
+    terrain.push({
+      type: 'lake',
+      x: worldBaseX + 8000 + rng() * (CHUNK_SIZE - 16000),
+      y: worldBaseY + 8000 + rng() * (CHUNK_SIZE - 16000),
+      width: 4000 + rng() * 10000,
+      height: 3000 + rng() * 7000,
+      rotation: rng() * 360,
+      name: LAKE_NAMES[Math.floor(rng() * LAKE_NAMES.length)],
+    });
+  }
+
+  // Mountains (0-3 per chunk, more in Highlands/Tundra/Badlands)
+  const mtnChance = regionBiome === 'Highlands' || regionBiome === 'Tundra' || regionBiome === 'Badlands' ? 0.9 : 0.3;
+  const mtnCount = rng() < mtnChance ? 1 + Math.floor(rng() * 3) : 0;
+  for (let i = 0; i < mtnCount; i++) {
+    terrain.push({
+      type: 'mountain',
+      x: worldBaseX + 5000 + rng() * (CHUNK_SIZE - 10000),
+      y: worldBaseY + 5000 + rng() * (CHUNK_SIZE - 10000),
+      width: 3000 + rng() * 8000,
+      height: 3000 + rng() * 8000,
+      name: MTN_NAMES[Math.floor(rng() * MTN_NAMES.length)],
+    });
+  }
+
+  // Rivers (0-1 per chunk, with bridges)
+  if (rng() < 0.45) {
+    const riverPoints: { x: number; y: number }[] = [];
+    const segments = 5 + Math.floor(rng() * 4);
+    const startEdge = Math.floor(rng() * 4); // 0=top, 1=right, 2=bottom, 3=left
+    let rx = worldBaseX, ry = worldBaseY;
+    if (startEdge === 0) { rx = worldBaseX + rng() * CHUNK_SIZE; ry = worldBaseY; }
+    else if (startEdge === 1) { rx = worldBaseX + CHUNK_SIZE; ry = worldBaseY + rng() * CHUNK_SIZE; }
+    else if (startEdge === 2) { rx = worldBaseX + rng() * CHUNK_SIZE; ry = worldBaseY + CHUNK_SIZE; }
+    else { rx = worldBaseX; ry = worldBaseY + rng() * CHUNK_SIZE; }
+    riverPoints.push({ x: rx, y: ry });
+    for (let s = 1; s <= segments; s++) {
+      const t = s / segments;
+      const targetX = startEdge === 1 ? worldBaseX : startEdge === 3 ? worldBaseX + CHUNK_SIZE : worldBaseX + rng() * CHUNK_SIZE;
+      const targetY = startEdge === 0 ? worldBaseY + CHUNK_SIZE : startEdge === 2 ? worldBaseY : worldBaseY + rng() * CHUNK_SIZE;
+      rx = rx + (targetX - rx) * t + (rng() - 0.5) * 8000;
+      ry = ry + (targetY - ry) * t + (rng() - 0.5) * 8000;
+      rx = Math.max(worldBaseX, Math.min(worldBaseX + CHUNK_SIZE, rx));
+      ry = Math.max(worldBaseY, Math.min(worldBaseY + CHUNK_SIZE, ry));
+      riverPoints.push({ x: rx, y: ry });
+    }
+    // Place 1-2 bridges along the river
+    const bridges: { x: number; y: number }[] = [];
+    const bridgeCount = 1 + Math.floor(rng() * 2);
+    for (let b = 0; b < bridgeCount; b++) {
+      const idx = 1 + Math.floor(rng() * (riverPoints.length - 2));
+      bridges.push(riverPoints[idx]);
+    }
+    terrain.push({
+      type: 'river',
+      x: riverPoints[0].x,
+      y: riverPoints[0].y,
+      width: 800 + rng() * 1500,
+      height: 0,
+      points: riverPoints,
+      bridgeAt: bridges,
+      name: RIVER_NAMES[Math.floor(rng() * RIVER_NAMES.length)],
+    });
+  }
+
+  // Islands (only in Coast biome or near lakes, 0-1)
+  if (regionBiome === 'Coast' || (lakeCount > 0 && rng() < 0.4)) {
+    terrain.push({
+      type: 'island',
+      x: worldBaseX + 10000 + rng() * (CHUNK_SIZE - 20000),
+      y: worldBaseY + 10000 + rng() * (CHUNK_SIZE - 20000),
+      width: 3000 + rng() * 6000,
+      height: 2000 + rng() * 4000,
+      rotation: rng() * 360,
+      name: ISLAND_NAMES[Math.floor(rng() * ISLAND_NAMES.length)],
+    });
+  }
+
+  return { realms, events, terrain, regionName, regionBiome };
 }
 
 // ── Chunk cache ──
