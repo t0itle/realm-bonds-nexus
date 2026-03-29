@@ -458,6 +458,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
           profile: profileMap.get(v.user_id) || { display_name: 'Unknown', avatar_emoji: '🛡️' },
         })));
       }
+
+      // Load vassalages
+      const { data: vassals } = await supabase.from('vassalages')
+        .select('*')
+        .or(`lord_id.eq.${user.id},vassal_id.eq.${user.id}`)
+        .eq('status', 'active');
+      if (vassals) setVassalages(vassals as any as Vassalage[]);
+
       setLoading(false);
     };
     loadData();
