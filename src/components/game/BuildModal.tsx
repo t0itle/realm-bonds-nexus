@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useGame, BuildingType, BUILDING_INFO, getUpgradeCost } from '@/hooks/useGameState';
 import { BUILDING_SPRITES } from './sprites';
+import ResourceIcon, { getResourceType } from './ResourceIcon';
 
 const BUILDABLE: Exclude<BuildingType, 'empty' | 'townhall'>[] = [
   'house', 'farm', 'lumbermill', 'quarry', 'goldmine', 'barracks', 'wall', 'watchtower', 'temple',
@@ -64,14 +65,19 @@ export default function BuildModal({ position, onClose }: { position: number; on
                   <span className="font-display text-xs text-foreground">{info.name}</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5 text-[10px] text-muted-foreground">
-                  {Object.entries(cost).filter(([, v]) => v > 0).map(([key, val]) => (
-                    <span key={key}>
-                      {key === 'gold' ? '💰' : key === 'wood' ? '🪵' : key === 'stone' ? '🪨' : key === 'steel' ? '⚙️' : '🌾'}
-                      {val}
-                    </span>
-                  ))}
+                  {Object.entries(cost).filter(([, v]) => v > 0).map(([key, val]) => {
+                    const rType = getResourceType(key);
+                    return (
+                      <span key={key} className="flex items-center gap-0.5">
+                        {rType ? <ResourceIcon type={rType} size={10} /> : key}
+                        {val}
+                      </span>
+                    );
+                  })}
                 </div>
-                <p className="text-[9px] text-muted-foreground mt-1">⏱️ {formatTime(buildTime)}</p>
+                <p className="text-[9px] text-muted-foreground mt-1 flex items-center gap-0.5">
+                  <ResourceIcon type="timer" size={10} /> {formatTime(buildTime)}
+                </p>
               </motion.button>
             );
           })}

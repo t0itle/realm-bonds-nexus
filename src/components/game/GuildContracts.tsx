@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useGame } from '@/hooks/useGameState';
+import ResourceIcon from './ResourceIcon';
 import { toast } from 'sonner';
 
 interface Contract {
@@ -141,7 +142,7 @@ export default function GuildContracts({ allianceId, isLeader }: GuildContractsP
             <input type="text" placeholder="Description (optional)" value={description} onChange={e => setDescription(e.target.value)}
               className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-xs text-foreground" />
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">💰 Reward:</span>
+              <span className="text-xs text-muted-foreground flex items-center gap-0.5"><ResourceIcon type="gold" size={10} /> Reward:</span>
               <input type="number" min={0} value={rewardGold} onChange={e => setRewardGold(Number(e.target.value))}
                 className="w-20 bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground" />
               <span className="text-xs text-muted-foreground">gold</span>
@@ -165,7 +166,7 @@ export default function GuildContracts({ allianceId, isLeader }: GuildContractsP
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-foreground font-semibold truncate">{c.title}</p>
                 {c.description && <p className="text-[9px] text-muted-foreground truncate">{c.description}</p>}
-                <p className="text-[9px] text-primary">💰 {c.reward_gold} gold</p>
+                <p className="text-[9px] text-primary flex items-center gap-0.5"><ResourceIcon type="gold" size={9} /> {c.reward_gold} gold</p>
               </div>
               {c.created_by !== user?.id && (
                 <motion.button whileTap={{ scale: 0.9 }} onClick={() => acceptContract(c)}
@@ -187,7 +188,7 @@ export default function GuildContracts({ allianceId, isLeader }: GuildContractsP
                 <p className="text-[9px] text-muted-foreground">
                   Assigned to: {profileMap.get(c.assigned_to || '') || 'Unknown'}
                 </p>
-                <p className="text-[9px] text-primary">💰 {c.reward_gold} gold</p>
+                <p className="text-[9px] text-primary flex items-center gap-0.5"><ResourceIcon type="gold" size={9} /> {c.reward_gold} gold</p>
               </div>
               {(c.assigned_to === user?.id || isLeader) && (
                 <motion.button whileTap={{ scale: 0.9 }} onClick={() => completeContract(c)}

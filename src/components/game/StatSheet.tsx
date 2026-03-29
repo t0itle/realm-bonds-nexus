@@ -1,4 +1,5 @@
 import { useGame, TROOP_INFO, TroopType, BUILDING_INFO, BuildingType, RATIONS_INFO, RationsLevel } from '@/hooks/useGameState';
+import ResourceIcon from './ResourceIcon';
 
 export default function StatSheet() {
   const {
@@ -10,7 +11,7 @@ export default function StatSheet() {
   const totalTroops = Object.values(army).reduce((s, v) => s + v, 0);
 
   const happinessColor = population.happiness >= 70 ? 'text-emerald-500' : population.happiness >= 40 ? 'text-amber-500' : 'text-destructive';
-  const happinessEmoji = population.happiness >= 70 ? '😊' : population.happiness >= 40 ? '😐' : '😞';
+  const happinessEmoji = population.happiness >= 70 ? <ResourceIcon type="happiness" size={14} /> : population.happiness >= 40 ? <ResourceIcon type="happiness" size={14} className="opacity-60" /> : <ResourceIcon type="happiness" size={14} className="opacity-30" />;
 
   return (
     <div className="flex-1 flex flex-col p-3 space-y-3 overflow-y-auto pb-20">

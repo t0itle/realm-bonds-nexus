@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import ResourceIcon from './ResourceIcon';
 
 interface TaxPanelProps {
   allianceId: string;
@@ -80,10 +81,10 @@ export default function GuildTaxPanel({ allianceId, isLeader }: TaxPanelProps) {
   if (!treasury) return null;
 
   const resources = [
-    { key: 'gold', icon: '💰', value: treasury.treasury_gold },
-    { key: 'wood', icon: '🪵', value: treasury.treasury_wood },
-    { key: 'stone', icon: '🪨', value: treasury.treasury_stone },
-    { key: 'food', icon: '🌾', value: treasury.treasury_food },
+    { key: 'gold', icon: <ResourceIcon type="gold" size={12} />, value: treasury.treasury_gold },
+    { key: 'wood', icon: <ResourceIcon type="wood" size={12} />, value: treasury.treasury_wood },
+    { key: 'stone', icon: <ResourceIcon type="stone" size={12} />, value: treasury.treasury_stone },
+    { key: 'food', icon: <ResourceIcon type="food" size={12} />, value: treasury.treasury_food },
   ];
 
   return (
