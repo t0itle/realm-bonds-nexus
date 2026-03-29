@@ -79,7 +79,7 @@ export default function GameLayout() {
             {activeTab === 'village' && <VillageGrid />}
             {activeTab === 'military' && <MilitaryPanel />}
             {activeTab === 'map' && <WorldMap />}
-            {activeTab === 'messages' && <MessagesPanel />}
+            {activeTab === 'messages' && <MessagesPanel initialDm={dmTarget} onDmHandled={() => setDmTarget(null)} />}
             {activeTab === 'alliance' && <AlliancePanel />}
             {activeTab === 'profile' && <ProfilePanel />}
           </motion.div>
