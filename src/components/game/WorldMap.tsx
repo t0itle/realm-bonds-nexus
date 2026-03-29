@@ -125,7 +125,8 @@ export default function WorldMap() {
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
-    setZoom(prev => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev - e.deltaY * 0.001)));
+    const factor = e.deltaY > 0 ? 0.9 : 1.1;
+    setZoom(prev => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev * factor)));
   }, []);
 
   const getPlayerPos = (id: string, index: number) => {
