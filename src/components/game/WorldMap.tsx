@@ -337,8 +337,28 @@ export default function WorldMap() {
   const { user } = useAuth();
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
+  const [capturedMines, setCapturedMines] = useState<Set<string>>(new Set());
   const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; action: () => void }[]>([]);
   const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
+
+  // Steel production from captured mines
+  useEffect(() => {
+    if (capturedMines.size === 0) return;
+    const interval = setInterval(() => {
+      let totalSteel = 0;
+      // Find all captured mines across visible chunks and sum steel
+      for (const mineId of capturedMines) {
+        // Parse chunk coords from mine id
+        const parts = mineId.split('-');
+        const cx = parseInt(parts[1]), cy = parseInt(parts[2]);
+        const chunk = getChunk(cx, cy);
+        const mine = chunk.steelMines.find(m => m.id === mineId);
+        if (mine) totalSteel += mine.steelPerTick;
+      }
+      if (totalSteel > 0) addSteel(totalSteel);
+    }, 10000); // every 10s
+    return () => clearInterval(interval);
+  }, [capturedMines, addSteel]);
 
   // Process marches
   useEffect(() => {
