@@ -527,10 +527,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
       const civFoodCost = Math.floor(popFoodCost / 20);
 
       setResources(prev => {
-        const newFood = prev.food + Math.max(1, Math.floor(totalProduction.food / 20)) - upkeep.food - civFoodCost;
-        // Tax income from population
+        const foodProd = Math.max(0, Math.floor(grossProduction.food / 20));
+        const woodProd = Math.max(1, Math.floor(grossProduction.wood / 20));
+        const stoneProd = Math.max(1, Math.floor(grossProduction.stone / 20));
+        const goldProd = Math.max(0, Math.floor(grossProduction.gold / 20));
         const taxGold = Math.floor(popTaxIncome / 20);
-        const newGold = prev.gold + Math.max(1, Math.floor(totalProduction.gold / 20)) - upkeep.gold + taxGold;
+        
+        const newFood = prev.food + foodProd - upkeep.food - civFoodCost;
+        const newGold = prev.gold + goldProd - upkeep.gold + taxGold;
+        
         if (newFood < 0) {
           setArmy(prevArmy => {
             const updated = { ...prevArmy };
@@ -542,8 +547,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }
         return {
           gold: Math.max(0, newGold),
-          wood: prev.wood + Math.max(1, Math.floor(totalProduction.wood / 20)),
-          stone: prev.stone + Math.max(1, Math.floor(totalProduction.stone / 20)),
+          wood: prev.wood + woodProd,
+          stone: prev.stone + stoneProd,
           food: Math.max(0, newFood),
         };
       });
