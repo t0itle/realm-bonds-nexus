@@ -164,6 +164,11 @@ export default function AlliancePanel() {
         )}
       </div>
 
+      {/* Resource sharing for alliance members */}
+      {myAlliance && (
+        <AllianceResourceSharing allianceId={myAlliance} />
+      )}
+
       {/* Alliance rankings */}
       <div>
         <h3 className="font-display text-sm text-foreground mb-2">
