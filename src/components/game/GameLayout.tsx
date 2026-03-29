@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ResourceBar from './ResourceBar';
 import VillageGrid from './VillageGrid';
@@ -23,8 +23,19 @@ const TABS: { id: Tab; icon: string; label: string }[] = [
 
 export default function GameLayout() {
   const [activeTab, setActiveTab] = useState<Tab>('village');
+  const [dmTarget, setDmTarget] = useState<{ userId: string; name: string } | null>(null);
   const { villageName, playerLevel, loading, displayName, army, trainingQueue } = useGame();
   const totalTroops = Object.values(army).reduce((s, v) => s + v, 0);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      setDmTarget({ userId: detail.userId, name: detail.name });
+      setActiveTab('messages');
+    };
+    window.addEventListener('open-dm', handler);
+    return () => window.removeEventListener('open-dm', handler);
+  }, []);
 
   if (loading) {
     return (
@@ -68,7 +79,7 @@ export default function GameLayout() {
             {activeTab === 'village' && <VillageGrid />}
             {activeTab === 'military' && <MilitaryPanel />}
             {activeTab === 'map' && <WorldMap />}
-            {activeTab === 'messages' && <MessagesPanel />}
+            {activeTab === 'messages' && <MessagesPanel initialDm={dmTarget} onDmHandled={() => setDmTarget(null)} />}
             {activeTab === 'alliance' && <AlliancePanel />}
             {activeTab === 'profile' && <ProfilePanel />}
           </motion.div>
