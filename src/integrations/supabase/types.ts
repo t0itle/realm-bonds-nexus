@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      alliance_contracts: {
+        Row: {
+          alliance_id: string
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          reward_food: number
+          reward_gold: number
+          reward_stone: number
+          reward_wood: number
+          status: string
+          title: string
+        }
+        Insert: {
+          alliance_id: string
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          reward_food?: number
+          reward_gold?: number
+          reward_stone?: number
+          reward_wood?: number
+          status?: string
+          title: string
+        }
+        Update: {
+          alliance_id?: string
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          reward_food?: number
+          reward_gold?: number
+          reward_stone?: number
+          reward_wood?: number
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alliance_contracts_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alliance_members: {
         Row: {
           alliance_id: string
@@ -39,6 +95,38 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "alliance_members_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alliance_messages: {
+        Row: {
+          alliance_id: string
+          content: string
+          created_at: string
+          id: string
+          sender_id: string
+        }
+        Insert: {
+          alliance_id: string
+          content: string
+          created_at?: string
+          id?: string
+          sender_id: string
+        }
+        Update: {
+          alliance_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alliance_messages_alliance_id_fkey"
             columns: ["alliance_id"]
             isOneToOne: false
             referencedRelation: "alliances"
@@ -101,6 +189,11 @@ export type Database = {
           leader_id: string
           name: string
           tag: string
+          tax_rate: number
+          treasury_food: number
+          treasury_gold: number
+          treasury_stone: number
+          treasury_wood: number
           updated_at: string
         }
         Insert: {
@@ -110,6 +203,11 @@ export type Database = {
           leader_id: string
           name: string
           tag: string
+          tax_rate?: number
+          treasury_food?: number
+          treasury_gold?: number
+          treasury_stone?: number
+          treasury_wood?: number
           updated_at?: string
         }
         Update: {
@@ -119,6 +217,11 @@ export type Database = {
           leader_id?: string
           name?: string
           tag?: string
+          tax_rate?: number
+          treasury_food?: number
+          treasury_gold?: number
+          treasury_stone?: number
+          treasury_wood?: number
           updated_at?: string
         }
         Relationships: []
@@ -163,6 +266,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      player_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          read: boolean
+          receiver_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          receiver_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          receiver_id?: string
+          sender_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
