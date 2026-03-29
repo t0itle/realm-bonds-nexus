@@ -129,6 +129,52 @@ export interface BuildQueue {
   finishTime: number;
 }
 
+// === ESPIONAGE SYSTEM ===
+export type SpyMission = 'scout' | 'sabotage' | 'demoralize';
+
+export interface SpyMissionInfo {
+  name: string;
+  emoji: string;
+  description: string;
+  goldCost: number;
+  baseSuccessRate: number; // 0-1
+  spiesRequired: number;
+}
+
+export const SPY_MISSION_INFO: Record<SpyMission, SpyMissionInfo> = {
+  scout: { name: 'Scout', emoji: '🔍', description: 'Gather intel on a target. Reveals troops, resources, and defenses.', goldCost: 50, baseSuccessRate: 0.75, spiesRequired: 1 },
+  sabotage: { name: 'Sabotage', emoji: '💣', description: 'Destroy resources and damage buildings. High risk.', goldCost: 120, baseSuccessRate: 0.45, spiesRequired: 2 },
+  demoralize: { name: 'Demoralize', emoji: '😈', description: 'Spread propaganda to decrease target happiness.', goldCost: 80, baseSuccessRate: 0.55, spiesRequired: 1 },
+};
+
+export interface IntelReport {
+  id: string;
+  targetName: string;
+  targetId: string;
+  mission: SpyMission;
+  result: 'success' | 'failure' | 'caught';
+  timestamp: number;
+  data?: {
+    troops?: Partial<Army>;
+    resources?: Partial<Resources>;
+    defenses?: number;
+    happinessDrop?: number;
+    resourcesDestroyed?: Partial<Resources>;
+  };
+}
+
+export interface ActiveSpyMission {
+  id: string;
+  mission: SpyMission;
+  targetName: string;
+  targetId: string;
+  spiesCount: number;
+  departTime: number;
+  arrivalTime: number;
+  returnTime: number;
+  phase: 'traveling' | 'operating' | 'returning';
+}
+
 export interface BattleLog {
   id: string;
   target: string;
@@ -208,6 +254,13 @@ interface GameContextType {
   popTaxIncome: number;
   isBuildingUpgrading: (buildingId: string) => BuildQueue | undefined;
   getBuildTime: (type: Exclude<BuildingType, 'empty'>, level: number) => number;
+  // Espionage
+  spies: number;
+  trainSpies: (count: number) => boolean;
+  sendSpyMission: (mission: SpyMission, targetName: string, targetId: string, targetX: number, targetY: number, spiesCount: number) => boolean;
+  activeSpyMissions: ActiveSpyMission[];
+  intelReports: IntelReport[];
+  getWatchtowerLevel: () => number;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -235,6 +288,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [happinessBase, setHappinessBase] = useState(50);
   const [rations, setRations] = useState<RationsLevel>('normal');
   const [popTaxRate, setPopTaxRate] = useState(5);
+  const [spies, setSpies] = useState(0);
+  const [activeSpyMissions, setActiveSpyMissions] = useState<ActiveSpyMission[]>([]);
+  const [intelReports, setIntelReports] = useState<IntelReport[]>([]);
 
   // Load player data
   useEffect(() => {
@@ -699,6 +755,141 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return true;
   }, [buildings, villageId, user, resources, canAfford, canAffordSteel, buildQueue, getBuildTime]);
 
+  // Watchtower level (for espionage defense)
+  const getWatchtowerLevel = useCallback(() => {
+    const wt = buildings.find(b => b.type === 'watchtower');
+    return wt?.level || 0;
+  }, [buildings]);
+
+  // Train spies (requires barracks lvl 2+, costs gold + food + 1 pop each)
+  const trainSpies = useCallback((count: number) => {
+    if (getBarracksLevel() < 2) return false;
+    const cost = { gold: 40 * count, wood: 0, stone: 0, food: 20 * count };
+    if (!canAfford(cost)) return false;
+    if (population.civilians < count) return false;
+    setResources(prev => ({ gold: prev.gold - cost.gold, wood: prev.wood, stone: prev.stone, food: prev.food - cost.food }));
+    // Spies train over time
+    const finishTime = Date.now() + 20000 * count;
+    setTrainingQueue(prev => [...prev, { type: 'militia' as TroopType, count: 0, finishTime }]); // placeholder
+    setTimeout(() => setSpies(prev => prev + count), 20000 * count);
+    return true;
+  }, [canAfford, getBarracksLevel, population.civilians]);
+
+  // Send spy mission
+  const sendSpyMission = useCallback((mission: SpyMission, targetName: string, targetId: string, targetX: number, targetY: number, spiesCount: number) => {
+    const info = SPY_MISSION_INFO[mission];
+    if (spies < info.spiesRequired * spiesCount) return false;
+    const goldCost = info.goldCost * spiesCount;
+    if (resources.gold < goldCost) return false;
+
+    setSpies(prev => prev - info.spiesRequired * spiesCount);
+    setResources(prev => ({ ...prev, gold: prev.gold - goldCost }));
+
+    // Travel time based on distance
+    const dist = Math.sqrt(Math.pow(targetX - 100000, 2) + Math.pow(targetY - 100000, 2));
+    const travelSec = Math.max(5, Math.floor(dist / 3000)); // spies are stealthier, travel a bit faster
+    const operateSec = mission === 'scout' ? 5 : mission === 'sabotage' ? 10 : 8;
+    const now = Date.now();
+
+    const missionObj: ActiveSpyMission = {
+      id: `spy-${now}-${Math.random().toString(36).slice(2, 6)}`,
+      mission,
+      targetName,
+      targetId,
+      spiesCount: info.spiesRequired * spiesCount,
+      departTime: now,
+      arrivalTime: now + travelSec * 1000,
+      returnTime: now + (travelSec * 2 + operateSec) * 1000,
+      phase: 'traveling',
+    };
+    setActiveSpyMissions(prev => [...prev, missionObj]);
+    return true;
+  }, [spies, resources.gold]);
+
+  // Process spy missions
+  useEffect(() => {
+    if (activeSpyMissions.length === 0) return;
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setActiveSpyMissions(prev => {
+        const updated: ActiveSpyMission[] = [];
+        const completed: ActiveSpyMission[] = [];
+        for (const m of prev) {
+          if (m.returnTime <= now) {
+            completed.push(m);
+          } else if (m.arrivalTime <= now && m.phase === 'traveling') {
+            updated.push({ ...m, phase: 'operating' });
+          } else if (m.arrivalTime + 10000 <= now && m.phase === 'operating') {
+            updated.push({ ...m, phase: 'returning' });
+          } else {
+            updated.push(m);
+          }
+        }
+        if (completed.length > 0) {
+          completed.forEach(m => {
+            const info = SPY_MISSION_INFO[m.mission];
+            // Success roll: base rate + spy count bonus - target watchtower penalty
+            const wtLevel = getWatchtowerLevel(); // own watchtower doesn't matter for offense, but we use it for flavor
+            const roll = Math.random();
+            const successRate = Math.min(0.95, info.baseSuccessRate + m.spiesCount * 0.05);
+            const caught = roll > successRate + 0.15; // if fail badly, spy is caught
+            const success = roll <= successRate;
+
+            const report: IntelReport = {
+              id: m.id,
+              targetName: m.targetName,
+              targetId: m.targetId,
+              mission: m.mission,
+              result: success ? 'success' : caught ? 'caught' : 'failure',
+              timestamp: now,
+            };
+
+            if (success) {
+              if (m.mission === 'scout') {
+                // Generate fake intel based on target
+                report.data = {
+                  troops: {
+                    militia: Math.floor(Math.random() * 20),
+                    archer: Math.floor(Math.random() * 15),
+                    knight: Math.floor(Math.random() * 8),
+                    cavalry: Math.floor(Math.random() * 5),
+                    siege: Math.floor(Math.random() * 2),
+                  },
+                  resources: {
+                    gold: Math.floor(Math.random() * 2000),
+                    wood: Math.floor(Math.random() * 1500),
+                    stone: Math.floor(Math.random() * 1000),
+                    food: Math.floor(Math.random() * 800),
+                  },
+                  defenses: Math.floor(Math.random() * 5),
+                };
+              } else if (m.mission === 'sabotage') {
+                const destroyed = {
+                  gold: Math.floor(50 + Math.random() * 200),
+                  wood: Math.floor(30 + Math.random() * 150),
+                  stone: Math.floor(20 + Math.random() * 100),
+                  food: Math.floor(40 + Math.random() * 120),
+                };
+                report.data = { resourcesDestroyed: destroyed };
+              } else if (m.mission === 'demoralize') {
+                report.data = { happinessDrop: Math.floor(10 + Math.random() * 20) };
+              }
+            }
+
+            // Return surviving spies (caught = lost)
+            if (!caught) {
+              setSpies(p => p + m.spiesCount);
+            }
+
+            setIntelReports(prev => [report, ...prev].slice(0, 30));
+          });
+        }
+        return updated;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [activeSpyMissions.length, getWatchtowerLevel]);
+
   return (
     <GameContext.Provider value={{
       resources, steel, buildings, villageName, villageId, playerLevel, displayName,
@@ -707,6 +898,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       population, workerAssignments, assignWorker, unassignWorker, getMaxWorkers,
       rations, setRations, popTaxRate, setPopTaxRate, popFoodCost, popTaxIncome,
       isBuildingUpgrading, getBuildTime,
+      spies, trainSpies, sendSpyMission, activeSpyMissions, intelReports, getWatchtowerLevel,
     }}>
       {children}
     </GameContext.Provider>
