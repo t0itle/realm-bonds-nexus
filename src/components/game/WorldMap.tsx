@@ -84,7 +84,14 @@ export default function WorldMap() {
 
   // Camera: center is world coordinate the viewport is looking at
   // pixelsPerUnit: how many screen pixels per world unit
-  const [camera, setCamera] = useState(() => ({ cx: 100000, cy: 100000, ppu: 0.003 }));
+  const DEFAULT_CAMERA = { cx: 100000, cy: 100000, ppu: 0.003 };
+  const [camera, setCamera] = useState(DEFAULT_CAMERA);
+  const safeSetCamera = useCallback((updater: (prev: typeof DEFAULT_CAMERA) => typeof DEFAULT_CAMERA) => {
+    setCamera(prev => {
+      const safe = prev ?? DEFAULT_CAMERA;
+      return updater(safe);
+    });
+  }, []);
   const containerRef = useRef<HTMLDivElement>(null);
   const dragStart = useRef<{ x: number; y: number; cx: number; cy: number } | null>(null);
   const lastTouchDist = useRef<number | null>(null);
