@@ -329,10 +329,11 @@ type SelectedItem =
   | { kind: 'npc'; data: ProceduralRealm }
   | { kind: 'event'; data: ProceduralEvent; chunkKey: string; index: number }
   | { kind: 'player'; data: any }
+  | { kind: 'mine'; data: SteelMine }
   | null;
 
 export default function WorldMap() {
-  const { allVillages, addResources, army, totalArmyPower, attackTarget } = useGame();
+  const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget } = useGame();
   const { user } = useAuth();
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
