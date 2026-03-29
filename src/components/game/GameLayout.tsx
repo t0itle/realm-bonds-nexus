@@ -6,16 +6,18 @@ import WorldMap from './WorldMap';
 import AlliancePanel from './AlliancePanel';
 import MilitaryPanel from './MilitaryPanel';
 import ProfilePanel from './ProfilePanel';
+import MessagesPanel from './MessagesPanel';
 import ThemeToggle from '@/components/ThemeToggle';
 import { useGame } from '@/hooks/useGameState';
 
-type Tab = 'village' | 'map' | 'military' | 'alliance' | 'profile';
+type Tab = 'village' | 'map' | 'military' | 'alliance' | 'messages' | 'profile';
 
 const TABS: { id: Tab; icon: string; label: string }[] = [
   { id: 'village', icon: '🏘️', label: 'Village' },
   { id: 'military', icon: '⚔️', label: 'Army' },
-  { id: 'map', icon: '🗺️', label: 'World' },
-  { id: 'alliance', icon: '🤝', label: 'Alliance' },
+  { id: 'map', icon: '🗺️', label: 'Map' },
+  { id: 'messages', icon: '💬', label: 'Mail' },
+  { id: 'alliance', icon: '🤝', label: 'Guild' },
   { id: 'profile', icon: '👤', label: 'Profile' },
 ];
 
@@ -66,6 +68,7 @@ export default function GameLayout() {
             {activeTab === 'village' && <VillageGrid />}
             {activeTab === 'military' && <MilitaryPanel />}
             {activeTab === 'map' && <WorldMap />}
+            {activeTab === 'messages' && <MessagesPanel />}
             {activeTab === 'alliance' && <AlliancePanel />}
             {activeTab === 'profile' && <ProfilePanel />}
           </motion.div>

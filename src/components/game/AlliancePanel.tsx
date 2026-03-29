@@ -3,6 +3,9 @@ import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import AllianceResourceSharing from './AllianceResourceSharing';
+import GuildChat from './GuildChat';
+import GuildTaxPanel from './GuildTaxPanel';
+import GuildContracts from './GuildContracts';
 
 interface Alliance {
   id: string;
@@ -100,8 +103,8 @@ export default function AlliancePanel() {
   };
 
   return (
-    <div className="flex-1 flex flex-col p-4 space-y-4">
-      <h2 className="font-display text-lg text-foreground text-shadow-gold">Alliances</h2>
+    <div className="flex-1 flex flex-col p-4 space-y-4 overflow-y-auto">
+      <h2 className="font-display text-lg text-foreground text-shadow-gold">Guild</h2>
 
       {/* Your alliance status */}
       <div className="game-panel border-glow rounded-xl p-4 text-center space-y-2">
@@ -164,9 +167,14 @@ export default function AlliancePanel() {
         )}
       </div>
 
-      {/* Resource sharing for alliance members */}
+      {/* Guild features for members */}
       {myAlliance && (
-        <AllianceResourceSharing allianceId={myAlliance} />
+        <>
+          <GuildChat allianceId={myAlliance} />
+          <GuildTaxPanel allianceId={myAlliance} isLeader={alliances.find(a => a.id === myAlliance)?.leader_id === user?.id} />
+          <GuildContracts allianceId={myAlliance} isLeader={alliances.find(a => a.id === myAlliance)?.leader_id === user?.id} />
+          <AllianceResourceSharing allianceId={myAlliance} />
+        </>
       )}
 
       {/* Alliance rankings */}
