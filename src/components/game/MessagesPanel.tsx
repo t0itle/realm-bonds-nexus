@@ -27,8 +27,12 @@ type SpecialContent = TradeOffer | GuildInvite;
 
 function parseSpecialContent(content: string): SpecialContent | null {
   try {
-    const parsed = JSON.parse(content);
-    if (parsed.type === 'trade_offer' || parsed.type === 'guild_invite') return parsed;
+    let parsed = JSON.parse(content);
+    // Handle double-stringified content
+    if (typeof parsed === 'string') {
+      try { parsed = JSON.parse(parsed); } catch { /* ignore */ }
+    }
+    if (parsed && (parsed.type === 'trade_offer' || parsed.type === 'guild_invite')) return parsed;
   } catch { /* not special */ }
   return null;
 }
