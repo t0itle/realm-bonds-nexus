@@ -468,6 +468,21 @@ export function GameProvider({ children }: { children: ReactNode }) {
         .eq('status', 'active');
       if (vassals) setVassalages(vassals as any as Vassalage[]);
 
+      // Load alliance membership & tax rate
+      const { data: membership } = await supabase.from('alliance_members')
+        .select('alliance_id')
+        .eq('user_id', user.id)
+        .limit(1);
+      if (membership && membership.length > 0) {
+        const aid = membership[0].alliance_id;
+        setAllianceId(aid);
+        const { data: alliance } = await supabase.from('alliances')
+          .select('tax_rate')
+          .eq('id', aid)
+          .single();
+        if (alliance) setAllianceTaxRate(alliance.tax_rate);
+      }
+
       setLoading(false);
     };
     loadData();
