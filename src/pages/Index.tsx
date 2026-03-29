@@ -1,7 +1,7 @@
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import { GameProvider } from '@/hooks/useGameState';
 import GameLayout from '@/components/game/GameLayout';
-import AuthPage from '@/pages/AuthPage';
+import LandingPage from '@/pages/LandingPage';
 
 function GameRouter() {
   const { user, loading } = useAuth();
@@ -15,7 +15,7 @@ function GameRouter() {
     );
   }
 
-  if (!user) return <AuthPage />;
+  if (!user) return <LandingPage />;
 
   return (
     <GameProvider>
