@@ -289,7 +289,22 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
     });
   }
 
-  return { realms, events, terrain, regionName, regionBiome };
+  // Steel mines (0-1 per chunk, more common in Highlands/Badlands)
+  const MINE_NAMES = ['Iron Vein', 'Deep Forge', 'Obsidian Pit', 'Steelcrag Mine', 'The Black Seam', 'Titan\'s Quarry', 'Shadowsteel Delve', 'Ore Hollow', 'Molten Core', 'The Crucible'];
+  const steelMines: SteelMine[] = [];
+  const mineChance = regionBiome === 'Highlands' || regionBiome === 'Badlands' ? 0.6 : regionBiome === 'Tundra' ? 0.4 : 0.15;
+  if (rng() < mineChance) {
+    steelMines.push({
+      id: `mine-${chunkX}-${chunkY}`,
+      name: MINE_NAMES[Math.floor(rng() * MINE_NAMES.length)],
+      x: worldBaseX + 8000 + rng() * (CHUNK_SIZE - 16000),
+      y: worldBaseY + 8000 + rng() * (CHUNK_SIZE - 16000),
+      steelPerTick: 1 + Math.floor(rng() * 3 * difficultyMult),
+      power: Math.floor((30 + rng() * 80) * difficultyMult),
+    });
+  }
+
+  return { realms, events, terrain, steelMines, regionName, regionBiome };
 }
 
 // ── Chunk cache ──
