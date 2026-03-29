@@ -886,7 +886,23 @@ export default function WorldMap() {
           );
         })}
 
-        {/* Player villages */}
+        {/* Steel Mines */}
+        {visibleChunks.map(chunk => chunk.data.steelMines.map(mine => {
+          if (!isVisible(mine.x, mine.y, 60)) return null;
+          const { sx, sy } = worldToScreen(mine.x, mine.y);
+          const isCaptured = capturedMines.has(mine.id);
+          return (
+            <button key={mine.id} data-map-item
+              onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'mine', data: mine }); }}
+              className={`absolute z-20 rounded-lg border-2 flex items-center justify-center shadow-md ${
+                isCaptured ? 'border-primary/60 bg-primary/20 animate-pulse-gold' : 'border-muted-foreground/40 bg-muted/60'
+              }`}
+              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', width: eventSize, height: eventSize, fontSize: eventSize * 0.5 }}>
+              ⚙️
+            </button>
+          );
+        }))}
+
         {allVillages.map((pv) => {
           const pos = getPlayerPos(pv.village.id);
           if (!isVisible(pos.x, pos.y, 80)) return null;
