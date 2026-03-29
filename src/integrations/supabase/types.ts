@@ -14,7 +14,178 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      alliance_members: {
+        Row: {
+          alliance_id: string
+          id: string
+          joined_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          alliance_id: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          alliance_id?: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alliance_members_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alliances: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          leader_id: string
+          name: string
+          tag: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          leader_id: string
+          name: string
+          tag: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          leader_id?: string
+          name?: string
+          tag?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      buildings: {
+        Row: {
+          created_at: string
+          id: string
+          level: number
+          position: number
+          type: string
+          updated_at: string
+          user_id: string
+          village_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          level?: number
+          position: number
+          type: string
+          updated_at?: string
+          user_id: string
+          village_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          level?: number
+          position?: number
+          type?: string
+          updated_at?: string
+          user_id?: string
+          village_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buildings_village_id_fkey"
+            columns: ["village_id"]
+            isOneToOne: false
+            referencedRelation: "villages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_emoji: string
+          created_at: string
+          display_name: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_emoji?: string
+          created_at?: string
+          display_name?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_emoji?: string
+          created_at?: string
+          display_name?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      villages: {
+        Row: {
+          created_at: string
+          food: number
+          gold: number
+          id: string
+          last_resource_tick: string
+          level: number
+          name: string
+          stone: number
+          updated_at: string
+          user_id: string
+          wood: number
+        }
+        Insert: {
+          created_at?: string
+          food?: number
+          gold?: number
+          id?: string
+          last_resource_tick?: string
+          level?: number
+          name?: string
+          stone?: number
+          updated_at?: string
+          user_id: string
+          wood?: number
+        }
+        Update: {
+          created_at?: string
+          food?: number
+          gold?: number
+          id?: string
+          last_resource_tick?: string
+          level?: number
+          name?: string
+          stone?: number
+          updated_at?: string
+          user_id?: string
+          wood?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

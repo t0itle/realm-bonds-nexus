@@ -1,17 +1,18 @@
 import { motion } from 'framer-motion';
-import { useGame, BUILDING_INFO, getUpgradeCost, BuildingType } from '@/hooks/useGameState';
+import { useGame, BuildingType } from '@/hooks/useGameState';
 
 const BUILDABLE: Exclude<BuildingType, 'empty' | 'townhall'>[] = [
   'farm', 'lumbermill', 'quarry', 'goldmine', 'barracks', 'wall', 'watchtower',
 ];
 
+import { BUILDING_INFO, getUpgradeCost } from '@/hooks/useGameState';
+
 export default function BuildModal({ position, onClose }: { position: number; onClose: () => void }) {
   const { buildAt, canAfford } = useGame();
 
-  const handleBuild = (type: Exclude<BuildingType, 'empty'>) => {
-    if (buildAt(position, type)) {
-      onClose();
-    }
+  const handleBuild = async (type: Exclude<BuildingType, 'empty'>) => {
+    const success = await buildAt(position, type);
+    if (success) onClose();
   };
 
   return (

@@ -18,14 +18,22 @@ const TABS: { id: Tab; icon: string; label: string }[] = [
 
 export default function GameLayout() {
   const [activeTab, setActiveTab] = useState<Tab>('village');
-  const { villageName, playerLevel } = useGame();
+  const { villageName, playerLevel, loading, displayName } = useGame();
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-background flex flex-col items-center justify-center gap-3">
+        <div className="text-4xl animate-float">🏰</div>
+        <p className="font-display text-sm text-muted-foreground">Entering the realm...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 flex flex-col bg-background overflow-hidden">
-      {/* Header */}
       <div className="px-4 pt-3 pb-1 flex items-center justify-between">
         <div>
-          <h1 className="font-display text-sm font-bold text-foreground text-shadow-gold">{villageName}</h1>
+          <h1 className="font-display text-sm font-bold text-foreground text-shadow-gold">{villageName || displayName}</h1>
           <span className="text-[10px] text-primary font-semibold">Level {playerLevel}</span>
         </div>
         <div className="font-display text-xs text-muted-foreground tracking-widest uppercase">
@@ -33,10 +41,8 @@ export default function GameLayout() {
         </div>
       </div>
 
-      {/* Resources */}
       <ResourceBar />
 
-      {/* Main content */}
       <div className="flex-1 overflow-hidden relative">
         <AnimatePresence mode="wait">
           <motion.div
@@ -55,7 +61,6 @@ export default function GameLayout() {
         </AnimatePresence>
       </div>
 
-      {/* Bottom nav */}
       <nav className="game-panel border-t border-glow safe-bottom">
         <div className="flex items-center justify-around py-2">
           {TABS.map(tab => (
@@ -63,7 +68,7 @@ export default function GameLayout() {
               key={tab.id}
               whileTap={{ scale: 0.9 }}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center gap-0.5 px-4 py-1 rounded-lg transition-colors ${
+              className={`flex flex-col items-center gap-0.5 px-4 py-1 rounded-lg transition-colors relative ${
                 activeTab === tab.id ? 'text-primary' : 'text-muted-foreground'
               }`}
             >
@@ -71,12 +76,6 @@ export default function GameLayout() {
               <span className={`text-[10px] font-semibold ${activeTab === tab.id ? 'font-display' : ''}`}>
                 {tab.label}
               </span>
-              {activeTab === tab.id && (
-                <motion.div
-                  layoutId="tab-indicator"
-                  className="absolute -bottom-0 w-8 h-0.5 bg-primary rounded-full"
-                />
-              )}
             </motion.button>
           ))}
         </div>

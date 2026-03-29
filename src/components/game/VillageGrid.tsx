@@ -49,7 +49,6 @@ export default function VillageGrid() {
         </div>
       </div>
 
-      {/* Building detail sheet */}
       <AnimatePresence>
         {selectedBuilding && selectedBuilding.type !== 'empty' && (
           <motion.div
@@ -65,9 +64,11 @@ export default function VillageGrid() {
             >✕</button>
             <BuildingDetail
               building={selectedBuilding}
-              onUpgrade={() => {
-                upgradeBuilding(selectedBuilding.id);
-                setSelectedBuilding(prev => prev ? { ...prev, level: prev.level + 1 } : null);
+              onUpgrade={async () => {
+                const success = await upgradeBuilding(selectedBuilding.id);
+                if (success) {
+                  setSelectedBuilding(prev => prev ? { ...prev, level: prev.level + 1 } : null);
+                }
               }}
               canAfford={canAfford}
             />
@@ -75,7 +76,6 @@ export default function VillageGrid() {
         )}
       </AnimatePresence>
 
-      {/* Build menu */}
       <AnimatePresence>
         {buildPosition !== null && (
           <BuildModal
