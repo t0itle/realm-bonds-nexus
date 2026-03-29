@@ -1157,7 +1157,7 @@ export default function WorldMap() {
                       }]);
                       setSelected(null);
                     }}
-                    className="w-full bg-primary text-primary-foreground font-display text-[10px] py-1.5 rounded-lg glow-gold-sm">
+                    className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2.5 rounded-lg glow-gold-sm active:scale-95 transition-transform">
                     ⚔️ Capture Mine (Garrison: ⚔️{selected.data.power})
                   </motion.button>
                 )}
