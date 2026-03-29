@@ -9,13 +9,14 @@ import ProfilePanel from './ProfilePanel';
 import ThemeToggle from '@/components/ThemeToggle';
 import { useGame } from '@/hooks/useGameState';
 
-type Tab = 'village' | 'map' | 'military' | 'alliance' | 'profile';
+type Tab = 'village' | 'map' | 'military' | 'alliance' | 'messages' | 'profile';
 
 const TABS: { id: Tab; icon: string; label: string }[] = [
   { id: 'village', icon: '🏘️', label: 'Village' },
   { id: 'military', icon: '⚔️', label: 'Army' },
-  { id: 'map', icon: '🗺️', label: 'World' },
-  { id: 'alliance', icon: '🤝', label: 'Alliance' },
+  { id: 'map', icon: '🗺️', label: 'Map' },
+  { id: 'messages', icon: '💬', label: 'Mail' },
+  { id: 'alliance', icon: '🤝', label: 'Guild' },
   { id: 'profile', icon: '👤', label: 'Profile' },
 ];
 
