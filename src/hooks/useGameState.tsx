@@ -585,7 +585,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       });
     }, 30000);
     return () => { clearInterval(tickInterval); clearInterval(saveInterval); };
-  }, [villageId, user, totalProduction, armyUpkeep, popFoodCost, popTaxIncome, maxPopulation, steel, populationBase, happiness, rations, popTaxRate]);
+  }, [villageId, user, grossProduction, armyUpkeep, popFoodCost, popTaxIncome, maxPopulation, steel, populationBase, happiness, rations, popTaxRate]);
 
   useEffect(() => {
     if (!villageId) return;
