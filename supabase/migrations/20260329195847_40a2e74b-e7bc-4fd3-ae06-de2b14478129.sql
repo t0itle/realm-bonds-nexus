@@ -1,0 +1,5 @@
+
+ALTER TABLE public.villages
+  ADD COLUMN IF NOT EXISTS steel integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS population integer NOT NULL DEFAULT 10,
+  ADD COLUMN IF NOT EXISTS max_population integer NOT NULL DEFAULT 20;
