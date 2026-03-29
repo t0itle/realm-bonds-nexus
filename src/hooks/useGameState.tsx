@@ -286,11 +286,26 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [populationBase, setPopulationBase] = useState(10);
   const [maxPopBase, setMaxPopBase] = useState(20);
   const [happinessBase, setHappinessBase] = useState(50);
-  const [rations, setRations] = useState<RationsLevel>('normal');
-  const [popTaxRate, setPopTaxRate] = useState(5);
+  const [rations, setRationsLocal] = useState<RationsLevel>('normal');
+  const [popTaxRate, setPopTaxRateLocal] = useState(5);
   const [spies, setSpies] = useState(0);
   const [activeSpyMissions, setActiveSpyMissions] = useState<ActiveSpyMission[]>([]);
   const [intelReports, setIntelReports] = useState<IntelReport[]>([]);
+
+  // Wrap setRations and setPopTaxRate to immediately persist to DB
+  const setRations = useCallback((r: RationsLevel) => {
+    setRationsLocal(r);
+    if (villageId) {
+      supabase.from('villages').update({ rations: r } as any).eq('id', villageId).then();
+    }
+  }, [villageId]);
+
+  const setPopTaxRate = useCallback((rate: number) => {
+    setPopTaxRateLocal(rate);
+    if (villageId) {
+      supabase.from('villages').update({ pop_tax_rate: rate } as any).eq('id', villageId).then();
+    }
+  }, [villageId]);
 
   // Load player data
   useEffect(() => {
@@ -344,6 +359,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setResources({ gold: Number(v.gold), wood: Number(v.wood), stone: Number(v.stone), food: Number(v.food) });
         setVillageName(v.name as string);
         setPlayerLevel(v.level as number);
+        setSteel((v as any).steel ?? 0);
+        setPopulationBase((v as any).population ?? 10);
+        setMaxPopBase((v as any).max_population ?? 20);
+        setHappinessBase((v as any).happiness ?? 50);
+        setRationsLocal(((v as any).rations as RationsLevel) ?? 'normal');
+        setPopTaxRateLocal((v as any).pop_tax_rate ?? 5);
       }).subscribe();
 
     return () => { supabase.removeChannel(villageChannel); };
@@ -457,8 +478,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     currentHouses,
   }), [populationBase, maxPopulation, totalWorkers, totalSoldiers, armyCap, happiness, housingCapacity, maxHouses, currentHouses]);
 
-  // Production with worker bonuses
-  const totalProduction = useMemo(() => {
+  // Gross production from buildings (with worker bonuses)
+  const grossProduction = useMemo(() => {
     return buildings.reduce<Resources>(
       (acc, b) => {
         if (b.type === 'empty') return acc;
@@ -469,6 +490,22 @@ export function GameProvider({ children }: { children: ReactNode }) {
       { gold: 0, wood: 0, stone: 0, food: 0 }
     );
   }, [buildings, workerAssignments]);
+
+  // Net production: gross - army upkeep - pop food cost + pop tax income
+  const totalProduction = useMemo(() => {
+    let foodCost = 0, goldCost = 0;
+    for (const [type, count] of Object.entries(army)) {
+      const info = TROOP_INFO[type as TroopType];
+      foodCost += info.foodUpkeep * count;
+      goldCost += info.goldUpkeep * count;
+    }
+    return {
+      gold: grossProduction.gold - goldCost + popTaxIncome,
+      wood: grossProduction.wood,
+      stone: grossProduction.stone,
+      food: grossProduction.food - foodCost - popFoodCost,
+    };
+  }, [grossProduction, army, popTaxIncome, popFoodCost]);
 
   // Army upkeep
   const armyUpkeep = useCallback(() => {
@@ -490,10 +527,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
       const civFoodCost = Math.floor(popFoodCost / 20);
 
       setResources(prev => {
-        const newFood = prev.food + Math.max(1, Math.floor(totalProduction.food / 20)) - upkeep.food - civFoodCost;
-        // Tax income from population
+        const foodProd = Math.max(0, Math.floor(grossProduction.food / 20));
+        const woodProd = Math.max(1, Math.floor(grossProduction.wood / 20));
+        const stoneProd = Math.max(1, Math.floor(grossProduction.stone / 20));
+        const goldProd = Math.max(0, Math.floor(grossProduction.gold / 20));
         const taxGold = Math.floor(popTaxIncome / 20);
-        const newGold = prev.gold + Math.max(1, Math.floor(totalProduction.gold / 20)) - upkeep.gold + taxGold;
+        
+        const newFood = prev.food + foodProd - upkeep.food - civFoodCost;
+        const newGold = prev.gold + goldProd - upkeep.gold + taxGold;
+        
         if (newFood < 0) {
           setArmy(prevArmy => {
             const updated = { ...prevArmy };
@@ -505,8 +547,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }
         return {
           gold: Math.max(0, newGold),
-          wood: prev.wood + Math.max(1, Math.floor(totalProduction.wood / 20)),
-          stone: prev.stone + Math.max(1, Math.floor(totalProduction.stone / 20)),
+          wood: prev.wood + woodProd,
+          stone: prev.stone + stoneProd,
           food: Math.max(0, newFood),
         };
       });
@@ -543,7 +585,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       });
     }, 30000);
     return () => { clearInterval(tickInterval); clearInterval(saveInterval); };
-  }, [villageId, user, totalProduction, armyUpkeep, popFoodCost, popTaxIncome, maxPopulation, steel, populationBase, happiness, rations, popTaxRate]);
+  }, [villageId, user, grossProduction, armyUpkeep, popFoodCost, popTaxIncome, maxPopulation, steel, populationBase, happiness, rations, popTaxRate]);
 
   useEffect(() => {
     if (!villageId) return;
