@@ -1088,10 +1088,9 @@ export default function WorldMap() {
                         const targetId = selected.data.village.user_id;
                         const targetName = selected.data.profile.display_name;
                         setSelected(null);
-                        // Dispatch custom event to switch to messages tab with this player
                         window.dispatchEvent(new CustomEvent('open-dm', { detail: { userId: targetId, name: targetName } }));
                       }}
-                      className="flex-1 bg-primary/20 text-primary font-display text-[10px] py-1.5 rounded-lg">
+                      className="flex-1 bg-primary/20 text-primary font-display text-[11px] py-2.5 rounded-lg active:bg-primary/30 transition-colors">
                       📨 Message
                     </motion.button>
                     <motion.button whileTap={{ scale: 0.95 }}
