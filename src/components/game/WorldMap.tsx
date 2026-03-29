@@ -24,9 +24,23 @@ function hashCoords(cx: number, cy: number, salt = 0): number {
 // ── Chunk-based procedural world ──
 const CHUNK_SIZE = 50000; // world units per chunk
 
+interface TerrainFeature {
+  type: 'lake' | 'mountain' | 'island' | 'river';
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation?: number;
+  // River-specific
+  points?: { x: number; y: number }[];
+  bridgeAt?: { x: number; y: number }[];
+  name: string;
+}
+
 interface ChunkData {
   realms: ProceduralRealm[];
   events: ProceduralEvent[];
+  terrain: TerrainFeature[];
   regionName: string;
   regionBiome: string;
 }
