@@ -10,7 +10,7 @@ export interface Building {
   village_id: string;
 }
 
-export type BuildingType = 'townhall' | 'farm' | 'lumbermill' | 'quarry' | 'goldmine' | 'barracks' | 'wall' | 'watchtower' | 'empty';
+export type BuildingType = 'townhall' | 'farm' | 'lumbermill' | 'quarry' | 'goldmine' | 'barracks' | 'wall' | 'watchtower' | 'house' | 'temple' | 'empty';
 
 export interface Resources {
   gold: number;
@@ -28,16 +28,18 @@ export interface BuildingInfo {
   icon: string;
   description: string;
   baseCost: Resources;
-  steelCost?: number; // steel required at higher levels
+  steelCost?: number;
   baseProduction?: Partial<Resources>;
   maxLevel: number;
-  workersPerLevel: number; // population slots per level
-  housingPerLevel?: number; // max_population increase per level (townhall, farm)
+  workersPerLevel: number;
+  housingPerLevel?: number;
 }
 
 export const BUILDING_INFO: Record<Exclude<BuildingType, 'empty'>, BuildingInfo> = {
-  townhall: { name: 'Town Hall', icon: '🏰', description: 'The heart of your village. Increases max population.', baseCost: { gold: 100, wood: 50, stone: 50, food: 0 }, steelCost: 5, maxLevel: 10, workersPerLevel: 0, housingPerLevel: 10 },
-  farm: { name: 'Farm', icon: '🌾', description: 'Produces food. Each worker boosts output.', baseCost: { gold: 30, wood: 40, stone: 10, food: 0 }, baseProduction: { food: 5 }, maxLevel: 10, workersPerLevel: 1, housingPerLevel: 3 },
+  townhall: { name: 'Town Hall', icon: '🏰', description: 'Heart of your village. Determines max houses you can build.', baseCost: { gold: 100, wood: 50, stone: 50, food: 0 }, steelCost: 5, maxLevel: 10, workersPerLevel: 0 },
+  house: { name: 'House', icon: '🏠', description: 'Provides housing for civilians. Max houses = Town Hall level × 2.', baseCost: { gold: 20, wood: 40, stone: 20, food: 0 }, maxLevel: 5, workersPerLevel: 0, housingPerLevel: 8 },
+  temple: { name: 'Temple', icon: '⛪', description: 'Increases happiness through religion. Happy people attract more settlers.', baseCost: { gold: 60, wood: 30, stone: 50, food: 0 }, steelCost: 2, maxLevel: 5, workersPerLevel: 1 },
+  farm: { name: 'Farm', icon: '🌾', description: 'Produces food. Each worker boosts output.', baseCost: { gold: 30, wood: 40, stone: 10, food: 0 }, baseProduction: { food: 5 }, maxLevel: 10, workersPerLevel: 1 },
   lumbermill: { name: 'Lumber Mill', icon: '🪓', description: 'Harvests wood. Workers increase yield.', baseCost: { gold: 30, wood: 10, stone: 20, food: 0 }, baseProduction: { wood: 5 }, maxLevel: 10, workersPerLevel: 1 },
   quarry: { name: 'Quarry', icon: '⛏️', description: 'Mines stone. Assign workers for more output.', baseCost: { gold: 40, wood: 20, stone: 10, food: 0 }, baseProduction: { stone: 4 }, maxLevel: 10, workersPerLevel: 1 },
   goldmine: { name: 'Gold Mine', icon: '💰', description: 'Extracts gold. Workers boost production.', baseCost: { gold: 10, wood: 30, stone: 40, food: 0 }, steelCost: 3, baseProduction: { gold: 3 }, maxLevel: 10, workersPerLevel: 1 },
@@ -62,12 +64,21 @@ export function getProduction(type: Exclude<BuildingType, 'empty'>, level: numbe
   const info = BUILDING_INFO[type];
   if (!info.baseProduction) return {};
   const result: Partial<Resources> = {};
-  const workerBonus = 1 + workers * 0.15; // each worker adds 15% production
+  const workerBonus = 1 + workers * 0.15;
   for (const [key, val] of Object.entries(info.baseProduction)) {
     result[key as keyof Resources] = Math.floor(val * level * 1.2 * workerBonus);
   }
   return result;
 }
+
+// === RATIONS SYSTEM ===
+export type RationsLevel = 'scarce' | 'normal' | 'generous';
+
+export const RATIONS_INFO: Record<RationsLevel, { label: string; foodMultiplier: number; happinessBonus: number; description: string }> = {
+  scarce: { label: 'Scarce', foodMultiplier: 0.5, happinessBonus: -15, description: 'Half rations. Saves food but lowers happiness.' },
+  normal: { label: 'Normal', foodMultiplier: 1.0, happinessBonus: 0, description: 'Standard rations. No bonus or penalty.' },
+  generous: { label: 'Generous', foodMultiplier: 2.0, happinessBonus: 15, description: 'Double rations. Costs more food but boosts happiness.' },
+};
 
 // === TROOP SYSTEM ===
 export type TroopType = 'militia' | 'archer' | 'knight' | 'cavalry' | 'siege';
@@ -85,15 +96,15 @@ export interface TroopInfo {
   requiredBarracksLevel: number;
   foodUpkeep: number;
   goldUpkeep: number;
-  popCost: number; // population consumed per troop
+  popCost: number;
 }
 
 export const TROOP_INFO: Record<TroopType, TroopInfo> = {
-  militia: { name: 'Militia', emoji: '🗡️', description: 'Basic foot soldiers. Cheap and fast to train.', attack: 5, defense: 3, speed: 10, cost: { gold: 20, wood: 10, stone: 0, food: 10 }, steelCost: 0, trainTime: 15, requiredBarracksLevel: 1, foodUpkeep: 2, goldUpkeep: 0, popCost: 1 },
-  archer: { name: 'Archer', emoji: '🏹', description: 'Ranged units dealing damage from afar.', attack: 8, defense: 2, speed: 8, cost: { gold: 35, wood: 25, stone: 0, food: 15 }, steelCost: 0, trainTime: 25, requiredBarracksLevel: 2, foodUpkeep: 3, goldUpkeep: 0, popCost: 1 },
-  knight: { name: 'Knight', emoji: '🛡️', description: 'Heavily armored warriors. Requires steel.', attack: 10, defense: 12, speed: 6, cost: { gold: 60, wood: 10, stone: 30, food: 25 }, steelCost: 5, trainTime: 40, requiredBarracksLevel: 3, foodUpkeep: 5, goldUpkeep: 1, popCost: 2 },
+  militia: { name: 'Militia', emoji: '🗡️', description: 'Basic foot soldiers.', attack: 5, defense: 3, speed: 10, cost: { gold: 20, wood: 10, stone: 0, food: 10 }, steelCost: 0, trainTime: 15, requiredBarracksLevel: 1, foodUpkeep: 2, goldUpkeep: 0, popCost: 1 },
+  archer: { name: 'Archer', emoji: '🏹', description: 'Ranged units.', attack: 8, defense: 2, speed: 8, cost: { gold: 35, wood: 25, stone: 0, food: 15 }, steelCost: 0, trainTime: 25, requiredBarracksLevel: 2, foodUpkeep: 3, goldUpkeep: 0, popCost: 1 },
+  knight: { name: 'Knight', emoji: '🛡️', description: 'Heavily armored. Requires steel.', attack: 10, defense: 12, speed: 6, cost: { gold: 60, wood: 10, stone: 30, food: 25 }, steelCost: 5, trainTime: 40, requiredBarracksLevel: 3, foodUpkeep: 5, goldUpkeep: 1, popCost: 2 },
   cavalry: { name: 'Cavalry', emoji: '🐴', description: 'Fast mounted warriors. Requires steel.', attack: 14, defense: 6, speed: 18, cost: { gold: 80, wood: 20, stone: 0, food: 40 }, steelCost: 8, trainTime: 50, requiredBarracksLevel: 4, foodUpkeep: 6, goldUpkeep: 1, popCost: 2 },
-  siege: { name: 'Siege Ram', emoji: '🏗️', description: 'Devastating siege engine. Requires steel.', attack: 25, defense: 4, speed: 3, cost: { gold: 120, wood: 80, stone: 50, food: 30 }, steelCost: 15, trainTime: 90, requiredBarracksLevel: 5, foodUpkeep: 8, goldUpkeep: 2, popCost: 3 },
+  siege: { name: 'Siege Ram', emoji: '🏗️', description: 'Devastating siege engine.', attack: 25, defense: 4, speed: 3, cost: { gold: 120, wood: 80, stone: 50, food: 30 }, steelCost: 15, trainTime: 90, requiredBarracksLevel: 5, foodUpkeep: 8, goldUpkeep: 2, popCost: 3 },
 };
 
 export interface Army {
@@ -135,16 +146,19 @@ export interface PlayerVillage {
   profile: { display_name: string; avatar_emoji: string };
 }
 
-// Worker assignments per building ID
 export type WorkerAssignments = Record<string, number>;
 
 export interface PopulationStats {
   current: number;
   max: number;
-  civilians: number; // unassigned population
-  workers: number; // assigned to buildings
-  soldiers: number; // in army
-  armyCap: number; // max army size based on barracks workers
+  civilians: number;
+  workers: number;
+  soldiers: number;
+  armyCap: number;
+  happiness: number;
+  housingCapacity: number;
+  maxHouses: number;
+  currentHouses: number;
 }
 
 interface GameContextType {
@@ -172,12 +186,17 @@ interface GameContextType {
   addSteel: (amount: number) => void;
   attackTarget: (targetName: string, targetPower: number) => BattleLog;
   armyUpkeep: () => { food: number; gold: number };
-  // Population system
   population: PopulationStats;
   workerAssignments: WorkerAssignments;
   assignWorker: (buildingId: string) => boolean;
   unassignWorker: (buildingId: string) => boolean;
   getMaxWorkers: (building: Building) => number;
+  rations: RationsLevel;
+  setRations: (r: RationsLevel) => void;
+  popTaxRate: number;
+  setPopTaxRate: (r: number) => void;
+  popFoodCost: number;
+  popTaxIncome: number;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -201,6 +220,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [workerAssignments, setWorkerAssignments] = useState<WorkerAssignments>({});
   const [populationBase, setPopulationBase] = useState(10);
   const [maxPopBase, setMaxPopBase] = useState(20);
+  const [happinessBase, setHappinessBase] = useState(50);
+  const [rations, setRations] = useState<RationsLevel>('normal');
+  const [popTaxRate, setPopTaxRate] = useState(5);
 
   // Load player data
   useEffect(() => {
@@ -218,6 +240,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setSteel((village as any).steel ?? 0);
         setPopulationBase((village as any).population ?? 10);
         setMaxPopBase((village as any).max_population ?? 20);
+        setHappinessBase((village as any).happiness ?? 50);
+        setRations(((village as any).rations as RationsLevel) ?? 'normal');
+        setPopTaxRate((village as any).pop_tax_rate ?? 5);
         setArmy({
           militia: (village as any).army_militia ?? 0,
           archer: (village as any).army_archer ?? 0,
@@ -262,7 +287,56 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const canAffordSteel = useCallback((amount: number) => steel >= amount, [steel]);
 
-  // Calculate population
+  // === HOUSING ===
+  // Max houses you can build = townhall level * 2
+  const townhallLevel = useMemo(() => {
+    const th = buildings.find(b => b.type === 'townhall');
+    return th?.level || 1;
+  }, [buildings]);
+
+  const maxHouses = useMemo(() => townhallLevel * 2, [townhallLevel]);
+
+  const currentHouses = useMemo(() => buildings.filter(b => b.type === 'house').length, [buildings]);
+
+  // Housing capacity = sum of all house levels * housingPerLevel
+  const housingCapacity = useMemo(() => {
+    let cap = 10; // base housing from townhall
+    for (const b of buildings) {
+      if (b.type === 'house') {
+        cap += (BUILDING_INFO.house.housingPerLevel || 0) * b.level;
+      }
+      if (b.type === 'townhall') {
+        cap += b.level * 5; // townhall also provides some housing
+      }
+    }
+    return cap;
+  }, [buildings]);
+
+  // === HAPPINESS ===
+  // Base 50 + temple bonus + rations bonus - overcrowding penalty - high tax penalty
+  const happiness = useMemo(() => {
+    let h = 50;
+    // Temple bonus: +10 per temple level, +5 per worker assigned to temple
+    for (const b of buildings) {
+      if (b.type === 'temple') {
+        h += b.level * 10;
+        h += (workerAssignments[b.id] || 0) * 5;
+      }
+    }
+    // Rations bonus
+    h += RATIONS_INFO[rations].happinessBonus;
+    // Overcrowding penalty: if pop > housing * 0.9
+    if (populationBase > housingCapacity * 0.9) {
+      h -= Math.floor((populationBase - housingCapacity * 0.9) * 2);
+    }
+    // Tax penalty: -1 per % above 10
+    if (popTaxRate > 10) {
+      h -= (popTaxRate - 10) * 2;
+    }
+    return Math.max(0, Math.min(100, h));
+  }, [buildings, workerAssignments, rations, populationBase, housingCapacity, popTaxRate]);
+
+  // Population soldiers
   const totalSoldiers = useMemo(() => {
     let s = 0;
     for (const [type, count] of Object.entries(army)) {
@@ -275,21 +349,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return Object.values(workerAssignments).reduce((s, v) => s + v, 0);
   }, [workerAssignments]);
 
-  // Max population from townhall + farms
-  const maxPopulation = useMemo(() => {
-    let max = maxPopBase;
-    for (const b of buildings) {
-      if (b.type === 'townhall' || b.type === 'farm') {
-        const info = BUILDING_INFO[b.type];
-        max += (info.housingPerLevel || 0) * b.level;
-      }
-    }
-    return max;
-  }, [buildings, maxPopBase]);
+  // Max population = housing capacity (not the old townhall + farm system)
+  const maxPopulation = housingCapacity;
 
-  // Army cap: based on barracks level * workers assigned to barracks
+  // Army cap
   const armyCap = useMemo(() => {
-    let cap = 5; // base cap
+    let cap = 5;
     for (const b of buildings) {
       if (b.type === 'barracks') {
         const workers = workerAssignments[b.id] || 0;
@@ -299,6 +364,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return cap;
   }, [buildings, workerAssignments]);
 
+  // Food cost of population = civilians * rations multiplier
+  const popFoodCost = useMemo(() => {
+    const civilians = Math.max(0, populationBase - totalWorkers - totalSoldiers);
+    return Math.floor(civilians * RATIONS_INFO[rations].foodMultiplier);
+  }, [populationBase, totalWorkers, totalSoldiers, rations]);
+
+  // Tax income from population
+  const popTaxIncome = useMemo(() => {
+    const civilians = Math.max(0, populationBase - totalWorkers - totalSoldiers);
+    return Math.floor(civilians * popTaxRate / 100 * 2); // 2 gold base per taxable civilian scaled by rate
+  }, [populationBase, totalWorkers, totalSoldiers, popTaxRate]);
+
   const population: PopulationStats = useMemo(() => ({
     current: populationBase,
     max: maxPopulation,
@@ -306,7 +383,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
     workers: totalWorkers,
     soldiers: totalSoldiers,
     armyCap,
-  }), [populationBase, maxPopulation, totalWorkers, totalSoldiers, armyCap]);
+    happiness,
+    housingCapacity,
+    maxHouses,
+    currentHouses,
+  }), [populationBase, maxPopulation, totalWorkers, totalSoldiers, armyCap, happiness, housingCapacity, maxHouses, currentHouses]);
 
   // Production with worker bonuses
   const totalProduction = useMemo(() => {
@@ -337,12 +418,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (!villageId || !user) return;
     const tickInterval = setInterval(() => {
       const upkeep = armyUpkeep();
-      // Civilian food consumption: 0.5 per civilian per minute
-      const civFoodCost = Math.floor(population.civilians * 0.5 / 20);
+      // Civilian food consumption based on rations
+      const civFoodCost = Math.floor(popFoodCost / 20);
 
       setResources(prev => {
         const newFood = prev.food + Math.max(1, Math.floor(totalProduction.food / 20)) - upkeep.food - civFoodCost;
-        const newGold = prev.gold + Math.max(1, Math.floor(totalProduction.gold / 20)) - upkeep.gold;
+        // Tax income from population
+        const taxGold = Math.floor(popTaxIncome / 20);
+        const newGold = prev.gold + Math.max(1, Math.floor(totalProduction.gold / 20)) - upkeep.gold + taxGold;
         if (newFood < 0) {
           setArmy(prevArmy => {
             const updated = { ...prevArmy };
@@ -360,9 +443,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
         };
       });
 
-      // Population growth: if food > 100 and pop < max, grow slowly
+      // Population growth: based on available housing + happiness
       setPopulationBase(prev => {
-        if (prev < maxPopulation && resources.food > 100) {
+        if (prev >= maxPopulation) return prev; // at housing cap
+        if (resources.food < 50) return prev; // need food to attract settlers
+        // Growth rate based on happiness: 0 at 0 happiness, faster at high happiness
+        const growthChance = happiness / 100;
+        // Housing availability bonus
+        const housingRoom = maxPopulation - prev;
+        if (housingRoom <= 0) return prev;
+        if (Math.random() < growthChance * 0.5) {
           return prev + 1;
         }
         return prev;
@@ -375,6 +465,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
           supabase.from('villages').update({
             gold: current.gold, wood: current.wood, stone: current.stone, food: current.food,
             steel, population: populationBase, max_population: maxPopulation,
+            happiness, rations, pop_tax_rate: popTaxRate,
             army_militia: currentArmy.militia, army_archer: currentArmy.archer,
             army_knight: currentArmy.knight, army_cavalry: currentArmy.cavalry, army_siege: currentArmy.siege,
           } as any).eq('id', villageId).then();
@@ -384,7 +475,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       });
     }, 30000);
     return () => { clearInterval(tickInterval); clearInterval(saveInterval); };
-  }, [villageId, user, totalProduction, armyUpkeep, population.civilians, maxPopulation, steel, populationBase]);
+  }, [villageId, user, totalProduction, armyUpkeep, popFoodCost, popTaxIncome, maxPopulation, steel, populationBase, happiness, rations, popTaxRate]);
 
   useEffect(() => {
     if (!villageId) return;
@@ -392,13 +483,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
       supabase.from('villages').update({
         gold: resources.gold, wood: resources.wood, stone: resources.stone, food: resources.food,
         steel, population: populationBase, max_population: maxPopulation,
+        happiness, rations, pop_tax_rate: popTaxRate,
         army_militia: army.militia, army_archer: army.archer,
         army_knight: army.knight, army_cavalry: army.cavalry, army_siege: army.siege,
       } as any).eq('id', villageId).then();
     };
     window.addEventListener('beforeunload', save);
     return () => window.removeEventListener('beforeunload', save);
-  }, [villageId, resources, army, steel, populationBase, maxPopulation]);
+  }, [villageId, resources, army, steel, populationBase, maxPopulation, happiness, rations, popTaxRate]);
 
   // Training queue processing
   useEffect(() => {
@@ -436,10 +528,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     };
     const totalSteelCost = info.steelCost * count;
     if (!canAfford(totalCost) || !canAffordSteel(totalSteelCost)) return false;
-    // Check army cap
     const popNeeded = info.popCost * count;
     if (totalSoldiers + popNeeded > armyCap) return false;
-    // Check available civilians
     if (population.civilians < popNeeded) return false;
 
     setResources(prev => ({
@@ -529,6 +619,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const buildAt = useCallback(async (position: number, type: Exclude<BuildingType, 'empty'>) => {
     if (!villageId || !user) return false;
+    // House limit check
+    if (type === 'house' && currentHouses >= maxHouses) return false;
     const cost = getUpgradeCost(type, 0);
     if (!canAfford(cost)) return false;
     if (cost.steel > 0 && !canAffordSteel(cost.steel)) return false;
@@ -540,7 +632,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (cost.steel > 0) setSteel(prev => prev - cost.steel);
     setBuildings(prev => [...prev, { id: data.id, type: type as BuildingType, level: 1, position, village_id: villageId }]);
     return true;
-  }, [villageId, user, resources, canAfford, canAffordSteel]);
+  }, [villageId, user, resources, canAfford, canAffordSteel, currentHouses, maxHouses]);
 
   const upgradeBuilding = useCallback(async (id: string) => {
     if (!villageId || !user) return false;
@@ -568,6 +660,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       buildAt, upgradeBuilding, canAfford, canAffordSteel, totalProduction, allVillages, loading,
       army, trainingQueue, battleLogs, trainTroops, getBarracksLevel, totalArmyPower, addResources, addSteel, attackTarget, armyUpkeep,
       population, workerAssignments, assignWorker, unassignWorker, getMaxWorkers,
+      rations, setRations, popTaxRate, setPopTaxRate, popFoodCost, popTaxIncome,
     }}>
       {children}
     </GameContext.Provider>
