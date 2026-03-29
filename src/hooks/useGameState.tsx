@@ -190,32 +190,29 @@ export function GameProvider({ children }: { children: ReactNode }) {
       // Load all villages for world map
       const { data: villages } = await supabase
         .from('villages')
-        .select('*, profiles!villages_user_id_fkey(display_name, avatar_emoji)')
+        .select('*')
         .limit(50);
 
-      // The join returns profiles as an object (one-to-one via user_id)
-      // We need to handle the shape properly
       if (villages) {
-        const mapped: PlayerVillage[] = [];
-        for (const v of villages) {
-          // Get profile separately if join doesn't work
-          const profileData = (v as any).profiles;
-          mapped.push({
-            village: {
-              id: v.id,
-              user_id: v.user_id,
-              name: v.name,
-              gold: Number(v.gold),
-              wood: Number(v.wood),
-              stone: Number(v.stone),
-              food: Number(v.food),
-              level: v.level,
-            },
-            profile: profileData
-              ? { display_name: profileData.display_name, avatar_emoji: profileData.avatar_emoji }
-              : { display_name: 'Unknown', avatar_emoji: '🛡️' },
-          });
-        }
+        // Load all profiles
+        const { data: profiles } = await supabase.from('profiles').select('*');
+        const profileMap = new Map(
+          (profiles || []).map(p => [p.user_id, { display_name: p.display_name, avatar_emoji: p.avatar_emoji }])
+        );
+
+        const mapped: PlayerVillage[] = villages.map(v => ({
+          village: {
+            id: v.id,
+            user_id: v.user_id,
+            name: v.name,
+            gold: Number(v.gold),
+            wood: Number(v.wood),
+            stone: Number(v.stone),
+            food: Number(v.food),
+            level: v.level,
+          },
+          profile: profileMap.get(v.user_id) || { display_name: 'Unknown', avatar_emoji: '🛡️' },
+        }));
         setAllVillages(mapped);
       }
 
