@@ -3,6 +3,7 @@ import { useGame, BUILDING_INFO, getUpgradeCost, getProduction, BuildingType, Bu
 import { motion, AnimatePresence } from 'framer-motion';
 import { BUILDING_SPRITES, WORKERS_SPRITE, WORKER_FOR_BUILDING } from './sprites';
 import BuildModal from './BuildModal';
+import ResourceIcon, { getResourceType } from './ResourceIcon';
 
 const GRID_SIZE = 9;
 
@@ -64,8 +65,8 @@ export default function VillageGrid() {
                     />
                     {/* Build/upgrade timer overlay */}
                     {(upgrading || isUnderConstruction) && (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 rounded-xl">
-                        <span className="text-lg animate-pulse">🔨</span>
+                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 rounded-xl">
+                        <ResourceIcon type="hammer" size={24} className="animate-pulse" />
                         {upgrading && (
                           <span className="text-[10px] font-display text-primary font-bold">
                             {formatTime(upgrading.finishTime - Date.now())}
@@ -202,14 +203,17 @@ function BuildingDetail({ building, onUpgrade, canAfford, isBuildingUpgrading, g
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground font-display">Upgrade Cost:</p>
           <div className="flex gap-3 text-xs">
-            {Object.entries(upgradeCost).filter(([, v]) => v > 0).map(([key, val]) => (
-              <span key={key} className="text-foreground">
-                {key === 'gold' ? '💰' : key === 'wood' ? '🪵' : key === 'stone' ? '🪨' : key === 'steel' ? '⚙️' : '🌾'}
-                {val}
-              </span>
-            ))}
+                  {Object.entries(upgradeCost).filter(([, v]) => v > 0).map(([key, val]) => {
+                    const rType = getResourceType(key);
+                    return (
+                      <span key={key} className="text-foreground flex items-center gap-0.5">
+                        {rType ? <ResourceIcon type={rType} size={12} /> : key}
+                        {val}
+                      </span>
+                    );
+                  })}
           </div>
-          <p className="text-[10px] text-muted-foreground">⏱️ Build time: {formatTime(buildTime * 1000)}</p>
+          <p className="text-[10px] text-muted-foreground flex items-center gap-0.5"><ResourceIcon type="timer" size={10} /> Build time: {formatTime(buildTime * 1000)}</p>
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={onUpgrade}
