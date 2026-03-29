@@ -460,6 +460,27 @@ export default function WorldMap() {
           })()}
         </svg>
 
+        {/* Region labels */}
+        {visibleChunks.map(chunk => {
+          const centerX = chunk.cx * CHUNK_SIZE + CHUNK_SIZE / 2;
+          const centerY = chunk.cy * CHUNK_SIZE + CHUNK_SIZE / 2;
+          const { sx, sy } = worldToScreen(centerX, centerY);
+          const regionSize = CHUNK_SIZE * camera.ppu;
+          if (regionSize < 40) return null; // too small to show label
+          const biomeEmoji = REGION_EMOJIS[chunk.data.regionBiome] || '🗺️';
+          const labelFontSize = Math.max(10, Math.min(18, regionSize / 8));
+          return (
+            <div key={`region-${chunk.cx}-${chunk.cy}`}
+              className="absolute pointer-events-none flex flex-col items-center opacity-40"
+              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
+              <span style={{ fontSize: labelFontSize * 1.2 }}>{biomeEmoji}</span>
+              <span className="font-display text-foreground/50 whitespace-nowrap text-center" style={{ fontSize: labelFontSize }}>
+                {chunk.data.regionName}
+              </span>
+            </div>
+          );
+        })}
+
         {/* Territory circles */}
         {renderRealms.map(realm => {
           const { sx, sy } = worldToScreen(realm.x, realm.y);
