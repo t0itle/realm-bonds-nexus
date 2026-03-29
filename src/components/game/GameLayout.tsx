@@ -9,6 +9,8 @@ import ProfilePanel from './ProfilePanel';
 import MessagesPanel from './MessagesPanel';
 import ThemeToggle from '@/components/ThemeToggle';
 import { useGame } from '@/hooks/useGameState';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 type Tab = 'village' | 'map' | 'military' | 'alliance' | 'messages' | 'profile';
 
@@ -25,7 +27,39 @@ export default function GameLayout() {
   const [activeTab, setActiveTab] = useState<Tab>('village');
   const [dmTarget, setDmTarget] = useState<{ userId: string; name: string } | null>(null);
   const { villageName, playerLevel, loading, displayName, army, trainingQueue } = useGame();
+  const { user } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
   const totalTroops = Object.values(army).reduce((s, v) => s + v, 0);
+
+  // Fetch unread message count
+  useEffect(() => {
+    if (!user) return;
+    const fetchUnread = async () => {
+      const { count } = await supabase.from('player_messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('receiver_id', user.id).eq('read', false);
+      setUnreadCount(count || 0);
+    };
+    fetchUnread();
+
+    const channel = supabase.channel('unread-badge')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'player_messages' }, () => fetchUnread())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
+  // Reset unread when viewing messages
+  useEffect(() => {
+    if (activeTab === 'messages' && user) {
+      const timer = setTimeout(async () => {
+        const { count } = await supabase.from('player_messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('receiver_id', user.id).eq('read', false);
+        setUnreadCount(count || 0);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, user]);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -97,7 +131,14 @@ export default function GameLayout() {
                 activeTab === tab.id ? 'text-primary' : 'text-muted-foreground'
               }`}
             >
-              <span className="text-base">{tab.icon}</span>
+              <span className="text-base relative">
+                {tab.icon}
+                {tab.id === 'messages' && unreadCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2.5 bg-destructive text-destructive-foreground text-[8px] font-bold rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </span>
               <span className={`text-[9px] font-semibold ${activeTab === tab.id ? 'font-display' : ''}`}>
                 {tab.label}
               </span>

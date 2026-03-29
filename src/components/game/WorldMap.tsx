@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useGame, TroopType } from '@/hooks/useGameState';
+import { useGame, TroopType, Resources } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
@@ -207,6 +207,40 @@ export default function WorldMap() {
   const { user } = useAuth();
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
+  const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; action: () => void }[]>([]);
+  const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
+
+  // Process marches
+  useEffect(() => {
+    if (marches.length === 0) return;
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setMarches(prev => {
+        const arrived = prev.filter(m => m.arrivalTime <= now);
+        const remaining = prev.filter(m => m.arrivalTime > now);
+        arrived.forEach(m => {
+          toast.success(`Troops arrived at ${m.targetName}!`);
+          m.action();
+        });
+        return remaining;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [marches.length]);
+
+  // Expire trade contracts
+  useEffect(() => {
+    if (tradeContracts.length === 0) return;
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setTradeContracts(prev => {
+        const expired = prev.filter(c => c.expiresAt <= now);
+        expired.forEach(c => toast.info(`Trade contract with ${c.realmName} has expired.`));
+        return prev.filter(c => c.expiresAt > now);
+      });
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [tradeContracts.length]);
 
   const DEFAULT_CAMERA = { cx: 100000, cy: 100000, ppu: 0.003 };
   const [camera, setCamera] = useState(DEFAULT_CAMERA);
@@ -324,9 +358,14 @@ export default function WorldMap() {
     safeSetCamera(prev => ({ ...prev, ppu: Math.max(0.00005, Math.min(0.05, prev.ppu * factor)) }));
   }, [safeSetCamera]);
 
-  const getPlayerPos = (id: string, index: number) => {
-    const hash = id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-    return { x: 80000 + (hash * 1300 + index * 13700) % 40000, y: 80000 + (hash * 1700 + index * 17300) % 40000 };
+  const getPlayerPos = (id: string) => {
+    // Deterministic position based solely on village id — no index dependency
+    let h = 5381;
+    for (let i = 0; i < id.length; i++) {
+      h = ((h << 5) + h + id.charCodeAt(i)) >>> 0;
+    }
+    const h2 = ((h * 2654435761) >>> 0);
+    return { x: 80000 + (h % 40000), y: 80000 + (h2 % 40000) };
   };
 
   const goHome = useCallback(() => {
@@ -354,31 +393,73 @@ export default function WorldMap() {
     setSelected(null);
   }, [army, attackTarget, addResources, claimedEvents]);
 
+  const calcTravelTime = useCallback((targetX: number, targetY: number) => {
+    // Player is near center (100k, 100k). Distance in world units → seconds
+    const myPos = user ? getPlayerPos(allVillages.find(v => v.village.user_id === user.id)?.village.id || 'me') : { x: 100000, y: 100000 };
+    const dist = Math.sqrt(Math.pow(targetX - myPos.x, 2) + Math.pow(targetY - myPos.y, 2));
+    return Math.max(5, Math.floor(dist / 2000)); // min 5 seconds
+  }, [user, allVillages]);
+
   const handleAttackNPC = useCallback((realm: ProceduralRealm) => {
     const hasTroops = Object.values(army).some(v => v > 0);
     if (!hasTroops) { toast.error('You need troops to attack!'); return; }
-    const log = attackTarget(realm.name, realm.power);
-    if (log.result === 'victory') {
-      toast.success(`Victory against ${realm.name}! Spoils of war collected.`);
-    } else {
-      toast.error(`Defeated by ${realm.name}! Retreat and rebuild.`);
-    }
+    const travelSec = calcTravelTime(realm.x, realm.y);
+    const arrivalTime = Date.now() + travelSec * 1000;
+    toast(`⚔️ Troops marching to ${realm.name}... ETA ${travelSec}s`);
+    setMarches(prev => [...prev, {
+      id: `atk-${Date.now()}`, targetName: realm.name, arrivalTime,
+      action: () => {
+        const log = attackTarget(realm.name, realm.power);
+        if (log.result === 'victory') toast.success(`Victory against ${realm.name}!`);
+        else toast.error(`Defeated by ${realm.name}!`);
+      },
+    }]);
     setSelected(null);
-  }, [army, attackTarget]);
+  }, [army, attackTarget, calcTravelTime]);
 
   const handleEnvoy = useCallback((realm: ProceduralRealm) => {
+    // Check if already have a trade contract with this realm
+    if (tradeContracts.some(c => c.realmId === realm.id)) {
+      toast.error('You already have a trade contract with this realm!'); return;
+    }
     const tribute = { gold: Math.floor(realm.power * 0.3) };
     addResources({ gold: -tribute.gold });
-    const reward = realm.type === 'friendly'
-      ? { gold: Math.floor(realm.power * 0.5), food: Math.floor(realm.power * 0.3) }
-      : { gold: Math.floor(realm.power * 0.2), wood: Math.floor(realm.power * 0.15) };
-    setTimeout(() => {
-      addResources(reward);
-      toast.success(`${realm.name} accepted your envoy! Trade deal secured.`);
-    }, 1000);
-    toast('Envoy dispatched with tribute...');
+    const travelSec = calcTravelTime(realm.x, realm.y);
+
+    toast(`📜 Envoy dispatched to ${realm.name}... ETA ${travelSec}s`);
+    const arrivalTime = Date.now() + travelSec * 1000;
+    setMarches(prev => [...prev, {
+      id: `envoy-${Date.now()}`, targetName: realm.name, arrivalTime,
+      action: () => {
+        // Create time-limited trade contract (2-5 minutes based on realm power)
+        const contractDuration = (120 + Math.floor(realm.power * 0.6)) * 1000; // ms
+        const bonusPerTick = realm.type === 'friendly'
+          ? { gold: Math.floor(realm.power * 0.05), food: Math.floor(realm.power * 0.03) }
+          : { gold: Math.floor(realm.power * 0.02), wood: Math.floor(realm.power * 0.02) };
+        setTradeContracts(prev => [...prev, {
+          realmId: realm.id,
+          realmName: realm.name,
+          expiresAt: Date.now() + contractDuration,
+          bonus: bonusPerTick,
+        }]);
+        toast.success(`Trade contract with ${realm.name} established! (${Math.floor(contractDuration / 1000)}s)`);
+      },
+    }]);
     setSelected(null);
-  }, [addResources]);
+  }, [addResources, calcTravelTime, tradeContracts]);
+
+  // Collect trade contract resources periodically
+  useEffect(() => {
+    if (tradeContracts.length === 0) return;
+    const interval = setInterval(() => {
+      tradeContracts.forEach(c => {
+        if (Date.now() < c.expiresAt) {
+          addResources(c.bonus as Partial<Resources>);
+        }
+      });
+    }, 10000); // every 10 seconds
+    return () => clearInterval(interval);
+  }, [tradeContracts, addResources]);
 
   const power = totalArmyPower();
   const iconSize = Math.max(24, Math.min(64, camera.ppu * 8000));
@@ -407,8 +488,9 @@ export default function WorldMap() {
       <div className="px-3 pt-2 pb-1 flex items-center justify-between">
         <h2 className="font-display text-sm text-foreground text-shadow-gold">Map</h2>
         <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
+          {marches.length > 0 && <span className="text-primary animate-pulse">🚶{marches.length} marching</span>}
+          {tradeContracts.length > 0 && <span className="text-food">📜{tradeContracts.length} trades</span>}
           <span>⚔️{power.attack} 🛡️{power.defense}</span>
-          <span>×{(camera.ppu * 1000).toFixed(1)}</span>
         </div>
       </div>
 
@@ -532,8 +614,8 @@ export default function WorldMap() {
         })}
 
         {/* Player villages */}
-        {allVillages.map((pv, i) => {
-          const pos = getPlayerPos(pv.village.id, i);
+        {allVillages.map((pv) => {
+          const pos = getPlayerPos(pv.village.id);
           if (!isVisible(pos.x, pos.y, 80)) return null;
           const { sx, sy } = worldToScreen(pos.x, pos.y);
           const isMe = pv.village.user_id === user?.id;
@@ -603,8 +685,11 @@ export default function WorldMap() {
                     {selected.data.type !== 'hostile' && (
                       <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleEnvoy(selected.data)}
                         className="bg-primary/20 text-primary font-display text-[10px] py-1.5 px-3 rounded-lg">
-                        Send Envoy 💰{Math.floor(selected.data.power * 0.3)}
+                        📜 Trade Deal 💰{Math.floor(selected.data.power * 0.3)}
                       </motion.button>
+                    )}
+                    {tradeContracts.some(c => c.realmId === selected.data.id) && (
+                      <span className="text-[9px] text-food font-bold">📜 Active Trade</span>
                     )}
                     <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleAttackNPC(selected.data)}
                       className="bg-destructive/20 text-destructive font-display text-[10px] py-1.5 px-3 rounded-lg">
@@ -669,8 +754,17 @@ export default function WorldMap() {
                       onClick={() => {
                         const hasTroops = Object.values(army).some(v => v > 0);
                         if (!hasTroops) { toast.error('You need troops to attack!'); return; }
-                        attackTarget(selected.data.village.name, selected.data.village.level * 30);
-                        toast.success('Attack launched!');
+                        const targetPos = getPlayerPos(selected.data.village.id);
+                        const travelSec = calcTravelTime(targetPos.x, targetPos.y);
+                        toast(`⚔️ Troops marching... ETA ${travelSec}s`);
+                        setMarches(prev => [...prev, {
+                          id: `pvp-${Date.now()}`, targetName: selected.data.village.name, arrivalTime: Date.now() + travelSec * 1000,
+                          action: () => {
+                            const log = attackTarget(selected.data.village.name, selected.data.village.level * 30);
+                            if (log.result === 'victory') toast.success('Victory!');
+                            else toast.error('Defeat!');
+                          },
+                        }]);
                         setSelected(null);
                       }}
                       className="flex-1 bg-destructive/20 text-destructive font-display text-[10px] py-1.5 rounded-lg">
