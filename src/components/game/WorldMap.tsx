@@ -970,28 +970,36 @@ export default function WorldMap() {
           );
         })}
 
-        {/* Zoom controls */}
-        <div className="absolute bottom-3 right-3 flex flex-col gap-1 z-50">
+        {/* Zoom controls — larger touch targets on mobile */}
+        <div className="absolute bottom-3 right-3 flex flex-col gap-1.5 z-50">
           <button onClick={() => safeSetCamera(prev => ({ ...prev, ppu: Math.min(0.05, prev.ppu * 1.5) }))}
-            className="w-8 h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-sm font-bold">+</button>
+            className="w-10 h-10 sm:w-8 sm:h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-base sm:text-sm font-bold active:scale-90 transition-transform">+</button>
           <button onClick={() => safeSetCamera(prev => ({ ...prev, ppu: Math.max(0.00005, prev.ppu / 1.5) }))}
-            className="w-8 h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-sm font-bold">−</button>
+            className="w-10 h-10 sm:w-8 sm:h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-base sm:text-sm font-bold active:scale-90 transition-transform">−</button>
           <button onClick={goHome}
-            className="w-8 h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-[9px]">⌂</button>
+            className="w-10 h-10 sm:w-8 sm:h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-sm sm:text-[9px] active:scale-90 transition-transform">⌂</button>
         </div>
 
-        {/* Legend */}
-        <div className="absolute bottom-3 left-3 bg-background/90 backdrop-blur-sm rounded-lg p-2 space-y-1 text-[8px] z-50 border border-border">
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-destructive" /><span className="text-foreground">Hostile</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-muted-foreground" /><span className="text-foreground">Neutral</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-food" /><span className="text-foreground">Friendly</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full border border-primary bg-primary/20" /><span className="text-foreground">Event</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-lg bg-secondary" /><span className="text-foreground">Player</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: 'hsl(200 70% 45% / 0.5)' }} /><span className="text-foreground">Water</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5" style={{ background: 'hsl(30 20% 35% / 0.6)', clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }} /><span className="text-foreground">Mountain</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: 'hsl(100 35% 40% / 0.6)' }} /><span className="text-foreground">Island</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-1" style={{ background: 'hsl(205 75% 45% / 0.6)', borderRadius: 2 }} /><span className="text-foreground">River</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded border border-muted-foreground/40 bg-muted/60 flex items-center justify-center text-[6px]">⚙️</div><span className="text-foreground">Steel Mine</span></div>
+        {/* Legend — collapsible on mobile */}
+        <div className="absolute bottom-3 left-3 z-50">
+          <button
+            onClick={() => setLegendOpen(prev => !prev)}
+            className="game-panel border-glow rounded-lg px-2 py-1.5 text-[9px] text-foreground font-display flex items-center gap-1 sm:hidden active:scale-95 transition-transform"
+          >
+            🗺️ Legend {legendOpen ? '▾' : '▸'}
+          </button>
+          <div className={`${legendOpen ? 'flex' : 'hidden'} sm:flex flex-col bg-background/90 backdrop-blur-sm rounded-lg p-2 space-y-1 text-[8px] border border-border mt-1 sm:mt-0`}>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-destructive" /><span className="text-foreground">Hostile</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-muted-foreground" /><span className="text-foreground">Neutral</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-food" /><span className="text-foreground">Friendly</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full border border-primary bg-primary/20" /><span className="text-foreground">Event</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-lg bg-secondary" /><span className="text-foreground">Player</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: 'hsl(200 70% 45% / 0.5)' }} /><span className="text-foreground">Water</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5" style={{ background: 'hsl(30 20% 35% / 0.6)', clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }} /><span className="text-foreground">Mountain</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: 'hsl(100 35% 40% / 0.6)' }} /><span className="text-foreground">Island</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-1" style={{ background: 'hsl(205 75% 45% / 0.6)', borderRadius: 2 }} /><span className="text-foreground">River</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded border border-muted-foreground/40 bg-muted/60 flex items-center justify-center text-[6px]">⚙️</div><span className="text-foreground">Steel Mine</span></div>
+          </div>
         </div>
       </div>
 
