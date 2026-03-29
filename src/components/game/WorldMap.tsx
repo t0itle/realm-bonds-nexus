@@ -1110,7 +1110,7 @@ export default function WorldMap() {
                         }]);
                         setSelected(null);
                       }}
-                      className="flex-1 bg-destructive/20 text-destructive font-display text-[10px] py-1.5 rounded-lg">
+                      className="flex-1 bg-destructive/20 text-destructive font-display text-[11px] py-2.5 rounded-lg active:bg-destructive/30 transition-colors">
                       ⚔️ Attack
                     </motion.button>
                   </div>
