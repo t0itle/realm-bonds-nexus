@@ -27,6 +27,8 @@ const CHUNK_SIZE = 50000; // world units per chunk
 interface ChunkData {
   realms: ProceduralRealm[];
   events: ProceduralEvent[];
+  regionName: string;
+  regionBiome: string;
 }
 
 interface ProceduralRealm {
