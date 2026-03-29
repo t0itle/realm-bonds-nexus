@@ -4,6 +4,28 @@ import { useGame, TroopType, Resources } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
+// Map sprites
+import mapCastleHostile from '@/assets/sprites/map-castle-hostile.png';
+import mapCastleNeutral from '@/assets/sprites/map-castle-neutral.png';
+import mapCastleFriendly from '@/assets/sprites/map-castle-friendly.png';
+import mapEventDanger from '@/assets/sprites/map-event-danger.png';
+import mapEventOpportunity from '@/assets/sprites/map-event-opportunity.png';
+import mapEventMystery from '@/assets/sprites/map-event-mystery.png';
+import mapMine from '@/assets/sprites/map-mine.png';
+import mapPlayer from '@/assets/sprites/map-player.png';
+
+const REALM_SPRITES: Record<string, string> = {
+  hostile: mapCastleHostile,
+  neutral: mapCastleNeutral,
+  friendly: mapCastleFriendly,
+};
+
+const EVENT_SPRITES: Record<string, string> = {
+  danger: mapEventDanger,
+  opportunity: mapEventOpportunity,
+  mystery: mapEventMystery,
+};
+
 // ── Seeded random for deterministic procedural generation ──
 function seededRandom(seed: number) {
   let s = seed % 2147483647;
