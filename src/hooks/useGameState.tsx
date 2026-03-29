@@ -478,8 +478,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     currentHouses,
   }), [populationBase, maxPopulation, totalWorkers, totalSoldiers, armyCap, happiness, housingCapacity, maxHouses, currentHouses]);
 
-  // Production with worker bonuses
-  const totalProduction = useMemo(() => {
+  // Gross production from buildings (with worker bonuses)
+  const grossProduction = useMemo(() => {
     return buildings.reduce<Resources>(
       (acc, b) => {
         if (b.type === 'empty') return acc;
@@ -490,6 +490,22 @@ export function GameProvider({ children }: { children: ReactNode }) {
       { gold: 0, wood: 0, stone: 0, food: 0 }
     );
   }, [buildings, workerAssignments]);
+
+  // Net production: gross - army upkeep - pop food cost + pop tax income
+  const totalProduction = useMemo(() => {
+    let foodCost = 0, goldCost = 0;
+    for (const [type, count] of Object.entries(army)) {
+      const info = TROOP_INFO[type as TroopType];
+      foodCost += info.foodUpkeep * count;
+      goldCost += info.goldUpkeep * count;
+    }
+    return {
+      gold: grossProduction.gold - goldCost + popTaxIncome,
+      wood: grossProduction.wood,
+      stone: grossProduction.stone,
+      food: grossProduction.food - foodCost - popFoodCost,
+    };
+  }, [grossProduction, army, popTaxIncome, popFoodCost]);
 
   // Army upkeep
   const armyUpkeep = useCallback(() => {
