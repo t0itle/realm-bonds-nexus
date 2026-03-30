@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
 
       const buildings = buildingsByVillage.get(village.id) || [];
 
-      // Calculate gross production per minute
+      // Calculate gross production per hour
       let grossGold = 0, grossWood = 0, grossStone = 0, grossFood = 0;
       let grossSteel = 0;
       let housingCap = 10; // base
