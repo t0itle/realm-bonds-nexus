@@ -983,6 +983,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const attackPlayer = useCallback(async (targetUserId: string, targetName: string, targetVillageId: string): Promise<BattleLog | null> => {
     if (!user || !villageId) return null;
     
+    // Prevent lords from attacking their own vassals
+    const isMyVassal = vassalages.some(v => v.lord_id === user.id && v.vassal_id === targetUserId && v.status === 'active');
+    if (isMyVassal) {
+      return null;
+    }
+    
     // Fetch defender's village data (troops, resources, buildings)
     const { data: defVillage } = await supabase.from('villages').select('*').eq('id', targetVillageId).single();
     if (!defVillage) return null;
@@ -1074,6 +1080,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
           if (newVassal) {
             vassalized = true;
             setVassalages(prev => [...prev, newVassal as any as Vassalage]);
+            
+            // Notify the vassal via player message
+            await supabase.from('player_messages').insert({
+              sender_id: user.id,
+              receiver_id: targetUserId,
+              content: `⛓️ You have been conquered by ${displayName} and are now a vassal! You must pay ${Math.max(500, ransomGold)} gold ransom or rebel after 24 hours to regain your freedom. ${Math.floor(10)}% of your production will be taken as tribute.`,
+            } as any);
           }
         }
       }
@@ -1111,7 +1124,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     } as any);
     
     return log;
-  }, [army, user, villageId, addResources, displayName, getWallLevel]);
+  }, [army, user, villageId, addResources, displayName, getWallLevel, vassalages]);
 
   // Vassal: pay ransom to break free
   const payRansom = useCallback(async (vassalageId: string): Promise<boolean> => {
