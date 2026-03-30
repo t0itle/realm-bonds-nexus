@@ -147,8 +147,8 @@ Deno.serve(async (req) => {
       const elapsedMs = now.getTime() - lastTick.getTime();
       // Only tick if at least 30 seconds have passed
       if (elapsedMs < 30000) continue;
-      // Calculate how many hours have elapsed (fractional)
-      const elapsedHours = elapsedMs / 3600000;
+      // Calculate how many minutes have elapsed (fractional)
+      const elapsedMinutes = elapsedMs / 60000;
 
       const buildings = buildingsByVillage.get(village.id) || [];
 
