@@ -156,6 +156,9 @@ export default function VillageGrid() {
                 }
               }}
               canAfford={canAfford}
+              canAffordSteel={canAffordSteel}
+              resources={resources}
+              steel={steel}
               isBuildingUpgrading={isBuildingUpgrading}
               getBuildTime={getBuildTime}
             />
