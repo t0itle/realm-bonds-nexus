@@ -717,6 +717,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
     );
   }, [buildings, workerAssignments]);
 
+  // Steel production from quarries at level 3+
+  const steelProduction = useMemo(() => {
+    return buildings.reduce((acc, b) => {
+      if (b.type === 'empty') return acc;
+      const workers = workerAssignments[b.id] || 0;
+      return acc + getSteelProduction(b.type, b.level, workers);
+    }, 0);
+  }, [buildings, workerAssignments]);
+
   // Net production: gross - army upkeep - pop food cost + pop tax income
   const totalProduction = useMemo(() => {
     let foodCost = 0, goldCost = 0;
