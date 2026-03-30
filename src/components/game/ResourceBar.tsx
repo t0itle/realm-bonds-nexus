@@ -27,7 +27,7 @@ export default function ResourceBar() {
                 {resources[key].toLocaleString()}
               </span>
               <span className="text-[9px] text-muted-foreground">
-                +{totalProduction[key]}/hr
+                +{totalProduction[key]}/min
               </span>
             </div>
           </motion.div>
