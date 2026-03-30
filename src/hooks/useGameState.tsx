@@ -1288,6 +1288,44 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return wt?.level || 0;
   }, [buildings]);
 
+  // Apothecary level
+  const getApothecaryLevel = useCallback(() => {
+    const apoth = buildings.find(b => b.type === 'apothecary');
+    return apoth?.level || 0;
+  }, [buildings]);
+
+  // Heal injured troops (requires apothecary)
+  const healTroops = useCallback((type: TroopType, count: number) => {
+    const apothLvl = getApothecaryLevel();
+    if (apothLvl === 0) return false;
+    const available = injuredTroops[type];
+    const toHeal = Math.min(count, available);
+    if (toHeal <= 0) return false;
+    // Cost: food + gold per troop, reduced by apothecary level
+    const costMult = Math.max(0.4, 1 - apothLvl * 0.1);
+    const info = TROOP_INFO[type];
+    const healCost = { gold: Math.floor(info.cost.gold * 0.3 * costMult * toHeal), wood: 0, stone: 0, food: Math.floor(info.cost.food * 0.5 * costMult * toHeal) };
+    if (!canAfford(healCost)) return false;
+    setResources(prev => ({ gold: prev.gold - healCost.gold, wood: prev.wood, stone: prev.stone, food: prev.food - healCost.food }));
+    setInjuredTroops(prev => ({ ...prev, [type]: prev[type] - toHeal }));
+    // Healing takes time based on apothecary level
+    const healTime = Math.max(5, Math.floor(15 / apothLvl)) * toHeal;
+    setTrainingQueue(prev => [...prev, { type, count: toHeal, finishTime: Date.now() + healTime * 1000 }]);
+    return true;
+  }, [getApothecaryLevel, injuredTroops, canAfford]);
+
+  // Craft poison (requires apothecary lvl 2+, used by spies for bonus sabotage)
+  const craftPoison = useCallback((count: number) => {
+    const apothLvl = getApothecaryLevel();
+    if (apothLvl < 2) return false;
+    const cost = { gold: 60 * count, wood: 0, stone: 0, food: 30 * count };
+    if (!canAfford(cost)) return false;
+    setResources(prev => ({ gold: prev.gold - cost.gold, wood: prev.wood, stone: prev.stone, food: prev.food - cost.food }));
+    // Crafting takes time
+    setTimeout(() => setPoisons(prev => prev + count), 15000 * count);
+    return true;
+  }, [getApothecaryLevel, canAfford]);
+
   // Train spies (requires barracks lvl 2+, costs gold + food + 1 pop each)
   const trainSpies = useCallback((count: number) => {
     if (getBarracksLevel() < 2) return false;
@@ -1427,6 +1465,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       isBuildingUpgrading, getBuildTime,
       spies, trainSpies, sendSpyMission, activeSpyMissions, intelReports, getWatchtowerLevel,
       attackPlayer, vassalages, payRansom, attemptRebellion, getWallLevel,
+      injuredTroops, poisons, healTroops, craftPoison, getApothecaryLevel,
     }}>
       {children}
     </GameContext.Provider>
