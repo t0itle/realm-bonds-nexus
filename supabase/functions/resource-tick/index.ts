@@ -272,7 +272,7 @@ Deno.serve(async (req) => {
       let updatedArmy = { ...armyCounts };
       if (newFood <= 0) {
         const desertOrder = ["siege", "cavalry", "knight", "archer", "militia"];
-        const desertions = Math.max(1, Math.floor(elapsedMinutes));
+        const desertions = Math.max(1, Math.floor(elapsedHours));
         for (let d = 0; d < desertions; d++) {
           for (const t of desertOrder) {
             if (updatedArmy[t] > 0) {
