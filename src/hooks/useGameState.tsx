@@ -402,6 +402,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [vassalages, setVassalages] = useState<Vassalage[]>([]);
   const [allianceTaxRate, setAllianceTaxRate] = useState(0);
   const [allianceId, setAllianceId] = useState<string | null>(null);
+  const pendingTaxRef = useRef({ gold: 0, wood: 0, stone: 0, food: 0 });
 
   // Wrap setRations and setPopTaxRate to immediately persist to DB
   const setRations = useCallback((r: RationsLevel) => {
