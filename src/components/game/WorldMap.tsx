@@ -672,10 +672,10 @@ export default function WorldMap() {
   }, [army, attackTarget, calcTravelTime]);
 
   const handleEnvoy = useCallback((realm: ProceduralRealm) => {
-    // Check if already have a trade contract with this realm
     if (tradeContracts.some(c => c.realmId === realm.id)) {
       toast.error('You already have a trade contract with this realm!'); return;
     }
+    if (!isInRange(realm.x, realm.y)) { toast.error('Out of range! Train scouts to extend reach.'); return; }
     const tribute = { gold: Math.floor(realm.power * 0.3) };
     addResources({ gold: -tribute.gold });
     const travelSec = calcTravelTime(realm.x, realm.y);
