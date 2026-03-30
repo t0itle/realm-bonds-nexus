@@ -983,7 +983,8 @@ export default function WorldMap() {
               }}
             />
           );
-        }))}
+
+        {visibleChunks.map(chunk => {
           const centerX = chunk.cx * CHUNK_SIZE + CHUNK_SIZE / 2;
           const centerY = chunk.cy * CHUNK_SIZE + CHUNK_SIZE / 2;
           const { sx, sy } = worldToScreen(centerX, centerY);
