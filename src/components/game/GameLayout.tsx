@@ -95,7 +95,7 @@ export default function GameLayout() {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       setDmTarget({ userId: detail.userId, name: detail.name });
-      setActiveTab('messages');
+      setActiveTab('social');
     };
     window.addEventListener('open-dm', handler);
     return () => window.removeEventListener('open-dm', handler);
