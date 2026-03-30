@@ -961,7 +961,29 @@ export default function WorldMap() {
           return null;
         }))}
 
-        {visibleChunks.map(chunk => {
+        {/* ── Decorations (trees, grass, rocks) ── */}
+        {visibleChunks.map(chunk => chunk.data.decorations.map((d, di) => {
+          const { sx, sy } = worldToScreen(d.x, d.y);
+          const s = d.size * camera.ppu;
+          if (s < 4) return null;
+          const margin = 60;
+          if (sx < -margin || sx > containerSize.w + margin || sy < -margin || sy > containerSize.h + margin) return null;
+          return (
+            <img key={`deco-${chunk.cx}-${chunk.cy}-${di}`}
+              src={DECO_SPRITES[d.type]}
+              alt=""
+              loading="lazy"
+              className="absolute pointer-events-none"
+              style={{
+                left: sx, top: sy,
+                width: s, height: s,
+                transform: `translate(-50%, -50%) rotate(${d.rotation}deg)`,
+                opacity: d.opacity,
+                objectFit: 'contain',
+              }}
+            />
+          );
+        }))}
           const centerX = chunk.cx * CHUNK_SIZE + CHUNK_SIZE / 2;
           const centerY = chunk.cy * CHUNK_SIZE + CHUNK_SIZE / 2;
           const { sx, sy } = worldToScreen(centerX, centerY);
