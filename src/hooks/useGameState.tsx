@@ -339,6 +339,10 @@ interface GameContextType {
   villageId: string | null;
   playerLevel: number;
   displayName: string;
+  avatarUrl: string | null;
+  setDisplayName: (name: string) => Promise<boolean>;
+  setVillageName: (name: string) => Promise<boolean>;
+  setAvatarUrl: (url: string | null) => void;
   demolishBuilding: (id: string) => Promise<boolean>;
   buildAt: (position: number, type: Exclude<BuildingType, 'empty'>) => Promise<boolean>;
   upgradeBuilding: (id: string) => Promise<boolean>;
@@ -429,10 +433,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [resources, setResources] = useState<Resources>({ gold: 0, wood: 0, stone: 0, food: 0 });
   const [steel, setSteel] = useState(0);
   const [buildings, setBuildings] = useState<Building[]>([]);
-  const [villageName, setVillageName] = useState('');
+  const [villageNameLocal, setVillageNameLocal] = useState('');
   const [villageId, setVillageId] = useState<string | null>(null);
   const [playerLevel, setPlayerLevel] = useState(1);
-  const [displayName, setDisplayName] = useState('Wanderer');
+  const [displayNameLocal, setDisplayNameLocal] = useState('Wanderer');
+  const [avatarUrl, setAvatarUrlLocal] = useState<string | null>(null);
   const [allVillages, setAllVillages] = useState<PlayerVillage[]>([]);
   const [loading, setLoading] = useState(true);
   const [army, setArmy] = useState<Army>({ ...EMPTY_ARMY });
@@ -492,17 +497,47 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
   }, [villageId]);
 
+  // Name & avatar update functions
+  const villageName = villageNameLocal;
+  const displayName = displayNameLocal;
+
+  const setVillageName = useCallback(async (name: string) => {
+    if (!villageId || !name.trim()) return false;
+    const trimmed = name.trim().slice(0, 30);
+    setVillageNameLocal(trimmed);
+    await supabase.from('villages').update({ name: trimmed }).eq('id', villageId);
+    return true;
+  }, [villageId]);
+
+  const setDisplayName = useCallback(async (name: string) => {
+    if (!user || !name.trim()) return false;
+    const trimmed = name.trim().slice(0, 20);
+    setDisplayNameLocal(trimmed);
+    await supabase.from('profiles').update({ display_name: trimmed }).eq('user_id', user.id);
+    return true;
+  }, [user]);
+
+  const setAvatarUrl = useCallback((url: string | null) => {
+    setAvatarUrlLocal(url);
+    if (user) {
+      supabase.from('profiles').update({ avatar_url: url } as any).eq('user_id', user.id).then();
+    }
+  }, [user]);
+
   // Load player data
   useEffect(() => {
     if (!user) return;
     const loadData = async () => {
       const { data: profile } = await supabase.from('profiles').select('*').eq('user_id', user.id).single();
-      if (profile) setDisplayName(profile.display_name);
+      if (profile) {
+        setDisplayNameLocal(profile.display_name);
+        setAvatarUrlLocal((profile as any).avatar_url ?? null);
+      }
 
       const { data: village } = await supabase.from('villages').select('*').eq('user_id', user.id).single();
       if (village) {
         setVillageId(village.id);
-        setVillageName(village.name);
+        setVillageNameLocal(village.name);
         setPlayerLevel(village.level);
         setResources({ gold: Number(village.gold), wood: Number(village.wood), stone: Number(village.stone), food: Number(village.food) });
         setSteel((village as any).steel ?? 0);
@@ -575,7 +610,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'villages', filter: `user_id=eq.${user.id}` }, (payload) => {
         const v = payload.new;
         setResources({ gold: Number(v.gold), wood: Number(v.wood), stone: Number(v.stone), food: Number(v.food) });
-        setVillageName(v.name as string);
+        setVillageNameLocal(v.name as string);
         setPlayerLevel(v.level as number);
         setSteel((v as any).steel ?? 0);
         setPopulationBase((v as any).population ?? 10);
@@ -1481,7 +1516,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   return (
     <GameContext.Provider value={{
-      resources, steel, buildings, villageName, villageId, playerLevel, displayName,
+      resources, steel, buildings, villageName, villageId, playerLevel, displayName, avatarUrl,
+      setDisplayName, setVillageName, setAvatarUrl,
       demolishBuilding, buildAt, upgradeBuilding, canAfford, canAffordSteel, totalProduction, steelProduction, allVillages, loading,
       army, trainingQueue, buildQueue, battleLogs, trainTroops, getBarracksLevel, totalArmyPower, addResources, addSteel, attackTarget, armyUpkeep,
       population, workerAssignments, assignWorker, unassignWorker, getMaxWorkers,
