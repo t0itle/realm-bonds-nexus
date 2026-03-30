@@ -98,7 +98,6 @@ interface ChunkData {
   regionName: string;
   regionBiome: string;
 }
-}
 
 interface ProceduralRealm {
   id: string;
