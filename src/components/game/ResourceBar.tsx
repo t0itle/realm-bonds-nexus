@@ -10,7 +10,7 @@ const RESOURCE_CONFIG = [
 ];
 
 export default function ResourceBar() {
-  const { resources, totalProduction, steel, population } = useGame();
+  const { resources, totalProduction, steel, steelProduction, population } = useGame();
 
   return (
     <div className="game-panel px-2 py-1.5 mx-2 mt-2 border-glow space-y-1">
