@@ -128,6 +128,9 @@ export default function VillageGrid() {
         </div>
       </div>
 
+      {/* Inline Oracle Widget */}
+      <OracleWidget />
+
       {/* Building detail sheet */}
       <AnimatePresence>
         {selectedBuilding && selectedBuilding.type !== 'empty' && (
