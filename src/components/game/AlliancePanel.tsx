@@ -6,6 +6,7 @@ import AllianceResourceSharing from './AllianceResourceSharing';
 import GuildChat from './GuildChat';
 import GuildTaxPanel from './GuildTaxPanel';
 import GuildContracts from './GuildContracts';
+import GuildVoting from './GuildVoting';
 
 interface Alliance {
   id: string;
@@ -172,6 +173,7 @@ export default function AlliancePanel() {
         <>
           <GuildChat allianceId={myAlliance} />
           <GuildTaxPanel allianceId={myAlliance} isLeader={alliances.find(a => a.id === myAlliance)?.leader_id === user?.id} />
+          <GuildVoting allianceId={myAlliance} isLeader={alliances.find(a => a.id === myAlliance)?.leader_id === user?.id} />
           <GuildContracts allianceId={myAlliance} isLeader={alliances.find(a => a.id === myAlliance)?.leader_id === user?.id} />
           <AllianceResourceSharing allianceId={myAlliance} />
         </>

@@ -318,6 +318,91 @@ export type Database = {
           },
         ]
       }
+      guild_proposals: {
+        Row: {
+          alliance_id: string
+          created_at: string
+          description: string | null
+          expires_at: string
+          id: string
+          payload: Json
+          proposed_by: string
+          status: string
+          title: string
+          type: string
+          votes_against: number
+          votes_for: number
+        }
+        Insert: {
+          alliance_id: string
+          created_at?: string
+          description?: string | null
+          expires_at?: string
+          id?: string
+          payload?: Json
+          proposed_by: string
+          status?: string
+          title: string
+          type: string
+          votes_against?: number
+          votes_for?: number
+        }
+        Update: {
+          alliance_id?: string
+          created_at?: string
+          description?: string | null
+          expires_at?: string
+          id?: string
+          payload?: Json
+          proposed_by?: string
+          status?: string
+          title?: string
+          type?: string
+          votes_against?: number
+          votes_for?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guild_proposals_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guild_votes: {
+        Row: {
+          created_at: string
+          id: string
+          proposal_id: string
+          user_id: string
+          vote: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          proposal_id: string
+          user_id: string
+          vote: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          proposal_id?: string
+          user_id?: string
+          vote?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guild_votes_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "guild_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_messages: {
         Row: {
           content: string
