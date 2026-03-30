@@ -595,6 +595,27 @@ export default function WorldMap() {
     setCamera({ cx: 100000, cy: 100000, ppu: 0.003 });
   }, []);
 
+  const getMyPos = useCallback(() => {
+    if (!user) return { x: 100000, y: 100000 };
+    const myVillage = allVillages.find(v => v.village.user_id === user.id);
+    return getPlayerPos(myVillage?.village.id || 'me');
+  }, [user, allVillages]);
+
+  const getDistance = useCallback((targetX: number, targetY: number) => {
+    const myPos = getMyPos();
+    return Math.sqrt(Math.pow(targetX - myPos.x, 2) + Math.pow(targetY - myPos.y, 2));
+  }, [getMyPos]);
+
+  const calcTravelTime = useCallback((targetX: number, targetY: number) => {
+    const dist = getDistance(targetX, targetY);
+    return calcMarchTime(dist, army);
+  }, [getDistance, army]);
+
+  const isInRange = useCallback((targetX: number, targetY: number) => {
+    const dist = getDistance(targetX, targetY);
+    return dist <= getMaxRange(army);
+  }, [getDistance, army]);
+
   const handleInvestigate = useCallback((event: ProceduralEvent) => {
     if (claimedEvents.has(event.id)) return;
     if (!isInRange(event.x, event.y)) { toast.error('Too far! Train scouts to extend your range.'); return; }
@@ -631,27 +652,6 @@ export default function WorldMap() {
     }
     setSelected(null);
   }, [army, attackTarget, addResources, claimedEvents, calcTravelTime, isInRange]);
-
-  const getMyPos = useCallback(() => {
-    if (!user) return { x: 100000, y: 100000 };
-    const myVillage = allVillages.find(v => v.village.user_id === user.id);
-    return getPlayerPos(myVillage?.village.id || 'me');
-  }, [user, allVillages]);
-
-  const getDistance = useCallback((targetX: number, targetY: number) => {
-    const myPos = getMyPos();
-    return Math.sqrt(Math.pow(targetX - myPos.x, 2) + Math.pow(targetY - myPos.y, 2));
-  }, [getMyPos]);
-
-  const calcTravelTime = useCallback((targetX: number, targetY: number) => {
-    const dist = getDistance(targetX, targetY);
-    return calcMarchTime(dist, army);
-  }, [getDistance, army]);
-
-  const isInRange = useCallback((targetX: number, targetY: number) => {
-    const dist = getDistance(targetX, targetY);
-    return dist <= getMaxRange(army);
-  }, [getDistance, army]);
 
   const handleAttackNPC = useCallback((realm: ProceduralRealm) => {
     const hasTroops = Object.values(army).some(v => v > 0);
