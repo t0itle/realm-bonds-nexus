@@ -189,10 +189,19 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, isBuilding
   const sprite = BUILDING_SPRITES[type];
   const upgradeCost = getUpgradeCost(type, building.level);
   const production = getProduction(type, building.level);
-  const affordable = canAfford(upgradeCost);
+  const affordable = canAfford(upgradeCost) && (upgradeCost.steel <= 0 || canAffordSteel(upgradeCost.steel));
   const maxed = building.level >= info.maxLevel;
   const upgrading = isBuildingUpgrading(building.id);
   const buildTime = getBuildTime(type, building.level);
+
+  // Per-resource affordability for highlighting
+  const resourceCheck: Record<string, boolean> = {
+    gold: resources.gold >= upgradeCost.gold,
+    wood: resources.wood >= upgradeCost.wood,
+    stone: resources.stone >= upgradeCost.stone,
+    food: resources.food >= upgradeCost.food,
+    steel: steel >= upgradeCost.steel,
+  };
 
   return (
     <div className="space-y-3">
@@ -227,8 +236,9 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, isBuilding
           <div className="flex gap-3 text-xs">
                   {Object.entries(upgradeCost).filter(([, v]) => v > 0).map(([key, val]) => {
                     const rType = getResourceType(key);
+                    const canAffordThis = resourceCheck[key] !== false;
                     return (
-                      <span key={key} className="text-foreground flex items-center gap-0.5">
+                      <span key={key} className={`flex items-center gap-0.5 ${canAffordThis ? 'text-foreground' : 'text-destructive font-bold'}`}>
                         {rType ? <ResourceIcon type={rType} size={12} /> : key}
                         {val}
                       </span>
