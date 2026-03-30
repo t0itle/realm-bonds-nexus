@@ -79,6 +79,12 @@ function getProduction(type: string, level: number, workers: number): Record<str
   return result;
 }
 
+function getSteelProduction(type: string, level: number, workers: number): number {
+  if (type !== 'quarry' || level < 3) return 0;
+  const workerBonus = 1 + workers * 0.15;
+  return Math.floor((level - 2) * 1 * workerBonus);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
