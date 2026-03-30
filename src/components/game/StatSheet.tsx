@@ -113,7 +113,7 @@ export default function StatSheet() {
         </div>
         <div className="flex justify-between text-xs">
           <span className="text-muted-foreground">Pop Food Cost</span>
-          <span className="text-destructive">🌾 -{popFoodCost}/min</span>
+          <span className="text-destructive">🌾 -{popFoodCost}/hr</span>
         </div>
       </div>
 
@@ -132,7 +132,7 @@ export default function StatSheet() {
         </div>
         <div className="flex justify-between text-xs">
           <span className="text-muted-foreground">Tax Income</span>
-          <span className="text-emerald-500">💰 +{popTaxIncome}/min</span>
+          <span className="text-emerald-500">💰 +{popTaxIncome}/hr</span>
         </div>
         {popTaxRate > 10 && (
           <p className="text-[9px] text-destructive">⚠️ High taxes reduce happiness by -{(popTaxRate - 10) * 2}</p>
@@ -144,13 +144,13 @@ export default function StatSheet() {
         <h3 className="font-display text-xs text-foreground">📊 Resource Summary</h3>
         <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
           <div className="flex justify-between"><span className="text-muted-foreground">💰 Gold</span><span className="text-foreground">{resources.gold.toLocaleString()}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">+/min</span><span className="text-primary">+{totalProduction.gold + popTaxIncome}</span></div>
+           <div className="flex justify-between"><span className="text-muted-foreground">+/hr</span><span className="text-primary">+{totalProduction.gold + popTaxIncome}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">🪵 Wood</span><span className="text-foreground">{resources.wood.toLocaleString()}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">+/min</span><span className="text-primary">+{totalProduction.wood}</span></div>
+           <div className="flex justify-between"><span className="text-muted-foreground">+/hr</span><span className="text-primary">+{totalProduction.wood}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">🪨 Stone</span><span className="text-foreground">{resources.stone.toLocaleString()}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">+/min</span><span className="text-primary">+{totalProduction.stone}</span></div>
+           <div className="flex justify-between"><span className="text-muted-foreground">+/hr</span><span className="text-primary">+{totalProduction.stone}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">🌾 Food</span><span className="text-foreground">{resources.food.toLocaleString()}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">+/min</span><span className="text-primary">+{totalProduction.food}</span></div>
+           <div className="flex justify-between"><span className="text-muted-foreground">+/hr</span><span className="text-primary">+{totalProduction.food}</span></div>
           <div className="flex justify-between col-span-2 border-t border-border pt-1 mt-1">
             <span className="text-muted-foreground font-bold">⚙️ Steel</span>
             <span className="text-foreground font-bold">{steel}</span>
