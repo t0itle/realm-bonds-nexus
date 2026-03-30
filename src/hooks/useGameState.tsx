@@ -842,15 +842,21 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (totalSoldiers + popNeeded > armyCap) return false;
     if (population.civilians < popNeeded) return false;
 
-    setResources(prev => ({
-      gold: prev.gold - totalCost.gold, wood: prev.wood - totalCost.wood,
-      stone: prev.stone - totalCost.stone, food: prev.food - totalCost.food,
-    }));
-    if (totalSteelCost > 0) setSteel(prev => prev - totalSteelCost);
+    const newResources = {
+      gold: resources.gold - totalCost.gold, wood: resources.wood - totalCost.wood,
+      stone: resources.stone - totalCost.stone, food: resources.food - totalCost.food,
+    };
+    setResources(newResources);
+    const newSteel = totalSteelCost > 0 ? steel - totalSteelCost : steel;
+    if (totalSteelCost > 0) setSteel(newSteel);
+    // Persist to DB
+    if (villageId) {
+      supabase.from('villages').update({ ...newResources, steel: newSteel }).eq('id', villageId).then();
+    }
     const finishTime = Date.now() + info.trainTime * 1000 * count;
     setTrainingQueue(prev => [...prev, { type, count, finishTime }]);
     return true;
-  }, [canAfford, canAffordSteel, getBarracksLevel, totalSoldiers, armyCap, population.civilians]);
+  }, [canAfford, canAffordSteel, getBarracksLevel, totalSoldiers, armyCap, population.civilians, resources, steel, villageId]);
 
   const totalArmyPower = useCallback(() => {
     let attack = 0, defense = 0;
