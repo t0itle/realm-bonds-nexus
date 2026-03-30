@@ -32,12 +32,8 @@ function lazyRetry<T extends { default: React.ComponentType<any> }>(
 
 const VillageGrid = lazyRetry(() => import('./VillageGrid'));
 const WorldMap = lazyRetry(() => import('./WorldMap'));
-const AlliancePanel = lazyRetry(() => import('./AlliancePanel'));
-const MilitaryPanel = lazyRetry(() => import('./MilitaryPanel'));
+const SocialPanel = lazyRetry(() => import('./SocialPanel'));
 const ProfilePanel = lazyRetry(() => import('./ProfilePanel'));
-const MessagesPanel = lazyRetry(() => import('./MessagesPanel'));
-const StatSheet = lazyRetry(() => import('./StatSheet'));
-const DungeonMasterPanel = lazyRetry(() => import('./DungeonMasterPanel'));
 
 
 function TabFallback() {
