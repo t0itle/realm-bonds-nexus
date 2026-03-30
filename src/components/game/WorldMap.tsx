@@ -870,13 +870,10 @@ export default function WorldMap() {
             return (
               <div key={`mtn-${chunk.cx}-${chunk.cy}-${ti}`} className="absolute pointer-events-none"
                 style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
-                <svg width={w} height={h} viewBox="0 0 100 100" style={{ overflow: 'visible' }}>
-                  <polygon points="50,5 10,95 90,95" fill="hsl(30 20% 35% / 0.4)" stroke="hsl(30 30% 50% / 0.3)" strokeWidth={1.5} />
-                  <polygon points="50,5 40,30 60,30" fill="hsl(210 20% 85% / 0.5)" stroke="none" />
-                  <polygon points="35,50 20,95 50,95" fill="hsl(30 15% 30% / 0.25)" stroke="none" />
-                </svg>
+                <img src={mapMountain} alt={t.name} loading="lazy"
+                  style={{ width: w, height: h, objectFit: 'contain', opacity: 0.85 }} />
                 {w > 25 && (
-                  <span className="absolute left-1/2 whitespace-nowrap font-display text-amber-200/50" style={{ fontSize: labelSize, bottom: -labelSize - 2, transform: 'translateX(-50%)' }}>
+                  <span className="absolute left-1/2 whitespace-nowrap font-display text-foreground/50" style={{ fontSize: labelSize, bottom: -labelSize - 2, transform: 'translateX(-50%)' }}>
                     ⛰️ {t.name}
                   </span>
                 )}
