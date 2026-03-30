@@ -846,7 +846,25 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval);
   }, [trainingQueue.length]);
 
-  // Build queue processing
+  // Spy training queue processing
+  useEffect(() => {
+    if (spyTrainingQueue.length === 0) return;
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setSpyTrainingQueue(prev => {
+        const completed = prev.filter(q => q.finishTime <= now);
+        const remaining = prev.filter(q => q.finishTime > now);
+        if (completed.length > 0) {
+          const totalSpies = completed.reduce((s, q) => s + q.count, 0);
+          setSpies(p => p + totalSpies);
+        }
+        return remaining;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [spyTrainingQueue.length]);
+
+
   useEffect(() => {
     if (buildQueue.length === 0) return;
     const interval = setInterval(() => {
