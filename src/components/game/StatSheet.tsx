@@ -1,5 +1,8 @@
+import { lazy, Suspense } from 'react';
 import { useGame, TROOP_INFO, TroopType, BUILDING_INFO, BuildingType, RATIONS_INFO, RationsLevel } from '@/hooks/useGameState';
 import ResourceIcon from './ResourceIcon';
+
+const NotificationsPanel = lazy(() => import('./NotificationsPanel'));
 
 export default function StatSheet() {
   const {
@@ -16,6 +19,11 @@ export default function StatSheet() {
   return (
     <div className="flex-1 flex flex-col p-3 space-y-3 overflow-y-auto pb-20">
       <h2 className="font-display text-lg text-foreground text-shadow-gold">Kingdom Stats</h2>
+
+      {/* Notifications / Alerts */}
+      <Suspense fallback={null}>
+        <NotificationsPanel embedded />
+      </Suspense>
 
       {/* Happiness */}
       <div className="game-panel border-glow rounded-xl p-3 space-y-2">
