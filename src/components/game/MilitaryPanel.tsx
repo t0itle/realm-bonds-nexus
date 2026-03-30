@@ -4,7 +4,7 @@ import { useGame, TROOP_INFO, TroopType, SPY_MISSION_INFO, SpyMission } from '@/
 import ResourceIcon, { getResourceType } from './ResourceIcon';
 import VassalPanel from './VassalPanel';
 
-const TROOP_TYPES: TroopType[] = ['militia', 'archer', 'knight', 'cavalry', 'siege'];
+const TROOP_TYPES: TroopType[] = ['militia', 'archer', 'knight', 'cavalry', 'siege', 'scout'];
 const SPY_MISSIONS: SpyMission[] = ['scout', 'sabotage', 'demoralize'];
 
 function formatTime(seconds: number) {
@@ -19,7 +19,7 @@ export default function MilitaryPanel() {
     totalArmyPower, armyUpkeep, population, steel,
     spies, trainSpies, sendSpyMission, activeSpyMissions, intelReports, allVillages, getWatchtowerLevel,
   } = useGame();
-  const [trainCount, setTrainCount] = useState<Record<TroopType, number>>({ militia: 1, archer: 1, knight: 1, cavalry: 1, siege: 1 });
+  const [trainCount, setTrainCount] = useState<Record<TroopType, number>>({ militia: 1, archer: 1, knight: 1, cavalry: 1, siege: 1, scout: 1 });
   const [spyTrainCount, setSpyTrainCount] = useState(1);
   const [tab, setTab] = useState<'troops' | 'espionage'>('troops');
   const [, forceUpdate] = useState(0);

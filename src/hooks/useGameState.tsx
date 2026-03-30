@@ -473,6 +473,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
           knight: (village as any).army_knight ?? 0,
           cavalry: (village as any).army_cavalry ?? 0,
           siege: (village as any).army_siege ?? 0,
+          scout: (village as any).army_scout ?? 0,
         });
 
         const { data: blds } = await supabase.from('buildings').select('*').eq('village_id', village.id);
