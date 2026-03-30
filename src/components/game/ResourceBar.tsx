@@ -10,7 +10,7 @@ const RESOURCE_CONFIG = [
 ];
 
 export default function ResourceBar() {
-  const { resources, totalProduction, steel, population } = useGame();
+  const { resources, totalProduction, steel, steelProduction, population } = useGame();
 
   return (
     <div className="game-panel px-2 py-1.5 mx-2 mt-2 border-glow space-y-1">
@@ -35,7 +35,7 @@ export default function ResourceBar() {
       </div>
       <div className="flex items-center justify-between text-[9px] border-t border-border/50 pt-1">
         <span className="text-muted-foreground flex items-center gap-0.5">
-          <ResourceIcon type="steel" size={10} /> Steel: <strong className="text-foreground">{steel}</strong>
+          <ResourceIcon type="steel" size={10} /> Steel: <strong className="text-foreground">{steel}</strong>{steelProduction > 0 && <span className="text-primary"> +{steelProduction}/min</span>}
         </span>
         <span className="text-muted-foreground flex items-center gap-0.5">
           <ResourceIcon type="population" size={10} /> {population.current}/{population.max}

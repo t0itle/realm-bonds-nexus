@@ -79,6 +79,12 @@ function getProduction(type: string, level: number, workers: number): Record<str
   return result;
 }
 
+function getSteelProduction(type: string, level: number, workers: number): number {
+  if (type !== 'quarry' || level < 3) return 0;
+  const workerBonus = 1 + workers * 0.15;
+  return Math.floor((level - 2) * 1 * workerBonus);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -148,6 +154,7 @@ Deno.serve(async (req) => {
 
       // Calculate gross production per minute
       let grossGold = 0, grossWood = 0, grossStone = 0, grossFood = 0;
+      let grossSteel = 0;
       let housingCap = 10; // base
       let happinessVal = 50;
       let totalWorkers = 0;
@@ -158,6 +165,7 @@ Deno.serve(async (req) => {
         grossWood += prod.wood || 0;
         grossStone += prod.stone || 0;
         grossFood += prod.food || 0;
+        grossSteel += getSteelProduction(b.type, b.level, b.workers);
         totalWorkers += b.workers;
 
         if (b.type === "house") {
@@ -245,6 +253,7 @@ Deno.serve(async (req) => {
       const newWood = Math.max(0, Math.floor(village.wood + netWood));
       const newStone = Math.max(0, Math.floor(village.stone + netStone));
       const newFood = Math.max(0, Math.floor(village.food + netFood));
+      const newSteel = Math.max(0, Math.floor(village.steel + grossSteel * elapsedMinutes));
 
       // Population growth
       let newPop = village.population;
@@ -281,6 +290,7 @@ Deno.serve(async (req) => {
         wood: newWood,
         stone: newStone,
         food: newFood,
+        steel: newSteel,
         population: newPop,
         max_population: housingCap,
         happiness: happinessVal,

@@ -42,7 +42,7 @@ export const BUILDING_INFO: Record<Exclude<BuildingType, 'empty'>, BuildingInfo>
   temple: { name: 'Temple', icon: '⛪', description: 'Increases happiness through religion.', baseCost: { gold: 60, wood: 30, stone: 50, food: 0 }, steelCost: 2, maxLevel: 5, workersPerLevel: 1, buildTime: 45 },
   farm: { name: 'Farm', icon: '🌾', description: 'Produces food. Each worker boosts output.', baseCost: { gold: 30, wood: 40, stone: 10, food: 0 }, baseProduction: { food: 5 }, maxLevel: 10, workersPerLevel: 1, buildTime: 15 },
   lumbermill: { name: 'Lumber Mill', icon: '🪓', description: 'Harvests wood. Workers increase yield.', baseCost: { gold: 30, wood: 10, stone: 20, food: 0 }, baseProduction: { wood: 5 }, maxLevel: 10, workersPerLevel: 1, buildTime: 15 },
-  quarry: { name: 'Quarry', icon: '⛏️', description: 'Mines stone. Assign workers for more output.', baseCost: { gold: 40, wood: 20, stone: 10, food: 0 }, baseProduction: { stone: 4 }, maxLevel: 10, workersPerLevel: 1, buildTime: 20 },
+  quarry: { name: 'Quarry', icon: '⛏️', description: 'Mines stone. Produces steel at Lv.3+. Assign workers for more output.', baseCost: { gold: 40, wood: 20, stone: 10, food: 0 }, baseProduction: { stone: 4 }, maxLevel: 10, workersPerLevel: 1, buildTime: 20 },
   goldmine: { name: 'Gold Mine', icon: '💰', description: 'Extracts gold. Workers boost production.', baseCost: { gold: 10, wood: 30, stone: 40, food: 0 }, steelCost: 3, baseProduction: { gold: 3 }, maxLevel: 10, workersPerLevel: 1, buildTime: 25 },
   barracks: { name: 'Barracks', icon: '⚔️', description: 'Train warriors. Workers here increase army cap.', baseCost: { gold: 80, wood: 60, stone: 40, food: 20 }, steelCost: 8, maxLevel: 8, workersPerLevel: 2, buildTime: 40 },
   wall: { name: 'Wall', icon: '🧱', description: 'Fortify your village against invaders.', baseCost: { gold: 20, wood: 10, stone: 60, food: 0 }, steelCost: 4, maxLevel: 10, workersPerLevel: 0, buildTime: 30 },
@@ -71,6 +71,13 @@ export function getProduction(type: Exclude<BuildingType, 'empty'>, level: numbe
     result[key as keyof Resources] = Math.floor(val * level * 1.2 * workerBonus);
   }
   return result;
+}
+
+/** Steel production: quarry produces steel at level 3+ */
+export function getSteelProduction(type: Exclude<BuildingType, 'empty'>, level: number, workers: number = 0): number {
+  if (type !== 'quarry' || level < 3) return 0;
+  const workerBonus = 1 + workers * 0.15;
+  return Math.floor((level - 2) * 1 * workerBonus); // 1 steel/min per level above 2
 }
 
 // === RATIONS SYSTEM ===
@@ -338,6 +345,7 @@ interface GameContextType {
   canAfford: (cost: Resources) => boolean;
   canAffordSteel: (amount: number) => boolean;
   totalProduction: Resources;
+  steelProduction: number;
   allVillages: PlayerVillage[];
   loading: boolean;
   army: Army;
@@ -709,6 +717,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
     );
   }, [buildings, workerAssignments]);
 
+  // Steel production from quarries at level 3+
+  const steelProduction = useMemo(() => {
+    return buildings.reduce((acc, b) => {
+      if (b.type === 'empty') return acc;
+      const workers = workerAssignments[b.id] || 0;
+      return acc + getSteelProduction(b.type, b.level, workers);
+    }, 0);
+  }, [buildings, workerAssignments]);
+
   // Net production: gross - army upkeep - pop food cost + pop tax income
   const totalProduction = useMemo(() => {
     let foodCost = 0, goldCost = 0;
@@ -842,15 +859,21 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (totalSoldiers + popNeeded > armyCap) return false;
     if (population.civilians < popNeeded) return false;
 
-    setResources(prev => ({
-      gold: prev.gold - totalCost.gold, wood: prev.wood - totalCost.wood,
-      stone: prev.stone - totalCost.stone, food: prev.food - totalCost.food,
-    }));
-    if (totalSteelCost > 0) setSteel(prev => prev - totalSteelCost);
+    const newResources = {
+      gold: resources.gold - totalCost.gold, wood: resources.wood - totalCost.wood,
+      stone: resources.stone - totalCost.stone, food: resources.food - totalCost.food,
+    };
+    setResources(newResources);
+    const newSteel = totalSteelCost > 0 ? steel - totalSteelCost : steel;
+    if (totalSteelCost > 0) setSteel(newSteel);
+    // Persist to DB
+    if (villageId) {
+      supabase.from('villages').update({ ...newResources, steel: newSteel }).eq('id', villageId).then();
+    }
     const finishTime = Date.now() + info.trainTime * 1000 * count;
     setTrainingQueue(prev => [...prev, { type, count, finishTime }]);
     return true;
-  }, [canAfford, canAffordSteel, getBarracksLevel, totalSoldiers, armyCap, population.civilians]);
+  }, [canAfford, canAffordSteel, getBarracksLevel, totalSoldiers, armyCap, population.civilians, resources, steel, villageId]);
 
   const totalArmyPower = useCallback(() => {
     let attack = 0, defense = 0;
@@ -1328,13 +1351,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const cost = { gold: 40 * count, wood: 0, stone: 0, food: 20 * count };
     if (!canAfford(cost)) return false;
     if (population.civilians < count) return false;
-    setResources(prev => ({ gold: prev.gold - cost.gold, wood: prev.wood, stone: prev.stone, food: prev.food - cost.food }));
+    const newResources = { gold: resources.gold - cost.gold, wood: resources.wood, stone: resources.stone, food: resources.food - cost.food };
+    setResources(newResources);
+    // Persist resource deduction to DB
+    if (villageId) {
+      supabase.from('villages').update(newResources).eq('id', villageId).then();
+    }
     // Spies train over time
     const finishTime = Date.now() + 20000 * count;
-    setTrainingQueue(prev => [...prev, { type: 'militia' as TroopType, count: 0, finishTime }]); // placeholder
+    setTrainingQueue(prev => [...prev, { type: 'scout' as TroopType, count: 0, finishTime }]);
     setTimeout(() => setSpies(prev => prev + count), 20000 * count);
     return true;
-  }, [canAfford, getBarracksLevel, population.civilians]);
+  }, [canAfford, getBarracksLevel, population.civilians, resources, villageId]);
 
   // Send spy mission
   const sendSpyMission = useCallback((mission: SpyMission, targetName: string, targetId: string, targetX: number, targetY: number, spiesCount: number) => {
@@ -1454,7 +1482,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   return (
     <GameContext.Provider value={{
       resources, steel, buildings, villageName, villageId, playerLevel, displayName,
-      demolishBuilding, buildAt, upgradeBuilding, canAfford, canAffordSteel, totalProduction, allVillages, loading,
+      demolishBuilding, buildAt, upgradeBuilding, canAfford, canAffordSteel, totalProduction, steelProduction, allVillages, loading,
       army, trainingQueue, buildQueue, battleLogs, trainTroops, getBarracksLevel, totalArmyPower, addResources, addSteel, attackTarget, armyUpkeep,
       population, workerAssignments, assignWorker, unassignWorker, getMaxWorkers,
       rations, setRations, popTaxRate, setPopTaxRate, popFoodCost, popTaxIncome,

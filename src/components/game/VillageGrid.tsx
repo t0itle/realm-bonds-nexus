@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useGame, BUILDING_INFO, getUpgradeCost, getProduction, BuildingType, Building } from '@/hooks/useGameState';
+import { useGame, BUILDING_INFO, getUpgradeCost, getProduction, getSteelProduction, BuildingType, Building } from '@/hooks/useGameState';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BUILDING_SPRITES, WORKERS_SPRITE, WORKER_FOR_BUILDING } from './sprites';
 import BuildModal from './BuildModal';
@@ -195,6 +195,7 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
   const sprite = BUILDING_SPRITES[type];
   const upgradeCost = getUpgradeCost(type, building.level);
   const production = getProduction(type, building.level);
+  const steelProd = getSteelProduction(type, building.level);
   const affordable = canAfford(upgradeCost) && (upgradeCost.steel <= 0 || canAffordSteel(upgradeCost.steel));
   const maxed = building.level >= info.maxLevel;
   const upgrading = isBuildingUpgrading(building.id);
@@ -220,12 +221,17 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
       </div>
       <p className="text-sm text-muted-foreground">{info.description}</p>
 
-      {Object.keys(production).length > 0 && (
+      {(Object.keys(production).length > 0 || steelProd > 0) && (
         <div className="flex gap-3 text-xs">
           <span className="text-muted-foreground">Production:</span>
           {Object.entries(production).map(([key, val]) => (
             <span key={key} className="text-foreground">+{val} {key}/min</span>
           ))}
+          {steelProd > 0 && (
+            <span className="text-foreground flex items-center gap-0.5">
+              +{steelProd} <ResourceIcon type="steel" size={12} />/min
+            </span>
+          )}
         </div>
       )}
 
