@@ -1328,13 +1328,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const cost = { gold: 40 * count, wood: 0, stone: 0, food: 20 * count };
     if (!canAfford(cost)) return false;
     if (population.civilians < count) return false;
-    setResources(prev => ({ gold: prev.gold - cost.gold, wood: prev.wood, stone: prev.stone, food: prev.food - cost.food }));
+    const newResources = { gold: resources.gold - cost.gold, wood: resources.wood, stone: resources.stone, food: resources.food - cost.food };
+    setResources(newResources);
+    // Persist resource deduction to DB
+    if (villageId) {
+      supabase.from('villages').update(newResources).eq('id', villageId).then();
+    }
     // Spies train over time
     const finishTime = Date.now() + 20000 * count;
-    setTrainingQueue(prev => [...prev, { type: 'militia' as TroopType, count: 0, finishTime }]); // placeholder
+    setTrainingQueue(prev => [...prev, { type: 'scout' as TroopType, count: 0, finishTime }]);
     setTimeout(() => setSpies(prev => prev + count), 20000 * count);
     return true;
-  }, [canAfford, getBarracksLevel, population.civilians]);
+  }, [canAfford, getBarracksLevel, population.civilians, resources, villageId]);
 
   // Send spy mission
   const sendSpyMission = useCallback((mission: SpyMission, targetName: string, targetId: string, targetX: number, targetY: number, spiesCount: number) => {
