@@ -682,8 +682,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
           pendingTaxRef.current.food += taxFoodAmt;
         }
         
-        const newFood = prev.food + (foodProd - taxFoodAmt) - upkeep.food - civFoodCost;
-        const newGold = prev.gold + (goldProd - taxGoldAmt) - upkeep.gold + taxGold;
+        const deductGold = Math.floor(taxGoldAmt);
+        const deductWood = Math.floor(taxWoodAmt);
+        const deductStone = Math.floor(taxStoneAmt);
+        const deductFood = Math.floor(taxFoodAmt);
+        
+        const newFood = prev.food + (foodProd - deductFood) - upkeep.food - civFoodCost;
+        const newGold = prev.gold + (goldProd - deductGold) - upkeep.gold + taxGold;
         
         if (newFood < 0) {
           setArmy(prevArmy => {
@@ -696,8 +701,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }
         return {
           gold: Math.max(0, newGold),
-          wood: prev.wood + (woodProd - taxWoodAmt),
-          stone: prev.stone + (stoneProd - taxStoneAmt),
+          wood: prev.wood + (woodProd - deductWood),
+          stone: prev.stone + (stoneProd - deductStone),
           food: Math.max(0, newFood),
         };
       });
