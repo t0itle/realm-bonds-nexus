@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useGame, BUILDING_INFO, getUpgradeCost, getProduction, BuildingType, Building } from '@/hooks/useGameState';
+import { useGame, BUILDING_INFO, getUpgradeCost, getProduction, getSteelProduction, BuildingType, Building } from '@/hooks/useGameState';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BUILDING_SPRITES, WORKERS_SPRITE, WORKER_FOR_BUILDING } from './sprites';
 import BuildModal from './BuildModal';
