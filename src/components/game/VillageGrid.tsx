@@ -5,6 +5,7 @@ import { BUILDING_SPRITES, WORKERS_SPRITE, WORKER_FOR_BUILDING } from './sprites
 import BuildModal from './BuildModal';
 import ResourceIcon, { getResourceType } from './ResourceIcon';
 import { Send, Scroll } from 'lucide-react';
+import WorldEventsOverlay from './WorldEventsOverlay';
 
 function getGridSize(townhallLevel: number): number {
   if (townhallLevel >= 7) return 16;
