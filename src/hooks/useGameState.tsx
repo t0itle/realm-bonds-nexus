@@ -457,6 +457,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [rations, setRationsLocal] = useState<RationsLevel>('normal');
   const [popTaxRate, setPopTaxRateLocal] = useState(5);
   const [spies, setSpies] = useState(0);
+  const [spyTrainingQueue, setSpyTrainingQueue] = useState<{ count: number; finishTime: number }[]>([]);
   const [activeSpyMissions, setActiveSpyMissions] = useState<ActiveSpyMission[]>([]);
   const [intelReports, setIntelReports] = useState<IntelReport[]>([]);
   const [vassalages, setVassalages] = useState<Vassalage[]>([]);
