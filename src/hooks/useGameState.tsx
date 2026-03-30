@@ -339,6 +339,10 @@ interface GameContextType {
   villageId: string | null;
   playerLevel: number;
   displayName: string;
+  avatarUrl: string | null;
+  setDisplayName: (name: string) => Promise<boolean>;
+  setVillageName: (name: string) => Promise<boolean>;
+  setAvatarUrl: (url: string | null) => void;
   demolishBuilding: (id: string) => Promise<boolean>;
   buildAt: (position: number, type: Exclude<BuildingType, 'empty'>) => Promise<boolean>;
   upgradeBuilding: (id: string) => Promise<boolean>;
