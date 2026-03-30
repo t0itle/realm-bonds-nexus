@@ -537,7 +537,7 @@ function ApothecaryPanel({ apothecaryLevel, injuredTroops, poisons, healTroops, 
     );
   }
 
-  const totalInjured = Object.values(injuredTroops).reduce((s: number, v: number) => s + v, 0);
+  const totalInjured = (Object.values(injuredTroops) as number[]).reduce((s, v) => s + v, 0);
   const costMult = Math.max(0.4, 1 - apothecaryLevel * 0.1);
 
   return (
