@@ -522,3 +522,123 @@ function EspionagePanel({
     </div>
   );
 }
+
+function ApothecaryPanel({ apothecaryLevel, injuredTroops, poisons, healTroops, craftPoison, canAfford, resources }: any) {
+  const [healCounts, setHealCounts] = useState<Record<TroopType, number>>({ militia: 1, archer: 1, knight: 1, cavalry: 1, siege: 1, scout: 1 });
+  const [poisonCount, setPoisonCount] = useState(1);
+
+  if (apothecaryLevel === 0) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-3">
+        <span className="text-5xl">⚗️</span>
+        <h2 className="font-display text-lg text-foreground">No Apothecary</h2>
+        <p className="text-sm text-muted-foreground">Build an Apothecary to heal injured troops and craft poisons for your spies.</p>
+      </div>
+    );
+  }
+
+  const totalInjured = (Object.values(injuredTroops) as number[]).reduce((s, v) => s + v, 0);
+  const costMult = Math.max(0.4, 1 - apothecaryLevel * 0.1);
+
+  return (
+    <div className="space-y-3">
+      {/* Overview */}
+      <div className="game-panel border-glow rounded-xl p-3 space-y-1">
+        <div className="flex items-center justify-between">
+          <h3 className="font-display text-xs text-foreground">⚗️ Apothecary Lv.{apothecaryLevel}</h3>
+          <span className="text-[9px] text-muted-foreground">Heal rate: {Math.round(Math.min(60, 20 + apothecaryLevel * 8))}% of losses saved</span>
+        </div>
+        <div className="flex items-center gap-3 text-xs">
+          <span className="text-destructive">🩹 {totalInjured} injured</span>
+          <span className="text-primary">🧪 {poisons} poisons</span>
+        </div>
+      </div>
+
+      {/* Heal Injured Troops */}
+      <div className="game-panel border-glow rounded-xl p-3 space-y-2">
+        <h3 className="font-display text-xs text-foreground">🩹 Heal Injured Troops</h3>
+        {totalInjured === 0 ? (
+          <p className="text-[10px] text-muted-foreground">No injured troops. After battle, wounded soldiers will appear here for healing.</p>
+        ) : (
+          <div className="space-y-2">
+            {TROOP_TYPES.map(type => {
+              const injured = injuredTroops[type];
+              if (injured <= 0) return null;
+              const info = TROOP_INFO[type];
+              const count = Math.min(healCounts[type], injured);
+              const healGold = Math.floor(info.cost.gold * 0.3 * costMult * count);
+              const healFood = Math.floor(info.cost.food * 0.5 * costMult * count);
+              const healTime = Math.max(5, Math.floor(15 / apothecaryLevel)) * count;
+              const affordable = canAfford({ gold: healGold, wood: 0, stone: 0, food: healFood });
+
+              return (
+                <div key={type} className="game-panel rounded-lg p-2 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-foreground">{info.emoji} {info.name}</span>
+                    <span className="text-xs text-destructive font-bold">{injured} injured</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      <motion.button whileTap={{ scale: 0.9 }}
+                        onClick={() => setHealCounts(p => ({ ...p, [type]: Math.max(1, p[type] - 1) }))}
+                        className="w-5 h-5 rounded bg-muted text-foreground text-[10px] flex items-center justify-center">−</motion.button>
+                      <span className="text-[10px] text-foreground w-5 text-center font-bold">{count}</span>
+                      <motion.button whileTap={{ scale: 0.9 }}
+                        onClick={() => setHealCounts(p => ({ ...p, [type]: Math.min(injured, p[type] + 1) }))}
+                        className="w-5 h-5 rounded bg-muted text-foreground text-[10px] flex items-center justify-center">+</motion.button>
+                    </div>
+                    <div className="flex-1 text-[9px] text-muted-foreground flex items-center gap-1 flex-wrap">
+                      <span className="flex items-center gap-px"><ResourceIcon type="gold" size={9} />{healGold}</span>
+                      <span className="flex items-center gap-px"><ResourceIcon type="food" size={9} />{healFood}</span>
+                      <span className="flex items-center gap-px"><ResourceIcon type="timer" size={9} />{healTime}s</span>
+                    </div>
+                    <motion.button whileTap={{ scale: 0.95 }}
+                      onClick={() => { if (healTroops(type, count)) setHealCounts(p => ({ ...p, [type]: 1 })); }}
+                      disabled={!affordable}
+                      className={`font-display text-[9px] py-1 px-2 rounded-lg ${affordable ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
+                      Heal
+                    </motion.button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Craft Poison */}
+      <div className="game-panel border-glow rounded-xl p-3 space-y-2">
+        <h3 className="font-display text-xs text-foreground">🧪 Craft Poison</h3>
+        <p className="text-[9px] text-muted-foreground">
+          {apothecaryLevel < 2
+            ? 'Requires Apothecary Lv.2 to craft poisons.'
+            : 'Poisons boost spy sabotage missions, dealing extra damage to enemy resources.'}
+        </p>
+        {apothecaryLevel >= 2 && (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <motion.button whileTap={{ scale: 0.9 }}
+                onClick={() => setPoisonCount(Math.max(1, poisonCount - 1))}
+                className="w-5 h-5 rounded bg-muted text-foreground text-[10px] flex items-center justify-center">−</motion.button>
+              <span className="text-[10px] text-foreground w-5 text-center font-bold">{poisonCount}</span>
+              <motion.button whileTap={{ scale: 0.9 }}
+                onClick={() => setPoisonCount(Math.min(10, poisonCount + 1))}
+                className="w-5 h-5 rounded bg-muted text-foreground text-[10px] flex items-center justify-center">+</motion.button>
+            </div>
+            <div className="flex-1 text-[9px] text-muted-foreground flex items-center gap-1">
+              <span className="flex items-center gap-px"><ResourceIcon type="gold" size={9} />{60 * poisonCount}</span>
+              <span className="flex items-center gap-px"><ResourceIcon type="food" size={9} />{30 * poisonCount}</span>
+              <span className="flex items-center gap-px"><ResourceIcon type="timer" size={9} />{15 * poisonCount}s</span>
+            </div>
+            <motion.button whileTap={{ scale: 0.95 }}
+              onClick={() => { if (craftPoison(poisonCount)) setPoisonCount(1); }}
+              disabled={!canAfford({ gold: 60 * poisonCount, wood: 0, stone: 0, food: 30 * poisonCount })}
+              className={`font-display text-[9px] py-1 px-2 rounded-lg ${canAfford({ gold: 60 * poisonCount, wood: 0, stone: 0, food: 30 * poisonCount }) ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
+              Craft
+            </motion.button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
