@@ -39,10 +39,10 @@ interface VillageRow {
 }
 
 const BASE_PRODUCTION: Record<string, Partial<Record<string, number>>> = {
-  farm: { food: 5 },
-  lumbermill: { wood: 5 },
-  quarry: { stone: 4 },
-  goldmine: { gold: 3 },
+  farm: { food: 2 },
+  lumbermill: { wood: 2 },
+  quarry: { stone: 1 },
+  goldmine: { gold: 1 },
 };
 
 const HOUSING_PER_LEVEL = 8;
