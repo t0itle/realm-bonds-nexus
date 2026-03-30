@@ -152,6 +152,7 @@ export default function GameLayout() {
               {activeTab === 'village' && <VillageGrid />}
               {activeTab === 'military' && <MilitaryPanel />}
               {activeTab === 'stats' && <StatSheet />}
+              {activeTab === 'dm' && <DungeonMasterPanel />}
               {activeTab === 'map' && <WorldMap />}
               {activeTab === 'messages' && <MessagesPanel initialDm={dmTarget} onDmHandled={() => setDmTarget(null)} />}
               {activeTab === 'alliance' && <AlliancePanel />}
