@@ -287,6 +287,7 @@ export type Database = {
           updated_at: string
           user_id: string
           village_id: string
+          workers: number
         }
         Insert: {
           created_at?: string
@@ -297,6 +298,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           village_id: string
+          workers?: number
         }
         Update: {
           created_at?: string
@@ -307,6 +309,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           village_id?: string
+          workers?: number
         }
         Relationships: [
           {
