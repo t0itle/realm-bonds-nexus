@@ -903,16 +903,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const trainTroops = useCallback((type: TroopType, count: number) => {
     const info = TROOP_INFO[type];
     const barracksLvl = getBarracksLevel();
-    if (barracksLvl < info.requiredBarracksLevel) return false;
+    console.log('[trainTroops]', { type, count, barracksLvl, required: info.requiredBarracksLevel, totalSoldiers, armyCap, civilians: population.civilians, resources, steel });
+    if (barracksLvl < info.requiredBarracksLevel) { console.log('[trainTroops] FAIL: barracks too low'); return false; }
     const totalCost: Resources = {
       gold: info.cost.gold * count, wood: info.cost.wood * count,
       stone: info.cost.stone * count, food: info.cost.food * count,
     };
     const totalSteelCost = info.steelCost * count;
-    if (!canAfford(totalCost) || !canAffordSteel(totalSteelCost)) return false;
+    if (!canAfford(totalCost) || !canAffordSteel(totalSteelCost)) { console.log('[trainTroops] FAIL: cant afford', { totalCost, totalSteelCost }); return false; }
     const popNeeded = info.popCost * count;
-    if (totalSoldiers + popNeeded > armyCap) return false;
-    if (population.civilians < popNeeded) return false;
+    if (totalSoldiers + popNeeded > armyCap) { console.log('[trainTroops] FAIL: over army cap', { totalSoldiers, popNeeded, armyCap }); return false; }
+    if (population.civilians < popNeeded) { console.log('[trainTroops] FAIL: not enough civilians', { civilians: population.civilians, popNeeded }); return false; }
 
     const newResources = {
       gold: resources.gold - totalCost.gold, wood: resources.wood - totalCost.wood,
@@ -1401,11 +1402,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [getApothecaryLevel, canAfford]);
 
   // Train spies (requires barracks lvl 2+, costs gold + food + 1 pop each)
-  const trainSpies = useCallback((count: number) => {
-    if (getBarracksLevel() < 2) return false;
+   const trainSpies = useCallback((count: number) => {
+    console.log('[trainSpies]', { count, barracksLvl: getBarracksLevel(), civilians: population.civilians, gold: resources.gold, food: resources.food });
+    if (getBarracksLevel() < 2) { console.log('[trainSpies] FAIL: barracks < 2'); return false; }
     const cost = { gold: 40 * count, wood: 0, stone: 0, food: 20 * count };
-    if (!canAfford(cost)) return false;
-    if (population.civilians < count) return false;
+    if (!canAfford(cost)) { console.log('[trainSpies] FAIL: cant afford'); return false; }
+    if (population.civilians < count) { console.log('[trainSpies] FAIL: not enough civilians'); return false; }
     const newResources = { gold: resources.gold - cost.gold, wood: resources.wood, stone: resources.stone, food: resources.food - cost.food };
     setResources(newResources);
     // Persist resource deduction to DB

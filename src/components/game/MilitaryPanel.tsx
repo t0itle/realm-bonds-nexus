@@ -76,7 +76,7 @@ export default function MilitaryPanel() {
         <div className="border-t border-border/50 mt-2 pt-2 flex items-center justify-between text-[9px]">
           <span className="text-muted-foreground">Army: {population.soldiers}/{population.armyCap} cap</span>
           {(upkeep.food > 0 || upkeep.gold > 0) && (
-            <span className="text-destructive flex items-center gap-1">Upkeep: <ResourceIcon type="food" size={10} />{upkeep.food * 60}/min <ResourceIcon type="gold" size={10} />{upkeep.gold * 60}/min</span>
+            <span className="text-destructive flex items-center gap-1">Upkeep: <ResourceIcon type="food" size={10} />{upkeep.food}/min <ResourceIcon type="gold" size={10} />{upkeep.gold}/min</span>
           )}
         </div>
       </div>
