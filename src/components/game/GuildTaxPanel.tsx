@@ -25,6 +25,8 @@ export default function GuildTaxPanel({ allianceId, isLeader }: TaxPanelProps) {
 
   useEffect(() => {
     loadTreasury();
+    const interval = setInterval(loadTreasury, 15000);
+    return () => clearInterval(interval);
   }, [allianceId]);
 
   const loadTreasury = async () => {
