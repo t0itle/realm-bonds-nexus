@@ -6,6 +6,7 @@ import AllianceResourceSharing from './AllianceResourceSharing';
 import GuildChat from './GuildChat';
 import GuildTaxPanel from './GuildTaxPanel';
 import GuildContracts from './GuildContracts';
+import GuildVoting from './GuildVoting';
 
 interface Alliance {
   id: string;
