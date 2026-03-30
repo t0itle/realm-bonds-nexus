@@ -354,6 +354,8 @@ interface GameContextType {
   vassalages: Vassalage[];
   payRansom: (vassalageId: string) => Promise<boolean>;
   attemptRebellion: (vassalageId: string) => Promise<boolean>;
+  setVassalTributeRate: (vassalageId: string, rate: number) => Promise<boolean>;
+  releaseVassal: (vassalageId: string) => Promise<boolean>;
   getWallLevel: () => number;
   armyUpkeep: () => { food: number; gold: number };
   population: PopulationStats;
