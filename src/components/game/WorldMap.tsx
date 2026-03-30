@@ -384,7 +384,29 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
     });
   }
 
-  return { realms, events, terrain, steelMines, regionName, regionBiome };
+  // ── Decorations (trees, grass, rocks) — scatter per biome ──
+  const decorations: Decoration[] = [];
+  const decoTypes: Decoration['type'][] = 
+    regionBiome === 'Forest' || regionBiome === 'Jungle' ? ['trees', 'trees', 'grass', 'trees'] :
+    regionBiome === 'Plains' || regionBiome === 'Steppe' ? ['grass', 'grass', 'trees', 'grass'] :
+    regionBiome === 'Highlands' || regionBiome === 'Badlands' ? ['rocks', 'rocks', 'trees', 'rocks'] :
+    regionBiome === 'Tundra' ? ['rocks', 'rocks', 'grass'] :
+    regionBiome === 'Desert' ? ['rocks', 'rocks'] :
+    ['trees', 'grass', 'rocks'];
+  const decoCount = regionBiome === 'Desert' ? 3 + Math.floor(rng() * 4) : 8 + Math.floor(rng() * 10);
+  for (let i = 0; i < decoCount; i++) {
+    const dt = decoTypes[Math.floor(rng() * decoTypes.length)];
+    decorations.push({
+      type: dt,
+      x: worldBaseX + 2000 + rng() * (CHUNK_SIZE - 4000),
+      y: worldBaseY + 2000 + rng() * (CHUNK_SIZE - 4000),
+      size: dt === 'trees' ? 3000 + rng() * 5000 : dt === 'grass' ? 4000 + rng() * 8000 : 2000 + rng() * 4000,
+      rotation: rng() * 360,
+      opacity: 0.3 + rng() * 0.4,
+    });
+  }
+
+  return { realms, events, terrain, steelMines, decorations, regionName, regionBiome };
 }
 
 // ── Chunk cache (time-keyed so events rotate) ──
