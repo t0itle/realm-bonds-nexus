@@ -721,154 +721,169 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return { food: Math.max(0, Math.floor(foodCost / 60)), gold: Math.max(0, Math.floor(goldCost / 60)) };
   }, [army]);
 
+  // Refs for computed values (defined above) — keeps tick stable
+  const grossProductionRef = useRef(grossProduction);
+  grossProductionRef.current = grossProduction;
+  const popFoodCostRef = useRef(popFoodCost);
+  popFoodCostRef.current = popFoodCost;
+  const popTaxIncomeRef = useRef(popTaxIncome);
+  popTaxIncomeRef.current = popTaxIncome;
+  const happinessRef = useRef(happiness);
+  happinessRef.current = happiness;
+  const maxPopulationRef = useRef(maxPopulation);
+  maxPopulationRef.current = maxPopulation;
+  const resourcesRef = useRef(resources);
+  resourcesRef.current = resources;
+
   // Resource tick with upkeep + population growth
+  // Only depends on villageId & user so intervals stay stable.
   useEffect(() => {
     if (!villageId || !user) return;
     const tickInterval = setInterval(() => {
-      const upkeep = armyUpkeep();
-      // Civilian food consumption based on rations
-      const civFoodCost = Math.floor(popFoodCost / 20);
+      const gp = grossProductionRef.current;
+      const civFoodCostTick = Math.floor(popFoodCostRef.current / 20);
+      const taxIncomeTick = Math.floor(popTaxIncomeRef.current / 20);
+      const curAllianceId = allianceIdRef.current;
+      const curAllianceTaxRate = allianceTaxRateRef.current;
 
-      setResources(prev => {
-        const foodProd = Math.max(0, Math.floor(grossProduction.food / 20));
-        const woodProd = Math.max(1, Math.floor(grossProduction.wood / 20));
-        const stoneProd = Math.max(1, Math.floor(grossProduction.stone / 20));
-        const goldProd = Math.max(0, Math.floor(grossProduction.gold / 20));
-        const taxGold = Math.floor(popTaxIncome / 20);
-
-        // Guild tax: accumulate fractional amounts across ticks
-        const taxFraction = allianceId ? allianceTaxRate / 100 : 0;
-        let deductGold = 0;
-        let deductWood = 0;
-        let deductStone = 0;
-        let deductFood = 0;
-
-        if (taxFraction > 0) {
-          pendingTaxAccrualRef.current.gold += goldProd * taxFraction;
-          pendingTaxAccrualRef.current.wood += woodProd * taxFraction;
-          pendingTaxAccrualRef.current.stone += stoneProd * taxFraction;
-          pendingTaxAccrualRef.current.food += foodProd * taxFraction;
-
-          deductGold = Math.floor(pendingTaxAccrualRef.current.gold);
-          deductWood = Math.floor(pendingTaxAccrualRef.current.wood);
-          deductStone = Math.floor(pendingTaxAccrualRef.current.stone);
-          deductFood = Math.floor(pendingTaxAccrualRef.current.food);
-
-          pendingTaxAccrualRef.current.gold -= deductGold;
-          pendingTaxAccrualRef.current.wood -= deductWood;
-          pendingTaxAccrualRef.current.stone -= deductStone;
-          pendingTaxAccrualRef.current.food -= deductFood;
-
-          pendingTreasuryFlushRef.current.gold += deductGold;
-          pendingTreasuryFlushRef.current.wood += deductWood;
-          pendingTreasuryFlushRef.current.stone += deductStone;
-          pendingTreasuryFlushRef.current.food += deductFood;
+      setArmy(currentArmy => {
+        let foodUpkeep = 0, goldUpkeep = 0;
+        for (const [type, count] of Object.entries(currentArmy)) {
+          const info = TROOP_INFO[type as TroopType];
+          foodUpkeep += info.foodUpkeep * count;
+          goldUpkeep += info.goldUpkeep * count;
         }
-        
-        const newFood = prev.food + (foodProd - deductFood) - upkeep.food - civFoodCost;
-        const newGold = prev.gold + (goldProd - deductGold) - upkeep.gold + taxGold;
-        
-        if (newFood < 0) {
-          setArmy(prevArmy => {
-            const updated = { ...prevArmy };
-            for (const t of ['siege', 'cavalry', 'knight', 'archer', 'militia'] as TroopType[]) {
-              if (updated[t] > 0) {
-                updated[t]--;
-                setPopulationBase(prev => Math.max(1, prev - TROOP_INFO[t].popCost));
-                break;
-              }
+        const upkeepFood = Math.max(0, Math.floor(foodUpkeep / 60));
+        const upkeepGold = Math.max(0, Math.floor(goldUpkeep / 60));
+
+        setResources(prev => {
+          const foodProd = Math.max(0, Math.floor(gp.food / 20));
+          const woodProd = Math.max(1, Math.floor(gp.wood / 20));
+          const stoneProd = Math.max(1, Math.floor(gp.stone / 20));
+          const goldProd = Math.max(0, Math.floor(gp.gold / 20));
+
+          const taxFraction = curAllianceId ? curAllianceTaxRate / 100 : 0;
+          let deductGold = 0, deductWood = 0, deductStone = 0, deductFood = 0;
+
+          if (taxFraction > 0) {
+            pendingTaxAccrualRef.current.gold += goldProd * taxFraction;
+            pendingTaxAccrualRef.current.wood += woodProd * taxFraction;
+            pendingTaxAccrualRef.current.stone += stoneProd * taxFraction;
+            pendingTaxAccrualRef.current.food += foodProd * taxFraction;
+            deductGold = Math.floor(pendingTaxAccrualRef.current.gold);
+            deductWood = Math.floor(pendingTaxAccrualRef.current.wood);
+            deductStone = Math.floor(pendingTaxAccrualRef.current.stone);
+            deductFood = Math.floor(pendingTaxAccrualRef.current.food);
+            pendingTaxAccrualRef.current.gold -= deductGold;
+            pendingTaxAccrualRef.current.wood -= deductWood;
+            pendingTaxAccrualRef.current.stone -= deductStone;
+            pendingTaxAccrualRef.current.food -= deductFood;
+            pendingTreasuryFlushRef.current.gold += deductGold;
+            pendingTreasuryFlushRef.current.wood += deductWood;
+            pendingTreasuryFlushRef.current.stone += deductStone;
+            pendingTreasuryFlushRef.current.food += deductFood;
+          }
+
+          const newFood = prev.food + (foodProd - deductFood) - upkeepFood - civFoodCostTick;
+          const newGold = prev.gold + (goldProd - deductGold) - upkeepGold + taxIncomeTick;
+
+          return {
+            gold: Math.max(0, newGold),
+            wood: prev.wood + (woodProd - deductWood),
+            stone: prev.stone + (stoneProd - deductStone),
+            food: Math.max(0, newFood),
+          };
+        });
+
+        // Starvation: only desert if food was already at 0
+        if (resourcesRef.current.food <= 0) {
+          const updated = { ...currentArmy };
+          for (const t of ['siege', 'cavalry', 'knight', 'archer', 'militia'] as TroopType[]) {
+            if (updated[t] > 0) {
+              updated[t]--;
+              setPopulationBase(prev => Math.max(1, prev - TROOP_INFO[t].popCost));
+              return updated;
             }
-            return updated;
-          });
+          }
         }
-        return {
-          gold: Math.max(0, newGold),
-          wood: prev.wood + (woodProd - deductWood),
-          stone: prev.stone + (stoneProd - deductStone),
-          food: Math.max(0, newFood),
-        };
+        return currentArmy;
       });
 
-      // Population growth: based on available housing + happiness
+      // Population growth
       setPopulationBase(prev => {
-        if (prev >= maxPopulation) return prev; // at housing cap
-        if (resources.food < 50) return prev; // need food to attract settlers
-        // Growth rate based on happiness: 0 at 0 happiness, faster at high happiness
-        const growthChance = happiness / 100;
-        // Housing availability bonus
-        const housingRoom = maxPopulation - prev;
-        if (housingRoom <= 0) return prev;
-        if (Math.random() < growthChance * 0.5) {
-          return prev + 1;
-        }
+        const mp = maxPopulationRef.current;
+        if (prev >= mp) return prev;
+        if (resourcesRef.current.food < 50) return prev;
+        const growthChance = happinessRef.current / 100;
+        if (mp - prev <= 0) return prev;
+        if (Math.random() < growthChance * 0.5) return prev + 1;
         return prev;
       });
     }, 3000);
 
-    // Periodically refresh alliance tax rate (every 60s)
     const taxRefresh = setInterval(async () => {
-      if (!allianceId) return;
-      const { data } = await supabase.from('alliances').select('tax_rate').eq('id', allianceId).single();
+      const aid = allianceIdRef.current;
+      if (!aid) return;
+      const { data } = await supabase.from('alliances').select('tax_rate').eq('id', aid).single();
       if (data) setAllianceTaxRate(data.tax_rate);
     }, 60000);
 
     const saveInterval = setInterval(() => {
-      // Flush accumulated guild tax to treasury
-      if (allianceId) {
+      const aid = allianceIdRef.current;
+      if (aid) {
         const pt = pendingTreasuryFlushRef.current;
-        const flushGold = pt.gold;
-        const flushWood = pt.wood;
-        const flushStone = pt.stone;
-        const flushFood = pt.food;
-        if (flushGold + flushWood + flushStone + flushFood > 0) {
-          pt.gold -= flushGold; pt.wood -= flushWood; pt.stone -= flushStone; pt.food -= flushFood;
+        const fg = pt.gold, fw = pt.wood, fs = pt.stone, ff = pt.food;
+        if (fg + fw + fs + ff > 0) {
+          pt.gold -= fg; pt.wood -= fw; pt.stone -= fs; pt.food -= ff;
           void supabase.rpc('add_to_alliance_treasury', {
-            p_alliance_id: allianceId, p_gold: flushGold, p_wood: flushWood, p_stone: flushStone, p_food: flushFood,
+            p_alliance_id: aid, p_gold: fg, p_wood: fw, p_stone: fs, p_food: ff,
           }).then(({ error }) => {
             if (error) {
-              pendingTreasuryFlushRef.current.gold += flushGold;
-              pendingTreasuryFlushRef.current.wood += flushWood;
-              pendingTreasuryFlushRef.current.stone += flushStone;
-              pendingTreasuryFlushRef.current.food += flushFood;
-              console.error('Failed to flush alliance tax to treasury', error);
+              pendingTreasuryFlushRef.current.gold += fg;
+              pendingTreasuryFlushRef.current.wood += fw;
+              pendingTreasuryFlushRef.current.stone += fs;
+              pendingTreasuryFlushRef.current.food += ff;
             }
           });
         }
       }
-
       setResources(current => {
         setArmy(currentArmy => {
-          supabase.from('villages').update({
-            gold: current.gold, wood: current.wood, stone: current.stone, food: current.food,
-            steel, population: populationBase, max_population: maxPopulation,
-            happiness, rations, pop_tax_rate: popTaxRate,
-            army_militia: currentArmy.militia, army_archer: currentArmy.archer,
-            army_knight: currentArmy.knight, army_cavalry: currentArmy.cavalry, army_siege: currentArmy.siege,
-            army_scout: currentArmy.scout,
-          } as any).eq('id', villageId).then();
+          setPopulationBase(currentPop => {
+            supabase.from('villages').update({
+              gold: current.gold, wood: current.wood, stone: current.stone, food: current.food,
+              steel: steelRef.current, population: currentPop, max_population: maxPopulationRef.current,
+              happiness: happinessRef.current, rations: rationsRef.current, pop_tax_rate: popTaxRateRef.current,
+              army_militia: currentArmy.militia, army_archer: currentArmy.archer,
+              army_knight: currentArmy.knight, army_cavalry: currentArmy.cavalry, army_siege: currentArmy.siege,
+              army_scout: currentArmy.scout,
+            } as any).eq('id', villageId).then();
+            return currentPop;
+          });
           return currentArmy;
         });
         return current;
       });
     }, 30000);
-    return () => { clearInterval(tickInterval); clearInterval(saveInterval); clearInterval(taxRefresh); };
-  }, [villageId, user, grossProduction, armyUpkeep, popFoodCost, popTaxIncome, maxPopulation, steel, populationBase, happiness, rations, popTaxRate, allianceTaxRate, allianceId]);
 
+    return () => { clearInterval(tickInterval); clearInterval(saveInterval); clearInterval(taxRefresh); };
+  }, [villageId, user]);
+
+  // Save on unload
   useEffect(() => {
     if (!villageId) return;
     const save = () => {
       supabase.from('villages').update({
-        gold: resources.gold, wood: resources.wood, stone: resources.stone, food: resources.food,
-        steel, population: populationBase, max_population: maxPopulation,
-        happiness, rations, pop_tax_rate: popTaxRate,
-        army_militia: army.militia, army_archer: army.archer,
-        army_knight: army.knight, army_cavalry: army.cavalry, army_siege: army.siege,
-        army_scout: army.scout,
+        gold: resourcesRef.current.gold, wood: resourcesRef.current.wood,
+        stone: resourcesRef.current.stone, food: resourcesRef.current.food,
+        steel: steelRef.current, population: populationBaseRef.current,
+        max_population: maxPopulationRef.current, happiness: happinessRef.current,
+        rations: rationsRef.current, pop_tax_rate: popTaxRateRef.current,
       } as any).eq('id', villageId).then();
     };
     window.addEventListener('beforeunload', save);
     return () => window.removeEventListener('beforeunload', save);
-  }, [villageId, resources, army, steel, populationBase, maxPopulation, happiness, rations, popTaxRate]);
+  }, [villageId]);
 
   // Training queue processing
   useEffect(() => {
