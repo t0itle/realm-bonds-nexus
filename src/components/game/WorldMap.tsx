@@ -13,6 +13,13 @@ import mapEventOpportunity from '@/assets/sprites/map-event-opportunity.png';
 import mapEventMystery from '@/assets/sprites/map-event-mystery.png';
 import mapMine from '@/assets/sprites/map-mine.png';
 import mapPlayer from '@/assets/sprites/map-player.png';
+// Fantasy terrain sprites
+import mapTrees from '@/assets/sprites/map-trees.png';
+import mapGrass from '@/assets/sprites/map-grass.png';
+import mapRocks from '@/assets/sprites/map-rocks.png';
+import mapVillage from '@/assets/sprites/map-village.png';
+import mapRuins from '@/assets/sprites/map-ruins.png';
+import mapMountain from '@/assets/sprites/map-mountain.png';
 
 const REALM_SPRITES: Record<string, string> = {
   hostile: mapCastleHostile,
