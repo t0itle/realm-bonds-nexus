@@ -794,7 +794,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       foodCost += info.foodUpkeep * count;
       goldCost += info.goldUpkeep * count;
     }
-    return { food: Math.max(0, Math.floor(foodCost / 60)), gold: Math.max(0, Math.floor(goldCost / 60)) };
+    return { food: foodCost, gold: goldCost };
   }, [army]);
 
   // Refs for computed values (defined above) — keeps tick stable
