@@ -1,0 +1,1 @@
+UPDATE buildings SET workers = 0;
