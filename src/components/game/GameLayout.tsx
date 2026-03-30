@@ -163,7 +163,7 @@ export default function GameLayout() {
             >
               <span className="text-base relative">
                 {tab.icon}
-                {tab.id === 'messages' && unreadCount > 0 && (
+                {tab.id === 'social' && unreadCount > 0 && (
                   <span className="absolute -top-1.5 -right-2.5 bg-destructive text-destructive-foreground text-[8px] font-bold rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5">
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
