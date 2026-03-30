@@ -1,0 +1,1 @@
+ALTER TABLE public.villages ADD COLUMN IF NOT EXISTS army_scout integer NOT NULL DEFAULT 0;
