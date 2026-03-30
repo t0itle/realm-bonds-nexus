@@ -610,7 +610,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'villages', filter: `user_id=eq.${user.id}` }, (payload) => {
         const v = payload.new;
         setResources({ gold: Number(v.gold), wood: Number(v.wood), stone: Number(v.stone), food: Number(v.food) });
-        setVillageName(v.name as string);
+        setVillageNameLocal(v.name as string);
         setPlayerLevel(v.level as number);
         setSteel((v as any).steel ?? 0);
         setPopulationBase((v as any).population ?? 10);
