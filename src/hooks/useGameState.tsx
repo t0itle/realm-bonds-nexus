@@ -529,7 +529,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     const loadData = async () => {
       const { data: profile } = await supabase.from('profiles').select('*').eq('user_id', user.id).single();
-      if (profile) setDisplayName(profile.display_name);
+      if (profile) {
+        setDisplayNameLocal(profile.display_name);
+        setAvatarUrlLocal((profile as any).avatar_url ?? null);
+      }
 
       const { data: village } = await supabase.from('villages').select('*').eq('user_id', user.id).single();
       if (village) {
