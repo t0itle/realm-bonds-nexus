@@ -1200,14 +1200,20 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const current = workerAssignments[buildingId] || 0;
     if (current >= maxW) return false;
     if (population.civilians <= 0) return false;
-    setWorkerAssignments(prev => ({ ...prev, [buildingId]: (prev[buildingId] || 0) + 1 }));
+    const newCount = current + 1;
+    setWorkerAssignments(prev => ({ ...prev, [buildingId]: newCount }));
+    // Persist to DB
+    supabase.from('buildings').update({ workers: newCount } as any).eq('id', buildingId).then();
     return true;
   }, [buildings, workerAssignments, population.civilians, getMaxWorkers]);
 
   const unassignWorker = useCallback((buildingId: string) => {
     const current = workerAssignments[buildingId] || 0;
     if (current <= 0) return false;
-    setWorkerAssignments(prev => ({ ...prev, [buildingId]: prev[buildingId] - 1 }));
+    const newCount = current - 1;
+    setWorkerAssignments(prev => ({ ...prev, [buildingId]: newCount }));
+    // Persist to DB
+    supabase.from('buildings').update({ workers: newCount } as any).eq('id', buildingId).then();
     return true;
   }, [workerAssignments]);
 
