@@ -229,18 +229,18 @@ Deno.serve(async (req) => {
         if (alliance) taxFraction = alliance.tax_rate / 100;
       }
 
-      // Calculate net production for the elapsed period
-      const netGold = (grossGold * (1 - taxFraction) - armyGoldUpkeep + popTaxIncome) * elapsedHours;
-      const netWood = (grossWood * (1 - taxFraction)) * elapsedHours;
-      const netStone = (grossStone * (1 - taxFraction)) * elapsedHours;
-      const netFood = (grossFood * (1 - taxFraction) - armyFoodUpkeep - popFoodCost) * elapsedHours;
+      // Calculate net production for the elapsed period (per minute)
+      const netGold = (grossGold * (1 - taxFraction) - armyGoldUpkeep + popTaxIncome) * elapsedMinutes;
+      const netWood = (grossWood * (1 - taxFraction)) * elapsedMinutes;
+      const netStone = (grossStone * (1 - taxFraction)) * elapsedMinutes;
+      const netFood = (grossFood * (1 - taxFraction) - armyFoodUpkeep - popFoodCost) * elapsedMinutes;
 
       // Treasury contributions
       if (taxFraction > 0 && allianceId) {
-        const taxGold = Math.floor(grossGold * taxFraction * elapsedHours);
-        const taxWood = Math.floor(grossWood * taxFraction * elapsedHours);
-        const taxStone = Math.floor(grossStone * taxFraction * elapsedHours);
-        const taxFood = Math.floor(grossFood * taxFraction * elapsedHours);
+        const taxGold = Math.floor(grossGold * taxFraction * elapsedMinutes);
+        const taxWood = Math.floor(grossWood * taxFraction * elapsedMinutes);
+        const taxStone = Math.floor(grossStone * taxFraction * elapsedMinutes);
+        const taxFood = Math.floor(grossFood * taxFraction * elapsedMinutes);
         const prev = treasuryAdds.get(allianceId) || { gold: 0, wood: 0, stone: 0, food: 0 };
         prev.gold += taxGold;
         prev.wood += taxWood;
@@ -253,7 +253,7 @@ Deno.serve(async (req) => {
       const newWood = Math.max(0, Math.floor(village.wood + netWood));
       const newStone = Math.max(0, Math.floor(village.stone + netStone));
       const newFood = Math.max(0, Math.floor(village.food + netFood));
-      const newSteel = Math.max(0, Math.floor(village.steel + grossSteel * elapsedHours));
+      const newSteel = Math.max(0, Math.floor(village.steel + grossSteel * elapsedMinutes));
 
       // Population growth
       let newPop = village.population;
