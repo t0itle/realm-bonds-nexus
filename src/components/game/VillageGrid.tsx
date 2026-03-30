@@ -200,9 +200,6 @@ export default function VillageGrid() {
 
   return (
     <>
-      {/* World Events from the DM */}
-      <WorldEventsOverlay />
-
       <div className="flex-1 flex flex-col items-center justify-center px-3 py-3">
         <div className={`grid gap-2.5 w-full max-w-xs`} style={{ gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))` }}>
           {grid.map((building, i) => {
