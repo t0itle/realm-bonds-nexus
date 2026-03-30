@@ -449,6 +449,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [vassalages, setVassalages] = useState<Vassalage[]>([]);
   const [injuredTroops, setInjuredTroops] = useState<InjuredArmy>({ ...EMPTY_INJURED });
   const [poisons, setPoisons] = useState(0);
+  const [allianceTaxRate, setAllianceTaxRate] = useState(0);
+  const [allianceId, setAllianceId] = useState<string | null>(null);
   const pendingTaxAccrualRef = useRef({ gold: 0, wood: 0, stone: 0, food: 0 });
   const pendingTreasuryFlushRef = useRef({ gold: 0, wood: 0, stone: 0, food: 0 });
 
