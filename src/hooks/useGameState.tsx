@@ -775,10 +775,22 @@ export function GameProvider({ children }: { children: ReactNode }) {
         const upkeepGold = Math.max(0, Math.floor(goldUpkeep / 60));
 
         setResources(prev => {
-          const foodProd = Math.max(0, Math.floor(gp.food / 20));
-          const woodProd = Math.max(1, Math.floor(gp.wood / 20));
-          const stoneProd = Math.max(1, Math.floor(gp.stone / 20));
-          const goldProd = Math.max(0, Math.floor(gp.gold / 20));
+          // Use fractional accumulator to avoid rounding losses
+          const frac = fracAccumulatorRef.current;
+          frac.food += gp.food / 20;
+          frac.wood += gp.wood / 20;
+          frac.stone += gp.stone / 20;
+          frac.gold += gp.gold / 20;
+
+          const foodProd = Math.floor(frac.food);
+          const woodProd = Math.floor(frac.wood);
+          const stoneProd = Math.floor(frac.stone);
+          const goldProd = Math.floor(frac.gold);
+
+          frac.food -= foodProd;
+          frac.wood -= woodProd;
+          frac.stone -= stoneProd;
+          frac.gold -= goldProd;
 
           const taxFraction = curAllianceId ? curAllianceTaxRate / 100 : 0;
           let deductGold = 0, deductWood = 0, deductStone = 0, deductFood = 0;
