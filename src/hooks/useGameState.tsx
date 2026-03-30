@@ -811,11 +811,32 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const resourcesRef = useRef(resources);
   resourcesRef.current = resources;
 
-  // Server handles resource ticking via cron job. 
-  // Client only refreshes alliance tax rate periodically.
+  // Client-side resource interpolation: tick every 5 seconds based on per-minute production
+  const totalProductionRef = useRef(totalProduction);
+  totalProductionRef.current = totalProduction;
+  const steelProductionRef = useRef(steelProduction);
+  steelProductionRef.current = steelProduction;
+
   useEffect(() => {
     if (!villageId || !user) return;
 
+    // Interpolate resources locally every 5 seconds (5/60 of a minute)
+    const tickInterval = setInterval(() => {
+      const prod = totalProductionRef.current;
+      const steelProd = steelProductionRef.current;
+      const fraction = 5 / 60; // 5 seconds worth of per-minute production
+      setResources(prev => ({
+        gold: Math.max(0, prev.gold + prod.gold * fraction),
+        wood: Math.max(0, prev.wood + prod.wood * fraction),
+        stone: Math.max(0, prev.stone + prod.stone * fraction),
+        food: Math.max(0, prev.food + prod.food * fraction),
+      }));
+      if (steelProd > 0) {
+        setSteel(prev => Math.max(0, prev + steelProd * fraction));
+      }
+    }, 5000);
+
+    // Alliance tax rate refresh
     const taxRefresh = setInterval(async () => {
       const aid = allianceIdRef.current;
       if (!aid) return;
@@ -823,7 +844,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       if (data) setAllianceTaxRate(data.tax_rate);
     }, 60000);
 
-    return () => { clearInterval(taxRefresh); };
+    return () => { clearInterval(tickInterval); clearInterval(taxRefresh); };
   }, [villageId, user]);
 
   // Training queue processing
