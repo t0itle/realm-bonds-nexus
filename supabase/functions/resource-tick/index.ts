@@ -253,6 +253,7 @@ Deno.serve(async (req) => {
       const newWood = Math.max(0, Math.floor(village.wood + netWood));
       const newStone = Math.max(0, Math.floor(village.stone + netStone));
       const newFood = Math.max(0, Math.floor(village.food + netFood));
+      const newSteel = Math.max(0, Math.floor(village.steel + grossSteel * elapsedMinutes));
 
       // Population growth
       let newPop = village.population;
