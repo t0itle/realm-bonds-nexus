@@ -291,7 +291,7 @@ export default function MilitaryPanel() {
 
 function EspionagePanel({
   spies, spyTrainCount, setSpyTrainCount, trainSpies, barracksLevel,
-  sendSpyMission, activeSpyMissions, intelReports, allVillages, population, canAfford, resources,
+  sendSpyMission, activeSpyMissions, spyTrainingQueue, intelReports, allVillages, population, canAfford, resources,
 }: any) {
   const [selectedTarget, setSelectedTarget] = useState<string>('');
   const [selectedMission, setSelectedMission] = useState<SpyMission>('scout');
