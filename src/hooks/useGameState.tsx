@@ -431,16 +431,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [trainingQueue, setTrainingQueue] = useState<TrainingQueue[]>([]);
   const [battleLogs, setBattleLogs] = useState<BattleLog[]>([]);
   const [buildQueue, setBuildQueue] = useState<BuildQueue[]>([]);
-  const [workerAssignments, setWorkerAssignmentsRaw] = useState<WorkerAssignments>(() => {
-    try {
-      const saved = localStorage.getItem('workerAssignments');
-      return saved ? JSON.parse(saved) : {};
-    } catch { return {}; }
-  });
+  const [workerAssignments, setWorkerAssignmentsRaw] = useState<WorkerAssignments>({});
   const setWorkerAssignments = useCallback((updater: WorkerAssignments | ((prev: WorkerAssignments) => WorkerAssignments)) => {
     setWorkerAssignmentsRaw(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
-      try { localStorage.setItem('workerAssignments', JSON.stringify(next)); } catch {}
       return next;
     });
   }, []);
