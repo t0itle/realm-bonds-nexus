@@ -14,7 +14,7 @@ function formatTime(s: number) {
 }
 
 export default function BuildModal({ position, onClose }: { position: number; onClose: () => void }) {
-  const { buildAt, canAfford, getBuildTime } = useGame();
+  const { buildAt, canAfford, canAffordSteel, resources, steel, getBuildTime } = useGame();
 
   const handleBuild = async (type: Exclude<BuildingType, 'empty'>) => {
     const success = await buildAt(position, type);
@@ -46,9 +46,17 @@ export default function BuildModal({ position, onClose }: { position: number; on
           {BUILDABLE.map(type => {
             const info = BUILDING_INFO[type];
             const cost = getUpgradeCost(type, 0);
-            const affordable = canAfford(cost);
+            const affordable = canAfford(cost) && (cost.steel <= 0 || canAffordSteel(cost.steel));
             const sprite = BUILDING_SPRITES[type];
             const buildTime = getBuildTime(type, 0);
+
+            const resourceCheck: Record<string, boolean> = {
+              gold: resources.gold >= cost.gold,
+              wood: resources.wood >= cost.wood,
+              stone: resources.stone >= cost.stone,
+              food: resources.food >= cost.food,
+              steel: steel >= cost.steel,
+            };
 
             return (
               <motion.button
@@ -67,8 +75,9 @@ export default function BuildModal({ position, onClose }: { position: number; on
                 <div className="flex flex-wrap gap-1.5 text-[10px] text-muted-foreground">
                   {Object.entries(cost).filter(([, v]) => v > 0).map(([key, val]) => {
                     const rType = getResourceType(key);
+                    const canAffordThis = resourceCheck[key] !== false;
                     return (
-                      <span key={key} className="flex items-center gap-0.5">
+                      <span key={key} className={`flex items-center gap-0.5 ${canAffordThis ? '' : 'text-destructive font-bold'}`}>
                         {rType ? <ResourceIcon type={rType} size={10} /> : key}
                         {val}
                       </span>
