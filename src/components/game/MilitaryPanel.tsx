@@ -32,7 +32,7 @@ export default function MilitaryPanel() {
 
   // Force re-render for timers
   useEffect(() => {
-    if (trainingQueue.length === 0 && activeSpyMissions.length === 0) return;
+    if (trainingQueue.length === 0 && activeSpyMissions.length === 0 && spyTrainingQueue.length === 0) return;
     const t = setInterval(() => forceUpdate(x => x + 1), 1000);
     return () => clearInterval(t);
   }, [trainingQueue.length, activeSpyMissions.length]);
