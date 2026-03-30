@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useGame, TroopType, Resources } from '@/hooks/useGameState';
+import { useGame, TroopType, Resources, calcMarchTime, getMaxRange } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
@@ -616,12 +616,26 @@ export default function WorldMap() {
     setSelected(null);
   }, [army, attackTarget, addResources, claimedEvents]);
 
-  const calcTravelTime = useCallback((targetX: number, targetY: number) => {
-    // Player is near center (100k, 100k). Distance in world units → seconds
-    const myPos = user ? getPlayerPos(allVillages.find(v => v.village.user_id === user.id)?.village.id || 'me') : { x: 100000, y: 100000 };
-    const dist = Math.sqrt(Math.pow(targetX - myPos.x, 2) + Math.pow(targetY - myPos.y, 2));
-    return Math.max(5, Math.floor(dist / 2000)); // min 5 seconds
+  const getMyPos = useCallback(() => {
+    if (!user) return { x: 100000, y: 100000 };
+    const myVillage = allVillages.find(v => v.village.user_id === user.id);
+    return getPlayerPos(myVillage?.village.id || 'me');
   }, [user, allVillages]);
+
+  const getDistance = useCallback((targetX: number, targetY: number) => {
+    const myPos = getMyPos();
+    return Math.sqrt(Math.pow(targetX - myPos.x, 2) + Math.pow(targetY - myPos.y, 2));
+  }, [getMyPos]);
+
+  const calcTravelTime = useCallback((targetX: number, targetY: number) => {
+    const dist = getDistance(targetX, targetY);
+    return calcMarchTime(dist, army);
+  }, [getDistance, army]);
+
+  const isInRange = useCallback((targetX: number, targetY: number) => {
+    const dist = getDistance(targetX, targetY);
+    return dist <= getMaxRange(army);
+  }, [getDistance, army]);
 
   const handleAttackNPC = useCallback((realm: ProceduralRealm) => {
     const hasTroops = Object.values(army).some(v => v > 0);
