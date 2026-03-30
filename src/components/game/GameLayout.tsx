@@ -142,12 +142,8 @@ export default function GameLayout() {
           >
             <Suspense fallback={<TabFallback />}>
               {activeTab === 'village' && <VillageGrid />}
-              {activeTab === 'military' && <MilitaryPanel />}
-              {activeTab === 'stats' && <StatSheet />}
-              {activeTab === 'dm' && <DungeonMasterPanel />}
               {activeTab === 'map' && <WorldMap />}
-              {activeTab === 'messages' && <MessagesPanel initialDm={dmTarget} onDmHandled={() => setDmTarget(null)} />}
-              {activeTab === 'alliance' && <AlliancePanel />}
+              {activeTab === 'social' && <SocialPanel initialDm={dmTarget} onDmHandled={() => setDmTarget(null)} />}
               {activeTab === 'profile' && <ProfilePanel />}
             </Suspense>
           </motion.div>
