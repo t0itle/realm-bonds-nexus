@@ -26,7 +26,7 @@ function formatTime(ms: number) {
 }
 
 export default function VillageGrid() {
-  const { buildings, upgradeBuilding, demolishBuilding, canAfford, isBuildingUpgrading, getBuildTime } = useGame();
+  const { buildings, upgradeBuilding, demolishBuilding, canAfford, canAffordSteel, isBuildingUpgrading, getBuildTime, resources, steel } = useGame();
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [buildPosition, setBuildPosition] = useState<number | null>(null);
   const [, forceUpdate] = useState(0);
@@ -156,6 +156,9 @@ export default function VillageGrid() {
                 }
               }}
               canAfford={canAfford}
+              canAffordSteel={canAffordSteel}
+              resources={resources}
+              steel={steel}
               isBuildingUpgrading={isBuildingUpgrading}
               getBuildTime={getBuildTime}
             />
@@ -175,11 +178,14 @@ export default function VillageGrid() {
   );
 }
 
-function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, isBuildingUpgrading, getBuildTime }: {
+function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordSteel, resources, steel, isBuildingUpgrading, getBuildTime }: {
   building: Building;
   onUpgrade: () => void;
   onDemolish: () => void;
   canAfford: (cost: any) => boolean;
+  canAffordSteel: (amount: number) => boolean;
+  resources: { gold: number; wood: number; stone: number; food: number };
+  steel: number;
   isBuildingUpgrading: (id: string) => any;
   getBuildTime: (type: Exclude<BuildingType, 'empty'>, level: number) => number;
 }) {
@@ -189,10 +195,19 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, isBuilding
   const sprite = BUILDING_SPRITES[type];
   const upgradeCost = getUpgradeCost(type, building.level);
   const production = getProduction(type, building.level);
-  const affordable = canAfford(upgradeCost);
+  const affordable = canAfford(upgradeCost) && (upgradeCost.steel <= 0 || canAffordSteel(upgradeCost.steel));
   const maxed = building.level >= info.maxLevel;
   const upgrading = isBuildingUpgrading(building.id);
   const buildTime = getBuildTime(type, building.level);
+
+  // Per-resource affordability for highlighting
+  const resourceCheck: Record<string, boolean> = {
+    gold: resources.gold >= upgradeCost.gold,
+    wood: resources.wood >= upgradeCost.wood,
+    stone: resources.stone >= upgradeCost.stone,
+    food: resources.food >= upgradeCost.food,
+    steel: steel >= upgradeCost.steel,
+  };
 
   return (
     <div className="space-y-3">
@@ -227,8 +242,9 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, isBuilding
           <div className="flex gap-3 text-xs">
                   {Object.entries(upgradeCost).filter(([, v]) => v > 0).map(([key, val]) => {
                     const rType = getResourceType(key);
+                    const canAffordThis = resourceCheck[key] !== false;
                     return (
-                      <span key={key} className="text-foreground flex items-center gap-0.5">
+                      <span key={key} className={`flex items-center gap-0.5 ${canAffordThis ? 'text-foreground' : 'text-destructive font-bold'}`}>
                         {rType ? <ResourceIcon type={rType} size={12} /> : key}
                         {val}
                       </span>
