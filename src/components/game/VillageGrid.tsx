@@ -195,6 +195,7 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
   const sprite = BUILDING_SPRITES[type];
   const upgradeCost = getUpgradeCost(type, building.level);
   const production = getProduction(type, building.level);
+  const steelProd = getSteelProduction(type, building.level);
   const affordable = canAfford(upgradeCost) && (upgradeCost.steel <= 0 || canAffordSteel(upgradeCost.steel));
   const maxed = building.level >= info.maxLevel;
   const upgrading = isBuildingUpgrading(building.id);
