@@ -9,14 +9,25 @@ import { supabase } from '@/integrations/supabase/client';
 function lazyRetry<T extends { default: React.ComponentType<any> }>(
   fn: () => Promise<T>
 ): React.LazyExoticComponent<T['default']> {
-  return lazy(() =>
-    fn().catch(() => {
-      // Retry once after a brief delay (handles stale HMR cache)
-      return new Promise<T>((resolve) => {
-        setTimeout(() => resolve(fn()), 1500);
+  return lazy(() => {
+    const attempt = (retries: number): Promise<T> =>
+      fn().catch((err) => {
+        if (retries > 0) {
+          return new Promise<T>((resolve) =>
+            setTimeout(() => resolve(attempt(retries - 1)), 1000)
+          );
+        }
+        // After all retries fail, reload the page once
+        const hasReloaded = sessionStorage.getItem('lazy_reload');
+        if (!hasReloaded) {
+          sessionStorage.setItem('lazy_reload', '1');
+          window.location.reload();
+        }
+        throw err;
       });
-    })
-  );
+    sessionStorage.removeItem('lazy_reload');
+    return attempt(3);
+  });
 }
 
 const VillageGrid = lazyRetry(() => import('./VillageGrid'));
