@@ -221,12 +221,17 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
       </div>
       <p className="text-sm text-muted-foreground">{info.description}</p>
 
-      {Object.keys(production).length > 0 && (
+      {(Object.keys(production).length > 0 || steelProd > 0) && (
         <div className="flex gap-3 text-xs">
           <span className="text-muted-foreground">Production:</span>
           {Object.entries(production).map(([key, val]) => (
             <span key={key} className="text-foreground">+{val} {key}/min</span>
           ))}
+          {steelProd > 0 && (
+            <span className="text-foreground flex items-center gap-0.5">
+              +{steelProd} <ResourceIcon type="steel" size={12} />/min
+            </span>
+          )}
         </div>
       )}
 
