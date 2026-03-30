@@ -339,6 +339,22 @@ function EspionagePanel({
         </div>
       </div>
 
+      {/* Spy Training Queue */}
+      {spyTrainingQueue.length > 0 && (
+        <div className="game-panel border-glow rounded-xl p-3 space-y-2">
+          <h3 className="font-display text-xs text-foreground">🕵️ Training Spies</h3>
+          {spyTrainingQueue.map((q: any, i: number) => {
+            const remaining = Math.max(0, Math.ceil((q.finishTime - Date.now()) / 1000));
+            return (
+              <div key={i} className="flex items-center justify-between text-xs">
+                <span className="text-foreground">🕵️ Spy x{q.count}</span>
+                <span className="text-primary font-mono">{formatTime(remaining)}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Active Missions with travel animation */}
       {activeSpyMissions.length > 0 && (
         <div className="game-panel border-glow rounded-xl p-3 space-y-2">
