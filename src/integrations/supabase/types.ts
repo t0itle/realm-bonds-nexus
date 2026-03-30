@@ -604,6 +604,45 @@ export type Database = {
         }
         Relationships: []
       }
+      world_events: {
+        Row: {
+          created_at: string
+          description: string
+          effects: Json
+          event_type: string
+          expires_at: string
+          id: string
+          resolved_at: string | null
+          status: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          effects?: Json
+          event_type?: string
+          expires_at?: string
+          id?: string
+          resolved_at?: string | null
+          status?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          effects?: Json
+          event_type?: string
+          expires_at?: string
+          id?: string
+          resolved_at?: string | null
+          status?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

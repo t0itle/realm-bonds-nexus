@@ -5,6 +5,7 @@ import { BUILDING_SPRITES, WORKERS_SPRITE, WORKER_FOR_BUILDING } from './sprites
 import BuildModal from './BuildModal';
 import ResourceIcon, { getResourceType } from './ResourceIcon';
 import { Send, Scroll } from 'lucide-react';
+import WorldEventsOverlay from './WorldEventsOverlay';
 
 function getGridSize(townhallLevel: number): number {
   if (townhallLevel >= 7) return 16;
@@ -174,6 +175,9 @@ export default function VillageGrid() {
 
   return (
     <>
+      {/* World Events from the DM */}
+      <WorldEventsOverlay />
+
       <div className="flex-1 flex flex-col items-center justify-center px-3 py-3">
         <div className={`grid gap-2.5 w-full max-w-xs`} style={{ gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))` }}>
           {grid.map((building, i) => {
