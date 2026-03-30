@@ -25,6 +25,132 @@ function formatTime(ms: number) {
   const sec = s % 60;
   return m > 0 ? `${m}:${sec.toString().padStart(2, '0')}` : `${sec}s`;
 }
+const DM_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/game-dm`;
+
+function OracleWidget() {
+  const game = useGame();
+  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([
+    { role: 'assistant', content: '⚜️ Greetings, my liege. I watch over your realm. Ask me anything.' },
+  ]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollBottom = useCallback(() => {
+    setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }), 50);
+  }, []);
+
+  const gameState = {
+    villageName: game.villageName, playerLevel: game.playerLevel,
+    gold: game.resources.gold, wood: game.resources.wood, stone: game.resources.stone, food: game.resources.food, steel: game.steel,
+    population: game.population.current, maxPopulation: game.population.max, happiness: game.population.happiness,
+    taxRate: game.popTaxRate, rations: game.rations,
+    militia: game.army.militia, archers: game.army.archer, knights: game.army.knight,
+    cavalry: game.army.cavalry, siege: game.army.siege, scouts: game.army.scout,
+    totalTroops: Object.values(game.army).reduce((s, v) => s + v, 0),
+    buildings: game.buildings.filter(b => b.type !== 'empty').map(b => `${b.type} Lv${b.level}`).join(', '),
+  };
+
+  const send = async (text?: string) => {
+    const content = text || input.trim();
+    if (!content || loading) return;
+    setInput('');
+    setExpanded(true);
+    const userMsg = { role: 'user' as const, content };
+    const newMsgs = [...messages, userMsg];
+    setMessages(newMsgs);
+    setLoading(true);
+    scrollBottom();
+
+    let assistantSoFar = '';
+    const upsert = (chunk: string) => {
+      assistantSoFar += chunk;
+      setMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last?.role === 'assistant' && prev.length > newMsgs.length)
+          return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantSoFar } : m);
+        return [...prev, { role: 'assistant', content: assistantSoFar }];
+      });
+      scrollBottom();
+    };
+
+    try {
+      const resp = await fetch(DM_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        body: JSON.stringify({ messages: newMsgs.slice(-10), gameState, type: 'chat' }),
+      });
+      if (!resp.ok || !resp.body) throw new Error('Oracle unavailable');
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buf.indexOf('\n')) !== -1) {
+          let line = buf.slice(0, nl); buf = buf.slice(nl + 1);
+          if (line.endsWith('\r')) line = line.slice(0, -1);
+          if (!line.startsWith('data: ')) continue;
+          const json = line.slice(6).trim();
+          if (json === '[DONE]') break;
+          try { const p = JSON.parse(json); const c = p.choices?.[0]?.delta?.content; if (c) upsert(c); } catch {}
+        }
+      }
+    } catch (e: any) {
+      setMessages(prev => [...prev, { role: 'assistant', content: `🔮 ${e.message}` }]);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="mx-3 mb-2">
+      <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center gap-2 game-panel px-3 py-2 rounded-xl border border-primary/20">
+        <span className="text-base">🔮</span>
+        <span className="text-[10px] font-display text-primary flex-1 text-left">Oracle of the Realm</span>
+        <span className="text-[10px] text-muted-foreground">{expanded ? '▼' : '▶'}</span>
+      </button>
+      <AnimatePresence>
+        {expanded && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+            <div className="game-panel border border-border/50 rounded-b-xl px-3 py-2 space-y-2">
+              <div ref={scrollRef} className="max-h-32 overflow-y-auto space-y-1.5">
+                {messages.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[85%] rounded-lg px-2 py-1 text-[10px] leading-relaxed ${msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted/50'}`}>
+                      {msg.role === 'assistant' && <Scroll className="w-2.5 h-2.5 text-primary inline mr-0.5 mb-0.5" />}
+                      <span className="whitespace-pre-wrap">{msg.content}</span>
+                    </div>
+                  </div>
+                ))}
+                {loading && messages[messages.length - 1]?.role !== 'assistant' && (
+                  <div className="text-[10px] text-muted-foreground animate-pulse">🔮 Gazing...</div>
+                )}
+              </div>
+              <div className="flex gap-1 flex-wrap">
+                {['Kingdom status?', 'What to build?', 'Military advice'].map(q => (
+                  <button key={q} onClick={() => send(q)} disabled={loading}
+                    className="text-[9px] px-1.5 py-0.5 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50">{q}</button>
+                ))}
+              </div>
+              <div className="flex gap-1.5 items-center">
+                <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()}
+                  placeholder="Ask the Oracle..." disabled={loading}
+                  className="flex-1 bg-secondary/50 border border-border rounded-lg px-2 py-1.5 text-[10px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50" />
+                <button onClick={() => send()} disabled={loading || !input.trim()}
+                  className="p-1.5 rounded-lg bg-primary text-primary-foreground disabled:opacity-50">
+                  <Send className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 export default function VillageGrid() {
   const { buildings, upgradeBuilding, demolishBuilding, canAfford, canAffordSteel, isBuildingUpgrading, getBuildTime, resources, steel } = useGame();
