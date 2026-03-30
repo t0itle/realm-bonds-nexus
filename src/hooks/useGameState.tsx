@@ -388,6 +388,7 @@ interface GameContextType {
   trainSpies: (count: number) => boolean;
   sendSpyMission: (mission: SpyMission, targetName: string, targetId: string, targetX: number, targetY: number, spiesCount: number) => boolean;
   activeSpyMissions: ActiveSpyMission[];
+  spyTrainingQueue: { count: number; finishTime: number }[];
   intelReports: IntelReport[];
   getWatchtowerLevel: () => number;
   // Apothecary
