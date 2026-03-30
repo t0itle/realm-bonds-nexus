@@ -375,11 +375,18 @@ interface GameContextType {
   activeSpyMissions: ActiveSpyMission[];
   intelReports: IntelReport[];
   getWatchtowerLevel: () => number;
+  // Apothecary
+  injuredTroops: InjuredArmy;
+  poisons: number;
+  healTroops: (type: TroopType, count: number) => boolean;
+  craftPoison: (count: number) => boolean;
+  getApothecaryLevel: () => number;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
 
 const EMPTY_ARMY: Army = { militia: 0, archer: 0, knight: 0, cavalry: 0, siege: 0, scout: 0 };
+const EMPTY_INJURED: InjuredArmy = { militia: 0, archer: 0, knight: 0, cavalry: 0, siege: 0, scout: 0 };
 
 // March range & speed constants
 export const MAX_MARCH_RANGE = 30000; // base max range in world units
