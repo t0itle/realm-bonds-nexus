@@ -113,7 +113,7 @@ export default function StatSheet() {
         </div>
         <div className="flex justify-between text-xs">
           <span className="text-muted-foreground">Pop Food Cost</span>
-          <span className="text-destructive">🌾 -{popFoodCost}/hr</span>
+          <span className="text-destructive">🌾 -{popFoodCost}/min</span>
         </div>
       </div>
 
