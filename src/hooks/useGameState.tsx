@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode, useMemo } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
