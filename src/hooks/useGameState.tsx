@@ -812,6 +812,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
             happiness, rations, pop_tax_rate: popTaxRate,
             army_militia: currentArmy.militia, army_archer: currentArmy.archer,
             army_knight: currentArmy.knight, army_cavalry: currentArmy.cavalry, army_siege: currentArmy.siege,
+            army_scout: currentArmy.scout,
           } as any).eq('id', villageId).then();
           return currentArmy;
         });
@@ -830,6 +831,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         happiness, rations, pop_tax_rate: popTaxRate,
         army_militia: army.militia, army_archer: army.archer,
         army_knight: army.knight, army_cavalry: army.cavalry, army_siege: army.siege,
+        army_scout: army.scout,
       } as any).eq('id', villageId).then();
     };
     window.addEventListener('beforeunload', save);
