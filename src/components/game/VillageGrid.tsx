@@ -178,11 +178,14 @@ export default function VillageGrid() {
   );
 }
 
-function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, isBuildingUpgrading, getBuildTime }: {
+function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordSteel, resources, steel, isBuildingUpgrading, getBuildTime }: {
   building: Building;
   onUpgrade: () => void;
   onDemolish: () => void;
   canAfford: (cost: any) => boolean;
+  canAffordSteel: (amount: number) => boolean;
+  resources: { gold: number; wood: number; stone: number; food: number };
+  steel: number;
   isBuildingUpgrading: (id: string) => any;
   getBuildTime: (type: Exclude<BuildingType, 'empty'>, level: number) => number;
 }) {
