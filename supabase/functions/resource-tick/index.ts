@@ -290,6 +290,7 @@ Deno.serve(async (req) => {
         wood: newWood,
         stone: newStone,
         food: newFood,
+        steel: newSteel,
         population: newPop,
         max_population: housingCap,
         happiness: happinessVal,
