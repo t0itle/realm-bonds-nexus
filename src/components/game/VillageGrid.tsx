@@ -5,7 +5,7 @@ import { BUILDING_SPRITES, WORKERS_SPRITE, WORKER_FOR_BUILDING } from './sprites
 import BuildModal from './BuildModal';
 import ResourceIcon, { getResourceType } from './ResourceIcon';
 import { Send, Scroll } from 'lucide-react';
-import WorldEventsOverlay from './WorldEventsOverlay';
+
 import { lazy, Suspense } from 'react';
 
 const MilitaryPanel = lazy(() => import('./MilitaryPanel'));
