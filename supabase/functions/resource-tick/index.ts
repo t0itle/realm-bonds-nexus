@@ -48,12 +48,12 @@ const BASE_PRODUCTION: Record<string, Partial<Record<string, number>>> = {
 const HOUSING_PER_LEVEL = 8;
 
 const TROOP_UPKEEP: Record<string, { food: number; gold: number; popCost: number }> = {
-  militia:  { food: 1, gold: 0, popCost: 1 },
-  archer:   { food: 1, gold: 1, popCost: 1 },
-  knight:   { food: 2, gold: 2, popCost: 2 },
-  cavalry:  { food: 3, gold: 2, popCost: 2 },
-  siege:    { food: 2, gold: 3, popCost: 3 },
-  scout:    { food: 1, gold: 1, popCost: 1 },
+  militia:  { food: 0.5, gold: 0, popCost: 1 },
+  archer:   { food: 0.5, gold: 0.5, popCost: 1 },
+  knight:   { food: 1, gold: 1, popCost: 2 },
+  cavalry:  { food: 1.5, gold: 1, popCost: 2 },
+  siege:    { food: 1, gold: 1.5, popCost: 3 },
+  scout:    { food: 0.5, gold: 0.5, popCost: 1 },
 };
 
 const RATIONS_MULTIPLIER: Record<string, number> = {
