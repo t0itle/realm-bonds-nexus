@@ -398,7 +398,7 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
         <div className="flex gap-3 text-xs">
           <span className="text-muted-foreground">Production:</span>
           {Object.entries(production).map(([key, val]) => (
-            <span key={key} className="text-foreground">+{val} {key}/min</span>
+            <span key={key} className="text-foreground">+{val} {key}/hr</span>
           ))}
           {steelProd > 0 && (
             <span className="text-foreground flex items-center gap-0.5">
