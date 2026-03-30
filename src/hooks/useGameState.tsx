@@ -744,7 +744,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
           setArmy(prevArmy => {
             const updated = { ...prevArmy };
             for (const t of ['siege', 'cavalry', 'knight', 'archer', 'militia'] as TroopType[]) {
-              if (updated[t] > 0) { updated[t]--; break; }
+              if (updated[t] > 0) {
+                updated[t]--;
+                setPopulationBase(prev => Math.max(1, prev - TROOP_INFO[t].popCost));
+                break;
+              }
             }
             return updated;
           });
@@ -957,10 +961,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const result = resolveCombat(army, fakeDefenderArmy, 0, Math.floor(targetPower / 50));
     
     const newArmy = { ...army };
+    let popLost = 0;
     for (const [type, lost] of Object.entries(result.attackerLosses) as [TroopType, number][]) {
+      const actualLost = Math.min(lost, newArmy[type] || 0);
       newArmy[type] = Math.max(0, (newArmy[type] || 0) - lost);
+      popLost += TROOP_INFO[type].popCost * actualLost;
     }
     setArmy(newArmy);
+    if (popLost > 0) setPopulationBase(prev => Math.max(1, prev - popLost));
     
     const resourcesGained = result.victory ? {
       gold: Math.floor(targetPower * 0.5 + Math.random() * 200),
@@ -1011,10 +1019,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
     
     // Apply attacker losses
     const newArmy = { ...army };
+    let pvpPopLost = 0;
     for (const [type, lost] of Object.entries(result.attackerLosses) as [TroopType, number][]) {
+      const actualLost = Math.min(lost, newArmy[type] || 0);
       newArmy[type] = Math.max(0, (newArmy[type] || 0) - lost);
+      pvpPopLost += TROOP_INFO[type].popCost * actualLost;
     }
     setArmy(newArmy);
+    if (pvpPopLost > 0) setPopulationBase(prev => Math.max(1, prev - pvpPopLost));
     
     // Apply defender losses to their village
     const defNewArmy = { ...defArmy };
@@ -1171,10 +1183,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
     
     // Apply losses
     const newArmy = { ...army };
+    let rebelPopLost = 0;
     for (const [type, lost] of Object.entries(result.attackerLosses) as [TroopType, number][]) {
+      const actualLost = Math.min(lost, newArmy[type] || 0);
       newArmy[type] = Math.max(0, (newArmy[type] || 0) - lost);
+      rebelPopLost += TROOP_INFO[type].popCost * actualLost;
     }
     setArmy(newArmy);
+    if (rebelPopLost > 0) setPopulationBase(prev => Math.max(1, prev - rebelPopLost));
     
     if (result.victory) {
       await supabase.from('vassalages').update({ status: 'ended', ended_at: new Date().toISOString() } as any).eq('id', vassalageId);
