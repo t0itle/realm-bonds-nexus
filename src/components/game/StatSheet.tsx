@@ -1,51 +1,14 @@
-import { useState, useEffect } from 'react';
 import { useGame, TROOP_INFO, TroopType, BUILDING_INFO, BuildingType, RATIONS_INFO, RationsLevel } from '@/hooks/useGameState';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
 import ResourceIcon from './ResourceIcon';
-
-interface VassalAlert {
-  id: string;
-  attacker_name: string;
-  defender_name: string;
-  result: string;
-  created_at: string;
-  vassalized: boolean | null;
-  resources_raided: any;
-}
 
 export default function StatSheet() {
   const {
     population, army, armyUpkeep, totalProduction, resources, steel, buildings,
     workerAssignments, assignWorker, unassignWorker, getMaxWorkers,
     rations, setRations, popTaxRate, setPopTaxRate, popFoodCost, popTaxIncome,
-    vassalages,
   } = useGame();
-  const { user } = useAuth();
   const upkeep = armyUpkeep();
   const totalTroops = Object.values(army).reduce((s, v) => s + v, 0);
-
-  const [vassalAlerts, setVassalAlerts] = useState<VassalAlert[]>([]);
-
-  // Fetch battle reports where my vassals were attacked
-  useEffect(() => {
-    if (!user) return;
-    const myVassalIds = vassalages
-      .filter(v => v.lord_id === user.id && v.status === 'active')
-      .map(v => v.vassal_id);
-    if (myVassalIds.length === 0) { setVassalAlerts([]); return; }
-
-    const fetchAlerts = async () => {
-      const { data } = await supabase
-        .from('battle_reports')
-        .select('id, attacker_name, defender_name, result, created_at, vassalized, resources_raided')
-        .in('defender_id', myVassalIds)
-        .order('created_at', { ascending: false })
-        .limit(10);
-      if (data) setVassalAlerts(data as VassalAlert[]);
-    };
-    fetchAlerts();
-  }, [user, vassalages]);
 
   const happinessColor = population.happiness >= 70 ? 'text-emerald-500' : population.happiness >= 40 ? 'text-amber-500' : 'text-destructive';
   const happinessEmoji = population.happiness >= 70 ? <ResourceIcon type="happiness" size={14} /> : population.happiness >= 40 ? <ResourceIcon type="happiness" size={14} className="opacity-60" /> : <ResourceIcon type="happiness" size={14} className="opacity-30" />;
@@ -53,38 +16,6 @@ export default function StatSheet() {
   return (
     <div className="flex-1 flex flex-col p-3 space-y-3 overflow-y-auto pb-20">
       <h2 className="font-display text-lg text-foreground text-shadow-gold">Kingdom Stats</h2>
-
-      {/* Vassal Alerts — only show for lords */}
-      {vassalAlerts.length > 0 && (
-        <div className="game-panel border-glow rounded-xl p-3 space-y-2 border-destructive/40">
-          <h3 className="font-display text-xs text-destructive flex items-center gap-1">🚨 Vassal Alerts</h3>
-          <div className="space-y-1.5 max-h-40 overflow-y-auto">
-            {vassalAlerts.map(alert => {
-              const timeAgo = Math.floor((Date.now() - new Date(alert.created_at).getTime()) / 60000);
-              const timeStr = timeAgo < 60 ? `${timeAgo}m ago` : `${Math.floor(timeAgo / 60)}h ago`;
-              const raided = alert.resources_raided || {};
-              return (
-                <div key={alert.id} className="bg-destructive/5 rounded-lg p-2 space-y-0.5">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] text-foreground">
-                      <span className="text-destructive font-bold">{alert.attacker_name}</span>
-                      {' '}attacked your vassal{' '}
-                      <span className="text-primary font-bold">{alert.defender_name}</span>
-                    </p>
-                    <span className="text-[8px] text-muted-foreground">{timeStr}</span>
-                  </div>
-                  <p className="text-[9px] text-muted-foreground">
-                    {alert.result === 'victory' ? '⚔️ Attacker won' : '🛡️ Vassal defended'}
-                    {(raided.gold || raided.wood || raided.stone || raided.food) ? 
-                      ` · Raided: ${raided.gold || 0}💰 ${raided.wood || 0}🪵 ${raided.stone || 0}🪨 ${raided.food || 0}🌾` : ''}
-                    {alert.vassalized ? ' · ⛓️ Stolen as vassal!' : ''}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Happiness */}
       <div className="game-panel border-glow rounded-xl p-3 space-y-2">
