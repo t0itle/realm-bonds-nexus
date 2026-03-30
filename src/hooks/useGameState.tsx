@@ -459,6 +459,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [allianceId, setAllianceId] = useState<string | null>(null);
   const pendingTaxAccrualRef = useRef({ gold: 0, wood: 0, stone: 0, food: 0 });
   const pendingTreasuryFlushRef = useRef({ gold: 0, wood: 0, stone: 0, food: 0 });
+  // Fractional resource accumulator — prevents rounding losses on low-production resources
+  const fracAccumulatorRef = useRef({ gold: 0, wood: 0, stone: 0, food: 0 });
+  // Flag to suppress realtime overwrites during active ticking
+  const lastSaveTimestampRef = useRef(0);
 
   // Refs for state that changes inside tick but shouldn't restart the effect.
   // Refs for simple state vars (defined above) — assigned here.
