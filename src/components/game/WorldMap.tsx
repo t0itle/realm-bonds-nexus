@@ -1135,21 +1135,21 @@ export default function WorldMap() {
             <button key={pv.village.id} data-map-item
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'player', data: pv }); }}
               className={`absolute flex flex-col items-center ${isMe ? 'z-40' : 'z-30'} hover:z-50`}
-              style={{ left: sx, top: sy, transform: 'translate(-50%, -100%)' }}>
+              style={{ left: sx, top: sy, transform: 'translate(-50%, -80%)' }}>
               <img
-                src={mapPlayer}
+                src={mapVillage}
                 alt={pv.profile.display_name}
                 loading="lazy"
-                className={`drop-shadow-lg ${isMe ? 'brightness-125 saturate-110' : 'brightness-75 grayscale-[30%]'}`}
-                style={{ width: iconSize * 0.9, height: iconSize * 0.9, imageRendering: 'auto' }}
+                className={`drop-shadow-lg ${isMe ? 'brightness-110 saturate-110' : 'brightness-75 grayscale-[20%]'}`}
+                style={{ width: iconSize * 1.2, height: iconSize * 1.2, imageRendering: 'auto', objectFit: 'contain' }}
               />
               {isMe && (
-                <div className="absolute -inset-1.5 rounded-lg pointer-events-none"
-                  style={{ boxShadow: '0 0 12px 3px hsl(var(--primary) / 0.4)', border: '2px solid hsl(var(--primary) / 0.6)' }} />
+                <div className="absolute -inset-2 rounded-full pointer-events-none"
+                  style={{ boxShadow: '0 0 18px 5px hsl(var(--primary) / 0.35)', border: '2px solid hsl(var(--primary) / 0.5)' }} />
               )}
               {iconSize > 28 && (
-                <div className={`text-center rounded px-1.5 py-0.5 ${isMe ? 'bg-primary/90 ring-1 ring-primary' : 'bg-background/80'}`}
-                  style={{ marginTop: 2 }}>
+                <div className={`text-center rounded-md px-1.5 py-0.5 backdrop-blur-sm ${isMe ? 'bg-primary/90 ring-1 ring-primary' : 'bg-background/80 border border-border/50'}`}
+                  style={{ marginTop: -2 }}>
                   <p className={`font-display whitespace-nowrap leading-tight ${isMe ? 'text-primary-foreground' : 'text-foreground'}`}
                     style={{ fontSize: Math.max(8, fontSize - 1) }}>
                     {isMe ? '⭐ You' : pv.profile.display_name}
