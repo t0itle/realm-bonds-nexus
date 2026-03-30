@@ -354,6 +354,8 @@ interface GameContextType {
   vassalages: Vassalage[];
   payRansom: (vassalageId: string) => Promise<boolean>;
   attemptRebellion: (vassalageId: string) => Promise<boolean>;
+  setVassalTributeRate: (vassalageId: string, rate: number) => Promise<boolean>;
+  releaseVassal: (vassalageId: string) => Promise<boolean>;
   getWallLevel: () => number;
   armyUpkeep: () => { food: number; gold: number };
   population: PopulationStats;
@@ -1293,7 +1295,25 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
   }, [vassalages, user, army]);
 
-  // Worker assignment system
+  // Lord: change vassal tribute rate
+  const setVassalTributeRate = useCallback(async (vassalageId: string, rate: number): Promise<boolean> => {
+    const v = vassalages.find(va => va.id === vassalageId);
+    if (!v || v.lord_id !== user?.id) return false;
+    const clampedRate = Math.max(0, Math.min(50, rate));
+    await supabase.from('vassalages').update({ tribute_rate: clampedRate } as any).eq('id', vassalageId);
+    setVassalages(prev => prev.map(va => va.id === vassalageId ? { ...va, tribute_rate: clampedRate } : va));
+    return true;
+  }, [vassalages, user]);
+
+  // Lord: release a vassal
+  const releaseVassal = useCallback(async (vassalageId: string): Promise<boolean> => {
+    const v = vassalages.find(va => va.id === vassalageId);
+    if (!v || v.lord_id !== user?.id) return false;
+    await supabase.from('vassalages').update({ status: 'ended', ended_at: new Date().toISOString() } as any).eq('id', vassalageId);
+    setVassalages(prev => prev.filter(va => va.id !== vassalageId));
+    return true;
+  }, [vassalages, user]);
+
   const getMaxWorkers = useCallback((building: Building) => {
     if (building.type === 'empty') return 0;
     const info = BUILDING_INFO[building.type];
@@ -1561,7 +1581,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       rations, setRations, popTaxRate, setPopTaxRate, popFoodCost, popTaxIncome,
       isBuildingUpgrading, getBuildTime,
       spies, trainSpies, sendSpyMission, activeSpyMissions, intelReports, getWatchtowerLevel,
-      attackPlayer, vassalages, payRansom, attemptRebellion, getWallLevel,
+      attackPlayer, vassalages, payRansom, attemptRebellion, setVassalTributeRate, releaseVassal, getWallLevel,
       injuredTroops, poisons, healTroops, craftPoison, getApothecaryLevel,
     }}>
       {children}
