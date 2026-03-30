@@ -96,15 +96,17 @@ export default function MilitaryPanel() {
             </span>
           )}
         </button>
-        <button onClick={() => setTab('apothecary')}
-          className={`flex-1 font-display text-[10px] py-1.5 rounded-lg transition-colors relative ${tab === 'apothecary' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-          ⚗️ Apothecary
-          {totalInjured > 0 && (
-            <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[8px] font-bold rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5">
-              {totalInjured}
-            </span>
-          )}
-        </button>
+        {apothecaryLevel > 0 && (
+          <button onClick={() => setTab('apothecary')}
+            className={`flex-1 font-display text-[10px] py-1.5 rounded-lg transition-colors relative ${tab === 'apothecary' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+            ⚗️ Apothecary
+            {totalInjured > 0 && (
+              <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[8px] font-bold rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5">
+                {totalInjured}
+              </span>
+            )}
+          </button>
+        )}
       </div>
 
       {/* ===== TROOPS TAB ===== */}
