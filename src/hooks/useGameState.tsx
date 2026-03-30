@@ -879,6 +879,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
           });
         }
       }
+      lastSaveTimestampRef.current = Date.now();
       setResources(current => {
         setArmy(currentArmy => {
           setPopulationBase(currentPop => {
