@@ -183,6 +183,20 @@ export default function GuildVoting({ allianceId, isLeader }: GuildVotingProps) 
     } else {
       toast.success('Proposal created! Members have 24h to vote.');
       setCreating(false);
+
+      // Send push notifications to all other guild members
+      const otherMembers = members.filter(m => m.user_id !== user.id);
+      const proposerName = members.find(m => m.user_id === user.id)?.display_name || 'A member';
+      for (const member of otherMembers) {
+        supabase.functions.invoke('send-push', {
+          body: {
+            user_id: member.user_id,
+            title: '🗳️ New Guild Proposal',
+            body: `${proposerName}: ${title}`,
+            tag: 'guild-proposal',
+          },
+        }).catch(console.error);
+      }
     }
     setLoading(false);
     loadProposals();
