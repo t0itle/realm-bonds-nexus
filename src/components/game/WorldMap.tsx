@@ -581,7 +581,14 @@ export default function WorldMap() {
       h = ((h << 5) + h + id.charCodeAt(i)) >>> 0;
     }
     const h2 = ((h * 2654435761) >>> 0);
-    return { x: 80000 + (h % 40000), y: 80000 + (h2 % 40000) };
+    // Use golden-ratio-based spiral placement for even distribution
+    // Each player gets a unique angle/radius combo to avoid clustering
+    const angle = (h % 10000) / 10000 * Math.PI * 2;
+    const radius = 5000 + (h2 % 35000); // 5k-40k from center
+    return {
+      x: 100000 + Math.cos(angle) * radius,
+      y: 100000 + Math.sin(angle) * radius,
+    };
   };
 
   const goHome = useCallback(() => {
@@ -982,33 +989,84 @@ export default function WorldMap() {
           );
         }))}
 
-        {allVillages.map((pv) => {
-          const pos = getPlayerPos(pv.village.id);
-          if (!isVisible(pos.x, pos.y, 80)) return null;
-          const { sx, sy } = worldToScreen(pos.x, pos.y);
-          const isMe = pv.village.user_id === user?.id;
-          return (
+        {/* Player settlements with collision nudging */}
+        {(() => {
+          // Compute positions first, then nudge overlapping ones apart
+          const playerPositions = allVillages.map(pv => {
+            const pos = getPlayerPos(pv.village.id);
+            const { sx, sy } = worldToScreen(pos.x, pos.y);
+            const isMe = pv.village.user_id === user?.id;
+            return { pv, pos, sx, sy, isMe };
+          }).filter(p => {
+            const margin = 80;
+            return p.sx > -margin && p.sx < containerSize.w + margin && p.sy > -margin && p.sy < containerSize.h + margin;
+          });
+
+          // Simple collision nudge: push overlapping labels apart
+          const minDist = Math.max(50, iconSize * 1.8);
+          for (let i = 0; i < playerPositions.length; i++) {
+            for (let j = i + 1; j < playerPositions.length; j++) {
+              const a = playerPositions[i];
+              const b = playerPositions[j];
+              const dx = b.sx - a.sx;
+              const dy = b.sy - a.sy;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist < minDist && dist > 0) {
+                const overlap = (minDist - dist) / 2;
+                const nx = dx / dist;
+                const ny = dy / dist;
+                // Don't nudge "me" — nudge others
+                if (a.isMe) {
+                  b.sx += nx * overlap * 2;
+                  b.sy += ny * overlap * 2;
+                } else if (b.isMe) {
+                  a.sx -= nx * overlap * 2;
+                  a.sy -= ny * overlap * 2;
+                } else {
+                  a.sx -= nx * overlap;
+                  a.sy -= ny * overlap;
+                  b.sx += nx * overlap;
+                  b.sy += ny * overlap;
+                }
+              }
+            }
+          }
+
+          // Sort so "me" renders on top
+          const sorted = playerPositions.sort((a, b) => (a.isMe ? 1 : 0) - (b.isMe ? 1 : 0));
+
+          return sorted.map(({ pv, sx, sy, isMe }) => (
             <button key={pv.village.id} data-map-item
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'player', data: pv }); }}
-              className="absolute z-30 flex flex-col items-center hover:z-40"
-              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
+              className={`absolute flex flex-col items-center ${isMe ? 'z-40' : 'z-30'} hover:z-50`}
+              style={{ left: sx, top: sy, transform: 'translate(-50%, -100%)' }}>
               <img
                 src={mapPlayer}
                 alt={pv.profile.display_name}
                 loading="lazy"
-                className={`drop-shadow-lg ${isMe ? 'brightness-110' : 'brightness-75 grayscale-[30%]'}`}
+                className={`drop-shadow-lg ${isMe ? 'brightness-125 saturate-110' : 'brightness-75 grayscale-[30%]'}`}
                 style={{ width: iconSize * 0.9, height: iconSize * 0.9, imageRendering: 'auto' }}
               />
-              {isMe && <div className="absolute -inset-1 rounded-lg ring-2 ring-primary/50 pointer-events-none" />}
+              {isMe && (
+                <div className="absolute -inset-1.5 rounded-lg pointer-events-none"
+                  style={{ boxShadow: '0 0 12px 3px hsl(var(--primary) / 0.4)', border: '2px solid hsl(var(--primary) / 0.6)' }} />
+              )}
               {iconSize > 28 && (
-                <div className="text-center bg-background/80 rounded mt-0.5 px-1 py-0.5">
-                  <p className="font-display text-foreground whitespace-nowrap" style={{ fontSize: Math.max(7, fontSize - 2) }}>{isMe ? '⭐ You' : pv.profile.display_name}</p>
-                  <p className="text-muted-foreground" style={{ fontSize: Math.max(6, fontSize - 3) }}>Lv.{pv.village.level}</p>
+                <div className={`text-center rounded px-1.5 py-0.5 ${isMe ? 'bg-primary/90 ring-1 ring-primary' : 'bg-background/80'}`}
+                  style={{ marginTop: 2 }}>
+                  <p className={`font-display whitespace-nowrap leading-tight ${isMe ? 'text-primary-foreground' : 'text-foreground'}`}
+                    style={{ fontSize: Math.max(8, fontSize - 1) }}>
+                    {isMe ? '⭐ You' : pv.profile.display_name}
+                  </p>
+                  <p className={`${isMe ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}
+                    style={{ fontSize: Math.max(7, fontSize - 3) }}>
+                    Lv.{pv.village.level}
+                  </p>
                 </div>
               )}
             </button>
-          );
-        })}
+          ));
+        })()}
 
         {/* Zoom controls — larger touch targets on mobile */}
         <div className="absolute bottom-3 right-3 flex flex-col gap-1.5 z-50">
