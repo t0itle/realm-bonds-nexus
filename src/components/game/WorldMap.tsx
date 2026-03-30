@@ -1048,18 +1048,25 @@ export default function WorldMap() {
         {/* Events */}
         {renderEvents.map((event) => {
           const { sx, sy } = worldToScreen(event.x, event.y);
+          const evSprite = event.type === 'mystery' ? mapRuins : EVENT_SPRITES[event.type];
           return (
             <button key={event.id} data-map-item
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'event', data: event, chunkKey: '', index: 0 }); }}
               className="absolute z-20"
               style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
               <img
-                src={EVENT_SPRITES[event.type]}
+                src={evSprite}
                 alt={event.name}
                 loading="lazy"
                 className="drop-shadow-lg"
-                style={{ width: eventSize, height: eventSize, imageRendering: 'auto' }}
+                style={{ width: eventSize, height: eventSize, imageRendering: 'auto', objectFit: 'contain' }}
               />
+              {eventSize > 24 && (
+                <span className="absolute -bottom-3 left-1/2 -translate-x-1/2 text-foreground/60 font-display whitespace-nowrap"
+                  style={{ fontSize: Math.max(7, eventSize / 5) }}>
+                  {event.emoji}
+                </span>
+              )}
             </button>
           );
         })}
