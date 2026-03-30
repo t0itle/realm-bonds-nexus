@@ -1,7 +1,7 @@
 // Service Worker for Push Notifications only
 self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {};
-  const title = data.title || 'Realm Bonds Nexus';
+  const title = data.title || 'Everbloom Kingdoms';
   const options = {
     body: data.body || 'Something happened in your realm!',
     icon: data.icon || '/placeholder.svg',

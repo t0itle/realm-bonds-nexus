@@ -246,7 +246,7 @@ export default function LandingPage() {
           </motion.div>
 
           <h1 className="font-display text-3xl sm:text-5xl font-black text-foreground text-shadow-gold leading-tight">
-            Realm of Shadows
+            Everbloom Kingdoms
           </h1>
 
           <p className="text-base sm:text-lg text-muted-foreground max-w-lg mx-auto leading-relaxed">
@@ -309,7 +309,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-border px-6 py-8 text-center">
-        <p className="text-[10px] text-muted-foreground">© 2026 Realm of Shadows. All rights reserved.</p>
+        <p className="text-[10px] text-muted-foreground">© 2026 Everbloom Kingdoms. All rights reserved.</p>
       </footer>
     </div>
   );

@@ -72,7 +72,7 @@ export default function AuthPage() {
             🏰
           </motion.div>
           <h1 className="font-display text-2xl font-bold text-foreground text-shadow-gold">
-            Realm of Shadows
+            Everbloom Kingdoms
           </h1>
           <p className="text-sm text-muted-foreground">
             {isSignUp ? 'Create your kingdom' : 'Return to your kingdom'}
