@@ -264,6 +264,7 @@ export default function MilitaryPanel() {
           barracksLevel={barracksLevel}
           sendSpyMission={sendSpyMission}
           activeSpyMissions={activeSpyMissions}
+          spyTrainingQueue={spyTrainingQueue}
           intelReports={intelReports}
           allVillages={allVillages}
           population={population}
