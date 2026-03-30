@@ -154,6 +154,7 @@ Deno.serve(async (req) => {
 
       // Calculate gross production per minute
       let grossGold = 0, grossWood = 0, grossStone = 0, grossFood = 0;
+      let grossSteel = 0;
       let housingCap = 10; // base
       let happinessVal = 50;
       let totalWorkers = 0;
@@ -164,6 +165,7 @@ Deno.serve(async (req) => {
         grossWood += prod.wood || 0;
         grossStone += prod.stone || 0;
         grossFood += prod.food || 0;
+        grossSteel += getSteelProduction(b.type, b.level, b.workers);
         totalWorkers += b.workers;
 
         if (b.type === "house") {
