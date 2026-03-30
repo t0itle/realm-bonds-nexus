@@ -1,27 +1,161 @@
+import { useState, useRef } from 'react';
 import { useGame, BUILDING_INFO, BuildingType, TROOP_INFO, TroopType } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { motion } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
+import { motion, AnimatePresence } from 'framer-motion';
+import crownOverlay from '@/assets/sprites/crown-overlay.png';
+import ResourceIcon from './ResourceIcon';
+
+function CrownAvatar({ avatarUrl, emoji, size = 64 }: { avatarUrl?: string | null; emoji?: string; size?: number }) {
+  const crownSize = size * 0.6;
+  return (
+    <div className="relative inline-block" style={{ width: size, height: size }}>
+      <div className="w-full h-full rounded-full bg-secondary flex items-center justify-center overflow-hidden glow-gold border-2 border-primary/30">
+        {avatarUrl ? (
+          <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+        ) : (
+          <span style={{ fontSize: size * 0.5 }}>{emoji || '🛡️'}</span>
+        )}
+      </div>
+      <img
+        src={crownOverlay}
+        alt=""
+        className="absolute pointer-events-none"
+        style={{ width: crownSize, height: crownSize, top: -crownSize * 0.55, left: '50%', transform: 'translateX(-50%)' }}
+        loading="lazy"
+      />
+    </div>
+  );
+}
 
 export default function ProfilePanel() {
-  const { villageName, playerLevel, buildings, totalProduction, displayName, army, totalArmyPower } = useGame();
+  const { villageName, playerLevel, buildings, totalProduction, steelProduction, displayName, avatarUrl, army, totalArmyPower, setDisplayName, setVillageName, setAvatarUrl } = useGame();
   const { signOut, user } = useAuth();
   const { isSupported, isSubscribed, subscribe, unsubscribe, permission } = usePushNotifications();
   const totalBuildingLevels = buildings.reduce((sum, b) => sum + b.level, 0);
   const power = totalArmyPower();
   const totalTroops = Object.values(army).reduce((s, v) => s + v, 0);
 
+  const [editingName, setEditingName] = useState(false);
+  const [editingVillage, setEditingVillage] = useState(false);
+  const [nameInput, setNameInput] = useState(displayName);
+  const [villageInput, setVillageInput] = useState(villageName);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const hasGoogle = user?.app_metadata?.providers?.includes('google') ||
     user?.identities?.some(i => i.provider === 'google');
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (!file.type.startsWith('image/')) return;
+    if (file.size > 2 * 1024 * 1024) return; // 2MB limit
+
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `${user.id}/avatar.${ext}`;
+      
+      const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
+      if (error) throw error;
+
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
+      // Add cache-buster
+      const url = `${urlData.publicUrl}?t=${Date.now()}`;
+      setAvatarUrl(url);
+    } catch (err) {
+      console.error('Upload failed:', err);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const saveName = async () => {
+    if (nameInput.trim() && nameInput.trim() !== displayName) {
+      await setDisplayName(nameInput.trim());
+    }
+    setEditingName(false);
+  };
+
+  const saveVillage = async () => {
+    if (villageInput.trim() && villageInput.trim() !== villageName) {
+      await setVillageName(villageInput.trim());
+    }
+    setEditingVillage(false);
+  };
 
   return (
     <div className="flex-1 flex flex-col p-4 space-y-4 pb-20 overflow-y-auto">
       <h2 className="font-display text-lg text-foreground text-shadow-gold">Profile</h2>
 
-      <div className="game-panel border-glow rounded-xl p-4 text-center space-y-2">
-        <div className="w-16 h-16 mx-auto rounded-full bg-secondary flex items-center justify-center text-3xl glow-gold">🛡️</div>
-        <h3 className="font-display text-foreground">{displayName}</h3>
-        <p className="text-xs text-muted-foreground">{villageName}</p>
+      <div className="game-panel border-glow rounded-xl p-4 text-center space-y-3">
+        {/* Avatar with crown */}
+        <div className="flex flex-col items-center gap-1 pt-4">
+          <div className="cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+            <CrownAvatar avatarUrl={avatarUrl} size={72} />
+          </div>
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+          <button 
+            onClick={() => fileInputRef.current?.click()} 
+            className="text-[9px] text-primary hover:underline mt-1"
+            disabled={uploading}
+          >
+            {uploading ? 'Uploading...' : 'Change Avatar'}
+          </button>
+        </div>
+
+        {/* Display name */}
+        <AnimatePresence mode="wait">
+          {editingName ? (
+            <motion.div key="edit-name" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-1 justify-center">
+              <input
+                value={nameInput}
+                onChange={e => setNameInput(e.target.value)}
+                maxLength={20}
+                autoFocus
+                className="bg-muted text-foreground font-display text-center text-sm rounded-lg px-2 py-1 border border-border w-36 focus:outline-none focus:border-primary"
+                onKeyDown={e => e.key === 'Enter' && saveName()}
+              />
+              <button onClick={saveName} className="text-primary text-xs">✓</button>
+              <button onClick={() => setEditingName(false)} className="text-muted-foreground text-xs">✕</button>
+            </motion.div>
+          ) : (
+            <motion.div key="show-name" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <h3 className="font-display text-foreground cursor-pointer hover:text-primary transition-colors inline-flex items-center gap-1"
+                onClick={() => { setNameInput(displayName); setEditingName(true); }}>
+                {displayName} <span className="text-[9px] text-muted-foreground">✏️</span>
+              </h3>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Village name */}
+        <AnimatePresence mode="wait">
+          {editingVillage ? (
+            <motion.div key="edit-village" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-1 justify-center">
+              <input
+                value={villageInput}
+                onChange={e => setVillageInput(e.target.value)}
+                maxLength={30}
+                autoFocus
+                className="bg-muted text-muted-foreground text-center text-xs rounded-lg px-2 py-1 border border-border w-40 focus:outline-none focus:border-primary"
+                onKeyDown={e => e.key === 'Enter' && saveVillage()}
+              />
+              <button onClick={saveVillage} className="text-primary text-xs">✓</button>
+              <button onClick={() => setEditingVillage(false)} className="text-muted-foreground text-xs">✕</button>
+            </motion.div>
+          ) : (
+            <motion.div key="show-village" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <p className="text-xs text-muted-foreground cursor-pointer hover:text-primary transition-colors inline-flex items-center gap-1"
+                onClick={() => { setVillageInput(villageName); setEditingVillage(true); }}>
+                {villageName} <span className="text-[9px]">✏️</span>
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <p className="text-xs text-primary font-bold">Level {playerLevel}</p>
         <p className="text-xs text-muted-foreground">Power: {(totalBuildingLevels * 100 + power.attack + power.defense).toLocaleString()}</p>
       </div>
@@ -29,10 +163,13 @@ export default function ProfilePanel() {
       <div className="game-panel border-glow rounded-xl p-4 space-y-2">
         <h3 className="font-display text-sm text-foreground">Production Rates</h3>
         <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="flex items-center gap-2"><span>💰</span><span className="text-foreground">{totalProduction.gold} gold/min</span></div>
-          <div className="flex items-center gap-2"><span>🪵</span><span className="text-foreground">{totalProduction.wood} wood/min</span></div>
-          <div className="flex items-center gap-2"><span>🪨</span><span className="text-foreground">{totalProduction.stone} stone/min</span></div>
-          <div className="flex items-center gap-2"><span>🌾</span><span className="text-foreground">{totalProduction.food} food/min</span></div>
+          <div className="flex items-center gap-2"><ResourceIcon type="gold" size={14} /><span className="text-foreground">{totalProduction.gold} gold/min</span></div>
+          <div className="flex items-center gap-2"><ResourceIcon type="wood" size={14} /><span className="text-foreground">{totalProduction.wood} wood/min</span></div>
+          <div className="flex items-center gap-2"><ResourceIcon type="stone" size={14} /><span className="text-foreground">{totalProduction.stone} stone/min</span></div>
+          <div className="flex items-center gap-2"><ResourceIcon type="food" size={14} /><span className="text-foreground">{totalProduction.food} food/min</span></div>
+          {steelProduction > 0 && (
+            <div className="flex items-center gap-2"><ResourceIcon type="steel" size={14} /><span className="text-foreground">{steelProduction} steel/min</span></div>
+          )}
         </div>
       </div>
 
@@ -111,3 +248,5 @@ export default function ProfilePanel() {
     </div>
   );
 }
+
+export { CrownAvatar };
