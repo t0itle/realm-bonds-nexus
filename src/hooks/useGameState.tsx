@@ -731,6 +731,21 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }, 60000);
 
     const saveInterval = setInterval(() => {
+      // Flush accumulated guild tax to treasury
+      if (allianceId) {
+        const pt = pendingTaxRef.current;
+        const flushGold = Math.floor(pt.gold);
+        const flushWood = Math.floor(pt.wood);
+        const flushStone = Math.floor(pt.stone);
+        const flushFood = Math.floor(pt.food);
+        if (flushGold + flushWood + flushStone + flushFood > 0) {
+          pt.gold -= flushGold; pt.wood -= flushWood; pt.stone -= flushStone; pt.food -= flushFood;
+          supabase.rpc('add_to_alliance_treasury', {
+            p_alliance_id: allianceId, p_gold: flushGold, p_wood: flushWood, p_stone: flushStone, p_food: flushFood,
+          });
+        }
+      }
+
       setResources(current => {
         setArmy(currentArmy => {
           supabase.from('villages').update({
