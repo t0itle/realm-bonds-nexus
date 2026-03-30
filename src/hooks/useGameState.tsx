@@ -345,6 +345,7 @@ interface GameContextType {
   canAfford: (cost: Resources) => boolean;
   canAffordSteel: (amount: number) => boolean;
   totalProduction: Resources;
+  steelProduction: number;
   allVillages: PlayerVillage[];
   loading: boolean;
   army: Army;
