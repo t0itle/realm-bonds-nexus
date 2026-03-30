@@ -1,10 +1,12 @@
 import { useGame, BUILDING_INFO, BuildingType, TROOP_INFO, TroopType } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { motion } from 'framer-motion';
 
 export default function ProfilePanel() {
   const { villageName, playerLevel, buildings, totalProduction, displayName, army, totalArmyPower } = useGame();
   const { signOut, user } = useAuth();
+  const { isSupported, isSubscribed, subscribe, unsubscribe, permission } = usePushNotifications();
   const totalBuildingLevels = buildings.reduce((sum, b) => sum + b.level, 0);
   const power = totalArmyPower();
   const totalTroops = Object.values(army).reduce((s, v) => s + v, 0);
@@ -70,6 +72,29 @@ export default function ProfilePanel() {
           })}
         </div>
       </div>
+
+      {/* Push Notifications */}
+      {isSupported && (
+        <div className="game-panel border-glow rounded-xl p-4 space-y-2">
+          <h3 className="font-display text-sm text-foreground">🔔 Push Notifications</h3>
+          <p className="text-[10px] text-muted-foreground">
+            Get notified about attacks, completed buildings, and vassal events.
+          </p>
+          {permission === 'denied' ? (
+            <p className="text-[10px] text-destructive">Notifications blocked. Enable in browser settings.</p>
+          ) : (
+            <motion.button whileTap={{ scale: 0.95 }}
+              onClick={() => isSubscribed ? unsubscribe() : subscribe()}
+              className={`w-full font-display text-xs py-2 rounded-lg transition-colors ${
+                isSubscribed 
+                  ? 'bg-destructive/20 text-destructive' 
+                  : 'bg-primary text-primary-foreground glow-gold-sm'
+              }`}>
+              {isSubscribed ? '🔕 Disable Notifications' : '🔔 Enable Notifications'}
+            </motion.button>
+          )}
+        </div>
+      )}
 
       {/* Google account status */}
       {hasGoogle && (
