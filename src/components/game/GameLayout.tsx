@@ -37,6 +37,7 @@ const MilitaryPanel = lazyRetry(() => import('./MilitaryPanel'));
 const ProfilePanel = lazyRetry(() => import('./ProfilePanel'));
 const MessagesPanel = lazyRetry(() => import('./MessagesPanel'));
 const StatSheet = lazyRetry(() => import('./StatSheet'));
+const NotificationsPanel = lazyRetry(() => import('./NotificationsPanel'));
 
 function TabFallback() {
   return (
@@ -46,13 +47,14 @@ function TabFallback() {
   );
 }
 
-type Tab = 'village' | 'map' | 'military' | 'alliance' | 'messages' | 'profile' | 'stats';
+type Tab = 'village' | 'map' | 'military' | 'alliance' | 'messages' | 'profile' | 'stats' | 'notifications';
 
 const TABS: { id: Tab; icon: string; label: string }[] = [
   { id: 'village', icon: '🏘️', label: 'Village' },
   { id: 'military', icon: '⚔️', label: 'Army' },
   { id: 'stats', icon: '📊', label: 'Stats' },
   { id: 'map', icon: '🗺️', label: 'Map' },
+  { id: 'notifications', icon: '🔔', label: 'Alerts' },
   { id: 'messages', icon: '💬', label: 'Mail' },
   { id: 'alliance', icon: '🤝', label: 'Guild' },
   { id: 'profile', icon: '👤', label: 'Me' },
@@ -149,6 +151,7 @@ export default function GameLayout() {
               {activeTab === 'village' && <VillageGrid />}
               {activeTab === 'military' && <MilitaryPanel />}
               {activeTab === 'stats' && <StatSheet />}
+              {activeTab === 'notifications' && <NotificationsPanel />}
               {activeTab === 'map' && <WorldMap />}
               {activeTab === 'messages' && <MessagesPanel initialDm={dmTarget} onDmHandled={() => setDmTarget(null)} />}
               {activeTab === 'alliance' && <AlliancePanel />}
