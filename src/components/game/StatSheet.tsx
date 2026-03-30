@@ -132,7 +132,7 @@ export default function StatSheet() {
         </div>
         <div className="flex justify-between text-xs">
           <span className="text-muted-foreground">Tax Income</span>
-          <span className="text-emerald-500">💰 +{popTaxIncome}/min</span>
+          <span className="text-emerald-500">💰 +{popTaxIncome}/hr</span>
         </div>
         {popTaxRate > 10 && (
           <p className="text-[9px] text-destructive">⚠️ High taxes reduce happiness by -{(popTaxRate - 10) * 2}</p>
