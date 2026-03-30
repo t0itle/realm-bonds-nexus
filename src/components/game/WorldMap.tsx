@@ -94,8 +94,10 @@ interface ChunkData {
   events: ProceduralEvent[];
   terrain: TerrainFeature[];
   steelMines: SteelMine[];
+  decorations: Decoration[];
   regionName: string;
   regionBiome: string;
+}
 }
 
 interface ProceduralRealm {
