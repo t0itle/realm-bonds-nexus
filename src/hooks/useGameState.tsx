@@ -950,6 +950,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       knight: Math.floor(targetPower / 25),
       cavalry: Math.floor(targetPower / 30),
       siege: 0,
+      scout: 0,
     };
     const result = resolveCombat(army, fakeDefenderArmy, 0, Math.floor(targetPower / 50));
     
@@ -990,6 +991,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       knight: (defVillage as any).army_knight ?? 0,
       cavalry: (defVillage as any).army_cavalry ?? 0,
       siege: (defVillage as any).army_siege ?? 0,
+      scout: (defVillage as any).army_scout ?? 0,
     };
     
     // Get defender's wall level
@@ -1137,6 +1139,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       knight: (lordVillage as any).army_knight ?? 0,
       cavalry: (lordVillage as any).army_cavalry ?? 0,
       siege: (lordVillage as any).army_siege ?? 0,
+      scout: (lordVillage as any).army_scout ?? 0,
     };
     
     // Rebellion: vassal attacks with their army vs lord's army (reduced - lords don't send full force)
@@ -1146,6 +1149,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       knight: Math.floor(lordArmy.knight * 0.5),
       cavalry: Math.floor(lordArmy.cavalry * 0.5),
       siege: Math.floor(lordArmy.siege * 0.5),
+      scout: Math.floor(lordArmy.scout * 0.5),
     };
     
     const result = resolveCombat(army, reducedLordArmy, 0, 0);
