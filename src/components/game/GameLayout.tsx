@@ -80,7 +80,7 @@ export default function GameLayout() {
 
   // Reset unread when viewing messages
   useEffect(() => {
-    if (activeTab === 'messages' && user) {
+    if (activeTab === 'social' && user) {
       const timer = setTimeout(async () => {
         const { count } = await supabase.from('player_messages')
           .select('*', { count: 'exact', head: true })
