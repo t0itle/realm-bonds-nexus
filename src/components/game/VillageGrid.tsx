@@ -6,6 +6,10 @@ import BuildModal from './BuildModal';
 import ResourceIcon, { getResourceType } from './ResourceIcon';
 import { Send, Scroll } from 'lucide-react';
 import WorldEventsOverlay from './WorldEventsOverlay';
+import { lazy, Suspense } from 'react';
+
+const MilitaryPanel = lazy(() => import('./MilitaryPanel'));
+const StatSheet = lazy(() => import('./StatSheet'));
 
 function getGridSize(townhallLevel: number): number {
   if (townhallLevel >= 7) return 16;
