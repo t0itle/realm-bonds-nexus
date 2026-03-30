@@ -1402,11 +1402,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [getApothecaryLevel, canAfford]);
 
   // Train spies (requires barracks lvl 2+, costs gold + food + 1 pop each)
-  const trainSpies = useCallback((count: number) => {
-    if (getBarracksLevel() < 2) return false;
+   const trainSpies = useCallback((count: number) => {
+    console.log('[trainSpies]', { count, barracksLvl: getBarracksLevel(), civilians: population.civilians, gold: resources.gold, food: resources.food });
+    if (getBarracksLevel() < 2) { console.log('[trainSpies] FAIL: barracks < 2'); return false; }
     const cost = { gold: 40 * count, wood: 0, stone: 0, food: 20 * count };
-    if (!canAfford(cost)) return false;
-    if (population.civilians < count) return false;
+    if (!canAfford(cost)) { console.log('[trainSpies] FAIL: cant afford'); return false; }
+    if (population.civilians < count) { console.log('[trainSpies] FAIL: not enough civilians'); return false; }
     const newResources = { gold: resources.gold - cost.gold, wood: resources.wood, stone: resources.stone, food: resources.food - cost.food };
     setResources(newResources);
     // Persist resource deduction to DB
