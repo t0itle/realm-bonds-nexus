@@ -537,7 +537,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       const { data: village } = await supabase.from('villages').select('*').eq('user_id', user.id).single();
       if (village) {
         setVillageId(village.id);
-        setVillageName(village.name);
+        setVillageNameLocal(village.name);
         setPlayerLevel(village.level);
         setResources({ gold: Number(village.gold), wood: Number(village.wood), stone: Number(village.stone), food: Number(village.food) });
         setSteel((village as any).steel ?? 0);
