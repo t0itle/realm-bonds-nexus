@@ -903,16 +903,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const trainTroops = useCallback((type: TroopType, count: number) => {
     const info = TROOP_INFO[type];
     const barracksLvl = getBarracksLevel();
-    if (barracksLvl < info.requiredBarracksLevel) return false;
+    console.log('[trainTroops]', { type, count, barracksLvl, required: info.requiredBarracksLevel, totalSoldiers, armyCap, civilians: population.civilians, resources, steel });
+    if (barracksLvl < info.requiredBarracksLevel) { console.log('[trainTroops] FAIL: barracks too low'); return false; }
     const totalCost: Resources = {
       gold: info.cost.gold * count, wood: info.cost.wood * count,
       stone: info.cost.stone * count, food: info.cost.food * count,
     };
     const totalSteelCost = info.steelCost * count;
-    if (!canAfford(totalCost) || !canAffordSteel(totalSteelCost)) return false;
+    if (!canAfford(totalCost) || !canAffordSteel(totalSteelCost)) { console.log('[trainTroops] FAIL: cant afford', { totalCost, totalSteelCost }); return false; }
     const popNeeded = info.popCost * count;
-    if (totalSoldiers + popNeeded > armyCap) return false;
-    if (population.civilians < popNeeded) return false;
+    if (totalSoldiers + popNeeded > armyCap) { console.log('[trainTroops] FAIL: over army cap', { totalSoldiers, popNeeded, armyCap }); return false; }
+    if (population.civilians < popNeeded) { console.log('[trainTroops] FAIL: not enough civilians', { civilians: population.civilians, popNeeded }); return false; }
 
     const newResources = {
       gold: resources.gold - totalCost.gold, wood: resources.wood - totalCost.wood,
