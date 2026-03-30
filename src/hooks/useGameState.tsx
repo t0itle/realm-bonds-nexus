@@ -515,6 +515,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
         const { data: blds } = await supabase.from('buildings').select('*').eq('village_id', village.id);
         if (blds) {
           setBuildings(blds.map(b => ({ id: b.id, type: b.type as BuildingType, level: b.level, position: b.position, village_id: b.village_id })));
+          // Load worker assignments from DB
+          const wa: WorkerAssignments = {};
+          for (const b of blds) {
+            if ((b as any).workers > 0) wa[b.id] = (b as any).workers;
+          }
+          setWorkerAssignments(wa);
         }
       }
 
