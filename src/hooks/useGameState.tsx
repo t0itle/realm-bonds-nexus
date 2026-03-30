@@ -402,7 +402,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [vassalages, setVassalages] = useState<Vassalage[]>([]);
   const [allianceTaxRate, setAllianceTaxRate] = useState(0);
   const [allianceId, setAllianceId] = useState<string | null>(null);
-  const pendingTaxRef = useRef({ gold: 0, wood: 0, stone: 0, food: 0 });
+  const pendingTaxAccrualRef = useRef({ gold: 0, wood: 0, stone: 0, food: 0 });
+  const pendingTreasuryFlushRef = useRef({ gold: 0, wood: 0, stone: 0, food: 0 });
 
   // Wrap setRations and setPopTaxRate to immediately persist to DB
   const setRations = useCallback((r: RationsLevel) => {
@@ -482,6 +483,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
           .eq('id', aid)
           .single();
         if (alliance) setAllianceTaxRate(alliance.tax_rate);
+      } else {
+        setAllianceId(null);
+        setAllianceTaxRate(0);
       }
 
       setLoading(false);
@@ -634,13 +638,20 @@ export function GameProvider({ children }: { children: ReactNode }) {
       foodCost += info.foodUpkeep * count;
       goldCost += info.goldUpkeep * count;
     }
+
+    const taxFraction = allianceId ? allianceTaxRate / 100 : 0;
+    const taxedGrossGold = Math.floor(grossProduction.gold * (1 - taxFraction));
+    const taxedGrossWood = Math.floor(grossProduction.wood * (1 - taxFraction));
+    const taxedGrossStone = Math.floor(grossProduction.stone * (1 - taxFraction));
+    const taxedGrossFood = Math.floor(grossProduction.food * (1 - taxFraction));
+
     return {
-      gold: grossProduction.gold - goldCost + popTaxIncome,
-      wood: grossProduction.wood,
-      stone: grossProduction.stone,
-      food: grossProduction.food - foodCost - popFoodCost,
+      gold: taxedGrossGold - goldCost + popTaxIncome,
+      wood: taxedGrossWood,
+      stone: taxedGrossStone,
+      food: taxedGrossFood - foodCost - popFoodCost,
     };
-  }, [grossProduction, army, popTaxIncome, popFoodCost]);
+  }, [grossProduction, army, popTaxIncome, popFoodCost, allianceId, allianceTaxRate]);
 
   // Army upkeep
   const armyUpkeep = useCallback(() => {
@@ -669,23 +680,33 @@ export function GameProvider({ children }: { children: ReactNode }) {
         const taxGold = Math.floor(popTaxIncome / 20);
 
         // Guild tax: accumulate fractional amounts across ticks
-        const taxFraction = allianceTaxRate / 100;
-        const taxGoldAmt = goldProd * taxFraction;
-        const taxWoodAmt = woodProd * taxFraction;
-        const taxStoneAmt = stoneProd * taxFraction;
-        const taxFoodAmt = foodProd * taxFraction;
+        const taxFraction = allianceId ? allianceTaxRate / 100 : 0;
+        let deductGold = 0;
+        let deductWood = 0;
+        let deductStone = 0;
+        let deductFood = 0;
 
-        if (allianceId && taxFraction > 0) {
-          pendingTaxRef.current.gold += taxGoldAmt;
-          pendingTaxRef.current.wood += taxWoodAmt;
-          pendingTaxRef.current.stone += taxStoneAmt;
-          pendingTaxRef.current.food += taxFoodAmt;
+        if (taxFraction > 0) {
+          pendingTaxAccrualRef.current.gold += goldProd * taxFraction;
+          pendingTaxAccrualRef.current.wood += woodProd * taxFraction;
+          pendingTaxAccrualRef.current.stone += stoneProd * taxFraction;
+          pendingTaxAccrualRef.current.food += foodProd * taxFraction;
+
+          deductGold = Math.floor(pendingTaxAccrualRef.current.gold);
+          deductWood = Math.floor(pendingTaxAccrualRef.current.wood);
+          deductStone = Math.floor(pendingTaxAccrualRef.current.stone);
+          deductFood = Math.floor(pendingTaxAccrualRef.current.food);
+
+          pendingTaxAccrualRef.current.gold -= deductGold;
+          pendingTaxAccrualRef.current.wood -= deductWood;
+          pendingTaxAccrualRef.current.stone -= deductStone;
+          pendingTaxAccrualRef.current.food -= deductFood;
+
+          pendingTreasuryFlushRef.current.gold += deductGold;
+          pendingTreasuryFlushRef.current.wood += deductWood;
+          pendingTreasuryFlushRef.current.stone += deductStone;
+          pendingTreasuryFlushRef.current.food += deductFood;
         }
-        
-        const deductGold = Math.floor(taxGoldAmt);
-        const deductWood = Math.floor(taxWoodAmt);
-        const deductStone = Math.floor(taxStoneAmt);
-        const deductFood = Math.floor(taxFoodAmt);
         
         const newFood = prev.food + (foodProd - deductFood) - upkeep.food - civFoodCost;
         const newGold = prev.gold + (goldProd - deductGold) - upkeep.gold + taxGold;
@@ -733,15 +754,23 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const saveInterval = setInterval(() => {
       // Flush accumulated guild tax to treasury
       if (allianceId) {
-        const pt = pendingTaxRef.current;
-        const flushGold = Math.floor(pt.gold);
-        const flushWood = Math.floor(pt.wood);
-        const flushStone = Math.floor(pt.stone);
-        const flushFood = Math.floor(pt.food);
+        const pt = pendingTreasuryFlushRef.current;
+        const flushGold = pt.gold;
+        const flushWood = pt.wood;
+        const flushStone = pt.stone;
+        const flushFood = pt.food;
         if (flushGold + flushWood + flushStone + flushFood > 0) {
           pt.gold -= flushGold; pt.wood -= flushWood; pt.stone -= flushStone; pt.food -= flushFood;
-          supabase.rpc('add_to_alliance_treasury', {
+          void supabase.rpc('add_to_alliance_treasury', {
             p_alliance_id: allianceId, p_gold: flushGold, p_wood: flushWood, p_stone: flushStone, p_food: flushFood,
+          }).then(({ error }) => {
+            if (error) {
+              pendingTreasuryFlushRef.current.gold += flushGold;
+              pendingTreasuryFlushRef.current.wood += flushWood;
+              pendingTreasuryFlushRef.current.stone += flushStone;
+              pendingTreasuryFlushRef.current.food += flushFood;
+              console.error('Failed to flush alliance tax to treasury', error);
+            }
           });
         }
       }
