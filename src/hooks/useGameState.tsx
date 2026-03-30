@@ -559,8 +559,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
     const villageChannel = supabase.channel('village-changes')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'villages', filter: `user_id=eq.${user.id}` }, (payload) => {
-        // Ignore realtime echoes from our own saves (within 5s) to prevent clobbering local ticks
-        if (Date.now() - lastSaveTimestampRef.current < 5000) return;
         const v = payload.new;
         setResources({ gold: Number(v.gold), wood: Number(v.wood), stone: Number(v.stone), food: Number(v.food) });
         setVillageName(v.name as string);
@@ -571,6 +569,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setHappinessBase((v as any).happiness ?? 50);
         setRationsLocal(((v as any).rations as RationsLevel) ?? 'normal');
         setPopTaxRateLocal((v as any).pop_tax_rate ?? 5);
+        setArmy({
+          militia: (v as any).army_militia ?? 0,
+          archer: (v as any).army_archer ?? 0,
+          knight: (v as any).army_knight ?? 0,
+          cavalry: (v as any).army_cavalry ?? 0,
+          siege: (v as any).army_siege ?? 0,
+          scout: (v as any).army_scout ?? 0,
+        });
       }).subscribe();
 
     return () => { supabase.removeChannel(villageChannel); };
