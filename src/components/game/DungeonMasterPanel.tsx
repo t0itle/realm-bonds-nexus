@@ -84,10 +84,10 @@ async function streamDM(
 
 // Thresholds for automatic events
 function detectEvents(game: ReturnType<typeof useGame>): string | null {
-  if (game.resources.food <= 10 && game.population > 5) return 'The granaries are nearly empty! The people cry out for food. What counsel do you offer?';
+  if (game.resources.food <= 10 && game.population.current > 5) return 'The granaries are nearly empty! The people cry out for food. What counsel do you offer?';
   if (game.resources.gold <= 10) return 'The treasury coffers echo with emptiness. Gold reserves are critically low.';
-  if (game.happiness <= 20) return 'Discontent festers among the populace. Happiness has fallen dangerously low. The people whisper of rebellion.';
-  if (game.population >= game.maxPopulation * 0.95 && game.maxPopulation > 10) return 'The village bursts at the seams — housing is at maximum capacity!';
+  if (game.population.happiness <= 20) return 'Discontent festers among the populace. Happiness has fallen dangerously low. The people whisper of rebellion.';
+  if (game.population.current >= game.population.max * 0.95 && game.population.max > 10) return 'The village bursts at the seams — housing is at maximum capacity!';
   return null;
 }
 
