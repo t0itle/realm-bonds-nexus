@@ -668,27 +668,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
         const goldProd = Math.max(0, Math.floor(grossProduction.gold / 20));
         const taxGold = Math.floor(popTaxIncome / 20);
 
-        // Guild tax: deduct % of gross production gains for the alliance treasury
+        // Guild tax: accumulate fractional amounts across ticks
         const taxFraction = allianceTaxRate / 100;
-        const taxGoldAmt = Math.floor(goldProd * taxFraction);
-        const taxWoodAmt = Math.floor(woodProd * taxFraction);
-        const taxStoneAmt = Math.floor(stoneProd * taxFraction);
-        const taxFoodAmt = Math.floor(foodProd * taxFraction);
+        const taxGoldAmt = goldProd * taxFraction;
+        const taxWoodAmt = woodProd * taxFraction;
+        const taxStoneAmt = stoneProd * taxFraction;
+        const taxFoodAmt = foodProd * taxFraction;
 
-        // Credit alliance treasury (batched, non-blocking)
-        if (allianceId && (taxGoldAmt + taxWoodAmt + taxStoneAmt + taxFoodAmt) > 0) {
-          supabase.auth.getSession().then(({ data: { session } }) => {
-            if (!session) return;
-            fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/add_to_alliance_treasury`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-                'Authorization': `Bearer ${session.access_token}`,
-              },
-              body: JSON.stringify({ p_alliance_id: allianceId, p_gold: taxGoldAmt, p_wood: taxWoodAmt, p_stone: taxStoneAmt, p_food: taxFoodAmt }),
-            });
-          });
+        if (allianceId && taxFraction > 0) {
+          pendingTaxRef.current.gold += taxGoldAmt;
+          pendingTaxRef.current.wood += taxWoodAmt;
+          pendingTaxRef.current.stone += taxStoneAmt;
+          pendingTaxRef.current.food += taxFoodAmt;
         }
         
         const newFood = prev.food + (foodProd - taxFoodAmt) - upkeep.food - civFoodCost;
