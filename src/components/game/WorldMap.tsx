@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useGame, TroopType, Resources } from '@/hooks/useGameState';
+import { useGame, TroopType, Resources, calcMarchTime, getMaxRange } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
@@ -595,37 +595,68 @@ export default function WorldMap() {
     setCamera({ cx: 100000, cy: 100000, ppu: 0.003 });
   }, []);
 
-  const handleInvestigate = useCallback((event: ProceduralEvent) => {
-    if (claimedEvents.has(event.id)) return;
-    const hasTroops = Object.values(army).some(v => v > 0);
-    if (event.power > 0 && !hasTroops) { toast.error('You need troops to investigate dangerous events!'); return; }
-    if (event.power > 0) {
-      const log = attackTarget(event.name, event.power);
-      if (log.result === 'victory') {
-        addResources(event.reward);
-        setClaimedEvents(prev => new Set(prev).add(event.id));
-        toast.success(`Victory at ${event.name}! Resources gained.`);
-      } else {
-        toast.error(`Defeated at ${event.name}! Your troops suffered losses.`);
-      }
-    } else {
-      addResources(event.reward);
-      setClaimedEvents(prev => new Set(prev).add(event.id));
-      toast.success(`${event.name} — Resources claimed!`);
-    }
-    setSelected(null);
-  }, [army, attackTarget, addResources, claimedEvents]);
+  const getMyPos = useCallback(() => {
+    if (!user) return { x: 100000, y: 100000 };
+    const myVillage = allVillages.find(v => v.village.user_id === user.id);
+    return getPlayerPos(myVillage?.village.id || 'me');
+  }, [user, allVillages]);
+
+  const getDistance = useCallback((targetX: number, targetY: number) => {
+    const myPos = getMyPos();
+    return Math.sqrt(Math.pow(targetX - myPos.x, 2) + Math.pow(targetY - myPos.y, 2));
+  }, [getMyPos]);
 
   const calcTravelTime = useCallback((targetX: number, targetY: number) => {
-    // Player is near center (100k, 100k). Distance in world units → seconds
-    const myPos = user ? getPlayerPos(allVillages.find(v => v.village.user_id === user.id)?.village.id || 'me') : { x: 100000, y: 100000 };
-    const dist = Math.sqrt(Math.pow(targetX - myPos.x, 2) + Math.pow(targetY - myPos.y, 2));
-    return Math.max(5, Math.floor(dist / 2000)); // min 5 seconds
-  }, [user, allVillages]);
+    const dist = getDistance(targetX, targetY);
+    return calcMarchTime(dist, army);
+  }, [getDistance, army]);
+
+  const isInRange = useCallback((targetX: number, targetY: number) => {
+    const dist = getDistance(targetX, targetY);
+    return dist <= getMaxRange(army);
+  }, [getDistance, army]);
+
+  const handleInvestigate = useCallback((event: ProceduralEvent) => {
+    if (claimedEvents.has(event.id)) return;
+    if (!isInRange(event.x, event.y)) { toast.error('Too far! Train scouts to extend your range.'); return; }
+    const hasTroops = Object.values(army).some(v => v > 0);
+    if (event.power > 0 && !hasTroops) { toast.error('You need troops to investigate dangerous events!'); return; }
+    const travelSec = calcTravelTime(event.x, event.y);
+    if (event.power > 0) {
+      const eventData = event;
+      toast(`⚔️ Troops marching to ${event.name}... ETA ${travelSec}s`);
+      setMarches(prev => [...prev, {
+        id: `evt-${Date.now()}`, targetName: eventData.name, arrivalTime: Date.now() + travelSec * 1000,
+        action: () => {
+          const log = attackTarget(eventData.name, eventData.power);
+          if (log.result === 'victory') {
+            addResources(eventData.reward);
+            setClaimedEvents(prev => new Set(prev).add(eventData.id));
+            toast.success(`Victory at ${eventData.name}! Resources gained.`);
+          } else {
+            toast.error(`Defeated at ${eventData.name}!`);
+          }
+        },
+      }]);
+    } else {
+      toast(`🚶 Collecting from ${event.name}... ETA ${travelSec}s`);
+      const eventData = event;
+      setMarches(prev => [...prev, {
+        id: `claim-${Date.now()}`, targetName: eventData.name, arrivalTime: Date.now() + travelSec * 1000,
+        action: () => {
+          addResources(eventData.reward);
+          setClaimedEvents(prev => new Set(prev).add(eventData.id));
+          toast.success(`${eventData.name} — Resources claimed!`);
+        },
+      }]);
+    }
+    setSelected(null);
+  }, [army, attackTarget, addResources, claimedEvents, calcTravelTime, isInRange]);
 
   const handleAttackNPC = useCallback((realm: ProceduralRealm) => {
     const hasTroops = Object.values(army).some(v => v > 0);
     if (!hasTroops) { toast.error('You need troops to attack!'); return; }
+    if (!isInRange(realm.x, realm.y)) { toast.error('Out of range! Train scouts to extend reach.'); return; }
     const travelSec = calcTravelTime(realm.x, realm.y);
     const arrivalTime = Date.now() + travelSec * 1000;
     toast(`⚔️ Troops marching to ${realm.name}... ETA ${travelSec}s`);
@@ -641,10 +672,10 @@ export default function WorldMap() {
   }, [army, attackTarget, calcTravelTime]);
 
   const handleEnvoy = useCallback((realm: ProceduralRealm) => {
-    // Check if already have a trade contract with this realm
     if (tradeContracts.some(c => c.realmId === realm.id)) {
       toast.error('You already have a trade contract with this realm!'); return;
     }
+    if (!isInRange(realm.x, realm.y)) { toast.error('Out of range! Train scouts to extend reach.'); return; }
     const tribute = { gold: Math.floor(realm.power * 0.3) };
     addResources({ gold: -tribute.gold });
     const travelSec = calcTravelTime(realm.x, realm.y);

@@ -414,6 +414,7 @@ export type Database = {
           army_cavalry: number
           army_knight: number
           army_militia: number
+          army_scout: number
           army_siege: number
           created_at: string
           food: number
@@ -438,6 +439,7 @@ export type Database = {
           army_cavalry?: number
           army_knight?: number
           army_militia?: number
+          army_scout?: number
           army_siege?: number
           created_at?: string
           food?: number
@@ -462,6 +464,7 @@ export type Database = {
           army_cavalry?: number
           army_knight?: number
           army_militia?: number
+          army_scout?: number
           army_siege?: number
           created_at?: string
           food?: number
