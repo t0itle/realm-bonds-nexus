@@ -13,6 +13,13 @@ import mapEventOpportunity from '@/assets/sprites/map-event-opportunity.png';
 import mapEventMystery from '@/assets/sprites/map-event-mystery.png';
 import mapMine from '@/assets/sprites/map-mine.png';
 import mapPlayer from '@/assets/sprites/map-player.png';
+// Fantasy terrain sprites
+import mapTrees from '@/assets/sprites/map-trees.png';
+import mapGrass from '@/assets/sprites/map-grass.png';
+import mapRocks from '@/assets/sprites/map-rocks.png';
+import mapVillage from '@/assets/sprites/map-village.png';
+import mapRuins from '@/assets/sprites/map-ruins.png';
+import mapMountain from '@/assets/sprites/map-mountain.png';
 
 const REALM_SPRITES: Record<string, string> = {
   hostile: mapCastleHostile,
@@ -53,11 +60,25 @@ interface TerrainFeature {
   width: number;
   height: number;
   rotation?: number;
-  // River-specific
   points?: { x: number; y: number }[];
   bridgeAt?: { x: number; y: number }[];
   name: string;
 }
+
+interface Decoration {
+  type: 'trees' | 'grass' | 'rocks';
+  x: number;
+  y: number;
+  size: number;
+  rotation: number;
+  opacity: number;
+}
+
+const DECO_SPRITES: Record<Decoration['type'], string> = {
+  trees: mapTrees,
+  grass: mapGrass,
+  rocks: mapRocks,
+};
 
 interface SteelMine {
   id: string;
@@ -73,6 +94,7 @@ interface ChunkData {
   events: ProceduralEvent[];
   terrain: TerrainFeature[];
   steelMines: SteelMine[];
+  decorations: Decoration[];
   regionName: string;
   regionBiome: string;
 }
@@ -362,7 +384,29 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
     });
   }
 
-  return { realms, events, terrain, steelMines, regionName, regionBiome };
+  // ── Decorations (trees, grass, rocks) — scatter per biome ──
+  const decorations: Decoration[] = [];
+  const decoTypes: Decoration['type'][] = 
+    regionBiome === 'Forest' || regionBiome === 'Jungle' ? ['trees', 'trees', 'grass', 'trees'] :
+    regionBiome === 'Plains' || regionBiome === 'Steppe' ? ['grass', 'grass', 'trees', 'grass'] :
+    regionBiome === 'Highlands' || regionBiome === 'Badlands' ? ['rocks', 'rocks', 'trees', 'rocks'] :
+    regionBiome === 'Tundra' ? ['rocks', 'rocks', 'grass'] :
+    regionBiome === 'Desert' ? ['rocks', 'rocks'] :
+    ['trees', 'grass', 'rocks'];
+  const decoCount = regionBiome === 'Desert' ? 3 + Math.floor(rng() * 4) : 8 + Math.floor(rng() * 10);
+  for (let i = 0; i < decoCount; i++) {
+    const dt = decoTypes[Math.floor(rng() * decoTypes.length)];
+    decorations.push({
+      type: dt,
+      x: worldBaseX + 2000 + rng() * (CHUNK_SIZE - 4000),
+      y: worldBaseY + 2000 + rng() * (CHUNK_SIZE - 4000),
+      size: dt === 'trees' ? 3000 + rng() * 5000 : dt === 'grass' ? 4000 + rng() * 8000 : 2000 + rng() * 4000,
+      rotation: rng() * 360,
+      opacity: 0.3 + rng() * 0.4,
+    });
+  }
+
+  return { realms, events, terrain, steelMines, decorations, regionName, regionBiome };
 }
 
 // ── Chunk cache (time-keyed so events rotate) ──
@@ -826,13 +870,10 @@ export default function WorldMap() {
             return (
               <div key={`mtn-${chunk.cx}-${chunk.cy}-${ti}`} className="absolute pointer-events-none"
                 style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
-                <svg width={w} height={h} viewBox="0 0 100 100" style={{ overflow: 'visible' }}>
-                  <polygon points="50,5 10,95 90,95" fill="hsl(30 20% 35% / 0.4)" stroke="hsl(30 30% 50% / 0.3)" strokeWidth={1.5} />
-                  <polygon points="50,5 40,30 60,30" fill="hsl(210 20% 85% / 0.5)" stroke="none" />
-                  <polygon points="35,50 20,95 50,95" fill="hsl(30 15% 30% / 0.25)" stroke="none" />
-                </svg>
+                <img src={mapMountain} alt={t.name} loading="lazy"
+                  style={{ width: w, height: h, objectFit: 'contain', opacity: 0.85 }} />
                 {w > 25 && (
-                  <span className="absolute left-1/2 whitespace-nowrap font-display text-amber-200/50" style={{ fontSize: labelSize, bottom: -labelSize - 2, transform: 'translateX(-50%)' }}>
+                  <span className="absolute left-1/2 whitespace-nowrap font-display text-foreground/50" style={{ fontSize: labelSize, bottom: -labelSize - 2, transform: 'translateX(-50%)' }}>
                     ⛰️ {t.name}
                   </span>
                 )}
@@ -920,6 +961,30 @@ export default function WorldMap() {
           return null;
         }))}
 
+        {/* ── Decorations (trees, grass, rocks) ── */}
+        {visibleChunks.map(chunk => chunk.data.decorations.map((d, di) => {
+          const { sx, sy } = worldToScreen(d.x, d.y);
+          const s = d.size * camera.ppu;
+          if (s < 4) return null;
+          const margin = 60;
+          if (sx < -margin || sx > containerSize.w + margin || sy < -margin || sy > containerSize.h + margin) return null;
+          return (
+            <img key={`deco-${chunk.cx}-${chunk.cy}-${di}`}
+              src={DECO_SPRITES[d.type]}
+              alt=""
+              loading="lazy"
+              className="absolute pointer-events-none"
+              style={{
+                left: sx, top: sy,
+                width: s, height: s,
+                transform: `translate(-50%, -50%) rotate(${d.rotation}deg)`,
+                opacity: d.opacity,
+                objectFit: 'contain',
+              }}
+            />
+          );
+        }))}
+
         {visibleChunks.map(chunk => {
           const centerX = chunk.cx * CHUNK_SIZE + CHUNK_SIZE / 2;
           const centerY = chunk.cy * CHUNK_SIZE + CHUNK_SIZE / 2;
@@ -983,18 +1048,25 @@ export default function WorldMap() {
         {/* Events */}
         {renderEvents.map((event) => {
           const { sx, sy } = worldToScreen(event.x, event.y);
+          const evSprite = event.type === 'mystery' ? mapRuins : EVENT_SPRITES[event.type];
           return (
             <button key={event.id} data-map-item
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'event', data: event, chunkKey: '', index: 0 }); }}
               className="absolute z-20"
               style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
               <img
-                src={EVENT_SPRITES[event.type]}
+                src={evSprite}
                 alt={event.name}
                 loading="lazy"
                 className="drop-shadow-lg"
-                style={{ width: eventSize, height: eventSize, imageRendering: 'auto' }}
+                style={{ width: eventSize, height: eventSize, imageRendering: 'auto', objectFit: 'contain' }}
               />
+              {eventSize > 24 && (
+                <span className="absolute -bottom-3 left-1/2 -translate-x-1/2 text-foreground/60 font-display whitespace-nowrap"
+                  style={{ fontSize: Math.max(7, eventSize / 5) }}>
+                  {event.emoji}
+                </span>
+              )}
             </button>
           );
         })}
@@ -1070,21 +1142,21 @@ export default function WorldMap() {
             <button key={pv.village.id} data-map-item
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'player', data: pv }); }}
               className={`absolute flex flex-col items-center ${isMe ? 'z-40' : 'z-30'} hover:z-50`}
-              style={{ left: sx, top: sy, transform: 'translate(-50%, -100%)' }}>
+              style={{ left: sx, top: sy, transform: 'translate(-50%, -80%)' }}>
               <img
-                src={mapPlayer}
+                src={mapVillage}
                 alt={pv.profile.display_name}
                 loading="lazy"
-                className={`drop-shadow-lg ${isMe ? 'brightness-125 saturate-110' : 'brightness-75 grayscale-[30%]'}`}
-                style={{ width: iconSize * 0.9, height: iconSize * 0.9, imageRendering: 'auto' }}
+                className={`drop-shadow-lg ${isMe ? 'brightness-110 saturate-110' : 'brightness-75 grayscale-[20%]'}`}
+                style={{ width: iconSize * 1.2, height: iconSize * 1.2, imageRendering: 'auto', objectFit: 'contain' }}
               />
               {isMe && (
-                <div className="absolute -inset-1.5 rounded-lg pointer-events-none"
-                  style={{ boxShadow: '0 0 12px 3px hsl(var(--primary) / 0.4)', border: '2px solid hsl(var(--primary) / 0.6)' }} />
+                <div className="absolute -inset-2 rounded-full pointer-events-none"
+                  style={{ boxShadow: '0 0 18px 5px hsl(var(--primary) / 0.35)', border: '2px solid hsl(var(--primary) / 0.5)' }} />
               )}
               {iconSize > 28 && (
-                <div className={`text-center rounded px-1.5 py-0.5 ${isMe ? 'bg-primary/90 ring-1 ring-primary' : 'bg-background/80'}`}
-                  style={{ marginTop: 2 }}>
+                <div className={`text-center rounded-md px-1.5 py-0.5 backdrop-blur-sm ${isMe ? 'bg-primary/90 ring-1 ring-primary' : 'bg-background/80 border border-border/50'}`}
+                  style={{ marginTop: -2 }}>
                   <p className={`font-display whitespace-nowrap leading-tight ${isMe ? 'text-primary-foreground' : 'text-foreground'}`}
                     style={{ fontSize: Math.max(8, fontSize - 1) }}>
                     {isMe ? '⭐ You' : pv.profile.display_name}
