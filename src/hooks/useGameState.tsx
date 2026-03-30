@@ -82,7 +82,7 @@ export const RATIONS_INFO: Record<RationsLevel, { label: string; foodMultiplier:
 };
 
 // === TROOP SYSTEM ===
-export type TroopType = 'militia' | 'archer' | 'knight' | 'cavalry' | 'siege';
+export type TroopType = 'militia' | 'archer' | 'knight' | 'cavalry' | 'siege' | 'scout';
 
 export interface TroopInfo {
   name: string;
@@ -106,6 +106,7 @@ export const TROOP_INFO: Record<TroopType, TroopInfo> = {
   knight: { name: 'Knight', emoji: '🛡️', description: 'Heavily armored. Requires steel.', attack: 10, defense: 12, speed: 6, cost: { gold: 60, wood: 10, stone: 30, food: 25 }, steelCost: 5, trainTime: 40, requiredBarracksLevel: 3, foodUpkeep: 5, goldUpkeep: 1, popCost: 2 },
   cavalry: { name: 'Cavalry', emoji: '🐴', description: 'Fast mounted warriors. Requires steel.', attack: 14, defense: 6, speed: 18, cost: { gold: 80, wood: 20, stone: 0, food: 40 }, steelCost: 8, trainTime: 50, requiredBarracksLevel: 4, foodUpkeep: 6, goldUpkeep: 1, popCost: 2 },
   siege: { name: 'Siege Ram', emoji: '🏗️', description: 'Devastating siege engine.', attack: 25, defense: 4, speed: 3, cost: { gold: 120, wood: 80, stone: 50, food: 30 }, steelCost: 15, trainTime: 90, requiredBarracksLevel: 5, foodUpkeep: 8, goldUpkeep: 2, popCost: 3 },
+  scout: { name: 'Scout', emoji: '🏃', description: 'Fast recon unit. Extends march range.', attack: 2, defense: 1, speed: 25, cost: { gold: 15, wood: 5, stone: 0, food: 10 }, steelCost: 0, trainTime: 10, requiredBarracksLevel: 1, foodUpkeep: 1, goldUpkeep: 0, popCost: 1 },
 };
 
 export interface Army {
@@ -114,6 +115,7 @@ export interface Army {
   knight: number;
   cavalry: number;
   siege: number;
+  scout: number;
 }
 
 export interface TrainingQueue {
@@ -198,6 +200,7 @@ export const TROOP_COUNTERS: Record<TroopType, { strongVs: TroopType[]; weakVs: 
   knight: { strongVs: ['militia', 'archer'], weakVs: ['siege'] },
   cavalry: { strongVs: ['archer', 'siege'], weakVs: ['militia', 'knight'] },
   siege: { strongVs: ['knight'], weakVs: ['cavalry'] },
+  scout: { strongVs: [], weakVs: ['militia', 'archer', 'knight', 'cavalry'] },
 };
 
 export interface Vassalage {
@@ -373,7 +376,32 @@ interface GameContextType {
 
 const GameContext = createContext<GameContextType | null>(null);
 
-const EMPTY_ARMY: Army = { militia: 0, archer: 0, knight: 0, cavalry: 0, siege: 0 };
+const EMPTY_ARMY: Army = { militia: 0, archer: 0, knight: 0, cavalry: 0, siege: 0, scout: 0 };
+
+// March range & speed constants
+export const MAX_MARCH_RANGE = 30000; // base max range in world units
+export const SCOUT_RANGE_BONUS = 5000; // extra range per scout sent
+
+export function getSlowestTroopSpeed(army: Army): number {
+  let slowest = Infinity;
+  for (const [type, count] of Object.entries(army) as [TroopType, number][]) {
+    if (count > 0) {
+      slowest = Math.min(slowest, TROOP_INFO[type].speed);
+    }
+  }
+  return slowest === Infinity ? 10 : slowest;
+}
+
+export function calcMarchTime(distance: number, army: Army): number {
+  const speed = getSlowestTroopSpeed(army);
+  // Higher speed = faster travel. Base: distance / (speed * 200) seconds
+  return Math.max(5, Math.floor(distance / (speed * 200)));
+}
+
+export function getMaxRange(army: Army): number {
+  const scoutCount = army.scout || 0;
+  return MAX_MARCH_RANGE + scoutCount * SCOUT_RANGE_BONUS;
+}
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
