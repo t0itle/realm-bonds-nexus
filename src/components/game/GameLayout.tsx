@@ -44,16 +44,12 @@ function TabFallback() {
   );
 }
 
-type Tab = 'village' | 'map' | 'military' | 'alliance' | 'messages' | 'profile' | 'stats' | 'dm';
+type Tab = 'village' | 'map' | 'social' | 'profile';
 
 const TABS: { id: Tab; icon: string; label: string }[] = [
   { id: 'village', icon: '🏘️', label: 'Village' },
-  { id: 'military', icon: '⚔️', label: 'Army' },
-  { id: 'stats', icon: '📊', label: 'Stats' },
-  { id: 'dm', icon: '🔮', label: 'Oracle' },
   { id: 'map', icon: '🗺️', label: 'Map' },
-  { id: 'messages', icon: '💬', label: 'Mail' },
-  { id: 'alliance', icon: '🤝', label: 'Guild' },
+  { id: 'social', icon: '💬', label: 'Social' },
   { id: 'profile', icon: '👤', label: 'Me' },
 ];
 
