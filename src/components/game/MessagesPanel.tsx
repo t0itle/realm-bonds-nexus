@@ -133,6 +133,16 @@ export default function MessagesPanel({ initialDm, onDmHandled }: MessagesPanelP
     });
     if (error) { toast.error('Failed to send'); return; }
     if (!content) setNewMsg('');
+
+    // Send push notification to receiver
+    const senderName = profileMap.get(user.id) || 'Someone';
+    const special = parseSpecialContent(msgContent);
+    const pushBody = special?.type === 'trade_offer' ? '📦 sent you a trade offer'
+      : special?.type === 'guild_invite' ? '🤝 sent you a guild invite'
+      : msgContent.length > 80 ? msgContent.slice(0, 80) + '…' : msgContent;
+    supabase.functions.invoke('send-push', {
+      body: { user_id: receiverId, title: `💬 ${senderName}`, body: pushBody, tag: 'new-message' },
+    }).catch(() => {/* silent */});
     setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }), 100);
   };
 
