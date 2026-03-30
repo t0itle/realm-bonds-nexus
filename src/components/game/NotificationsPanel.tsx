@@ -34,7 +34,7 @@ function timeAgoStr(dateStr: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-export default function NotificationsPanel() {
+export default function NotificationsPanel({ embedded = false }: { embedded?: boolean }) {
   const { vassalages, battleLogs, resources, population } = useGame();
   const { user } = useAuth();
   const [dbAlerts, setDbAlerts] = useState<BattleAlert[]>([]);
@@ -166,6 +166,31 @@ export default function NotificationsPanel() {
     rebellion: 'border-primary/30',
     general: 'border-border',
   };
+
+  if (embedded) {
+    if (notifications.length === 0) return null;
+    return (
+      <div className="game-panel border-glow rounded-xl p-3 space-y-2">
+        <h3 className="font-display text-xs text-foreground flex items-center gap-1">🔔 Alerts</h3>
+        <div className="space-y-1.5 max-h-48 overflow-y-auto">
+          {notifications.slice(0, 10).map(n => (
+            <div key={n.id} className={`rounded-lg p-2 space-y-0.5 border ${typeColors[n.type]} bg-card/50`}>
+              <div className="flex items-start gap-1.5">
+                <span className="text-sm">{n.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-1">
+                    <p className="text-[10px] font-display text-foreground leading-tight">{n.title}</p>
+                    <span className="text-[7px] text-muted-foreground whitespace-nowrap">{n.time}</span>
+                  </div>
+                  <p className="text-[8px] text-muted-foreground">{n.detail}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col p-3 space-y-3 overflow-y-auto pb-20">
