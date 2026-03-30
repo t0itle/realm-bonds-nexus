@@ -433,10 +433,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [resources, setResources] = useState<Resources>({ gold: 0, wood: 0, stone: 0, food: 0 });
   const [steel, setSteel] = useState(0);
   const [buildings, setBuildings] = useState<Building[]>([]);
-  const [villageName, setVillageName] = useState('');
+  const [villageNameLocal, setVillageNameLocal] = useState('');
   const [villageId, setVillageId] = useState<string | null>(null);
   const [playerLevel, setPlayerLevel] = useState(1);
-  const [displayName, setDisplayName] = useState('Wanderer');
+  const [displayNameLocal, setDisplayNameLocal] = useState('Wanderer');
+  const [avatarUrl, setAvatarUrlLocal] = useState<string | null>(null);
   const [allVillages, setAllVillages] = useState<PlayerVillage[]>([]);
   const [loading, setLoading] = useState(true);
   const [army, setArmy] = useState<Army>({ ...EMPTY_ARMY });
