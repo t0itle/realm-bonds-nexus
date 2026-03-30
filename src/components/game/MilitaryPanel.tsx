@@ -18,10 +18,13 @@ export default function MilitaryPanel() {
     army, trainingQueue, battleLogs, trainTroops, getBarracksLevel, canAfford, canAffordSteel,
     totalArmyPower, armyUpkeep, population, steel,
     spies, trainSpies, sendSpyMission, activeSpyMissions, intelReports, allVillages, getWatchtowerLevel,
+    injuredTroops, poisons, healTroops, craftPoison, getApothecaryLevel,
   } = useGame();
   const [trainCount, setTrainCount] = useState<Record<TroopType, number>>({ militia: 1, archer: 1, knight: 1, cavalry: 1, siege: 1, scout: 1 });
   const [spyTrainCount, setSpyTrainCount] = useState(1);
-  const [tab, setTab] = useState<'troops' | 'espionage'>('troops');
+  const [tab, setTab] = useState<'troops' | 'espionage' | 'apothecary'>('troops');
+  const apothecaryLevel = getApothecaryLevel();
+  const totalInjured = Object.values(injuredTroops).reduce((s, v) => s + v, 0);
   const [, forceUpdate] = useState(0);
   const barracksLevel = getBarracksLevel();
   const power = totalArmyPower();
@@ -81,15 +84,24 @@ export default function MilitaryPanel() {
       {/* Tab switcher */}
       <div className="flex gap-1">
         <button onClick={() => setTab('troops')}
-          className={`flex-1 font-display text-[11px] py-1.5 rounded-lg transition-colors ${tab === 'troops' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+          className={`flex-1 font-display text-[10px] py-1.5 rounded-lg transition-colors ${tab === 'troops' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
           ⚔️ Troops
         </button>
         <button onClick={() => setTab('espionage')}
-          className={`flex-1 font-display text-[11px] py-1.5 rounded-lg transition-colors relative ${tab === 'espionage' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+          className={`flex-1 font-display text-[10px] py-1.5 rounded-lg transition-colors relative ${tab === 'espionage' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
           🕵️ Espionage
           {activeSpyMissions.length > 0 && (
             <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[8px] font-bold rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5">
               {activeSpyMissions.length}
+            </span>
+          )}
+        </button>
+        <button onClick={() => setTab('apothecary')}
+          className={`flex-1 font-display text-[10px] py-1.5 rounded-lg transition-colors relative ${tab === 'apothecary' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+          ⚗️ Apothecary
+          {totalInjured > 0 && (
+            <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[8px] font-bold rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5">
+              {totalInjured}
             </span>
           )}
         </button>
@@ -253,6 +265,19 @@ export default function MilitaryPanel() {
           intelReports={intelReports}
           allVillages={allVillages}
           population={population}
+          canAfford={canAfford}
+          resources={useGame().resources}
+        />
+      )}
+
+      {/* ===== APOTHECARY TAB ===== */}
+      {tab === 'apothecary' && (
+        <ApothecaryPanel
+          apothecaryLevel={apothecaryLevel}
+          injuredTroops={injuredTroops}
+          poisons={poisons}
+          healTroops={healTroops}
+          craftPoison={craftPoison}
           canAfford={canAfford}
           resources={useGame().resources}
         />
