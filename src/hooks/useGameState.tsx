@@ -119,6 +119,8 @@ export interface Army {
   scout: number;
 }
 
+export type InjuredArmy = Army; // same shape, tracks injured counts
+
 export interface TrainingQueue {
   type: TroopType;
   count: number;
