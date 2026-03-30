@@ -446,6 +446,33 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const pendingTaxAccrualRef = useRef({ gold: 0, wood: 0, stone: 0, food: 0 });
   const pendingTreasuryFlushRef = useRef({ gold: 0, wood: 0, stone: 0, food: 0 });
 
+  // Refs to avoid effect dependency churn — these change frequently but
+  // should NOT cause the tick/save intervals to be torn down & recreated.
+  const steelRef = useRef(steel);
+  steelRef.current = steel;
+  const populationBaseRef = useRef(populationBase);
+  populationBaseRef.current = populationBase;
+  const happinessRef = useRef(happiness);
+  happinessRef.current = happiness;
+  const maxPopulationRef = useRef(maxPopulation);
+  maxPopulationRef.current = maxPopulation;
+  const rationsRef = useRef(rations);
+  rationsRef.current = rations;
+  const popTaxRateRef = useRef(popTaxRate);
+  popTaxRateRef.current = popTaxRate;
+  const grossProductionRef = useRef(grossProduction);
+  grossProductionRef.current = grossProduction;
+  const popFoodCostRef = useRef(popFoodCost);
+  popFoodCostRef.current = popFoodCost;
+  const popTaxIncomeRef = useRef(popTaxIncome);
+  popTaxIncomeRef.current = popTaxIncome;
+  const allianceTaxRateRef = useRef(allianceTaxRate);
+  allianceTaxRateRef.current = allianceTaxRate;
+  const allianceIdRef = useRef(allianceId);
+  allianceIdRef.current = allianceId;
+  const resourcesRef = useRef(resources);
+  resourcesRef.current = resources;
+
   // Wrap setRations and setPopTaxRate to immediately persist to DB
   const setRations = useCallback((r: RationsLevel) => {
     setRationsLocal(r);
