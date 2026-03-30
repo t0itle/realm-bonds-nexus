@@ -597,24 +597,40 @@ export default function WorldMap() {
 
   const handleInvestigate = useCallback((event: ProceduralEvent) => {
     if (claimedEvents.has(event.id)) return;
+    if (!isInRange(event.x, event.y)) { toast.error('Too far! Train scouts to extend your range.'); return; }
     const hasTroops = Object.values(army).some(v => v > 0);
     if (event.power > 0 && !hasTroops) { toast.error('You need troops to investigate dangerous events!'); return; }
+    const travelSec = calcTravelTime(event.x, event.y);
     if (event.power > 0) {
-      const log = attackTarget(event.name, event.power);
-      if (log.result === 'victory') {
-        addResources(event.reward);
-        setClaimedEvents(prev => new Set(prev).add(event.id));
-        toast.success(`Victory at ${event.name}! Resources gained.`);
-      } else {
-        toast.error(`Defeated at ${event.name}! Your troops suffered losses.`);
-      }
+      const eventData = event;
+      toast(`⚔️ Troops marching to ${event.name}... ETA ${travelSec}s`);
+      setMarches(prev => [...prev, {
+        id: `evt-${Date.now()}`, targetName: eventData.name, arrivalTime: Date.now() + travelSec * 1000,
+        action: () => {
+          const log = attackTarget(eventData.name, eventData.power);
+          if (log.result === 'victory') {
+            addResources(eventData.reward);
+            setClaimedEvents(prev => new Set(prev).add(eventData.id));
+            toast.success(`Victory at ${eventData.name}! Resources gained.`);
+          } else {
+            toast.error(`Defeated at ${eventData.name}!`);
+          }
+        },
+      }]);
     } else {
-      addResources(event.reward);
-      setClaimedEvents(prev => new Set(prev).add(event.id));
-      toast.success(`${event.name} — Resources claimed!`);
+      toast(`🚶 Collecting from ${event.name}... ETA ${travelSec}s`);
+      const eventData = event;
+      setMarches(prev => [...prev, {
+        id: `claim-${Date.now()}`, targetName: eventData.name, arrivalTime: Date.now() + travelSec * 1000,
+        action: () => {
+          addResources(eventData.reward);
+          setClaimedEvents(prev => new Set(prev).add(eventData.id));
+          toast.success(`${eventData.name} — Resources claimed!`);
+        },
+      }]);
     }
     setSelected(null);
-  }, [army, attackTarget, addResources, claimedEvents]);
+  }, [army, attackTarget, addResources, claimedEvents, calcTravelTime, isInRange]);
 
   const getMyPos = useCallback(() => {
     if (!user) return { x: 100000, y: 100000 };
@@ -640,6 +656,7 @@ export default function WorldMap() {
   const handleAttackNPC = useCallback((realm: ProceduralRealm) => {
     const hasTroops = Object.values(army).some(v => v > 0);
     if (!hasTroops) { toast.error('You need troops to attack!'); return; }
+    if (!isInRange(realm.x, realm.y)) { toast.error('Out of range! Train scouts to extend reach.'); return; }
     const travelSec = calcTravelTime(realm.x, realm.y);
     const arrivalTime = Date.now() + travelSec * 1000;
     toast(`⚔️ Troops marching to ${realm.name}... ETA ${travelSec}s`);
