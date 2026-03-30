@@ -26,7 +26,7 @@ function formatTime(ms: number) {
 }
 
 export default function VillageGrid() {
-  const { buildings, upgradeBuilding, canAfford, isBuildingUpgrading, getBuildTime } = useGame();
+  const { buildings, upgradeBuilding, demolishBuilding, canAfford, isBuildingUpgrading, getBuildTime } = useGame();
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [buildPosition, setBuildPosition] = useState<number | null>(null);
   const [, forceUpdate] = useState(0);
@@ -146,7 +146,12 @@ export default function VillageGrid() {
               onUpgrade={async () => {
                 const success = await upgradeBuilding(selectedBuilding.id);
                 if (success) {
-                  // Don't update level immediately — build queue will handle it
+                  setSelectedBuilding(null);
+                }
+              }}
+              onDemolish={async () => {
+                const success = await demolishBuilding(selectedBuilding.id);
+                if (success) {
                   setSelectedBuilding(null);
                 }
               }}
@@ -170,13 +175,15 @@ export default function VillageGrid() {
   );
 }
 
-function BuildingDetail({ building, onUpgrade, canAfford, isBuildingUpgrading, getBuildTime }: {
+function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, isBuildingUpgrading, getBuildTime }: {
   building: Building;
   onUpgrade: () => void;
+  onDemolish: () => void;
   canAfford: (cost: any) => boolean;
   isBuildingUpgrading: (id: string) => any;
   getBuildTime: (type: Exclude<BuildingType, 'empty'>, level: number) => number;
 }) {
+  const [confirmDemolish, setConfirmDemolish] = useState(false);
   const type = building.type as Exclude<BuildingType, 'empty'>;
   const info = BUILDING_INFO[type];
   const sprite = BUILDING_SPRITES[type];
@@ -247,6 +254,36 @@ function BuildingDetail({ building, onUpgrade, canAfford, isBuildingUpgrading, g
       {maxed && !upgrading && (
         <div className="text-center py-2 text-primary font-display text-sm animate-pulse-gold rounded-lg border border-primary/30">
           ✦ Maximum Level ✦
+        </div>
+      )}
+
+      {/* Demolish button — not for townhall */}
+      {building.type !== 'townhall' && !upgrading && (
+        <div className="pt-2 border-t border-border/30">
+          {!confirmDemolish ? (
+            <button
+              onClick={() => setConfirmDemolish(true)}
+              className="w-full py-2 rounded-lg font-display text-xs text-destructive bg-destructive/10 hover:bg-destructive/20 transition-colors"
+            >
+              🏚️ Demolish Building
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-xs text-destructive text-center">Are you sure? You'll recover 30% of invested resources.</p>
+              <div className="flex gap-2">
+                <motion.button whileTap={{ scale: 0.95 }}
+                  onClick={onDemolish}
+                  className="flex-1 py-2 rounded-lg font-display text-xs bg-destructive text-destructive-foreground">
+                  Confirm
+                </motion.button>
+                <motion.button whileTap={{ scale: 0.95 }}
+                  onClick={() => setConfirmDemolish(false)}
+                  className="flex-1 py-2 rounded-lg font-display text-xs bg-muted text-muted-foreground">
+                  Cancel
+                </motion.button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
