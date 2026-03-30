@@ -569,6 +569,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
     const villageChannel = supabase.channel('village-changes')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'villages', filter: `user_id=eq.${user.id}` }, (payload) => {
+        // Ignore realtime echoes from our own saves (within 5s) to prevent clobbering local ticks
+        if (Date.now() - lastSaveTimestampRef.current < 5000) return;
         const v = payload.new;
         setResources({ gold: Number(v.gold), wood: Number(v.wood), stone: Number(v.stone), food: Number(v.food) });
         setVillageName(v.name as string);
