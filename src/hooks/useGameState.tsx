@@ -10,7 +10,7 @@ export interface Building {
   village_id: string;
 }
 
-export type BuildingType = 'townhall' | 'farm' | 'lumbermill' | 'quarry' | 'goldmine' | 'barracks' | 'wall' | 'watchtower' | 'house' | 'temple' | 'empty';
+export type BuildingType = 'townhall' | 'farm' | 'lumbermill' | 'quarry' | 'goldmine' | 'barracks' | 'wall' | 'watchtower' | 'house' | 'temple' | 'apothecary' | 'empty';
 
 export interface Resources {
   gold: number;
@@ -47,6 +47,7 @@ export const BUILDING_INFO: Record<Exclude<BuildingType, 'empty'>, BuildingInfo>
   barracks: { name: 'Barracks', icon: '⚔️', description: 'Train warriors. Workers here increase army cap.', baseCost: { gold: 80, wood: 60, stone: 40, food: 20 }, steelCost: 8, maxLevel: 8, workersPerLevel: 2, buildTime: 40 },
   wall: { name: 'Wall', icon: '🧱', description: 'Fortify your village against invaders.', baseCost: { gold: 20, wood: 10, stone: 60, food: 0 }, steelCost: 4, maxLevel: 10, workersPerLevel: 0, buildTime: 30 },
   watchtower: { name: 'Watchtower', icon: '🗼', description: 'Spots incoming threats from afar.', baseCost: { gold: 50, wood: 40, stone: 30, food: 0 }, maxLevel: 5, workersPerLevel: 1, buildTime: 25 },
+  apothecary: { name: 'Apothecary', icon: '⚗️', description: 'Heal injured troops and craft poisons for spies.', baseCost: { gold: 70, wood: 30, stone: 30, food: 20 }, steelCost: 2, maxLevel: 5, workersPerLevel: 1, buildTime: 35 },
 };
 
 export function getUpgradeCost(type: Exclude<BuildingType, 'empty'>, level: number): Resources & { steel: number } {
@@ -117,6 +118,8 @@ export interface Army {
   siege: number;
   scout: number;
 }
+
+export type InjuredArmy = Army; // same shape, tracks injured counts
 
 export interface TrainingQueue {
   type: TroopType;
@@ -372,11 +375,18 @@ interface GameContextType {
   activeSpyMissions: ActiveSpyMission[];
   intelReports: IntelReport[];
   getWatchtowerLevel: () => number;
+  // Apothecary
+  injuredTroops: InjuredArmy;
+  poisons: number;
+  healTroops: (type: TroopType, count: number) => boolean;
+  craftPoison: (count: number) => boolean;
+  getApothecaryLevel: () => number;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
 
 const EMPTY_ARMY: Army = { militia: 0, archer: 0, knight: 0, cavalry: 0, siege: 0, scout: 0 };
+const EMPTY_INJURED: InjuredArmy = { militia: 0, archer: 0, knight: 0, cavalry: 0, siege: 0, scout: 0 };
 
 // March range & speed constants
 export const MAX_MARCH_RANGE = 30000; // base max range in world units
@@ -428,6 +438,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [activeSpyMissions, setActiveSpyMissions] = useState<ActiveSpyMission[]>([]);
   const [intelReports, setIntelReports] = useState<IntelReport[]>([]);
   const [vassalages, setVassalages] = useState<Vassalage[]>([]);
+  const [injuredTroops, setInjuredTroops] = useState<InjuredArmy>({ ...EMPTY_INJURED });
+  const [poisons, setPoisons] = useState(0);
   const [allianceTaxRate, setAllianceTaxRate] = useState(0);
   const [allianceId, setAllianceId] = useState<string | null>(null);
   const pendingTaxAccrualRef = useRef({ gold: 0, wood: 0, stone: 0, food: 0 });
@@ -962,12 +974,23 @@ export function GameProvider({ children }: { children: ReactNode }) {
     
     const newArmy = { ...army };
     let popLost = 0;
+    const apothLvl = getApothecaryLevel();
+    const injuryRate = apothLvl > 0 ? Math.min(0.6, 0.2 + apothLvl * 0.08) : 0;
+    const newInjured: Partial<Army> = {};
     for (const [type, lost] of Object.entries(result.attackerLosses) as [TroopType, number][]) {
       const actualLost = Math.min(lost, newArmy[type] || 0);
-      newArmy[type] = Math.max(0, (newArmy[type] || 0) - lost);
-      popLost += TROOP_INFO[type].popCost * actualLost;
+      const injured = Math.floor(actualLost * injuryRate);
+      const dead = actualLost - injured;
+      newArmy[type] = Math.max(0, (newArmy[type] || 0) - actualLost);
+      if (injured > 0) newInjured[type] = injured;
+      popLost += TROOP_INFO[type].popCost * dead;
     }
     setArmy(newArmy);
+    if (Object.keys(newInjured).length > 0) setInjuredTroops(prev => {
+      const u = { ...prev };
+      for (const [t, c] of Object.entries(newInjured) as [TroopType, number][]) u[t] += c;
+      return u;
+    });
     if (popLost > 0) setPopulationBase(prev => Math.max(1, prev - popLost));
     
     const resourcesGained = result.victory ? {
@@ -1017,15 +1040,26 @@ export function GameProvider({ children }: { children: ReactNode }) {
     
     const result = resolveCombat(army, defArmy, getWallLevel(), defWallLevel);
     
-    // Apply attacker losses
+    // Apply attacker losses (with injury system)
     const newArmy = { ...army };
     let pvpPopLost = 0;
+    const pvpApothLvl = getApothecaryLevel();
+    const pvpInjuryRate = pvpApothLvl > 0 ? Math.min(0.6, 0.2 + pvpApothLvl * 0.08) : 0;
+    const pvpInjured: Partial<Army> = {};
     for (const [type, lost] of Object.entries(result.attackerLosses) as [TroopType, number][]) {
       const actualLost = Math.min(lost, newArmy[type] || 0);
-      newArmy[type] = Math.max(0, (newArmy[type] || 0) - lost);
-      pvpPopLost += TROOP_INFO[type].popCost * actualLost;
+      const injured = Math.floor(actualLost * pvpInjuryRate);
+      const dead = actualLost - injured;
+      newArmy[type] = Math.max(0, (newArmy[type] || 0) - actualLost);
+      if (injured > 0) pvpInjured[type] = injured;
+      pvpPopLost += TROOP_INFO[type].popCost * dead;
     }
     setArmy(newArmy);
+    if (Object.keys(pvpInjured).length > 0) setInjuredTroops(prev => {
+      const u = { ...prev };
+      for (const [t, c] of Object.entries(pvpInjured) as [TroopType, number][]) u[t] += c;
+      return u;
+    });
     if (pvpPopLost > 0) setPopulationBase(prev => Math.max(1, prev - pvpPopLost));
     
     // Apply defender losses to their village
@@ -1181,15 +1215,26 @@ export function GameProvider({ children }: { children: ReactNode }) {
     
     const result = resolveCombat(army, reducedLordArmy, 0, 0);
     
-    // Apply losses
+    // Apply losses (with injury system)
     const newArmy = { ...army };
     let rebelPopLost = 0;
+    const rebelApothLvl = getApothecaryLevel();
+    const rebelInjuryRate = rebelApothLvl > 0 ? Math.min(0.6, 0.2 + rebelApothLvl * 0.08) : 0;
+    const rebelInjured: Partial<Army> = {};
     for (const [type, lost] of Object.entries(result.attackerLosses) as [TroopType, number][]) {
       const actualLost = Math.min(lost, newArmy[type] || 0);
-      newArmy[type] = Math.max(0, (newArmy[type] || 0) - lost);
-      rebelPopLost += TROOP_INFO[type].popCost * actualLost;
+      const injured = Math.floor(actualLost * rebelInjuryRate);
+      const dead = actualLost - injured;
+      newArmy[type] = Math.max(0, (newArmy[type] || 0) - actualLost);
+      if (injured > 0) rebelInjured[type] = injured;
+      rebelPopLost += TROOP_INFO[type].popCost * dead;
     }
     setArmy(newArmy);
+    if (Object.keys(rebelInjured).length > 0) setInjuredTroops(prev => {
+      const u = { ...prev };
+      for (const [t, c] of Object.entries(rebelInjured) as [TroopType, number][]) u[t] += c;
+      return u;
+    });
     if (rebelPopLost > 0) setPopulationBase(prev => Math.max(1, prev - rebelPopLost));
     
     if (result.victory) {
@@ -1275,6 +1320,44 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const wt = buildings.find(b => b.type === 'watchtower');
     return wt?.level || 0;
   }, [buildings]);
+
+  // Apothecary level
+  const getApothecaryLevel = useCallback(() => {
+    const apoth = buildings.find(b => b.type === 'apothecary');
+    return apoth?.level || 0;
+  }, [buildings]);
+
+  // Heal injured troops (requires apothecary)
+  const healTroops = useCallback((type: TroopType, count: number) => {
+    const apothLvl = getApothecaryLevel();
+    if (apothLvl === 0) return false;
+    const available = injuredTroops[type];
+    const toHeal = Math.min(count, available);
+    if (toHeal <= 0) return false;
+    // Cost: food + gold per troop, reduced by apothecary level
+    const costMult = Math.max(0.4, 1 - apothLvl * 0.1);
+    const info = TROOP_INFO[type];
+    const healCost = { gold: Math.floor(info.cost.gold * 0.3 * costMult * toHeal), wood: 0, stone: 0, food: Math.floor(info.cost.food * 0.5 * costMult * toHeal) };
+    if (!canAfford(healCost)) return false;
+    setResources(prev => ({ gold: prev.gold - healCost.gold, wood: prev.wood, stone: prev.stone, food: prev.food - healCost.food }));
+    setInjuredTroops(prev => ({ ...prev, [type]: prev[type] - toHeal }));
+    // Healing takes time based on apothecary level
+    const healTime = Math.max(5, Math.floor(15 / apothLvl)) * toHeal;
+    setTrainingQueue(prev => [...prev, { type, count: toHeal, finishTime: Date.now() + healTime * 1000 }]);
+    return true;
+  }, [getApothecaryLevel, injuredTroops, canAfford]);
+
+  // Craft poison (requires apothecary lvl 2+, used by spies for bonus sabotage)
+  const craftPoison = useCallback((count: number) => {
+    const apothLvl = getApothecaryLevel();
+    if (apothLvl < 2) return false;
+    const cost = { gold: 60 * count, wood: 0, stone: 0, food: 30 * count };
+    if (!canAfford(cost)) return false;
+    setResources(prev => ({ gold: prev.gold - cost.gold, wood: prev.wood, stone: prev.stone, food: prev.food - cost.food }));
+    // Crafting takes time
+    setTimeout(() => setPoisons(prev => prev + count), 15000 * count);
+    return true;
+  }, [getApothecaryLevel, canAfford]);
 
   // Train spies (requires barracks lvl 2+, costs gold + food + 1 pop each)
   const trainSpies = useCallback((count: number) => {
@@ -1415,6 +1498,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       isBuildingUpgrading, getBuildTime,
       spies, trainSpies, sendSpyMission, activeSpyMissions, intelReports, getWatchtowerLevel,
       attackPlayer, vassalages, payRansom, attemptRebellion, getWallLevel,
+      injuredTroops, poisons, healTroops, craftPoison, getApothecaryLevel,
     }}>
       {children}
     </GameContext.Provider>
