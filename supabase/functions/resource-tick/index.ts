@@ -260,7 +260,7 @@ Deno.serve(async (req) => {
       if (newPop < housingCap && newFood >= 50) {
         const growthChance = happinessVal / 100 * 0.5;
         // For server tick, scale by elapsed hours
-        const growthRolls = Math.floor(elapsedHours * 20); // ~20 rolls per hour
+        const growthRolls = Math.floor(elapsedMinutes); // ~1 roll per minute
         for (let i = 0; i < Math.min(growthRolls, 60); i++) {
           if (newPop < housingCap && Math.random() < growthChance) {
             newPop++;
