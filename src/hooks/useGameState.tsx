@@ -1392,10 +1392,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (villageId) {
       supabase.from('villages').update(newResources).eq('id', villageId).then();
     }
-    // Spies train over time
+    // Spies train over time — use a dedicated spy queue entry
     const finishTime = Date.now() + 20000 * count;
-    setTrainingQueue(prev => [...prev, { type: 'scout' as TroopType, count: 0, finishTime }]);
-    setTimeout(() => setSpies(prev => prev + count), 20000 * count);
+    setSpyTrainingQueue(prev => [...prev, { count, finishTime }]);
     return true;
   }, [canAfford, getBarracksLevel, population.civilians, resources, villageId]);
 
