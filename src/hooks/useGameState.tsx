@@ -974,12 +974,23 @@ export function GameProvider({ children }: { children: ReactNode }) {
     
     const newArmy = { ...army };
     let popLost = 0;
+    const apothLvl = getApothecaryLevel();
+    const injuryRate = apothLvl > 0 ? Math.min(0.6, 0.2 + apothLvl * 0.08) : 0;
+    const newInjured: Partial<Army> = {};
     for (const [type, lost] of Object.entries(result.attackerLosses) as [TroopType, number][]) {
       const actualLost = Math.min(lost, newArmy[type] || 0);
-      newArmy[type] = Math.max(0, (newArmy[type] || 0) - lost);
-      popLost += TROOP_INFO[type].popCost * actualLost;
+      const injured = Math.floor(actualLost * injuryRate);
+      const dead = actualLost - injured;
+      newArmy[type] = Math.max(0, (newArmy[type] || 0) - actualLost);
+      if (injured > 0) newInjured[type] = injured;
+      popLost += TROOP_INFO[type].popCost * dead;
     }
     setArmy(newArmy);
+    if (Object.keys(newInjured).length > 0) setInjuredTroops(prev => {
+      const u = { ...prev };
+      for (const [t, c] of Object.entries(newInjured) as [TroopType, number][]) u[t] += c;
+      return u;
+    });
     if (popLost > 0) setPopulationBase(prev => Math.max(1, prev - popLost));
     
     const resourcesGained = result.victory ? {
@@ -1029,15 +1040,26 @@ export function GameProvider({ children }: { children: ReactNode }) {
     
     const result = resolveCombat(army, defArmy, getWallLevel(), defWallLevel);
     
-    // Apply attacker losses
+    // Apply attacker losses (with injury system)
     const newArmy = { ...army };
     let pvpPopLost = 0;
+    const pvpApothLvl = getApothecaryLevel();
+    const pvpInjuryRate = pvpApothLvl > 0 ? Math.min(0.6, 0.2 + pvpApothLvl * 0.08) : 0;
+    const pvpInjured: Partial<Army> = {};
     for (const [type, lost] of Object.entries(result.attackerLosses) as [TroopType, number][]) {
       const actualLost = Math.min(lost, newArmy[type] || 0);
-      newArmy[type] = Math.max(0, (newArmy[type] || 0) - lost);
-      pvpPopLost += TROOP_INFO[type].popCost * actualLost;
+      const injured = Math.floor(actualLost * pvpInjuryRate);
+      const dead = actualLost - injured;
+      newArmy[type] = Math.max(0, (newArmy[type] || 0) - actualLost);
+      if (injured > 0) pvpInjured[type] = injured;
+      pvpPopLost += TROOP_INFO[type].popCost * dead;
     }
     setArmy(newArmy);
+    if (Object.keys(pvpInjured).length > 0) setInjuredTroops(prev => {
+      const u = { ...prev };
+      for (const [t, c] of Object.entries(pvpInjured) as [TroopType, number][]) u[t] += c;
+      return u;
+    });
     if (pvpPopLost > 0) setPopulationBase(prev => Math.max(1, prev - pvpPopLost));
     
     // Apply defender losses to their village
@@ -1193,15 +1215,26 @@ export function GameProvider({ children }: { children: ReactNode }) {
     
     const result = resolveCombat(army, reducedLordArmy, 0, 0);
     
-    // Apply losses
+    // Apply losses (with injury system)
     const newArmy = { ...army };
     let rebelPopLost = 0;
+    const rebelApothLvl = getApothecaryLevel();
+    const rebelInjuryRate = rebelApothLvl > 0 ? Math.min(0.6, 0.2 + rebelApothLvl * 0.08) : 0;
+    const rebelInjured: Partial<Army> = {};
     for (const [type, lost] of Object.entries(result.attackerLosses) as [TroopType, number][]) {
       const actualLost = Math.min(lost, newArmy[type] || 0);
-      newArmy[type] = Math.max(0, (newArmy[type] || 0) - lost);
-      rebelPopLost += TROOP_INFO[type].popCost * actualLost;
+      const injured = Math.floor(actualLost * rebelInjuryRate);
+      const dead = actualLost - injured;
+      newArmy[type] = Math.max(0, (newArmy[type] || 0) - actualLost);
+      if (injured > 0) rebelInjured[type] = injured;
+      rebelPopLost += TROOP_INFO[type].popCost * dead;
     }
     setArmy(newArmy);
+    if (Object.keys(rebelInjured).length > 0) setInjuredTroops(prev => {
+      const u = { ...prev };
+      for (const [t, c] of Object.entries(rebelInjured) as [TroopType, number][]) u[t] += c;
+      return u;
+    });
     if (rebelPopLost > 0) setPopulationBase(prev => Math.max(1, prev - rebelPopLost));
     
     if (result.victory) {
