@@ -32,12 +32,8 @@ function lazyRetry<T extends { default: React.ComponentType<any> }>(
 
 const VillageGrid = lazyRetry(() => import('./VillageGrid'));
 const WorldMap = lazyRetry(() => import('./WorldMap'));
-const AlliancePanel = lazyRetry(() => import('./AlliancePanel'));
-const MilitaryPanel = lazyRetry(() => import('./MilitaryPanel'));
+const SocialPanel = lazyRetry(() => import('./SocialPanel'));
 const ProfilePanel = lazyRetry(() => import('./ProfilePanel'));
-const MessagesPanel = lazyRetry(() => import('./MessagesPanel'));
-const StatSheet = lazyRetry(() => import('./StatSheet'));
-const DungeonMasterPanel = lazyRetry(() => import('./DungeonMasterPanel'));
 
 
 function TabFallback() {
@@ -48,16 +44,12 @@ function TabFallback() {
   );
 }
 
-type Tab = 'village' | 'map' | 'military' | 'alliance' | 'messages' | 'profile' | 'stats' | 'dm';
+type Tab = 'village' | 'map' | 'social' | 'profile';
 
 const TABS: { id: Tab; icon: string; label: string }[] = [
   { id: 'village', icon: '🏘️', label: 'Village' },
-  { id: 'military', icon: '⚔️', label: 'Army' },
-  { id: 'stats', icon: '📊', label: 'Stats' },
-  { id: 'dm', icon: '🔮', label: 'Oracle' },
   { id: 'map', icon: '🗺️', label: 'Map' },
-  { id: 'messages', icon: '💬', label: 'Mail' },
-  { id: 'alliance', icon: '🤝', label: 'Guild' },
+  { id: 'social', icon: '💬', label: 'Social' },
   { id: 'profile', icon: '👤', label: 'Me' },
 ];
 
@@ -88,7 +80,7 @@ export default function GameLayout() {
 
   // Reset unread when viewing messages
   useEffect(() => {
-    if (activeTab === 'messages' && user) {
+    if (activeTab === 'social' && user) {
       const timer = setTimeout(async () => {
         const { count } = await supabase.from('player_messages')
           .select('*', { count: 'exact', head: true })
@@ -103,7 +95,7 @@ export default function GameLayout() {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       setDmTarget({ userId: detail.userId, name: detail.name });
-      setActiveTab('messages');
+      setActiveTab('social');
     };
     window.addEventListener('open-dm', handler);
     return () => window.removeEventListener('open-dm', handler);
@@ -150,12 +142,8 @@ export default function GameLayout() {
           >
             <Suspense fallback={<TabFallback />}>
               {activeTab === 'village' && <VillageGrid />}
-              {activeTab === 'military' && <MilitaryPanel />}
-              {activeTab === 'stats' && <StatSheet />}
-              {activeTab === 'dm' && <DungeonMasterPanel />}
               {activeTab === 'map' && <WorldMap />}
-              {activeTab === 'messages' && <MessagesPanel initialDm={dmTarget} onDmHandled={() => setDmTarget(null)} />}
-              {activeTab === 'alliance' && <AlliancePanel />}
+              {activeTab === 'social' && <SocialPanel initialDm={dmTarget} onDmHandled={() => setDmTarget(null)} />}
               {activeTab === 'profile' && <ProfilePanel />}
             </Suspense>
           </motion.div>
@@ -175,7 +163,7 @@ export default function GameLayout() {
             >
               <span className="text-base relative">
                 {tab.icon}
-                {tab.id === 'messages' && unreadCount > 0 && (
+                {tab.id === 'social' && unreadCount > 0 && (
                   <span className="absolute -top-1.5 -right-2.5 bg-destructive text-destructive-foreground text-[8px] font-bold rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5">
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
