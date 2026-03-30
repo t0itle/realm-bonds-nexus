@@ -402,7 +402,7 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
           ))}
           {steelProd > 0 && (
             <span className="text-foreground flex items-center gap-0.5">
-              +{steelProd} <ResourceIcon type="steel" size={12} />/min
+              +{steelProd} <ResourceIcon type="steel" size={12} />/hr
             </span>
           )}
         </div>
