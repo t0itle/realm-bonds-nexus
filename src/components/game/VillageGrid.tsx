@@ -5,7 +5,18 @@ import { BUILDING_SPRITES, WORKERS_SPRITE, WORKER_FOR_BUILDING } from './sprites
 import BuildModal from './BuildModal';
 import ResourceIcon, { getResourceType } from './ResourceIcon';
 
-const GRID_SIZE = 9;
+function getGridSize(townhallLevel: number): number {
+  if (townhallLevel >= 7) return 16;
+  if (townhallLevel >= 5) return 12;
+  if (townhallLevel >= 3) return 9;
+  return 9;
+}
+
+function getGridCols(gridSize: number): number {
+  if (gridSize >= 16) return 4;
+  if (gridSize >= 12) return 4;
+  return 3;
+}
 
 function formatTime(ms: number) {
   const s = Math.max(0, Math.ceil(ms / 1000));
