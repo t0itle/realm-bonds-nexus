@@ -332,6 +332,7 @@ interface GameContextType {
   villageId: string | null;
   playerLevel: number;
   displayName: string;
+  demolishBuilding: (id: string) => Promise<boolean>;
   buildAt: (position: number, type: Exclude<BuildingType, 'empty'>) => Promise<boolean>;
   upgradeBuilding: (id: string) => Promise<boolean>;
   canAfford: (cost: Resources) => boolean;
