@@ -388,6 +388,7 @@ interface GameContextType {
   trainSpies: (count: number) => boolean;
   sendSpyMission: (mission: SpyMission, targetName: string, targetId: string, targetX: number, targetY: number, spiesCount: number) => boolean;
   activeSpyMissions: ActiveSpyMission[];
+  spyTrainingQueue: { count: number; finishTime: number }[];
   intelReports: IntelReport[];
   getWatchtowerLevel: () => number;
   // Apothecary
@@ -457,6 +458,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [rations, setRationsLocal] = useState<RationsLevel>('normal');
   const [popTaxRate, setPopTaxRateLocal] = useState(5);
   const [spies, setSpies] = useState(0);
+  const [spyTrainingQueue, setSpyTrainingQueue] = useState<{ count: number; finishTime: number }[]>([]);
   const [activeSpyMissions, setActiveSpyMissions] = useState<ActiveSpyMission[]>([]);
   const [intelReports, setIntelReports] = useState<IntelReport[]>([]);
   const [vassalages, setVassalages] = useState<Vassalage[]>([]);
@@ -845,7 +847,25 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval);
   }, [trainingQueue.length]);
 
-  // Build queue processing
+  // Spy training queue processing
+  useEffect(() => {
+    if (spyTrainingQueue.length === 0) return;
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setSpyTrainingQueue(prev => {
+        const completed = prev.filter(q => q.finishTime <= now);
+        const remaining = prev.filter(q => q.finishTime > now);
+        if (completed.length > 0) {
+          const totalSpies = completed.reduce((s, q) => s + q.count, 0);
+          setSpies(p => p + totalSpies);
+        }
+        return remaining;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [spyTrainingQueue.length]);
+
+
   useEffect(() => {
     if (buildQueue.length === 0) return;
     const interval = setInterval(() => {
@@ -1392,10 +1412,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (villageId) {
       supabase.from('villages').update(newResources).eq('id', villageId).then();
     }
-    // Spies train over time
+    // Spies train over time — use a dedicated spy queue entry
     const finishTime = Date.now() + 20000 * count;
-    setTrainingQueue(prev => [...prev, { type: 'scout' as TroopType, count: 0, finishTime }]);
-    setTimeout(() => setSpies(prev => prev + count), 20000 * count);
+    setSpyTrainingQueue(prev => [...prev, { count, finishTime }]);
     return true;
   }, [canAfford, getBarracksLevel, population.civilians, resources, villageId]);
 
@@ -1523,7 +1542,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       population, workerAssignments, assignWorker, unassignWorker, getMaxWorkers,
       rations, setRations, popTaxRate, setPopTaxRate, popFoodCost, popTaxIncome,
       isBuildingUpgrading, getBuildTime,
-      spies, trainSpies, sendSpyMission, activeSpyMissions, intelReports, getWatchtowerLevel,
+      spies, trainSpies, sendSpyMission, activeSpyMissions, spyTrainingQueue, intelReports, getWatchtowerLevel,
       attackPlayer, vassalages, payRansom, attemptRebellion, setVassalTributeRate, releaseVassal, getWallLevel,
       injuredTroops, poisons, healTroops, craftPoison, getApothecaryLevel,
     }}>

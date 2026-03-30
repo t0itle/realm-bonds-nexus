@@ -17,7 +17,7 @@ export default function MilitaryPanel() {
   const {
     army, trainingQueue, battleLogs, trainTroops, getBarracksLevel, canAfford, canAffordSteel,
     totalArmyPower, armyUpkeep, population, steel,
-    spies, trainSpies, sendSpyMission, activeSpyMissions, intelReports, allVillages, getWatchtowerLevel,
+    spies, trainSpies, sendSpyMission, activeSpyMissions, spyTrainingQueue, intelReports, allVillages, getWatchtowerLevel,
     injuredTroops, poisons, healTroops, craftPoison, getApothecaryLevel,
   } = useGame();
   const [trainCount, setTrainCount] = useState<Record<TroopType, number>>({ militia: 1, archer: 1, knight: 1, cavalry: 1, siege: 1, scout: 1 });
@@ -32,7 +32,7 @@ export default function MilitaryPanel() {
 
   // Force re-render for timers
   useEffect(() => {
-    if (trainingQueue.length === 0 && activeSpyMissions.length === 0) return;
+    if (trainingQueue.length === 0 && activeSpyMissions.length === 0 && spyTrainingQueue.length === 0) return;
     const t = setInterval(() => forceUpdate(x => x + 1), 1000);
     return () => clearInterval(t);
   }, [trainingQueue.length, activeSpyMissions.length]);
@@ -264,6 +264,7 @@ export default function MilitaryPanel() {
           barracksLevel={barracksLevel}
           sendSpyMission={sendSpyMission}
           activeSpyMissions={activeSpyMissions}
+          spyTrainingQueue={spyTrainingQueue}
           intelReports={intelReports}
           allVillages={allVillages}
           population={population}
@@ -290,7 +291,7 @@ export default function MilitaryPanel() {
 
 function EspionagePanel({
   spies, spyTrainCount, setSpyTrainCount, trainSpies, barracksLevel,
-  sendSpyMission, activeSpyMissions, intelReports, allVillages, population, canAfford, resources,
+  sendSpyMission, activeSpyMissions, spyTrainingQueue, intelReports, allVillages, population, canAfford, resources,
 }: any) {
   const [selectedTarget, setSelectedTarget] = useState<string>('');
   const [selectedMission, setSelectedMission] = useState<SpyMission>('scout');
@@ -337,6 +338,22 @@ function EspionagePanel({
           </motion.button>
         </div>
       </div>
+
+      {/* Spy Training Queue */}
+      {spyTrainingQueue.length > 0 && (
+        <div className="game-panel border-glow rounded-xl p-3 space-y-2">
+          <h3 className="font-display text-xs text-foreground">🕵️ Training Spies</h3>
+          {spyTrainingQueue.map((q: any, i: number) => {
+            const remaining = Math.max(0, Math.ceil((q.finishTime - Date.now()) / 1000));
+            return (
+              <div key={i} className="flex items-center justify-between text-xs">
+                <span className="text-foreground">🕵️ Spy x{q.count}</span>
+                <span className="text-primary font-mono">{formatTime(remaining)}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Active Missions with travel animation */}
       {activeSpyMissions.length > 0 && (
