@@ -206,10 +206,10 @@ Deno.serve(async (req) => {
 
       const civilians = Math.max(0, village.population - totalWorkers - totalSoldiers);
 
-      // Pop food cost per minute
+      // Pop food cost per hour
       const popFoodCost = Math.floor(civilians * rationsMultiplier);
 
-      // Tax income per minute
+      // Tax income per hour
       const popTaxIncome = Math.floor(civilians * village.pop_tax_rate / 100 * 2);
 
       // Overcrowding penalty
