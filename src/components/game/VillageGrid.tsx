@@ -5,7 +5,7 @@ import { BUILDING_SPRITES, WORKERS_SPRITE, WORKER_FOR_BUILDING } from './sprites
 import BuildModal from './BuildModal';
 import ResourceIcon, { getResourceType } from './ResourceIcon';
 import { Send, Scroll } from 'lucide-react';
-import WorldEventsOverlay from './WorldEventsOverlay';
+
 import { lazy, Suspense } from 'react';
 
 const MilitaryPanel = lazy(() => import('./MilitaryPanel'));
@@ -200,9 +200,6 @@ export default function VillageGrid() {
 
   return (
     <>
-      {/* World Events from the DM */}
-      <WorldEventsOverlay />
-
       <div className="flex-1 flex flex-col items-center justify-center px-3 py-3">
         <div className={`grid gap-2.5 w-full max-w-xs`} style={{ gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))` }}>
           {grid.map((building, i) => {
@@ -398,11 +395,11 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
         <div className="flex gap-3 text-xs">
           <span className="text-muted-foreground">Production:</span>
           {Object.entries(production).map(([key, val]) => (
-            <span key={key} className="text-foreground">+{val} {key}/hr</span>
+            <span key={key} className="text-foreground">+{val} {key}/min</span>
           ))}
           {steelProd > 0 && (
             <span className="text-foreground flex items-center gap-0.5">
-              +{steelProd} <ResourceIcon type="steel" size={12} />/hr
+              +{steelProd} <ResourceIcon type="steel" size={12} />/min
             </span>
           )}
         </div>

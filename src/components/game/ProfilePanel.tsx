@@ -163,12 +163,12 @@ export default function ProfilePanel() {
       <div className="game-panel border-glow rounded-xl p-4 space-y-2">
         <h3 className="font-display text-sm text-foreground">Production Rates</h3>
         <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="flex items-center gap-2"><ResourceIcon type="gold" size={14} /><span className="text-foreground">{totalProduction.gold} gold/hr</span></div>
-          <div className="flex items-center gap-2"><ResourceIcon type="wood" size={14} /><span className="text-foreground">{totalProduction.wood} wood/hr</span></div>
-          <div className="flex items-center gap-2"><ResourceIcon type="stone" size={14} /><span className="text-foreground">{totalProduction.stone} stone/hr</span></div>
-          <div className="flex items-center gap-2"><ResourceIcon type="food" size={14} /><span className="text-foreground">{totalProduction.food} food/hr</span></div>
+          <div className="flex items-center gap-2"><ResourceIcon type="gold" size={14} /><span className="text-foreground">{totalProduction.gold} gold/min</span></div>
+          <div className="flex items-center gap-2"><ResourceIcon type="wood" size={14} /><span className="text-foreground">{totalProduction.wood} wood/min</span></div>
+          <div className="flex items-center gap-2"><ResourceIcon type="stone" size={14} /><span className="text-foreground">{totalProduction.stone} stone/min</span></div>
+          <div className="flex items-center gap-2"><ResourceIcon type="food" size={14} /><span className="text-foreground">{totalProduction.food} food/min</span></div>
           {steelProduction > 0 && (
-            <div className="flex items-center gap-2"><ResourceIcon type="steel" size={14} /><span className="text-foreground">{steelProduction} steel/hr</span></div>
+            <div className="flex items-center gap-2"><ResourceIcon type="steel" size={14} /><span className="text-foreground">{steelProduction} steel/min</span></div>
           )}
         </div>
       </div>

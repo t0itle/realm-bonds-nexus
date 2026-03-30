@@ -39,21 +39,21 @@ interface VillageRow {
 }
 
 const BASE_PRODUCTION: Record<string, Partial<Record<string, number>>> = {
-  farm: { food: 5 },
-  lumbermill: { wood: 5 },
-  quarry: { stone: 4 },
-  goldmine: { gold: 3 },
+  farm: { food: 2 },
+  lumbermill: { wood: 2 },
+  quarry: { stone: 1 },
+  goldmine: { gold: 1 },
 };
 
 const HOUSING_PER_LEVEL = 8;
 
 const TROOP_UPKEEP: Record<string, { food: number; gold: number; popCost: number }> = {
-  militia:  { food: 1, gold: 0, popCost: 1 },
-  archer:   { food: 1, gold: 1, popCost: 1 },
-  knight:   { food: 2, gold: 2, popCost: 2 },
-  cavalry:  { food: 3, gold: 2, popCost: 2 },
-  siege:    { food: 2, gold: 3, popCost: 3 },
-  scout:    { food: 1, gold: 1, popCost: 1 },
+  militia:  { food: 0.5, gold: 0, popCost: 1 },
+  archer:   { food: 0.5, gold: 0.5, popCost: 1 },
+  knight:   { food: 1, gold: 1, popCost: 2 },
+  cavalry:  { food: 1.5, gold: 1, popCost: 2 },
+  siege:    { food: 1, gold: 1.5, popCost: 3 },
+  scout:    { food: 0.5, gold: 0.5, popCost: 1 },
 };
 
 const RATIONS_MULTIPLIER: Record<string, number> = {
@@ -147,8 +147,8 @@ Deno.serve(async (req) => {
       const elapsedMs = now.getTime() - lastTick.getTime();
       // Only tick if at least 30 seconds have passed
       if (elapsedMs < 30000) continue;
-      // Calculate how many hours have elapsed (fractional)
-      const elapsedHours = elapsedMs / 3600000;
+      // Calculate how many minutes have elapsed (fractional)
+      const elapsedMinutes = elapsedMs / 60000;
 
       const buildings = buildingsByVillage.get(village.id) || [];
 
@@ -229,18 +229,18 @@ Deno.serve(async (req) => {
         if (alliance) taxFraction = alliance.tax_rate / 100;
       }
 
-      // Calculate net production for the elapsed period
-      const netGold = (grossGold * (1 - taxFraction) - armyGoldUpkeep + popTaxIncome) * elapsedHours;
-      const netWood = (grossWood * (1 - taxFraction)) * elapsedHours;
-      const netStone = (grossStone * (1 - taxFraction)) * elapsedHours;
-      const netFood = (grossFood * (1 - taxFraction) - armyFoodUpkeep - popFoodCost) * elapsedHours;
+      // Calculate net production for the elapsed period (per minute)
+      const netGold = (grossGold * (1 - taxFraction) - armyGoldUpkeep + popTaxIncome) * elapsedMinutes;
+      const netWood = (grossWood * (1 - taxFraction)) * elapsedMinutes;
+      const netStone = (grossStone * (1 - taxFraction)) * elapsedMinutes;
+      const netFood = (grossFood * (1 - taxFraction) - armyFoodUpkeep - popFoodCost) * elapsedMinutes;
 
       // Treasury contributions
       if (taxFraction > 0 && allianceId) {
-        const taxGold = Math.floor(grossGold * taxFraction * elapsedHours);
-        const taxWood = Math.floor(grossWood * taxFraction * elapsedHours);
-        const taxStone = Math.floor(grossStone * taxFraction * elapsedHours);
-        const taxFood = Math.floor(grossFood * taxFraction * elapsedHours);
+        const taxGold = Math.floor(grossGold * taxFraction * elapsedMinutes);
+        const taxWood = Math.floor(grossWood * taxFraction * elapsedMinutes);
+        const taxStone = Math.floor(grossStone * taxFraction * elapsedMinutes);
+        const taxFood = Math.floor(grossFood * taxFraction * elapsedMinutes);
         const prev = treasuryAdds.get(allianceId) || { gold: 0, wood: 0, stone: 0, food: 0 };
         prev.gold += taxGold;
         prev.wood += taxWood;
@@ -253,14 +253,14 @@ Deno.serve(async (req) => {
       const newWood = Math.max(0, Math.floor(village.wood + netWood));
       const newStone = Math.max(0, Math.floor(village.stone + netStone));
       const newFood = Math.max(0, Math.floor(village.food + netFood));
-      const newSteel = Math.max(0, Math.floor(village.steel + grossSteel * elapsedHours));
+      const newSteel = Math.max(0, Math.floor(village.steel + grossSteel * elapsedMinutes));
 
       // Population growth
       let newPop = village.population;
       if (newPop < housingCap && newFood >= 50) {
         const growthChance = happinessVal / 100 * 0.5;
         // For server tick, scale by elapsed hours
-        const growthRolls = Math.floor(elapsedHours * 20); // ~20 rolls per hour
+        const growthRolls = Math.floor(elapsedMinutes); // ~1 roll per minute
         for (let i = 0; i < Math.min(growthRolls, 60); i++) {
           if (newPop < housingCap && Math.random() < growthChance) {
             newPop++;
@@ -272,7 +272,7 @@ Deno.serve(async (req) => {
       let updatedArmy = { ...armyCounts };
       if (newFood <= 0) {
         const desertOrder = ["siege", "cavalry", "knight", "archer", "militia"];
-        const desertions = Math.max(1, Math.floor(elapsedHours));
+        const desertions = Math.max(1, Math.floor(elapsedMinutes / 5));
         for (let d = 0; d < desertions; d++) {
           for (const t of desertOrder) {
             if (updatedArmy[t] > 0) {
