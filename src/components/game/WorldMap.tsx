@@ -60,11 +60,25 @@ interface TerrainFeature {
   width: number;
   height: number;
   rotation?: number;
-  // River-specific
   points?: { x: number; y: number }[];
   bridgeAt?: { x: number; y: number }[];
   name: string;
 }
+
+interface Decoration {
+  type: 'trees' | 'grass' | 'rocks';
+  x: number;
+  y: number;
+  size: number;
+  rotation: number;
+  opacity: number;
+}
+
+const DECO_SPRITES: Record<Decoration['type'], string> = {
+  trees: mapTrees,
+  grass: mapGrass,
+  rocks: mapRocks,
+};
 
 interface SteelMine {
   id: string;
