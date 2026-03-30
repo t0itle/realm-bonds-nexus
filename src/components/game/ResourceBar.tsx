@@ -24,7 +24,7 @@ export default function ResourceBar() {
             <ResourceIcon type={key} size={14} />
             <div className="flex flex-col min-w-0">
               <span className={`text-xs font-semibold tabular-nums ${color} truncate`}>
-                {resources[key].toLocaleString()}
+                {Math.floor(resources[key]).toLocaleString()}
               </span>
               <span className="text-[9px] text-muted-foreground">
                 +{totalProduction[key]}/min
