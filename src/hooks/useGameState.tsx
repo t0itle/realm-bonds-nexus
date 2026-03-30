@@ -332,6 +332,7 @@ interface GameContextType {
   villageId: string | null;
   playerLevel: number;
   displayName: string;
+  demolishBuilding: (id: string) => Promise<boolean>;
   buildAt: (position: number, type: Exclude<BuildingType, 'empty'>) => Promise<boolean>;
   upgradeBuilding: (id: string) => Promise<boolean>;
   canAfford: (cost: Resources) => boolean;
@@ -1315,6 +1316,27 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return true;
   }, [buildings, villageId, user, resources, canAfford, canAffordSteel, buildQueue, getBuildTime]);
 
+  // Demolish building (returns 30% resources, can't demolish townhall)
+  const demolishBuilding = useCallback(async (id: string) => {
+    if (!villageId || !user) return false;
+    const building = buildings.find(b => b.id === id);
+    if (!building || building.type === 'empty' || building.type === 'townhall') return false;
+    if (buildQueue.some(q => q.buildingId === id)) return false;
+    const type = building.type as Exclude<BuildingType, 'empty'>;
+    let refund = { gold: 0, wood: 0, stone: 0, food: 0 };
+    for (let lvl = 0; lvl < building.level; lvl++) {
+      const c = getUpgradeCost(type, lvl);
+      refund.gold += c.gold; refund.wood += c.wood; refund.stone += c.stone; refund.food += c.food;
+    }
+    refund = { gold: Math.floor(refund.gold * 0.3), wood: Math.floor(refund.wood * 0.3), stone: Math.floor(refund.stone * 0.3), food: Math.floor(refund.food * 0.3) };
+    setWorkerAssignments(prev => { const n = { ...prev }; delete n[id]; return n; });
+    await supabase.from('buildings').delete().eq('id', id);
+    setBuildings(prev => prev.filter(b => b.id !== id));
+    setResources(prev => ({ gold: prev.gold + refund.gold, wood: prev.wood + refund.wood, stone: prev.stone + refund.stone, food: prev.food + refund.food }));
+    await supabase.from('villages').update({ gold: resources.gold + refund.gold, wood: resources.wood + refund.wood, stone: resources.stone + refund.stone, food: resources.food + refund.food }).eq('id', villageId);
+    return true;
+  }, [buildings, villageId, user, buildQueue, resources]);
+
   // Watchtower level (for espionage defense)
   const getWatchtowerLevel = useCallback(() => {
     const wt = buildings.find(b => b.type === 'watchtower');
@@ -1491,7 +1513,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   return (
     <GameContext.Provider value={{
       resources, steel, buildings, villageName, villageId, playerLevel, displayName,
-      buildAt, upgradeBuilding, canAfford, canAffordSteel, totalProduction, allVillages, loading,
+      demolishBuilding, buildAt, upgradeBuilding, canAfford, canAffordSteel, totalProduction, allVillages, loading,
       army, trainingQueue, buildQueue, battleLogs, trainTroops, getBarracksLevel, totalArmyPower, addResources, addSteel, attackTarget, armyUpkeep,
       population, workerAssignments, assignWorker, unassignWorker, getMaxWorkers,
       rations, setRations, popTaxRate, setPopTaxRate, popFoodCost, popTaxIncome,
