@@ -37,14 +37,18 @@ export default function VillageGrid() {
     return () => clearInterval(interval);
   }, []);
 
-  const grid = Array.from({ length: GRID_SIZE }, (_, i) => {
+  const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
+  const gridSize = getGridSize(townhallLevel);
+  const gridCols = getGridCols(gridSize);
+
+  const grid = Array.from({ length: gridSize }, (_, i) => {
     return buildings.find(b => b.position === i) || null;
   });
 
   return (
     <>
       <div className="flex-1 flex flex-col items-center justify-center px-3 py-3">
-        <div className="grid grid-cols-3 gap-2.5 w-full max-w-xs">
+        <div className={`grid gap-2.5 w-full max-w-xs`} style={{ gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))` }}>
           {grid.map((building, i) => {
             const type = building?.type as Exclude<BuildingType, 'empty'> | undefined;
             const sprite = type ? BUILDING_SPRITES[type] : null;
