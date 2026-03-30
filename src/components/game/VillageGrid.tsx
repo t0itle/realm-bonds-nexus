@@ -156,6 +156,27 @@ function OracleWidget() {
     </div>
   );
 }
+function CollapsibleSection({ icon, title, defaultOpen, children }: {
+  icon: string; title: string; defaultOpen: boolean; children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div>
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center gap-2 game-panel px-3 py-2 rounded-xl border border-border/30">
+        <span className="text-base">{icon}</span>
+        <span className="text-[10px] font-display text-foreground flex-1 text-left">{title}</span>
+        <span className="text-[10px] text-muted-foreground">{open ? '▼' : '▶'}</span>
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 export default function VillageGrid() {
   const { buildings, upgradeBuilding, demolishBuilding, canAfford, canAffordSteel, isBuildingUpgrading, getBuildTime, resources, steel } = useGame();
