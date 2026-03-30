@@ -37,6 +37,7 @@ const MilitaryPanel = lazyRetry(() => import('./MilitaryPanel'));
 const ProfilePanel = lazyRetry(() => import('./ProfilePanel'));
 const MessagesPanel = lazyRetry(() => import('./MessagesPanel'));
 const StatSheet = lazyRetry(() => import('./StatSheet'));
+const DungeonMasterPanel = lazyRetry(() => import('./DungeonMasterPanel'));
 
 
 function TabFallback() {

@@ -119,7 +119,7 @@ export default function DungeonMasterPanel() {
     check();
     const interval = setInterval(check, 30000);
     return () => clearInterval(interval);
-  }, [game.resources, game.happiness, game.population, game.maxPopulation]);
+  }, [game.resources, game.population]);
 
   // Welcome message on first mount
   useEffect(() => {
