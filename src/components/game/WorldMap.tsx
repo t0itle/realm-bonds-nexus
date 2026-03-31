@@ -1014,7 +1014,7 @@ export default function WorldMap() {
           radius: outpostBaseVision + (outpost.level || 1) * 5000,
         })),
     ];
-  }, [army.scout, getMyPos, allVillages, outposts, user?.id]);
+  }, [army.scout, getMyPos, allVillages, outposts, user?.id, getWatchtowerLevel]);
 
   const isWithinVision = useCallback((wx: number, wy: number, padding = 0) => {
     return visionSources.some(source => Math.hypot(wx - source.x, wy - source.y) <= source.radius + padding);
