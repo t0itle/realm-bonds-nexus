@@ -244,6 +244,8 @@ export default function GameLayout() {
           ))}
         </div>
       </nav>
+
+      <PatchNotesModal />
     </div>
   );
 }
