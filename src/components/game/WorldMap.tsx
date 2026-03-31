@@ -2111,10 +2111,20 @@ export default function WorldMap() {
                           <span className={resources.stone >= wallCost.stone ? '' : 'text-destructive'}>🪨{wallCost.stone}</span>
                           {wallCost.food > 0 && <span className={resources.food >= wallCost.food ? '' : 'text-destructive'}>🌾{wallCost.food}</span>}
                         </div>
-                        <motion.button whileTap={{ scale: 0.95 }} onClick={handleWall} disabled={!canAffordWall}
-                          className="w-full bg-accent text-accent-foreground font-display text-[11px] py-2 rounded-lg disabled:opacity-40 active:scale-95 transition-transform">
-                          🧱 {op.has_wall ? 'Upgrade Wall' : 'Build Border Wall'}
-                        </motion.button>
+                        {isBuildingWall ? (
+                          <div className="w-full bg-muted rounded-lg py-2 text-center space-y-1">
+                            <p className="font-display text-[11px] text-accent-foreground">⏳ Building wall...</p>
+                            <div className="bg-background rounded-full h-1.5 mx-2 overflow-hidden">
+                              <div className="h-full bg-accent rounded-full transition-all" style={{ width: `${Math.max(0, 100 - ((isBuildingWall.finishTime - Date.now()) / (wallTimeSec * 1000)) * 100)}%` }} />
+                            </div>
+                            <p className="text-[9px] text-muted-foreground">{Math.max(0, Math.ceil((isBuildingWall.finishTime - Date.now()) / 1000))}s remaining</p>
+                          </div>
+                        ) : (
+                          <motion.button whileTap={{ scale: 0.95 }} onClick={handleWall} disabled={!canAffordWall}
+                            className="w-full bg-accent text-accent-foreground font-display text-[11px] py-2 rounded-lg disabled:opacity-40 active:scale-95 transition-transform">
+                            🧱 {op.has_wall ? 'Upgrade Wall' : 'Build Border Wall'} ({Math.floor(wallTimeSec / 60)}:{(wallTimeSec % 60).toString().padStart(2, '0')})
+                          </motion.button>
+                        )}
                       </div>
                     </div>
                   )}
