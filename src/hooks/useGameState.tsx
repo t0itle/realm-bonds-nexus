@@ -949,7 +949,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const getBuildTime = useCallback((type: Exclude<BuildingType, 'empty'>, level: number) => {
     const info = BUILDING_INFO[type];
-    return Math.floor(info.buildTime * Math.pow(1.3, level)); // scales with level
+    return Math.floor(info.buildTime * 3 * Math.pow(1.3, level)); // 3x base, scales with level
   }, []);
 
   const isBuildingUpgrading = useCallback((buildingId: string) => {
