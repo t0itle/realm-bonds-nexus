@@ -12,7 +12,7 @@ const RESOURCE_CONFIG = [
 ];
 
 export default function ResourceBar() {
-  const { resources, totalProduction, steel, steelProduction, population, storageCapacity, myVillages, switchVillage, villageId, villageName } = useGame();
+  const { resources, totalProduction, steel, steelProduction, population, storageCapacity, myVillages, switchVillage, villageId, villageName, abandonSettlement } = useGame();
   const [showCaravan, setShowCaravan] = useState(false);
   const [showVillageSwitcher, setShowVillageSwitcher] = useState(false);
   const totalStored = Math.floor(resources.gold + resources.wood + resources.stone + resources.food);
