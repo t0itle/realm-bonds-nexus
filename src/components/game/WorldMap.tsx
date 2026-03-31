@@ -1040,7 +1040,7 @@ export default function WorldMap() {
           const { sx, sy } = worldToScreen(realm.x, realm.y);
           return (
             <button key={realm.id} data-map-item
-              onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'npc', data: realm }); }}
+              onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'npc', data: realm, biome: realm.biome }); }}
               className="absolute flex flex-col items-center z-10 hover:z-20"
               style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
               <img
