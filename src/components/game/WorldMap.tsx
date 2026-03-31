@@ -1643,56 +1643,73 @@ export default function WorldMap() {
               </div>
             )}
 
-            {selected.kind === 'mine' && (
+            {selected.kind === 'mine' && (() => {
+              const isCaptured = capturedMines.has(selected.data.id);
+              const outpostCost = { gold: 200, wood: 150, stone: 100, food: 50 };
+              const canAffordOutpost = resources.gold >= outpostCost.gold && resources.wood >= outpostCost.wood && resources.stone >= outpostCost.stone && resources.food >= outpostCost.food;
+              return (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-3xl">⚙️</span>
+                  <span className="text-3xl">⛏️</span>
                   <div className="flex-1">
                     <h3 className="font-display text-sm text-foreground">{selected.data.name}</h3>
-                    <p className="text-[10px] text-muted-foreground">Steel Mine · Produces ⚙️{selected.data.steelPerTick}/tick</p>
+                    <p className="text-[10px] text-muted-foreground">Iron Ore Deposit · Yields ⚙️{selected.data.steelPerTick} steel/tick</p>
                   </div>
-                  {capturedMines.has(selected.data.id) && (
-                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary">✅ Captured</span>
+                  {isCaptured && (
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary">⛏️ Mining</span>
                   )}
                 </div>
                 <p className="text-[10px] text-muted-foreground">
-                  {capturedMines.has(selected.data.id)
-                    ? 'This mine is under your control and producing steel.'
-                    : `Defeat the garrison (⚔️${selected.data.power}) to capture this mine and start producing steel.`}
+                  {isCaptured
+                    ? 'Your mining outpost here is producing steel.'
+                    : `Defeat the garrison (⚔️${selected.data.power}), then build a mining outpost to extract steel.`}
                 </p>
-                {!capturedMines.has(selected.data.id) && (
-                  <motion.button whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      const hasTroops = Object.values(army).some(v => v > 0);
-                      if (!hasTroops) { toast.error('You need troops to capture a mine!'); return; }
-                      const travelSec = calcTravelTime(selected.data.x, selected.data.y);
-                      const mineData = selected.data;
-                      setAttackConfig({
-                        targetName: mineData.name, targetPower: mineData.power,
-                        targetX: mineData.x, targetY: mineData.y, travelTime: travelSec,
-                        showEspionage: false,
-                        onAttack: (sentArmy) => {
-                          toast(`⚔️ Troops marching to ${mineData.name}... ETA ${travelSec}s`);
-                          createMarch(`mine-${Date.now()}`, mineData.name, mineData.x, mineData.y, travelSec, () => {
-                            const log = attackTarget(mineData.name, mineData.power, sentArmy);
-                            if (log.result === 'victory') {
-                              setCapturedMines(prev => new Set([...prev, mineData.id]));
-                              toast.success(`⚙️ ${mineData.name} captured! Producing steel.`);
-                            } else {
-                              toast.error('Defeat! The garrison held.');
-                            }
-                          });
-                          setAttackConfig(null);
-                          setSelected(null);
-                        },
-                      });
-                    }}
-                    className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2.5 rounded-lg glow-gold-sm active:scale-95 transition-transform">
-                    ⚔️ Capture Mine (Garrison: ⚔️{selected.data.power})
-                  </motion.button>
+                {!isCaptured && (
+                  <div className="space-y-1.5">
+                    <div className="text-[9px] text-muted-foreground">
+                      <span className="font-semibold text-foreground">Outpost cost:</span>{' '}
+                      <span className={resources.gold >= outpostCost.gold ? '' : 'text-destructive'}>🪙{outpostCost.gold}</span>{' '}
+                      <span className={resources.wood >= outpostCost.wood ? '' : 'text-destructive'}>🪵{outpostCost.wood}</span>{' '}
+                      <span className={resources.stone >= outpostCost.stone ? '' : 'text-destructive'}>🪨{outpostCost.stone}</span>{' '}
+                      <span className={resources.food >= outpostCost.food ? '' : 'text-destructive'}>🌾{outpostCost.food}</span>
+                    </div>
+                    <motion.button whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        const hasTroops = Object.values(army).some(v => v > 0);
+                        if (!hasTroops) { toast.error('You need troops to clear the garrison!'); return; }
+                        if (!canAffordOutpost) { toast.error('Not enough resources to build a mining outpost!'); return; }
+                        const travelSec = calcTravelTime(selected.data.x, selected.data.y);
+                        const mineData = selected.data;
+                        setAttackConfig({
+                          targetName: mineData.name, targetPower: mineData.power,
+                          targetX: mineData.x, targetY: mineData.y, travelTime: travelSec,
+                          showEspionage: false,
+                          onAttack: (sentArmy) => {
+                            toast(`⚔️ Troops marching to ${mineData.name}... ETA ${travelSec}s`);
+                            createMarch(`mine-${Date.now()}`, mineData.name, mineData.x, mineData.y, travelSec, () => {
+                              const log = attackTarget(mineData.name, mineData.power, sentArmy);
+                              if (log.result === 'victory') {
+                                // Deduct outpost building costs
+                                addResources({ gold: -outpostCost.gold, wood: -outpostCost.wood, stone: -outpostCost.stone, food: -outpostCost.food });
+                                setCapturedMines(prev => new Set([...prev, mineData.id]));
+                                toast.success(`⛏️ Mining outpost built at ${mineData.name}! Producing steel.`);
+                              } else {
+                                toast.error('Defeat! The garrison held.');
+                              }
+                            });
+                            setAttackConfig(null);
+                            setSelected(null);
+                          },
+                        });
+                      }}
+                      className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2.5 rounded-lg glow-gold-sm active:scale-95 transition-transform">
+                      ⚔️ Clear Garrison & Build Outpost (⚔️{selected.data.power})
+                    </motion.button>
+                  </div>
                 )}
               </div>
-            )}
+              );
+            })()}
           </motion.div>
         )}
       </AnimatePresence>
