@@ -552,6 +552,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setHappinessBase((village as any).happiness ?? 50);
         setRations(((village as any).rations as RationsLevel) ?? 'normal');
         setPopTaxRate((village as any).pop_tax_rate ?? 5);
+        setSpies((village as any).spies ?? 0);
+        setPoisons((village as any).poisons ?? 0);
+        setInjuredTroops({
+          militia: (village as any).injured_militia ?? 0,
+          archer: (village as any).injured_archer ?? 0,
+          knight: (village as any).injured_knight ?? 0,
+          cavalry: (village as any).injured_cavalry ?? 0,
+          siege: (village as any).injured_siege ?? 0,
+          scout: (village as any).injured_scout ?? 0,
+        });
         setArmy({
           militia: (village as any).army_militia ?? 0,
           archer: (village as any).army_archer ?? 0,
@@ -579,6 +589,113 @@ export function GameProvider({ children }: { children: ReactNode }) {
           }
           setWorkerAssignments(wa);
         }
+      }
+
+      // Load persisted queues and catch up on completed items
+      const now = Date.now();
+
+      // Build queue
+      const { data: bqData } = await supabase.from('build_queue').select('*').eq('user_id', user.id);
+      if (bqData && bqData.length > 0) {
+        const completed = bqData.filter((q: any) => new Date(q.finish_time).getTime() <= now);
+        const active = bqData.filter((q: any) => new Date(q.finish_time).getTime() > now);
+        // Process completed items
+        for (const q of completed) {
+          await supabase.from('buildings').update({ level: q.target_level }).eq('id', q.building_id);
+          setBuildings(prev => prev.map(b => b.id === q.building_id ? { ...b, level: q.target_level } : b));
+          await supabase.from('build_queue').delete().eq('id', q.id);
+        }
+        setBuildQueue(active.map((q: any) => ({
+          buildingId: q.building_id,
+          buildingType: q.building_type as BuildingType,
+          targetLevel: q.target_level,
+          finishTime: new Date(q.finish_time).getTime(),
+        })));
+      }
+
+      // Training queue
+      const { data: tqData } = await supabase.from('training_queue').select('*').eq('user_id', user.id);
+      if (tqData && tqData.length > 0) {
+        const completed = tqData.filter((q: any) => new Date(q.finish_time).getTime() <= now);
+        const active = tqData.filter((q: any) => new Date(q.finish_time).getTime() > now);
+        if (completed.length > 0) {
+          const nextArmy = { ...EMPTY_ARMY };
+          // Load current army first
+          if (village) {
+            nextArmy.militia = (village as any).army_militia ?? 0;
+            nextArmy.archer = (village as any).army_archer ?? 0;
+            nextArmy.knight = (village as any).army_knight ?? 0;
+            nextArmy.cavalry = (village as any).army_cavalry ?? 0;
+            nextArmy.siege = (village as any).army_siege ?? 0;
+            nextArmy.scout = (village as any).army_scout ?? 0;
+          }
+          for (const q of completed) {
+            nextArmy[q.troop_type as TroopType] += q.count;
+            await supabase.from('training_queue').delete().eq('id', q.id);
+          }
+          setArmy(nextArmy);
+          await supabase.from('villages').update({
+            army_militia: nextArmy.militia, army_archer: nextArmy.archer,
+            army_knight: nextArmy.knight, army_cavalry: nextArmy.cavalry,
+            army_siege: nextArmy.siege, army_scout: nextArmy.scout,
+          }).eq('id', village!.id);
+        }
+        setTrainingQueue(active.map((q: any) => ({
+          type: q.troop_type as TroopType,
+          count: q.count,
+          finishTime: new Date(q.finish_time).getTime(),
+        })));
+      }
+
+      // Spy training queue
+      const { data: stqData } = await supabase.from('spy_training_queue').select('*').eq('user_id', user.id);
+      if (stqData && stqData.length > 0) {
+        const completed = stqData.filter((q: any) => new Date(q.finish_time).getTime() <= now);
+        const active = stqData.filter((q: any) => new Date(q.finish_time).getTime() > now);
+        if (completed.length > 0) {
+          const totalNewSpies = completed.reduce((s: number, q: any) => s + q.count, 0);
+          const currentSpies = (village as any)?.spies ?? 0;
+          setSpies(currentSpies + totalNewSpies);
+          await supabase.from('villages').update({ spies: currentSpies + totalNewSpies } as any).eq('id', village!.id);
+          for (const q of completed) {
+            await supabase.from('spy_training_queue').delete().eq('id', q.id);
+          }
+        }
+        setSpyTrainingQueue(active.map((q: any) => ({
+          count: q.count,
+          finishTime: new Date(q.finish_time).getTime(),
+        })));
+      }
+
+      // Active spy missions
+      const { data: asmData } = await supabase.from('active_spy_missions').select('*').eq('user_id', user.id);
+      if (asmData && asmData.length > 0) {
+        setActiveSpyMissions(asmData.map((m: any) => ({
+          id: m.id,
+          mission: m.mission as SpyMission,
+          targetName: m.target_name,
+          targetId: m.target_id,
+          spiesCount: m.spies_count,
+          departTime: new Date(m.depart_time).getTime(),
+          arrivalTime: new Date(m.arrival_time).getTime(),
+          returnTime: new Date(m.arrival_time).getTime() + 15000, // reconstruct return time
+          phase: new Date(m.arrival_time).getTime() <= now ? 'operating' : 'traveling',
+        })));
+      }
+
+      // Intel reports
+      const { data: irData } = await supabase.from('intel_reports').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(30);
+      if (irData && irData.length > 0) {
+        setIntelReports(irData.map((r: any) => ({
+          id: r.id,
+          targetName: r.target_name,
+          targetId: '',
+          mission: r.mission as SpyMission,
+          result: r.success ? 'success' : 'failure',
+          timestamp: new Date(r.created_at).getTime(),
+          data: r.data,
+          spiesLost: r.spies_lost,
+        })));
       }
 
       const { data: villages } = await supabase.from('villages').select('*').limit(50);
@@ -643,6 +760,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
           cavalry: (v as any).army_cavalry ?? 0,
           siege: (v as any).army_siege ?? 0,
           scout: (v as any).army_scout ?? 0,
+        });
+        setSpies((v as any).spies ?? 0);
+        setPoisons((v as any).poisons ?? 0);
+        setInjuredTroops({
+          militia: (v as any).injured_militia ?? 0,
+          archer: (v as any).injured_archer ?? 0,
+          knight: (v as any).injured_knight ?? 0,
+          cavalry: (v as any).injured_cavalry ?? 0,
+          siege: (v as any).injured_siege ?? 0,
+          scout: (v as any).injured_scout ?? 0,
         });
       }).subscribe();
 
@@ -919,7 +1046,25 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return () => { clearInterval(tickInterval); clearInterval(serverSync); clearInterval(taxRefresh); };
   }, [villageId, user]);
 
-  // Training queue processing
+  // Persist injured troops whenever they change
+  const injuredInitRef = useRef(false);
+  useEffect(() => {
+    if (!villageId || !injuredInitRef.current) { injuredInitRef.current = true; return; }
+    supabase.from('villages').update({
+      injured_militia: injuredTroops.militia, injured_archer: injuredTroops.archer,
+      injured_knight: injuredTroops.knight, injured_cavalry: injuredTroops.cavalry,
+      injured_siege: injuredTroops.siege, injured_scout: injuredTroops.scout,
+    } as any).eq('id', villageId).then();
+  }, [injuredTroops, villageId]);
+
+  // Persist poisons whenever they change
+  const poisonsInitRef = useRef(false);
+  useEffect(() => {
+    if (!villageId || !poisonsInitRef.current) { poisonsInitRef.current = true; return; }
+    supabase.from('villages').update({ poisons } as any).eq('id', villageId).then();
+  }, [poisons, villageId]);
+
+
   useEffect(() => {
     if (trainingQueue.length === 0) return;
     const interval = setInterval(() => {
@@ -932,12 +1077,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
           completed.forEach(q => { nextArmy[q.type] += q.count; });
           setArmy(nextArmy);
           persistArmyToVillage(nextArmy);
+          // Clean up completed entries from DB
+          supabase.from('training_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').then();
         }
         return remaining;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [trainingQueue.length, persistArmyToVillage]);
+  }, [trainingQueue.length, persistArmyToVillage, user?.id]);
 
   // Spy training queue processing
   useEffect(() => {
@@ -949,13 +1096,20 @@ export function GameProvider({ children }: { children: ReactNode }) {
         const remaining = prev.filter(q => q.finishTime > now);
         if (completed.length > 0) {
           const totalSpies = completed.reduce((s, q) => s + q.count, 0);
-          setSpies(p => p + totalSpies);
+          setSpies(p => {
+            const newVal = p + totalSpies;
+            // Persist spies to village
+            if (villageId) supabase.from('villages').update({ spies: newVal } as any).eq('id', villageId).then();
+            return newVal;
+          });
+          // Clean up from DB
+          supabase.from('spy_training_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').then();
         }
         return remaining;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [spyTrainingQueue.length]);
+  }, [spyTrainingQueue.length, villageId, user?.id]);
 
 
   useEffect(() => {
@@ -967,16 +1121,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
         const remaining = prev.filter(q => q.finishTime > now);
         if (completed.length > 0) {
           completed.forEach(q => {
-            // Apply the level upgrade
             supabase.from('buildings').update({ level: q.targetLevel }).eq('id', q.buildingId).then();
             setBuildings(prevB => prevB.map(b => b.id === q.buildingId ? { ...b, level: q.targetLevel } : b));
           });
+          // Clean up from DB
+          supabase.from('build_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').then();
         }
         return remaining;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [buildQueue.length]);
+  }, [buildQueue.length, user?.id]);
 
   const getBuildTime = useCallback((type: Exclude<BuildingType, 'empty'>, level: number) => {
     const info = BUILDING_INFO[type];
@@ -1020,8 +1175,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
     const finishTime = Date.now() + info.trainTime * 1000 * count;
     setTrainingQueue(prev => [...prev, { type, count, finishTime }]);
+    // Persist to training_queue table
+    if (user) supabase.from('training_queue').insert({ user_id: user.id, troop_type: type, count, finish_time: new Date(finishTime).toISOString() } as any).then();
     return true;
-  }, [canAfford, canAffordSteel, getBarracksLevel, totalSoldiers, armyCap, population.civilians, resources, steel, villageId]);
+  }, [canAfford, canAffordSteel, getBarracksLevel, totalSoldiers, armyCap, population.civilians, resources, steel, villageId, user]);
 
   const totalArmyPower = useCallback(() => {
     let attack = 0, defense = 0;
@@ -1416,7 +1573,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (cost.steel > 0) setSteel(prev => prev - cost.steel);
     setBuildings(prev => [...prev, { id: data.id, type: type as BuildingType, level: 0, position, village_id: villageId }]);
     const buildTime = getBuildTime(type, 0);
-    setBuildQueue(prev => [...prev, { buildingId: data.id, buildingType: type as BuildingType, targetLevel: 1, finishTime: Date.now() + buildTime * 1000 }]);
+    const finishTime = Date.now() + buildTime * 1000;
+    setBuildQueue(prev => [...prev, { buildingId: data.id, buildingType: type as BuildingType, targetLevel: 1, finishTime }]);
+    // Persist build queue to DB
+    supabase.from('build_queue').insert({ user_id: user.id, building_id: data.id, building_type: type, target_level: 1, finish_time: new Date(finishTime).toISOString() } as any).then();
     return true;
   }, [villageId, user, resources, canAfford, canAffordSteel, currentHouses, maxHouses, getBuildTime]);
 
@@ -1437,7 +1597,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (cost.steel > 0) setSteel(prev => prev - cost.steel);
     const newLevel = building.level + 1;
     const buildTime = getBuildTime(building.type, building.level);
-    setBuildQueue(prev => [...prev, { buildingId: id, buildingType: building.type as BuildingType, targetLevel: newLevel, finishTime: Date.now() + buildTime * 1000 }]);
+    const finishTime = Date.now() + buildTime * 1000;
+    setBuildQueue(prev => [...prev, { buildingId: id, buildingType: building.type as BuildingType, targetLevel: newLevel, finishTime }]);
+    // Persist build queue to DB
+    supabase.from('build_queue').insert({ user_id: user.id, building_id: id, building_type: building.type, target_level: newLevel, finish_time: new Date(finishTime).toISOString() } as any).then();
     return true;
   }, [buildings, villageId, user, resources, canAfford, canAffordSteel, buildQueue, getBuildTime]);
 
@@ -1531,8 +1694,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const speedMultiplier = Math.max(0.4, 1 - (sgLevel - 1) * 0.15); // 15% faster per level
     const finishTime = Date.now() + Math.floor(baseTime * count * speedMultiplier);
     setSpyTrainingQueue(prev => [...prev, { count, finishTime }]);
+    // Persist to spy_training_queue table
+    if (user) supabase.from('spy_training_queue').insert({ user_id: user.id, count, finish_time: new Date(finishTime).toISOString() } as any).then();
     return true;
-  }, [canAfford, getSpyGuildLevel, population.civilians, resources, villageId]);
+  }, [canAfford, getSpyGuildLevel, population.civilians, resources, villageId, user]);
 
   // Send spy mission
   const sendSpyMission = useCallback((mission: SpyMission, targetName: string, targetId: string, targetX: number, targetY: number, spiesCount: number) => {
@@ -1562,8 +1727,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
       phase: 'traveling',
     };
     setActiveSpyMissions(prev => [...prev, missionObj]);
+    // Persist to DB and update spies count
+    if (user) {
+      supabase.from('active_spy_missions').insert({
+        id: missionObj.id, user_id: user.id, mission, target_name: targetName,
+        target_id: targetId, spies_count: missionObj.spiesCount,
+        depart_time: new Date(missionObj.departTime).toISOString(),
+        arrival_time: new Date(missionObj.arrivalTime).toISOString(),
+        target_x: targetX, target_y: targetY,
+      } as any).then();
+      supabase.from('villages').update({ spies: spies - info.spiesRequired * spiesCount, gold: resources.gold - goldCost } as any).eq('user_id', user.id).then();
+    }
     return true;
-  }, [spies, resources.gold]);
+  }, [spies, resources.gold, user]);
 
   // Process spy missions
   useEffect(() => {
@@ -1636,18 +1812,31 @@ export function GameProvider({ children }: { children: ReactNode }) {
             }
 
             // Return surviving spies (caught = lost)
+            const spiesLost = caught ? m.spiesCount : 0;
             if (!caught) {
-              setSpies(p => p + m.spiesCount);
+              setSpies(p => {
+                const newVal = p + m.spiesCount;
+                if (villageId) supabase.from('villages').update({ spies: newVal } as any).eq('id', villageId).then();
+                return newVal;
+              });
             }
 
             setIntelReports(prev => [report, ...prev].slice(0, 30));
+            // Persist intel report and clean up mission from DB
+            if (user) {
+              supabase.from('intel_reports').insert({
+                user_id: user.id, target_name: m.targetName, mission: m.mission,
+                success: report.result === 'success', data: report.data || {}, spies_lost: spiesLost,
+              } as any).then();
+              supabase.from('active_spy_missions').delete().eq('id', m.id).then();
+            }
           });
         }
         return updated;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [activeSpyMissions.length, getWatchtowerLevel]);
+  }, [activeSpyMissions.length, getWatchtowerLevel, villageId, user]);
 
   return (
     <GameContext.Provider value={{
