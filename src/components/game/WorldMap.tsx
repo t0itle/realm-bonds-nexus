@@ -398,8 +398,8 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
   const regionName = generateRegionName(rng);
   const regionBiome = BIOME_TYPES[Math.floor(rng() * BIOME_TYPES.length)];
 
-  // 0-2 realms per chunk
-  const realmCount = rng() < 0.3 ? 0 : rng() < 0.7 ? 1 : 2;
+  // 0-1 realms per chunk (reduced density for cleaner map)
+  const realmCount = rng() < 0.45 ? 0 : 1;
   const realms: ProceduralRealm[] = [];
   for (let i = 0; i < realmCount; i++) {
     const emojiIdx = Math.floor(rng() * REALM_EMOJIS.length);
@@ -411,12 +411,12 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
       name: generateName(rng),
       ruler: generateRulerName(rng),
       power: Math.floor(basePower * difficultyMult),
-      x: worldBaseX + 5000 + rng() * (CHUNK_SIZE - 10000),
-      y: worldBaseY + 5000 + rng() * (CHUNK_SIZE - 10000),
+      x: worldBaseX + 15000 + rng() * (CHUNK_SIZE - 30000),
+      y: worldBaseY + 15000 + rng() * (CHUNK_SIZE - 30000),
       emoji: REALM_EMOJIS[emojiIdx],
       type,
       desc: `A ${type} kingdom in the ${dist < 3 ? 'heartlands' : dist < 8 ? 'frontier' : 'deep wilds'}. Power grows with distance from the center.`,
-      territory: 6000 + Math.floor(rng() * 14000),
+      territory: 8000 + Math.floor(rng() * 16000),
     });
   }
 
