@@ -139,6 +139,7 @@ export default function AlliancePanel() {
     });
     setMyAlliance(allianceId);
     loadAlliances();
+    loadMembers(allianceId);
   };
 
   const leaveAlliance = async () => {
