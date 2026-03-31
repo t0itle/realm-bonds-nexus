@@ -1109,6 +1109,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
           });
           // Clean up from DB
           supabase.from('spy_training_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').then();
+          // Push notification
+          supabase.functions.invoke('send-push', {
+            body: { user_id: user?.id, title: '🕵️ Spy Training Complete', body: `${totalSpies} spy${totalSpies > 1 ? 's' : ''} ready for missions!`, tag: 'spy-training-done' },
+          }).catch(() => {});
         }
         return remaining;
       });
