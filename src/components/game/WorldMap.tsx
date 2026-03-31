@@ -663,6 +663,17 @@ export default function WorldMap() {
     return getPlayerPos(myVillage?.village.id || 'me');
   }, [user, allVillages]);
 
+  // Helper to create a march with position data
+  const createMarch = useCallback((id: string, targetName: string, targetX: number, targetY: number, travelSec: number, action: () => void) => {
+    const myPos = getMyPos();
+    const now = Date.now();
+    setMarches(prev => [...prev, {
+      id, targetName, arrivalTime: now + travelSec * 1000,
+      startTime: now, startX: myPos.x, startY: myPos.y,
+      targetX, targetY, action,
+    }]);
+  }, [getMyPos]);
+
   const getDistance = useCallback((targetX: number, targetY: number) => {
     const myPos = getMyPos();
     return Math.sqrt(Math.pow(targetX - myPos.x, 2) + Math.pow(targetY - myPos.y, 2));
@@ -687,51 +698,41 @@ export default function WorldMap() {
     if (event.power > 0) {
       const eventData = event;
       toast(`⚔️ Troops marching to ${event.name}... ETA ${travelSec}s`);
-      setMarches(prev => [...prev, {
-        id: `evt-${Date.now()}`, targetName: eventData.name, arrivalTime: Date.now() + travelSec * 1000,
-        action: () => {
-          const log = attackTarget(eventData.name, eventData.power);
-          if (log.result === 'victory') {
-            addResources(eventData.reward);
-            setClaimedEvents(prev => new Set(prev).add(eventData.id));
-            toast.success(`Victory at ${eventData.name}! Resources gained.`);
-          } else {
-            toast.error(`Defeated at ${eventData.name}!`);
-          }
-        },
-      }]);
+      createMarch(`evt-${Date.now()}`, eventData.name, eventData.x, eventData.y, travelSec, () => {
+        const log = attackTarget(eventData.name, eventData.power);
+        if (log.result === 'victory') {
+          addResources(eventData.reward);
+          setClaimedEvents(prev => new Set(prev).add(eventData.id));
+          toast.success(`Victory at ${eventData.name}! Resources gained.`);
+        } else {
+          toast.error(`Defeated at ${eventData.name}!`);
+        }
+      });
     } else {
       toast(`🚶 Collecting from ${event.name}... ETA ${travelSec}s`);
       const eventData = event;
-      setMarches(prev => [...prev, {
-        id: `claim-${Date.now()}`, targetName: eventData.name, arrivalTime: Date.now() + travelSec * 1000,
-        action: () => {
-          addResources(eventData.reward);
-          setClaimedEvents(prev => new Set(prev).add(eventData.id));
-          toast.success(`${eventData.name} — Resources claimed!`);
-        },
-      }]);
+      createMarch(`claim-${Date.now()}`, eventData.name, eventData.x, eventData.y, travelSec, () => {
+        addResources(eventData.reward);
+        setClaimedEvents(prev => new Set(prev).add(eventData.id));
+        toast.success(`${eventData.name} — Resources claimed!`);
+      });
     }
     setSelected(null);
-  }, [army, attackTarget, addResources, claimedEvents, calcTravelTime, isInRange]);
+  }, [army, attackTarget, addResources, claimedEvents, calcTravelTime, isInRange, createMarch]);
 
   const handleAttackNPC = useCallback((realm: ProceduralRealm) => {
     const hasTroops = Object.values(army).some(v => v > 0);
     if (!hasTroops) { toast.error('You need troops to attack!'); return; }
     if (!isInRange(realm.x, realm.y)) { toast.error('Out of range! Train scouts to extend reach.'); return; }
     const travelSec = calcTravelTime(realm.x, realm.y);
-    const arrivalTime = Date.now() + travelSec * 1000;
     toast(`⚔️ Troops marching to ${realm.name}... ETA ${travelSec}s`);
-    setMarches(prev => [...prev, {
-      id: `atk-${Date.now()}`, targetName: realm.name, arrivalTime,
-      action: () => {
-        const log = attackTarget(realm.name, realm.power);
-        if (log.result === 'victory') toast.success(`Victory against ${realm.name}!`);
-        else toast.error(`Defeated by ${realm.name}!`);
-      },
-    }]);
+    createMarch(`atk-${Date.now()}`, realm.name, realm.x, realm.y, travelSec, () => {
+      const log = attackTarget(realm.name, realm.power);
+      if (log.result === 'victory') toast.success(`Victory against ${realm.name}!`);
+      else toast.error(`Defeated by ${realm.name}!`);
+    });
     setSelected(null);
-  }, [army, attackTarget, calcTravelTime]);
+  }, [army, attackTarget, calcTravelTime, createMarch]);
 
   const handleEnvoy = useCallback((realm: ProceduralRealm) => {
     if (tradeContracts.some(c => c.realmId === realm.id)) {
@@ -743,21 +744,18 @@ export default function WorldMap() {
     const travelSec = calcTravelTime(realm.x, realm.y);
 
     toast(`📜 Envoy dispatched to ${realm.name}... ETA ${travelSec}s`);
-    const arrivalTime = Date.now() + travelSec * 1000;
-    setMarches(prev => [...prev, {
-      id: `envoy-${Date.now()}`, targetName: realm.name, arrivalTime,
-      action: () => {
-        // Create time-limited trade contract (2-5 minutes based on realm power)
-        const contractDuration = (120 + Math.floor(realm.power * 0.6)) * 1000; // ms
-        const bonusPerTick = realm.type === 'friendly'
-          ? { gold: Math.floor(realm.power * 0.05), food: Math.floor(realm.power * 0.03) }
-          : { gold: Math.floor(realm.power * 0.02), wood: Math.floor(realm.power * 0.02) };
-        setTradeContracts(prev => [...prev, {
-          realmId: realm.id,
-          realmName: realm.name,
-          expiresAt: Date.now() + contractDuration,
-          bonus: bonusPerTick,
-        }]);
+    createMarch(`envoy-${Date.now()}`, realm.name, realm.x, realm.y, travelSec, () => {
+      // Create time-limited trade contract (2-5 minutes based on realm power)
+      const contractDuration = (120 + Math.floor(realm.power * 0.6)) * 1000; // ms
+      const bonusPerTick = realm.type === 'friendly'
+        ? { gold: Math.floor(realm.power * 0.05), food: Math.floor(realm.power * 0.03) }
+        : { gold: Math.floor(realm.power * 0.02), wood: Math.floor(realm.power * 0.02) };
+      setTradeContracts(prev => [...prev, {
+        realmId: realm.id,
+        realmName: realm.name,
+        expiresAt: Date.now() + contractDuration,
+        bonus: bonusPerTick,
+      }]);
         toast.success(`Trade contract with ${realm.name} established! (${Math.floor(contractDuration / 1000)}s)`);
       },
     }]);
