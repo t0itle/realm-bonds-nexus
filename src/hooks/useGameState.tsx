@@ -1068,13 +1068,20 @@ export function GameProvider({ children }: { children: ReactNode }) {
         const remaining = prev.filter(q => q.finishTime > now);
         if (completed.length > 0) {
           const totalSpies = completed.reduce((s, q) => s + q.count, 0);
-          setSpies(p => p + totalSpies);
+          setSpies(p => {
+            const newVal = p + totalSpies;
+            // Persist spies to village
+            if (villageId) supabase.from('villages').update({ spies: newVal } as any).eq('id', villageId).then();
+            return newVal;
+          });
+          // Clean up from DB
+          supabase.from('spy_training_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').then();
         }
         return remaining;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [spyTrainingQueue.length]);
+  }, [spyTrainingQueue.length, villageId, user?.id]);
 
 
   useEffect(() => {
