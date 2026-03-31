@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame, TroopType, Resources, calcMarchTime, getMaxRange, Building, BUILDING_INFO, getSlowestTroopSpeed } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
+import { useNPCState } from '@/hooks/useNPCState';
 import { toast } from 'sonner';
 import NPCInteractionPanel from './NPCInteractionPanel';
 import AttackConfigPanel from './AttackConfigPanel';
@@ -624,6 +625,7 @@ type SelectedItem =
 export default function WorldMap() {
   const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, resources } = useGame();
   const { user } = useAuth();
+  const npcState = useNPCState();
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
   const [capturedMines, setCapturedMines] = useState<Set<string>>(new Set());
@@ -631,7 +633,6 @@ export default function WorldMap() {
   const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
   const [legendOpen, setLegendOpen] = useState(false);
   const [, forceRender] = useState(0);
-  const [npcRelations, setNpcRelations] = useState<Map<string, { realmId: string; status: 'neutral' | 'friendly' | 'vassal' | 'allied'; tributeRate: number; friendshipLevel: number }>>(new Map());
   const [attackConfig, setAttackConfig] = useState<{
     targetName: string; targetPower?: number; targetId?: string;
     targetX: number; targetY: number; travelTime: number;
@@ -666,20 +667,20 @@ export default function WorldMap() {
     return () => clearInterval(interval);
   }, [capturedMines, addSteel]);
 
-  // NPC vassal tribute income
+  // NPC vassal tribute income (from persistent state)
   useEffect(() => {
-    const vassalNPCs = Array.from(npcRelations.values()).filter(r => r.status === 'vassal');
+    const vassalNPCs = Array.from(npcState.playerRelations.values()).filter(r => r.status === 'vassal');
     if (vassalNPCs.length === 0) return;
     const interval = setInterval(() => {
       let totalGold = 0, totalFood = 0;
       for (const v of vassalNPCs) {
-        totalGold += Math.floor(v.tributeRate * 0.5);
-        totalFood += Math.floor(v.tributeRate * 0.3);
+        totalGold += Math.floor(v.tribute_rate * 0.5);
+        totalFood += Math.floor(v.tribute_rate * 0.3);
       }
       if (totalGold > 0 || totalFood > 0) addResources({ gold: totalGold, food: totalFood });
-    }, 15000); // every 15s
+    }, 15000);
     return () => clearInterval(interval);
-  }, [npcRelations, addResources]);
+  }, [npcState.playerRelations, addResources]);
 
   // Animate marches — re-render every 500ms for smooth interpolation
   useEffect(() => {
@@ -962,11 +963,7 @@ export default function WorldMap() {
           const log = attackTarget(realm.name, realm.power, sentArmy);
           if (log.result === 'victory') {
             toast.success(`Victory against ${realm.name}! They are now your vassal.`);
-            setNpcRelations(prev => {
-              const next = new Map(prev);
-              next.set(realm.id, { realmId: realm.id, status: 'vassal', tributeRate: 15, friendshipLevel: 20 });
-              return next;
-            });
+            npcState.setRelationStatus(realm.id, 'vassal', 15);
           } else {
             toast.error(`Defeated by ${realm.name}!`);
           }
@@ -1025,6 +1022,15 @@ export default function WorldMap() {
   // Collect all visible realms and events from chunks
   const visibleRealms: (ProceduralRealm & { biome: string })[] = [];
   const visibleEvents: ProceduralEvent[] = [];
+  const allRealmNames = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const chunk of visibleChunks) {
+      for (const realm of chunk.data.realms) {
+        map.set(realm.id, realm.name);
+      }
+    }
+    return map;
+  }, [visibleChunks]);
   for (const chunk of visibleChunks) {
     for (const realm of chunk.data.realms) {
       if (isVisible(realm.x, realm.y, 100)) visibleRealms.push({ ...realm, biome: chunk.data.regionBiome });
@@ -1278,7 +1284,7 @@ export default function WorldMap() {
         {/* NPC Realms */}
         {renderRealms.map(realm => {
           const { sx, sy } = worldToScreen(realm.x, realm.y);
-          const npcRel = npcRelations.get(realm.id);
+          const npcRel = npcState.playerRelations.get(realm.id);
           const isVassal = npcRel?.status === 'vassal';
           const spriteType = isVassal ? 'friendly' : realm.type;
           return (
@@ -1534,8 +1540,13 @@ export default function WorldMap() {
                 onClose={() => setSelected(null)}
                 onAttack={(r) => handleAttackNPC(r)}
                 onEnvoy={(r) => handleEnvoy(r)}
-                npcRelations={npcRelations}
-                setNpcRelations={setNpcRelations}
+                playerRelation={npcState.playerRelations.get(selected.data.id) || null}
+                townState={npcState.townStates.get(selected.data.id) || null}
+                townRelations={npcState.townRelations}
+                allRealmNames={allRealmNames}
+                onUpdateSentiment={npcState.updateSentiment}
+                onSetRelationStatus={npcState.setRelationStatus}
+                onHireMercenaries={npcState.hireMercenaries}
                 isInRange={isInRange(selected.data.x, selected.data.y)}
                 travelTime={calcTravelTime(selected.data.x, selected.data.y)}
                 hasActiveTrade={tradeContracts.some(c => c.realmId === selected.data.id)}

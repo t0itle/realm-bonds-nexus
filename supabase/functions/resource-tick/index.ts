@@ -83,6 +83,177 @@ function getSteelProduction(_type: string, _level: number, _workers: number): nu
   return 0; // Steel now comes from iron ore deposits on the world map
 }
 
+// ── NPC Autonomy Simulation ──
+const NPC_ACTIONS = [
+  'Expanded borders',
+  'Raised an army',
+  'Built fortifications',
+  'Signed a trade deal',
+  'Declared war',
+  'Formed an alliance',
+  'Conquered a territory',
+  'Lost territory',
+  'Held a festival',
+  'Suffered a plague',
+  'Discovered new resources',
+  'Trained elite guards',
+];
+
+const NPC_WAR_EVENTS = [
+  'border skirmish',
+  'trade dispute',
+  'broken treaty',
+  'territorial claim',
+  'assassination attempt',
+  'resource competition',
+];
+
+const NPC_ALLIANCE_EVENTS = [
+  'mutual defense pact',
+  'trade agreement',
+  'royal marriage',
+  'shared enemy',
+  'cultural exchange',
+];
+
+async function simulateNPCAutonomy(supabase: ReturnType<typeof createClient>) {
+  // Get existing NPC town states
+  const { data: existingStates } = await supabase
+    .from("npc_town_state")
+    .select("*");
+
+  const states = existingStates || [];
+
+  // Only simulate if we have states, or seed initial ones
+  // Seed: generate states for ~20 NPC towns from nearby chunks (chunk coords -2 to 2)
+  if (states.length === 0) {
+    const initialStates: { npc_town_id: string; current_power: number; available_mercenaries: Record<string, number> }[] = [];
+    for (let cx = -2; cx <= 2; cx++) {
+      for (let cy = -2; cy <= 2; cy++) {
+        // Generate 0-2 realm IDs per chunk (matching client deterministic generation)
+        for (let i = 0; i < 2; i++) {
+          const id = `realm-${cx}-${cy}-${i}`;
+          const power = 50 + Math.floor(Math.random() * 300);
+          initialStates.push({
+            npc_town_id: id,
+            current_power: power,
+            available_mercenaries: {
+              militia: 10 + Math.floor(Math.random() * 20),
+              archer: 5 + Math.floor(Math.random() * 10),
+              knight: Math.floor(Math.random() * 8),
+              cavalry: Math.floor(Math.random() * 5),
+            },
+          });
+        }
+      }
+    }
+    if (initialStates.length > 0) {
+      await supabase.from("npc_town_state").upsert(initialStates, { onConflict: 'npc_town_id' });
+    }
+    return; // First tick just seeds, next tick will simulate
+  }
+
+  // Simulate each NPC town action (random chance per tick)
+  for (const state of states) {
+    if (Math.random() > 0.15) continue; // 15% chance per tick to act
+
+    const action = NPC_ACTIONS[Math.floor(Math.random() * NPC_ACTIONS.length)];
+    let powerDelta = 0;
+    const newMercs = { ...(state.available_mercenaries as Record<string, number>) };
+    const claimedRegions = [...((state.claimed_regions as string[]) || [])];
+
+    switch (action) {
+      case 'Expanded borders':
+      case 'Conquered a territory': {
+        const regionId = `region-${Math.floor(Math.random() * 100)}`;
+        if (!claimedRegions.includes(regionId)) {
+          claimedRegions.push(regionId);
+        }
+        powerDelta = 10 + Math.floor(Math.random() * 20);
+        break;
+      }
+      case 'Raised an army':
+        newMercs.militia = (newMercs.militia || 0) + 5 + Math.floor(Math.random() * 10);
+        newMercs.archer = (newMercs.archer || 0) + 2 + Math.floor(Math.random() * 5);
+        powerDelta = 5;
+        break;
+      case 'Built fortifications':
+        powerDelta = 15;
+        break;
+      case 'Lost territory':
+        if (claimedRegions.length > 0) claimedRegions.pop();
+        powerDelta = -10 - Math.floor(Math.random() * 15);
+        break;
+      case 'Suffered a plague':
+        newMercs.militia = Math.max(0, (newMercs.militia || 0) - 5);
+        powerDelta = -20;
+        break;
+      case 'Trained elite guards':
+        newMercs.knight = (newMercs.knight || 0) + 1 + Math.floor(Math.random() * 3);
+        powerDelta = 8;
+        break;
+      case 'Discovered new resources':
+        powerDelta = 10;
+        break;
+      default:
+        powerDelta = Math.floor(Math.random() * 10) - 3;
+        break;
+    }
+
+    await supabase.from("npc_town_state").update({
+      current_power: Math.max(10, (state.current_power as number) + powerDelta),
+      claimed_regions: claimedRegions,
+      available_mercenaries: newMercs,
+      last_action: action,
+      last_action_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq("npc_town_id", state.npc_town_id);
+  }
+
+  // Simulate NPC-to-NPC relations (random events between pairs)
+  if (states.length >= 2 && Math.random() < 0.25) {
+    const idx1 = Math.floor(Math.random() * states.length);
+    let idx2 = Math.floor(Math.random() * states.length);
+    while (idx2 === idx1) idx2 = Math.floor(Math.random() * states.length);
+
+    const townA = states[idx1].npc_town_id;
+    const townB = states[idx2].npc_town_id;
+    const [sortedA, sortedB] = townA < townB ? [townA, townB] : [townB, townA];
+
+    const roll = Math.random();
+    let relationType: string;
+    let event: string;
+
+    if (roll < 0.3) {
+      relationType = 'hostile';
+      event = NPC_WAR_EVENTS[Math.floor(Math.random() * NPC_WAR_EVENTS.length)];
+    } else if (roll < 0.5) {
+      relationType = 'war';
+      event = NPC_WAR_EVENTS[Math.floor(Math.random() * NPC_WAR_EVENTS.length)];
+    } else if (roll < 0.8) {
+      relationType = 'allied';
+      event = NPC_ALLIANCE_EVENTS[Math.floor(Math.random() * NPC_ALLIANCE_EVENTS.length)];
+    } else {
+      relationType = 'neutral';
+      event = 'tensions eased';
+    }
+
+    await supabase.from("npc_town_relations").upsert({
+      town_a_id: sortedA,
+      town_b_id: sortedB,
+      relation_type: relationType,
+      strength: 30 + Math.floor(Math.random() * 70),
+      last_event: event,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'town_a_id,town_b_id' });
+  }
+
+  // Expire old mercenary contracts
+  await supabase.from("npc_mercenary_contracts")
+    .delete()
+    .lt("expires_at", new Date().toISOString());
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -92,6 +263,13 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
+
+    // ── NPC Autonomy Simulation ──
+    try {
+      await simulateNPCAutonomy(supabase);
+    } catch (npcErr) {
+      console.error("NPC simulation error (non-fatal):", npcErr);
+    }
 
     // Fetch all villages
     const { data: villages, error: vErr } = await supabase
@@ -258,8 +436,7 @@ Deno.serve(async (req) => {
       let newPop = village.population;
       if (newPop < housingCap && newFood >= 50) {
         const growthChance = happinessVal / 100 * 0.5;
-        // For server tick, scale by elapsed hours
-        const growthRolls = Math.floor(elapsedMinutes); // ~1 roll per minute
+        const growthRolls = Math.floor(elapsedMinutes);
         for (let i = 0; i < Math.min(growthRolls, 60); i++) {
           if (newPop < housingCap && Math.random() < growthChance) {
             newPop++;
@@ -270,13 +447,13 @@ Deno.serve(async (req) => {
       // Starvation: lose at most 1 troop per tick if food is 0
       let updatedArmy = { ...armyCounts };
       if (newFood <= 0) {
-        newFood = 0; // floor at 0
+        newFood = 0;
         const desertOrder = ["siege", "cavalry", "knight", "archer", "militia", "scout"];
         for (const t of desertOrder) {
           if (updatedArmy[t] > 0) {
             updatedArmy[t]--;
             newPop = Math.max(1, newPop - (TROOP_UPKEEP[t]?.popCost || 1));
-            break; // only 1 troop lost per tick
+            break;
           }
         }
       }
