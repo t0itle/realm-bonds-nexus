@@ -1978,9 +1978,13 @@ export default function WorldMap() {
                         const targetData = selected.data;
                         toast(`🏗️ Settlers heading out... ETA ${travelSec}s`);
                         addResources({ gold: -outpostCost.gold, wood: -outpostCost.wood, stone: -outpostCost.stone, food: -outpostCost.food });
-                        createMarch(`outpost-${Date.now()}`, 'New Outpost', targetData.x, targetData.y, travelSec, () => {
+                        createMarch(`outpost-${Date.now()}`, 'New Outpost', targetData.x, targetData.y, travelSec, async () => {
                           const opName = `Outpost ${outposts.length + 1}`;
-                          setOutposts(prev => [...prev, { id: `op-${Date.now()}`, x: targetData.x, y: targetData.y, name: opName }]);
+                          const { data, error } = await supabase.from('outposts').insert({
+                            user_id: user!.id, x: targetData.x, y: targetData.y, name: opName, outpost_type: 'outpost',
+                          }).select().single();
+                          if (error) { toast.error('Failed to build outpost'); return; }
+                          setOutposts(prev => [...prev, { id: data.id, x: data.x, y: data.y, name: data.name }]);
                           toast.success(`🏕️ ${opName} established! Fog lifted in this area.`);
                         });
                         setSelected(null);
