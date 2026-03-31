@@ -820,11 +820,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!villageId || !user) return;
 
-    // Interpolate resources locally every 5 seconds (5/60 of a minute)
+    // Call server-side resource tick on load to sync DB
+    const tickUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resource-tick`;
+    fetch(tickUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+    }).catch(() => {});
+
+    // Interpolate resources locally every 2 seconds for visible trickle
     const tickInterval = setInterval(() => {
       const prod = totalProductionRef.current;
       const steelProd = steelProductionRef.current;
-      const fraction = 5 / 60; // 5 seconds worth of per-minute production
+      const fraction = 2 / 60; // 2 seconds worth of per-minute production
       setResources(prev => ({
         gold: Math.max(0, prev.gold + prod.gold * fraction),
         wood: Math.max(0, prev.wood + prod.wood * fraction),
@@ -834,9 +841,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
       if (steelProd > 0) {
         setSteel(prev => Math.max(0, prev + steelProd * fraction));
       }
-    }, 5000);
+    }, 2000);
 
     // Alliance tax rate refresh
+    // Periodically sync with server every 2 minutes
+    const serverSync = setInterval(() => {
+      fetch(tickUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+      }).catch(() => {});
+    }, 120000);
+
     const taxRefresh = setInterval(async () => {
       const aid = allianceIdRef.current;
       if (!aid) return;
@@ -844,7 +859,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       if (data) setAllianceTaxRate(data.tax_rate);
     }, 60000);
 
-    return () => { clearInterval(tickInterval); clearInterval(taxRefresh); };
+    return () => { clearInterval(tickInterval); clearInterval(serverSync); clearInterval(taxRefresh); };
   }, [villageId, user]);
 
   // Training queue processing
