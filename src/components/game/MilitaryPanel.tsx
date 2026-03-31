@@ -109,6 +109,10 @@ export default function MilitaryPanel() {
             )}
           </button>
         )}
+        <button onClick={() => setTab('warlog')}
+          className={`flex-1 font-display text-[10px] py-1.5 rounded-lg transition-colors ${tab === 'warlog' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+          📜 War Log
+        </button>
       </div>
 
       {/* ===== TROOPS TAB ===== */}
