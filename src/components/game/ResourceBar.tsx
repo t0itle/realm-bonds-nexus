@@ -3,7 +3,6 @@ import { useGame } from '@/hooks/useGameState';
 import { motion, AnimatePresence } from 'framer-motion';
 import ResourceIcon from './ResourceIcon';
 import CaravanPanel from './CaravanPanel';
-import ResourceIcon from './ResourceIcon';
 
 const RESOURCE_CONFIG = [
   { key: 'gold' as const, label: 'Gold', color: 'text-gold' },
