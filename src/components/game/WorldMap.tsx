@@ -1608,34 +1608,109 @@ export default function WorldMap() {
           );
         })}
 
-        {/* ── Fog of War ── */}
+        {/* ── Fog of War — dense, opaque fog with vision cutouts ── */}
         {(() => {
           const myPos = getMyPos();
-          const { sx: mySx, sy: mySy } = worldToScreen(myPos.x, myPos.y);
-          // Visibility radius in screen pixels — scouts extend this
           const scoutCount = army.scout || 0;
-          const baseVisionWorld = 40000 + scoutCount * 8000;
-          const visionRadiusPx = baseVisionWorld * camera.ppu;
-          // Only render fog if it would actually obscure something
-          if (visionRadiusPx < 20) return null;
+          const baseVisionWorld = 45000 + scoutCount * 8000;
+          const outpostVisionWorld = 25000;
+          
+          // Collect all vision sources: home + outposts
+          const visionSources = [
+            { x: myPos.x, y: myPos.y, radius: baseVisionWorld },
+            ...outposts.map(o => ({ x: o.x, y: o.y, radius: outpostVisionWorld })),
+          ];
+
           return (
-            <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 45, mixBlendMode: 'multiply' }}>
+            <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 45 }}>
               <defs>
-                <radialGradient id="fog-grad" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="transparent" />
-                  <stop offset="60%" stopColor="transparent" />
-                  <stop offset="85%" stopColor="hsl(216 28% 5% / 0.4)" />
-                  <stop offset="100%" stopColor="hsl(216 28% 5% / 0.7)" />
-                </radialGradient>
-                <mask id="fog-mask">
+                {/* Fog texture filter for cloud-like appearance */}
+                <filter id="fog-turbulence" x="-20%" y="-20%" width="140%" height="140%">
+                  <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="4" seed="42" result="noise" />
+                  <feColorMatrix type="saturate" values="0" in="noise" result="grayNoise" />
+                  <feComponentTransfer in="grayNoise" result="threshNoise">
+                    <feFuncA type="linear" slope="1.5" intercept="-0.2" />
+                  </feComponentTransfer>
+                  <feGaussianBlur stdDeviation="3" in="threshNoise" result="blurNoise" />
+                </filter>
+                <mask id="fog-vision-mask">
+                  {/* White = fogged, black = visible */}
                   <rect width="100%" height="100%" fill="white" />
-                  <ellipse cx={mySx} cy={mySy} rx={visionRadiusPx} ry={visionRadiusPx} fill="black" />
+                  {visionSources.map((src, i) => {
+                    const { sx, sy } = worldToScreen(src.x, src.y);
+                    const r = src.radius * camera.ppu;
+                    if (r < 5) return null;
+                    return (
+                      <ellipse key={i} cx={sx} cy={sy} rx={r} ry={r} fill="black" />
+                    );
+                  })}
                 </mask>
+                {/* Soft edge mask for the transition zone */}
+                <mask id="fog-soft-mask">
+                  <rect width="100%" height="100%" fill="white" />
+                  {visionSources.map((src, i) => {
+                    const { sx, sy } = worldToScreen(src.x, src.y);
+                    const r = src.radius * camera.ppu;
+                    if (r < 5) return null;
+                    const innerR = r * 0.6;
+                    return (
+                      <React.Fragment key={i}>
+                        <ellipse cx={sx} cy={sy} rx={r * 1.3} ry={r * 1.3} fill="url(#fog-edge-grad)" />
+                      </React.Fragment>
+                    );
+                  })}
+                </mask>
+                <radialGradient id="fog-edge-grad">
+                  <stop offset="0%" stopColor="black" />
+                  <stop offset="50%" stopColor="black" stopOpacity="0.8" />
+                  <stop offset="80%" stopColor="white" stopOpacity="0.3" />
+                  <stop offset="100%" stopColor="white" />
+                </radialGradient>
               </defs>
-              <rect width="100%" height="100%" fill="hsl(216 28% 5% / 0.55)" mask="url(#fog-mask)" />
+              {/* Layer 1: Dense dark fog — fully opaque outside vision */}
+              <rect width="100%" height="100%" fill="hsl(216 28% 4% / 0.92)" mask="url(#fog-vision-mask)" />
+              {/* Layer 2: Fog cloud texture overlay */}
+              <rect width="100%" height="100%" fill="hsl(220 20% 12% / 0.6)" mask="url(#fog-vision-mask)" filter="url(#fog-turbulence)" />
+              {/* Layer 3: Subtle fog wisps at the edges for atmosphere */}
+              {visionSources.map((src, i) => {
+                const { sx, sy } = worldToScreen(src.x, src.y);
+                const r = src.radius * camera.ppu;
+                if (r < 20) return null;
+                return (
+                  <ellipse key={`edge-${i}`} cx={sx} cy={sy} rx={r * 1.1} ry={r * 1.1}
+                    fill="none" stroke="hsl(220 15% 20% / 0.4)" strokeWidth={r * 0.3}
+                    filter="url(#fog-turbulence)" style={{ mixBlendMode: 'multiply' }} />
+                );
+              })}
             </svg>
           );
         })()}
+
+        {/* ── Outpost markers on the map ── */}
+        {outposts.map(outpost => {
+          if (!isVisible(outpost.x, outpost.y, 60)) return null;
+          const { sx, sy } = worldToScreen(outpost.x, outpost.y);
+          const opSize = Math.max(18, Math.min(36, camera.ppu * 6000));
+          return (
+            <div key={outpost.id} className="absolute z-30 flex flex-col items-center pointer-events-none"
+              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
+              <div className="relative">
+                <img src={mapVillage} alt={outpost.name} loading="lazy"
+                  className="drop-shadow-md brightness-90"
+                  style={{ width: opSize, height: opSize, objectFit: 'contain' }} />
+                <div className="absolute -inset-1 rounded-full pointer-events-none"
+                  style={{ boxShadow: '0 0 10px 3px hsl(var(--primary) / 0.2)', border: '1px solid hsl(var(--primary) / 0.3)' }} />
+              </div>
+              {opSize > 22 && (
+                <div className="bg-background/70 backdrop-blur-sm rounded px-1.5 py-0.5 text-center mt-0.5 border border-primary/20">
+                  <p className="text-foreground/80 font-display whitespace-nowrap" style={{ fontSize: Math.max(7, opSize / 5) }}>
+                    🏕️ {outpost.name}
+                  </p>
+                </div>
+              )}
+            </div>
+          );
+        })}
         <div className="absolute bottom-4 right-3 flex flex-col gap-1 z-50">
           <button onClick={() => safeSetCamera(prev => ({ ...prev, ppu: Math.min(0.05, prev.ppu * 1.5) }))}
             className="w-9 h-9 bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-sm font-medium active:scale-90 transition-all hover:bg-background/95 shadow-sm">+</button>
