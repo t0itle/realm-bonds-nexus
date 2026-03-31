@@ -816,6 +816,21 @@ export function GameProvider({ children }: { children: ReactNode }) {
   totalProductionRef.current = totalProduction;
   const steelProductionRef = useRef(steelProduction);
   steelProductionRef.current = steelProduction;
+  const armyRef = useRef(army);
+  armyRef.current = army;
+
+  const persistArmyToVillage = useCallback((nextArmy: Army) => {
+    if (!villageId) return;
+
+    supabase.from('villages').update({
+      army_militia: nextArmy.militia,
+      army_archer: nextArmy.archer,
+      army_knight: nextArmy.knight,
+      army_cavalry: nextArmy.cavalry,
+      army_siege: nextArmy.siege,
+      army_scout: nextArmy.scout,
+    } as any).eq('id', villageId).then();
+  }, [villageId]);
 
   useEffect(() => {
     if (!villageId || !user) return;
@@ -871,17 +886,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
         const completed = prev.filter(q => q.finishTime <= now);
         const remaining = prev.filter(q => q.finishTime > now);
         if (completed.length > 0) {
-          setArmy(prevArmy => {
-            const newArmy = { ...prevArmy };
-            completed.forEach(q => { newArmy[q.type] += q.count; });
-            return newArmy;
-          });
+          const nextArmy = { ...armyRef.current };
+          completed.forEach(q => { nextArmy[q.type] += q.count; });
+          setArmy(nextArmy);
+          persistArmyToVillage(nextArmy);
         }
         return remaining;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [trainingQueue.length]);
+  }, [trainingQueue.length, persistArmyToVillage]);
 
   // Spy training queue processing
   useEffect(() => {
@@ -1019,6 +1033,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       popLost += TROOP_INFO[type].popCost * dead;
     }
     setArmy(newArmy);
+    persistArmyToVillage(newArmy);
     if (Object.keys(newInjured).length > 0) setInjuredTroops(prev => {
       const u = { ...prev };
       for (const [t, c] of Object.entries(newInjured) as [TroopType, number][]) u[t] += c;
@@ -1041,7 +1056,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     };
     setBattleLogs(prev => [log, ...prev].slice(0, 20));
     return log;
-  }, [army, addResources]);
+  }, [army, addResources, persistArmyToVillage]);
 
   // PvP attack against another player
   const attackPlayer = useCallback(async (targetUserId: string, targetName: string, targetVillageId: string): Promise<BattleLog | null> => {
@@ -1088,6 +1103,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       pvpPopLost += TROOP_INFO[type].popCost * dead;
     }
     setArmy(newArmy);
+    persistArmyToVillage(newArmy);
     if (Object.keys(pvpInjured).length > 0) setInjuredTroops(prev => {
       const u = { ...prev };
       for (const [t, c] of Object.entries(pvpInjured) as [TroopType, number][]) u[t] += c;
@@ -1103,6 +1119,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     await supabase.from('villages').update({
       army_militia: defNewArmy.militia, army_archer: defNewArmy.archer,
       army_knight: defNewArmy.knight, army_cavalry: defNewArmy.cavalry, army_siege: defNewArmy.siege,
+      army_scout: defNewArmy.scout,
     } as any).eq('id', targetVillageId);
     
     let resourcesRaided: Partial<Resources> | undefined;
@@ -1203,7 +1220,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     } as any);
     
     return log;
-  }, [army, user, villageId, addResources, displayName, getWallLevel, vassalages]);
+  }, [army, user, villageId, addResources, displayName, getWallLevel, vassalages, persistArmyToVillage]);
 
   // Vassal: pay ransom to break free
   const payRansom = useCallback(async (vassalageId: string): Promise<boolean> => {
@@ -1263,6 +1280,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       rebelPopLost += TROOP_INFO[type].popCost * dead;
     }
     setArmy(newArmy);
+    persistArmyToVillage(newArmy);
     if (Object.keys(rebelInjured).length > 0) setInjuredTroops(prev => {
       const u = { ...prev };
       for (const [t, c] of Object.entries(rebelInjured) as [TroopType, number][]) u[t] += c;
@@ -1281,7 +1299,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       setVassalages(prev => prev.map(va => va.id === vassalageId ? { ...va, rebellion_available_at: newTimer } : va));
       return false;
     }
-  }, [vassalages, user, army]);
+  }, [vassalages, user, army, persistArmyToVillage]);
 
   // Lord: change vassal tribute rate
   const setVassalTributeRate = useCallback(async (vassalageId: string, rate: number): Promise<boolean> => {
