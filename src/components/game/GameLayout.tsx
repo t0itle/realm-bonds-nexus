@@ -57,11 +57,21 @@ const TABS: { id: Tab; icon: string; label: string }[] = [
 export default function GameLayout() {
   const [activeTab, setActiveTab] = useState<Tab>('village');
   const [dmTarget, setDmTarget] = useState<{ userId: string; name: string } | null>(null);
-  const { villageName, playerLevel, loading, displayName, army, trainingQueue } = useGame();
+  const { villageName, playerLevel, loading, displayName, army, trainingQueue, vassalages } = useGame();
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeMarches, setActiveMarches] = useState<{ id: string; target_name: string; march_type: string; arrives_at: string; started_at: string }[]>([]);
+  const [vassalPopup, setVassalPopup] = useState(false);
   const totalTroops = Object.values(army).reduce((s, v) => s + v, 0);
+
+  // Check if player is vassalized
+  const myVassalage = vassalages.find(v => v.vassal_id === user?.id && v.status === 'active');
+  const [lordName, setLordName] = useState<string | null>(null);
+  useEffect(() => {
+    if (!myVassalage) { setLordName(null); return; }
+    supabase.from('profiles').select('display_name').eq('user_id', myVassalage.lord_id).single()
+      .then(({ data }) => setLordName(data?.display_name || 'Unknown Lord'));
+  }, [myVassalage?.lord_id]);
   const [, forceRender] = useState(0);
 
   // Re-render every second for march countdowns
@@ -142,9 +152,17 @@ export default function GameLayout() {
   return (
     <div className="fixed inset-0 flex flex-col bg-background overflow-hidden">
       <div className="px-4 pt-3 pb-1 flex items-center justify-between">
-        <div>
+        <div className="flex items-center gap-1.5">
           <h1 className="font-display text-sm font-bold text-foreground text-shadow-gold">{villageName || displayName}</h1>
+        </div>
+        <div className="flex items-center gap-1.5">
           <span className="text-[10px] text-primary font-semibold">Level {playerLevel}</span>
+          {myVassalage && (
+            <button onClick={() => setVassalPopup(true)}
+              className="text-[9px] font-bold text-destructive bg-destructive/15 px-2 py-0.5 rounded-full animate-pulse">
+              ⛓️ Vassalized
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {totalTroops > 0 && (
@@ -246,6 +264,59 @@ export default function GameLayout() {
       </nav>
 
       <PatchNotesModal />
+
+      {/* Vassalized info popup */}
+      <AnimatePresence>
+        {vassalPopup && myVassalage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-6"
+            onClick={() => setVassalPopup(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.85, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="game-panel border border-destructive/40 rounded-2xl p-5 max-w-sm w-full space-y-3"
+            >
+              <div className="text-center space-y-1">
+                <span className="text-3xl">⛓️</span>
+                <h3 className="font-display text-lg text-destructive">You Are Vassalized</h3>
+              </div>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Lord</span>
+                  <span className="text-foreground font-display">{lordName || '...'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tribute Rate</span>
+                  <span className="text-destructive font-bold">{myVassalage.tribute_rate}% of production</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Ransom Cost</span>
+                  <span className="text-foreground">{myVassalage.ransom_gold} 💰</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Rebellion Available</span>
+                  <span className="text-foreground text-xs">
+                    {new Date(myVassalage.rebellion_available_at) <= new Date() ? '✅ Now' : new Date(myVassalage.rebellion_available_at).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
+                A portion of your resources goes to your lord. Pay the ransom or attempt a rebellion from the Military → Troops tab to break free.
+              </p>
+              <button onClick={() => setVassalPopup(false)}
+                className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-display text-sm">
+                Close
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
