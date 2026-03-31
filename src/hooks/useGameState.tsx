@@ -1763,13 +1763,24 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const info = TROOP_INFO[type];
     const healCost = { gold: Math.floor(info.cost.gold * 0.3 * costMult * toHeal), wood: 0, stone: 0, food: Math.floor(info.cost.food * 0.5 * costMult * toHeal) };
     if (!canAfford(healCost)) return false;
-    setResources(prev => ({ gold: prev.gold - healCost.gold, wood: prev.wood, stone: prev.stone, food: prev.food - healCost.food }));
-    setInjuredTroops(prev => ({ ...prev, [type]: prev[type] - toHeal }));
+    const newResources = { gold: resources.gold - healCost.gold, wood: resources.wood, stone: resources.stone, food: resources.food - healCost.food };
+    setResources(newResources);
+    const newInjured = { ...injuredTroops, [type]: injuredTroops[type] - toHeal };
+    setInjuredTroops(newInjured);
     // Healing takes time based on apothecary level
     const healTime = Math.max(5, Math.floor(15 / apothLvl)) * toHeal;
-    setTrainingQueue(prev => [...prev, { type, count: toHeal, finishTime: Date.now() + healTime * 1000 }]);
+    const finishTime = Date.now() + healTime * 1000;
+    setTrainingQueue(prev => [...prev, { type, count: toHeal, finishTime }]);
+    // Persist to DB
+    if (villageId) {
+      const injuredKey = `injured_${type}` as string;
+      supabase.from('villages').update({ ...newResources, [injuredKey]: newInjured[type] } as any).eq('id', villageId).then();
+    }
+    if (user) {
+      supabase.from('training_queue').insert({ user_id: user.id, troop_type: type, count: toHeal, finish_time: new Date(finishTime).toISOString() } as any).then();
+    }
     return true;
-  }, [getApothecaryLevel, injuredTroops, canAfford]);
+  }, [getApothecaryLevel, injuredTroops, canAfford, resources, villageId, user]);
 
   // Craft poison (requires apothecary lvl 2+, used by spies for bonus sabotage)
   const craftPoison = useCallback((count: number) => {
