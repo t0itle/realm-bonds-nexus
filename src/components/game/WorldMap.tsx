@@ -437,7 +437,7 @@ const TYPE_COLORS = { hostile: 'bg-destructive', neutral: 'bg-muted-foreground',
 const EVENT_COLORS = { danger: 'border-destructive/60 bg-destructive/20', opportunity: 'border-primary/60 bg-primary/20', mystery: 'border-accent/60 bg-accent/20' };
 
 type SelectedItem =
-  | { kind: 'npc'; data: ProceduralRealm }
+  | { kind: 'npc'; data: ProceduralRealm; biome: string }
   | { kind: 'event'; data: ProceduralEvent; chunkKey: string; index: number }
   | { kind: 'player'; data: any }
   | { kind: 'mine'; data: SteelMine }
