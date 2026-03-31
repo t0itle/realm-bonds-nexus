@@ -1377,18 +1377,15 @@ export default function WorldMap() {
                       const travelSec = calcTravelTime(selected.data.x, selected.data.y);
                       const mineData = selected.data;
                       toast(`⚔️ Troops marching to ${mineData.name}... ETA ${travelSec}s`);
-                      setMarches(prev => [...prev, {
-                        id: `mine-${Date.now()}`, targetName: mineData.name, arrivalTime: Date.now() + travelSec * 1000,
-                        action: () => {
-                          const log = attackTarget(mineData.name, mineData.power);
-                          if (log.result === 'victory') {
-                            setCapturedMines(prev => new Set([...prev, mineData.id]));
-                            toast.success(`⚙️ ${mineData.name} captured! Producing steel.`);
-                          } else {
-                            toast.error('Defeat! The garrison held.');
-                          }
-                        },
-                      }]);
+                      createMarch(`mine-${Date.now()}`, mineData.name, mineData.x, mineData.y, travelSec, () => {
+                        const log = attackTarget(mineData.name, mineData.power);
+                        if (log.result === 'victory') {
+                          setCapturedMines(prev => new Set([...prev, mineData.id]));
+                          toast.success(`⚙️ ${mineData.name} captured! Producing steel.`);
+                        } else {
+                          toast.error('Defeat! The garrison held.');
+                        }
+                      });
                       setSelected(null);
                     }}
                     className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2.5 rounded-lg glow-gold-sm active:scale-95 transition-transform">
