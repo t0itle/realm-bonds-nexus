@@ -15,6 +15,7 @@ export default function ResourceBar() {
   const { resources, totalProduction, steel, steelProduction, population, storageCapacity, myVillages, switchVillage, villageId, villageName, abandonSettlement } = useGame();
   const [showCaravan, setShowCaravan] = useState(false);
   const [showVillageSwitcher, setShowVillageSwitcher] = useState(false);
+  const [confirmAbandon, setConfirmAbandon] = useState<string | null>(null);
   const totalStored = Math.floor(resources.gold + resources.wood + resources.stone + resources.food);
   const storagePct = Math.min(100, (totalStored / (storageCapacity * 4)) * 100);
   const storageNearFull = storagePct > 85;
