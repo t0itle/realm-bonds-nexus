@@ -399,6 +399,8 @@ interface GameContextType {
   craftPoison: (count: number) => boolean;
   getApothecaryLevel: () => number;
   storageCapacity: number;
+  myVillages: { id: string; name: string; settlement_type: string }[];
+  switchVillage: (villageId: string) => void;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -446,6 +448,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [displayNameLocal, setDisplayNameLocal] = useState('Wanderer');
   const [avatarUrl, setAvatarUrlLocal] = useState<string | null>(null);
   const [allVillages, setAllVillages] = useState<PlayerVillage[]>([]);
+  const [myVillages, setMyVillages] = useState<{ id: string; name: string; settlement_type: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [army, setArmy] = useState<Army>({ ...EMPTY_ARMY });
   const [trainingQueue, setTrainingQueue] = useState<TrainingQueue[]>([]);
@@ -532,8 +535,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
-  // Load player data
-  useEffect(() => {
+  const loadVillageData = useCallback(async (targetVillageId?: string) => {
     if (!user) return;
     const loadData = async () => {
       const { data: profile } = await supabase.from('profiles').select('*').eq('user_id', user.id).single();
@@ -542,7 +544,21 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setAvatarUrlLocal((profile as any).avatar_url ?? null);
       }
 
-      const { data: village } = await supabase.from('villages').select('*').eq('user_id', user.id).order('created_at', { ascending: true }).limit(1).maybeSingle();
+      // Load all user's villages for switching
+      const { data: userVillages } = await supabase.from('villages').select('id, name, settlement_type').eq('user_id', user.id).order('created_at', { ascending: true });
+      if (userVillages) setMyVillages(userVillages as any);
+
+      // Pick village: use targetVillageId if given, else current, else first
+      let village: any = null;
+      const pickId = targetVillageId || villageId;
+      if (pickId) {
+        const { data } = await supabase.from('villages').select('*').eq('id', pickId).eq('user_id', user.id).maybeSingle();
+        village = data;
+      }
+      if (!village && userVillages && userVillages.length > 0) {
+        const { data } = await supabase.from('villages').select('*').eq('id', userVillages[0].id).maybeSingle();
+        village = data;
+      }
       if (village) {
         setVillageId(village.id);
         setVillageNameLocal(village.name);
@@ -742,6 +758,22 @@ export function GameProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     };
     loadData();
+  }, [user, villageId]);
+
+  // Initial load
+  useEffect(() => {
+    loadVillageData();
+  }, [user]);
+
+  const switchVillage = useCallback((newVillageId: string) => {
+    if (newVillageId === villageId) return;
+    setLoading(true);
+    loadVillageData(newVillageId);
+  }, [villageId, loadVillageData]);
+
+  // Realtime subscriptions
+  useEffect(() => {
+    if (!user) return;
 
     const villageChannel = supabase.channel('village-changes')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'villages', filter: `user_id=eq.${user.id}` }, (payload) => {
@@ -749,7 +781,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
         // Only handle updates for current village
         if (v.id !== villageIdRef.current) return;
         // Skip resource fields — they're managed locally via client-side production ticks
-        // Only sync non-resource fields from DB updates
         setVillageNameLocal(v.name as string);
         setPlayerLevel(v.level as number);
         setSteel((v as any).steel ?? 0);
@@ -780,10 +811,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
     const vassalageChannel = supabase.channel(`vassalage-changes-${user.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'vassalages', filter: `lord_id=eq.${user.id}` }, () => {
-        void loadData();
+        void loadVillageData();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'vassalages', filter: `vassal_id=eq.${user.id}` }, () => {
-        void loadData();
+        void loadVillageData();
       })
       .subscribe();
 
@@ -1873,6 +1904,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       attackPlayer, vassalages, payRansom, attemptRebellion, setVassalTributeRate, releaseVassal, getWallLevel,
       injuredTroops, poisons, healTroops, craftPoison, getApothecaryLevel,
       storageCapacity,
+      myVillages, switchVillage,
     }}>
       {children}
     </GameContext.Provider>

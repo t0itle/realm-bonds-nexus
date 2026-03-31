@@ -12,8 +12,9 @@ const RESOURCE_CONFIG = [
 ];
 
 export default function ResourceBar() {
-  const { resources, totalProduction, steel, steelProduction, population, storageCapacity } = useGame();
+  const { resources, totalProduction, steel, steelProduction, population, storageCapacity, myVillages, switchVillage, villageId, villageName } = useGame();
   const [showCaravan, setShowCaravan] = useState(false);
+  const [showVillageSwitcher, setShowVillageSwitcher] = useState(false);
   const totalStored = Math.floor(resources.gold + resources.wood + resources.stone + resources.food);
   const storagePct = Math.min(100, (totalStored / (storageCapacity * 4)) * 100);
   const storageNearFull = storagePct > 85;
@@ -23,7 +24,52 @@ export default function ResourceBar() {
 
   return (
     <>
-      <div className={`game-panel px-2 py-1.5 mx-2 mt-2 border-glow space-y-1 ${foodLow ? 'border-destructive/60' : ''}`}>
+      {/* Village Switcher */}
+      {myVillages.length > 1 && (
+        <div className="mx-2 mt-2">
+          <button
+            onClick={() => setShowVillageSwitcher(prev => !prev)}
+            className="w-full game-panel px-2.5 py-1.5 border-glow rounded-xl flex items-center justify-between active:scale-[0.98] transition-transform"
+          >
+            <span className="font-display text-[11px] text-foreground flex items-center gap-1.5">
+              🏘️ {villageName}
+            </span>
+            <span className="text-[9px] text-muted-foreground">
+              {myVillages.length} settlements ▾
+            </span>
+          </button>
+          <AnimatePresence>
+            {showVillageSwitcher && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="game-panel rounded-b-xl border-t-0 px-1.5 py-1 space-y-0.5">
+                  {myVillages.map(v => (
+                    <button
+                      key={v.id}
+                      onClick={() => { switchVillage(v.id); setShowVillageSwitcher(false); }}
+                      className={`w-full text-left px-2 py-1.5 rounded-lg text-[10px] flex items-center gap-1.5 transition-colors ${
+                        v.id === villageId
+                          ? 'bg-primary/20 text-primary font-bold'
+                          : 'text-muted-foreground hover:bg-muted/50'
+                      }`}
+                    >
+                      <span>{v.settlement_type === 'settlement' ? '🏘️' : '🏰'}</span>
+                      <span className="truncate">{v.name}</span>
+                      {v.id === villageId && <span className="ml-auto text-[8px]">● Active</span>}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+
+      <div className={`game-panel px-2 py-1.5 mx-2 ${myVillages.length <= 1 ? 'mt-2' : 'mt-1'} border-glow space-y-1 ${foodLow ? 'border-destructive/60' : ''}`}>
         <div className="flex items-center justify-between gap-1">
           {RESOURCE_CONFIG.map(({ key, color }) => (
             <motion.div
