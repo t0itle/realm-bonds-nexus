@@ -1505,10 +1505,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return true;
   }, [getApothecaryLevel, canAfford]);
 
-  // Train spies (requires barracks lvl 2+, costs gold + food + 1 pop each)
+  // Spy Guild level
+  const getSpyGuildLevel = useCallback(() => {
+    const sg = buildings.find(b => b.type === 'spyguild');
+    return sg?.level || 0;
+  }, [buildings]);
+
+  // Train spies (requires spy guild, costs gold + food + 1 pop each)
    const trainSpies = useCallback((count: number) => {
-    console.log('[trainSpies]', { count, barracksLvl: getBarracksLevel(), civilians: population.civilians, gold: resources.gold, food: resources.food });
-    if (getBarracksLevel() < 2) { console.log('[trainSpies] FAIL: barracks < 2'); return false; }
+    const sgLevel = getSpyGuildLevel();
+    console.log('[trainSpies]', { count, spyGuildLvl: sgLevel, civilians: population.civilians, gold: resources.gold, food: resources.food });
+    if (sgLevel < 1) { console.log('[trainSpies] FAIL: no spy guild'); return false; }
     const cost = { gold: 40 * count, wood: 0, stone: 0, food: 20 * count };
     if (!canAfford(cost)) { console.log('[trainSpies] FAIL: cant afford'); return false; }
     if (population.civilians < count) { console.log('[trainSpies] FAIL: not enough civilians'); return false; }
@@ -1518,11 +1525,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (villageId) {
       supabase.from('villages').update(newResources).eq('id', villageId).then();
     }
-    // Spies train over time — use a dedicated spy queue entry
-    const finishTime = Date.now() + 20000 * count;
+    // Spies train faster with higher spy guild level
+    const baseTime = 20000;
+    const speedMultiplier = Math.max(0.4, 1 - (sgLevel - 1) * 0.15); // 15% faster per level
+    const finishTime = Date.now() + Math.floor(baseTime * count * speedMultiplier);
     setSpyTrainingQueue(prev => [...prev, { count, finishTime }]);
     return true;
-  }, [canAfford, getBarracksLevel, population.civilians, resources, villageId]);
+  }, [canAfford, getSpyGuildLevel, population.civilians, resources, villageId]);
 
   // Send spy mission
   const sendSpyMission = useCallback((mission: SpyMission, targetName: string, targetId: string, targetX: number, targetY: number, spiesCount: number) => {
