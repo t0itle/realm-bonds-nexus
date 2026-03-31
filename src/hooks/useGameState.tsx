@@ -66,7 +66,7 @@ export function getProduction(type: Exclude<BuildingType, 'empty'>, level: numbe
   const info = BUILDING_INFO[type];
   if (!info.baseProduction) return {};
   const result: Partial<Resources> = {};
-  const workerBonus = 1 + workers * 0.15;
+  const workerBonus = 1 + workers * 0.35;
   for (const [key, val] of Object.entries(info.baseProduction)) {
     result[key as keyof Resources] = Math.floor(val * level * 1.2 * workerBonus);
   }
@@ -76,7 +76,7 @@ export function getProduction(type: Exclude<BuildingType, 'empty'>, level: numbe
 /** Steel production: quarry produces steel at level 3+ */
 export function getSteelProduction(type: Exclude<BuildingType, 'empty'>, level: number, workers: number = 0): number {
   if (type !== 'quarry' || level < 3) return 0;
-  const workerBonus = 1 + workers * 0.15;
+  const workerBonus = 1 + workers * 0.35;
   return Math.floor((level - 2) * 1 * workerBonus); // 1 steel/min per level above 2
 }
 

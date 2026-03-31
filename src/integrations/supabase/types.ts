@@ -541,11 +541,14 @@ export type Database = {
           id: string
           last_resource_tick: string
           level: number
+          map_x: number
+          map_y: number
           max_population: number
           name: string
           pop_tax_rate: number
           population: number
           rations: string
+          settlement_type: string
           steel: number
           stone: number
           updated_at: string
@@ -566,11 +569,14 @@ export type Database = {
           id?: string
           last_resource_tick?: string
           level?: number
+          map_x?: number
+          map_y?: number
           max_population?: number
           name?: string
           pop_tax_rate?: number
           population?: number
           rations?: string
+          settlement_type?: string
           steel?: number
           stone?: number
           updated_at?: string
@@ -591,11 +597,14 @@ export type Database = {
           id?: string
           last_resource_tick?: string
           level?: number
+          map_x?: number
+          map_y?: number
           max_population?: number
           name?: string
           pop_tax_rate?: number
           population?: number
           rations?: string
+          settlement_type?: string
           steel?: number
           stone?: number
           updated_at?: string

@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { useGame, TROOP_INFO, TroopType, BUILDING_INFO, BuildingType, RATIONS_INFO, RationsLevel } from '@/hooks/useGameState';
+import { useGame, TROOP_INFO, TroopType, BUILDING_INFO, BuildingType, RATIONS_INFO, RationsLevel, getProduction, getSteelProduction } from '@/hooks/useGameState';
 import ResourceIcon from './ResourceIcon';
 
 const NotificationsPanel = lazy(() => import('./NotificationsPanel'));
@@ -197,28 +197,50 @@ export default function StatSheet() {
           const info = BUILDING_INFO[b.type as Exclude<BuildingType, 'empty'>];
           const current = workerAssignments[b.id] || 0;
           const max = getMaxWorkers(b);
+          const prod = getProduction(b.type as Exclude<BuildingType, 'empty'>, b.level, current);
+          const prodWithout = getProduction(b.type as Exclude<BuildingType, 'empty'>, b.level, 0);
+          const steelProd = getSteelProduction(b.type as Exclude<BuildingType, 'empty'>, b.level, current);
           return (
-            <div key={b.id} className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm">{info.icon}</span>
-                <div>
-                  <span className="text-xs text-foreground">{info.name} Lv.{b.level}</span>
-                  <p className="text-[9px] text-muted-foreground">{current}/{max} workers</p>
+            <div key={b.id} className="space-y-0.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm">{info.icon}</span>
+                  <div>
+                    <span className="text-xs text-foreground">{info.name} Lv.{b.level}</span>
+                    <p className="text-[9px] text-muted-foreground">{current}/{max} workers</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => unassignWorker(b.id)}
+                    disabled={current <= 0}
+                    className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center disabled:opacity-30"
+                  >−</button>
+                  <span className="text-xs font-bold text-foreground w-4 text-center">{current}</span>
+                  <button
+                    onClick={() => assignWorker(b.id)}
+                    disabled={current >= max || population.civilians <= 0}
+                    className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center disabled:opacity-30"
+                  >+</button>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => unassignWorker(b.id)}
-                  disabled={current <= 0}
-                  className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center disabled:opacity-30"
-                >−</button>
-                <span className="text-xs font-bold text-foreground w-4 text-center">{current}</span>
-                <button
-                  onClick={() => assignWorker(b.id)}
-                  disabled={current >= max || population.civilians <= 0}
-                  className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center disabled:opacity-30"
-                >+</button>
-              </div>
+              {/* Per-building production display */}
+              {Object.keys(prod).length > 0 && (
+                <div className="flex gap-2 text-[9px] text-muted-foreground ml-7">
+                  {Object.entries(prod).map(([res, val]) => {
+                    const base = prodWithout[res as keyof typeof prodWithout] || 0;
+                    const bonus = (val || 0) - base;
+                    return (
+                      <span key={res}>
+                        {res}: <span className="text-foreground">{val}</span>
+                        {bonus > 0 && <span className="text-primary"> (+{bonus})</span>}
+                        /min
+                      </span>
+                    );
+                  })}
+                  {steelProd > 0 && <span>steel: <span className="text-foreground">{steelProd}</span>/min</span>}
+                </div>
+              )}
             </div>
           );
         })}

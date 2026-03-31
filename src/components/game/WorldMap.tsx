@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useGame, TroopType, Resources, calcMarchTime, getMaxRange } from '@/hooks/useGameState';
+import { useGame, TroopType, Resources, calcMarchTime, getMaxRange, Building, BUILDING_INFO } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
@@ -442,14 +442,23 @@ type SelectedItem =
   | null;
 
 export default function WorldMap() {
-  const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer, vassalages } = useGame();
+  const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings } = useGame();
   const { user } = useAuth();
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
   const [capturedMines, setCapturedMines] = useState<Set<string>>(new Set());
-  const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; action: () => void }[]>([]);
+  const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; startTime: number; startX: number; startY: number; targetX: number; targetY: number; action: () => void }[]>([]);
   const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
   const [legendOpen, setLegendOpen] = useState(false);
+  const [, forceRender] = useState(0);
+
+  // Get TH level for dynamic sprite
+  const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
+  const getSettlementSprite = (thLevel: number, isMe: boolean) => {
+    if (thLevel >= 7) return isMe ? mapCastleFriendly : mapCastleNeutral;
+    if (thLevel >= 5) return mapCastleNeutral;
+    return mapVillage;
+  };
 
   // Steel production from captured mines
   useEffect(() => {
@@ -470,6 +479,13 @@ export default function WorldMap() {
     return () => clearInterval(interval);
   }, [capturedMines, addSteel]);
 
+  // Animate marches — re-render every 500ms for smooth interpolation
+  useEffect(() => {
+    if (marches.length === 0) return;
+    const interval = setInterval(() => forceRender(v => v + 1), 500);
+    return () => clearInterval(interval);
+  }, [marches.length]);
+
   // Process marches
   useEffect(() => {
     if (marches.length === 0) return;
@@ -487,6 +503,8 @@ export default function WorldMap() {
     }, 1000);
     return () => clearInterval(interval);
   }, [marches.length]);
+
+  // createMarch is defined below after getMyPos
 
   // Expire trade contracts
   useEffect(() => {
@@ -645,6 +663,17 @@ export default function WorldMap() {
     return getPlayerPos(myVillage?.village.id || 'me');
   }, [user, allVillages]);
 
+  // Helper to create a march with position data
+  const createMarch = useCallback((id: string, targetName: string, targetX: number, targetY: number, travelSec: number, action: () => void) => {
+    const myPos = getMyPos();
+    const now = Date.now();
+    setMarches(prev => [...prev, {
+      id, targetName, arrivalTime: now + travelSec * 1000,
+      startTime: now, startX: myPos.x, startY: myPos.y,
+      targetX, targetY, action,
+    }]);
+  }, [getMyPos]);
+
   const getDistance = useCallback((targetX: number, targetY: number) => {
     const myPos = getMyPos();
     return Math.sqrt(Math.pow(targetX - myPos.x, 2) + Math.pow(targetY - myPos.y, 2));
@@ -669,51 +698,41 @@ export default function WorldMap() {
     if (event.power > 0) {
       const eventData = event;
       toast(`⚔️ Troops marching to ${event.name}... ETA ${travelSec}s`);
-      setMarches(prev => [...prev, {
-        id: `evt-${Date.now()}`, targetName: eventData.name, arrivalTime: Date.now() + travelSec * 1000,
-        action: () => {
-          const log = attackTarget(eventData.name, eventData.power);
-          if (log.result === 'victory') {
-            addResources(eventData.reward);
-            setClaimedEvents(prev => new Set(prev).add(eventData.id));
-            toast.success(`Victory at ${eventData.name}! Resources gained.`);
-          } else {
-            toast.error(`Defeated at ${eventData.name}!`);
-          }
-        },
-      }]);
+      createMarch(`evt-${Date.now()}`, eventData.name, eventData.x, eventData.y, travelSec, () => {
+        const log = attackTarget(eventData.name, eventData.power);
+        if (log.result === 'victory') {
+          addResources(eventData.reward);
+          setClaimedEvents(prev => new Set(prev).add(eventData.id));
+          toast.success(`Victory at ${eventData.name}! Resources gained.`);
+        } else {
+          toast.error(`Defeated at ${eventData.name}!`);
+        }
+      });
     } else {
       toast(`🚶 Collecting from ${event.name}... ETA ${travelSec}s`);
       const eventData = event;
-      setMarches(prev => [...prev, {
-        id: `claim-${Date.now()}`, targetName: eventData.name, arrivalTime: Date.now() + travelSec * 1000,
-        action: () => {
-          addResources(eventData.reward);
-          setClaimedEvents(prev => new Set(prev).add(eventData.id));
-          toast.success(`${eventData.name} — Resources claimed!`);
-        },
-      }]);
+      createMarch(`claim-${Date.now()}`, eventData.name, eventData.x, eventData.y, travelSec, () => {
+        addResources(eventData.reward);
+        setClaimedEvents(prev => new Set(prev).add(eventData.id));
+        toast.success(`${eventData.name} — Resources claimed!`);
+      });
     }
     setSelected(null);
-  }, [army, attackTarget, addResources, claimedEvents, calcTravelTime, isInRange]);
+  }, [army, attackTarget, addResources, claimedEvents, calcTravelTime, isInRange, createMarch]);
 
   const handleAttackNPC = useCallback((realm: ProceduralRealm) => {
     const hasTroops = Object.values(army).some(v => v > 0);
     if (!hasTroops) { toast.error('You need troops to attack!'); return; }
     if (!isInRange(realm.x, realm.y)) { toast.error('Out of range! Train scouts to extend reach.'); return; }
     const travelSec = calcTravelTime(realm.x, realm.y);
-    const arrivalTime = Date.now() + travelSec * 1000;
     toast(`⚔️ Troops marching to ${realm.name}... ETA ${travelSec}s`);
-    setMarches(prev => [...prev, {
-      id: `atk-${Date.now()}`, targetName: realm.name, arrivalTime,
-      action: () => {
-        const log = attackTarget(realm.name, realm.power);
-        if (log.result === 'victory') toast.success(`Victory against ${realm.name}!`);
-        else toast.error(`Defeated by ${realm.name}!`);
-      },
-    }]);
+    createMarch(`atk-${Date.now()}`, realm.name, realm.x, realm.y, travelSec, () => {
+      const log = attackTarget(realm.name, realm.power);
+      if (log.result === 'victory') toast.success(`Victory against ${realm.name}!`);
+      else toast.error(`Defeated by ${realm.name}!`);
+    });
     setSelected(null);
-  }, [army, attackTarget, calcTravelTime]);
+  }, [army, attackTarget, calcTravelTime, createMarch]);
 
   const handleEnvoy = useCallback((realm: ProceduralRealm) => {
     if (tradeContracts.some(c => c.realmId === realm.id)) {
@@ -725,26 +744,22 @@ export default function WorldMap() {
     const travelSec = calcTravelTime(realm.x, realm.y);
 
     toast(`📜 Envoy dispatched to ${realm.name}... ETA ${travelSec}s`);
-    const arrivalTime = Date.now() + travelSec * 1000;
-    setMarches(prev => [...prev, {
-      id: `envoy-${Date.now()}`, targetName: realm.name, arrivalTime,
-      action: () => {
-        // Create time-limited trade contract (2-5 minutes based on realm power)
-        const contractDuration = (120 + Math.floor(realm.power * 0.6)) * 1000; // ms
-        const bonusPerTick = realm.type === 'friendly'
-          ? { gold: Math.floor(realm.power * 0.05), food: Math.floor(realm.power * 0.03) }
-          : { gold: Math.floor(realm.power * 0.02), wood: Math.floor(realm.power * 0.02) };
-        setTradeContracts(prev => [...prev, {
-          realmId: realm.id,
-          realmName: realm.name,
-          expiresAt: Date.now() + contractDuration,
-          bonus: bonusPerTick,
-        }]);
-        toast.success(`Trade contract with ${realm.name} established! (${Math.floor(contractDuration / 1000)}s)`);
-      },
-    }]);
+    createMarch(`envoy-${Date.now()}`, realm.name, realm.x, realm.y, travelSec, () => {
+      // Create time-limited trade contract (2-5 minutes based on realm power)
+      const contractDuration = (120 + Math.floor(realm.power * 0.6)) * 1000; // ms
+      const bonusPerTick = realm.type === 'friendly'
+        ? { gold: Math.floor(realm.power * 0.05), food: Math.floor(realm.power * 0.03) }
+        : { gold: Math.floor(realm.power * 0.02), wood: Math.floor(realm.power * 0.02) };
+      setTradeContracts(prev => [...prev, {
+        realmId: realm.id,
+        realmName: realm.name,
+        expiresAt: Date.now() + contractDuration,
+        bonus: bonusPerTick,
+      }]);
+      toast.success(`Trade contract with ${realm.name} established! (${Math.floor(contractDuration / 1000)}s)`);
+    });
     setSelected(null);
-  }, [addResources, calcTravelTime, tradeContracts]);
+  }, [addResources, calcTravelTime, tradeContracts, createMarch]);
 
   // Collect trade contract resources periodically
   useEffect(() => {
@@ -1138,38 +1153,81 @@ export default function WorldMap() {
           // Sort so "me" renders on top
           const sorted = playerPositions.sort((a, b) => (a.isMe ? 1 : 0) - (b.isMe ? 1 : 0));
 
-          return sorted.map(({ pv, sx, sy, isMe }) => (
-            <button key={pv.village.id} data-map-item
-              onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'player', data: pv }); }}
-              className={`absolute flex flex-col items-center ${isMe ? 'z-40' : 'z-30'} hover:z-50`}
-              style={{ left: sx, top: sy, transform: 'translate(-50%, -80%)' }}>
-              <img
-                src={mapVillage}
-                alt={pv.profile.display_name}
-                loading="lazy"
-                className={`drop-shadow-lg ${isMe ? 'brightness-110 saturate-110' : 'brightness-75 grayscale-[20%]'}`}
-                style={{ width: iconSize * 1.2, height: iconSize * 1.2, imageRendering: 'auto', objectFit: 'contain' }}
-              />
-              {isMe && (
-                <div className="absolute -inset-2 rounded-full pointer-events-none"
-                  style={{ boxShadow: '0 0 18px 5px hsl(var(--primary) / 0.35)', border: '2px solid hsl(var(--primary) / 0.5)' }} />
-              )}
-              {iconSize > 28 && (
-                <div className={`text-center rounded-md px-1.5 py-0.5 backdrop-blur-sm ${isMe ? 'bg-primary/90 ring-1 ring-primary' : 'bg-background/80 border border-border/50'}`}
-                  style={{ marginTop: -2 }}>
-                  <p className={`font-display whitespace-nowrap leading-tight ${isMe ? 'text-primary-foreground' : 'text-foreground'}`}
-                    style={{ fontSize: Math.max(8, fontSize - 1) }}>
-                    {isMe ? '⭐ You' : pv.profile.display_name}
+          return sorted.map(({ pv, sx, sy, isMe }) => {
+            const pvThLevel = isMe ? townhallLevel : pv.village.level; // approximate TH level from village level for others
+            const sprite = getSettlementSprite(pvThLevel, isMe);
+            const settlementLabel = pvThLevel >= 7 ? '🏰 Castle' : pvThLevel >= 5 ? '🏘️ Town' : '🏠 Village';
+            return (
+              <button key={pv.village.id} data-map-item
+                onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'player', data: pv }); }}
+                className={`absolute flex flex-col items-center ${isMe ? 'z-40' : 'z-30'} hover:z-50`}
+                style={{ left: sx, top: sy, transform: 'translate(-50%, -80%)' }}>
+                <img
+                  src={sprite}
+                  alt={pv.profile.display_name}
+                  loading="lazy"
+                  className={`drop-shadow-lg ${isMe ? 'brightness-110 saturate-110' : 'brightness-75 grayscale-[20%]'}`}
+                  style={{ width: iconSize * 1.2, height: iconSize * 1.2, imageRendering: 'auto', objectFit: 'contain' }}
+                />
+                {isMe && (
+                  <div className="absolute -inset-2 rounded-full pointer-events-none"
+                    style={{ boxShadow: '0 0 18px 5px hsl(var(--primary) / 0.35)', border: '2px solid hsl(var(--primary) / 0.5)' }} />
+                )}
+                {iconSize > 28 && (
+                  <div className={`text-center rounded-md px-1.5 py-0.5 backdrop-blur-sm ${isMe ? 'bg-primary/90 ring-1 ring-primary' : 'bg-background/80 border border-border/50'}`}
+                    style={{ marginTop: -2 }}>
+                    <p className={`font-display whitespace-nowrap leading-tight ${isMe ? 'text-primary-foreground' : 'text-foreground'}`}
+                      style={{ fontSize: Math.max(8, fontSize - 1) }}>
+                      {isMe ? `⭐ ${settlementLabel}` : pv.profile.display_name}
+                    </p>
+                    <p className={`${isMe ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}
+                      style={{ fontSize: Math.max(7, fontSize - 3) }}>
+                      Lv.{pv.village.level}
+                    </p>
+                  </div>
+                )}
+              </button>
+            );
+          });
+        })()}
+
+        {/* ── Animated March Sprites ── */}
+        {marches.map(march => {
+          const now = Date.now();
+          const totalDuration = march.arrivalTime - march.startTime;
+          const elapsed = now - march.startTime;
+          const progress = Math.min(1, Math.max(0, elapsed / totalDuration));
+          const currentX = march.startX + (march.targetX - march.startX) * progress;
+          const currentY = march.startY + (march.targetY - march.startY) * progress;
+          const { sx, sy } = worldToScreen(currentX, currentY);
+          const { sx: startSx, sy: startSy } = worldToScreen(march.startX, march.startY);
+          const { sx: endSx, sy: endSy } = worldToScreen(march.targetX, march.targetY);
+          const marchSize = Math.max(16, Math.min(36, camera.ppu * 5000));
+          const remainingSec = Math.max(0, Math.ceil((march.arrivalTime - now) / 1000));
+          return (
+            <div key={march.id}>
+              {/* Dotted march path line */}
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible', zIndex: 35 }}>
+                <line x1={startSx} y1={startSy} x2={endSx} y2={endSy}
+                  stroke="hsl(var(--primary) / 0.4)" strokeWidth={2} strokeDasharray="6 4" />
+              </svg>
+              {/* Moving troop sprite */}
+              <div className="absolute z-40 flex flex-col items-center pointer-events-none"
+                style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', transition: 'left 0.4s linear, top 0.4s linear' }}>
+                <img src={mapPlayer} alt="March" className="drop-shadow-lg animate-bounce"
+                  style={{ width: marchSize, height: marchSize, objectFit: 'contain' }} />
+                <div className="bg-background/90 rounded px-1 py-0.5 text-center mt-0.5 border border-primary/30">
+                  <p className="text-primary font-display whitespace-nowrap" style={{ fontSize: Math.max(7, marchSize / 4) }}>
+                    🗡️ {march.targetName}
                   </p>
-                  <p className={`${isMe ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}
-                    style={{ fontSize: Math.max(7, fontSize - 3) }}>
-                    Lv.{pv.village.level}
+                  <p className="text-muted-foreground" style={{ fontSize: Math.max(6, marchSize / 5) }}>
+                    {remainingSec}s
                   </p>
                 </div>
-              )}
-            </button>
-          ));
-        })()}
+              </div>
+            </div>
+          );
+        })}
 
         {/* Zoom controls — larger touch targets on mobile */}
         <div className="absolute bottom-3 right-3 flex flex-col gap-1.5 z-50">
@@ -1309,25 +1367,22 @@ export default function WorldMap() {
                             const travelSec = calcTravelTime(targetPos.x, targetPos.y);
                             const targetData = selected.data;
                             toast(`⚔️ Troops marching... ETA ${travelSec}s`);
-                            setMarches(prev => [...prev, {
-                              id: `pvp-${Date.now()}`, targetName: targetData.village.name, arrivalTime: Date.now() + travelSec * 1000,
-                              action: async () => {
-                                const log = await attackPlayer(targetData.village.user_id, targetData.profile.display_name, targetData.village.id);
-                                if (!log) { toast.error('Attack failed — they may be your vassal!'); return; }
-                                if (log.result === 'victory') {
-                                  let msg = `⚔️ Victory against ${targetData.profile.display_name}!`;
-                                  if (log.resourcesGained) {
-                                    const r = log.resourcesGained;
-                                    msg += ` Raided: ${r.gold || 0}💰 ${r.wood || 0}🪵 ${r.stone || 0}🪨 ${r.food || 0}🌾`;
-                                  }
-                                  if (log.buildingDamaged) msg += ` Damaged their ${log.buildingDamaged}!`;
-                                  if (log.vassalized) msg += ` 👑 They are now your vassal!`;
-                                  toast.success(msg);
-                                } else {
-                                  toast.error(`Defeated by ${targetData.profile.display_name}!`);
+                            createMarch(`pvp-${Date.now()}`, targetData.village.name, targetPos.x, targetPos.y, travelSec, async () => {
+                              const log = await attackPlayer(targetData.village.user_id, targetData.profile.display_name, targetData.village.id);
+                              if (!log) { toast.error('Attack failed — they may be your vassal!'); return; }
+                              if (log.result === 'victory') {
+                                let msg = `⚔️ Victory against ${targetData.profile.display_name}!`;
+                                if (log.resourcesGained) {
+                                  const r = log.resourcesGained;
+                                  msg += ` Raided: ${r.gold || 0}💰 ${r.wood || 0}🪵 ${r.stone || 0}🪨 ${r.food || 0}🌾`;
                                 }
-                              },
-                            }]);
+                                if (log.buildingDamaged) msg += ` Damaged their ${log.buildingDamaged}!`;
+                                if (log.vassalized) msg += ` 👑 They are now your vassal!`;
+                                toast.success(msg);
+                              } else {
+                                toast.error(`Defeated by ${targetData.profile.display_name}!`);
+                              }
+                            });
                             setSelected(null);
                           }}
                           className="flex-1 bg-destructive/20 text-destructive font-display text-[11px] py-2.5 rounded-lg active:bg-destructive/30 transition-colors">
@@ -1365,18 +1420,15 @@ export default function WorldMap() {
                       const travelSec = calcTravelTime(selected.data.x, selected.data.y);
                       const mineData = selected.data;
                       toast(`⚔️ Troops marching to ${mineData.name}... ETA ${travelSec}s`);
-                      setMarches(prev => [...prev, {
-                        id: `mine-${Date.now()}`, targetName: mineData.name, arrivalTime: Date.now() + travelSec * 1000,
-                        action: () => {
-                          const log = attackTarget(mineData.name, mineData.power);
-                          if (log.result === 'victory') {
-                            setCapturedMines(prev => new Set([...prev, mineData.id]));
-                            toast.success(`⚙️ ${mineData.name} captured! Producing steel.`);
-                          } else {
-                            toast.error('Defeat! The garrison held.');
-                          }
-                        },
-                      }]);
+                      createMarch(`mine-${Date.now()}`, mineData.name, mineData.x, mineData.y, travelSec, () => {
+                        const log = attackTarget(mineData.name, mineData.power);
+                        if (log.result === 'victory') {
+                          setCapturedMines(prev => new Set([...prev, mineData.id]));
+                          toast.success(`⚙️ ${mineData.name} captured! Producing steel.`);
+                        } else {
+                          toast.error('Defeat! The garrison held.');
+                        }
+                      });
                       setSelected(null);
                     }}
                     className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2.5 rounded-lg glow-gold-sm active:scale-95 transition-transform">

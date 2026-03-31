@@ -263,7 +263,7 @@ export default function VillageGrid() {
                     {!upgrading && !isUnderConstruction && (
                       <>
                         <span className="text-[9px] font-display text-foreground/80 truncate w-full text-center px-1">
-                          {BUILDING_INFO[type!].name}
+                          {type === 'townhall' && building.level >= 7 ? '🏰 Castle' : BUILDING_INFO[type!].name}
                         </span>
                         <span className="text-[8px] text-primary font-bold bg-background/60 px-1.5 rounded-full">
                           Lv.{building.level}
@@ -385,7 +385,9 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
       <div className="flex items-center gap-3">
         <img src={sprite} alt={info.name} className="w-16 h-16 object-contain" />
         <div>
-          <h3 className="font-display text-lg text-foreground">{info.name}</h3>
+          <h3 className="font-display text-lg text-foreground">
+            {type === 'townhall' && building.level >= 7 ? '🏰 Castle' : info.name}
+          </h3>
           <p className="text-xs text-primary font-bold">Level {building.level} / {info.maxLevel}</p>
         </div>
       </div>
