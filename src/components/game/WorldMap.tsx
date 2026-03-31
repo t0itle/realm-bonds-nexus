@@ -625,6 +625,7 @@ type SelectedItem =
 export default function WorldMap() {
   const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, resources } = useGame();
   const { user } = useAuth();
+  const npcState = useNPCState();
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
   const [capturedMines, setCapturedMines] = useState<Set<string>>(new Set());
@@ -632,7 +633,6 @@ export default function WorldMap() {
   const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
   const [legendOpen, setLegendOpen] = useState(false);
   const [, forceRender] = useState(0);
-  const [npcRelations, setNpcRelations] = useState<Map<string, { realmId: string; status: 'neutral' | 'friendly' | 'vassal' | 'allied'; tributeRate: number; friendshipLevel: number }>>(new Map());
   const [attackConfig, setAttackConfig] = useState<{
     targetName: string; targetPower?: number; targetId?: string;
     targetX: number; targetY: number; travelTime: number;
