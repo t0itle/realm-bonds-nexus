@@ -440,6 +440,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [villageNameLocal, setVillageNameLocal] = useState('');
   const [villageId, setVillageId] = useState<string | null>(null);
+  const villageIdRef = useRef<string | null>(null);
+  useEffect(() => { villageIdRef.current = villageId; }, [villageId]);
   const [playerLevel, setPlayerLevel] = useState(1);
   const [displayNameLocal, setDisplayNameLocal] = useState('Wanderer');
   const [avatarUrl, setAvatarUrlLocal] = useState<string | null>(null);
