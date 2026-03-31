@@ -731,11 +731,19 @@ export default function WorldMap() {
     toast(`⚔️ Troops marching to ${realm.name}... ETA ${travelSec}s`);
     createMarch(`atk-${Date.now()}`, realm.name, realm.x, realm.y, travelSec, () => {
       const log = attackTarget(realm.name, realm.power);
-      if (log.result === 'victory') toast.success(`Victory against ${realm.name}!`);
-      else toast.error(`Defeated by ${realm.name}!`);
+      if (log.result === 'victory') {
+        toast.success(`Victory against ${realm.name}! They are now your vassal.`);
+        setNpcRelations(prev => {
+          const next = new Map(prev);
+          next.set(realm.id, { realmId: realm.id, status: 'vassal', tributeRate: 15, friendshipLevel: 20 });
+          return next;
+        });
+      } else {
+        toast.error(`Defeated by ${realm.name}!`);
+      }
     });
     setSelected(null);
-  }, [army, attackTarget, calcTravelTime, createMarch]);
+  }, [army, attackTarget, calcTravelTime, createMarch, isInRange]);
 
   const handleEnvoy = useCallback((realm: ProceduralRealm) => {
     if (tradeContracts.some(c => c.realmId === realm.id)) {
