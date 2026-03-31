@@ -489,6 +489,39 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
           )}
         </div>
       )}
+
+      {/* Steel popup */}
+      <AnimatePresence>
+        {steelPopup && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-6"
+            onClick={() => setSteelPopup(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="game-panel border border-destructive/50 rounded-2xl p-5 max-w-sm w-full space-y-3 text-center"
+            >
+              <div className="text-3xl">⚒️</div>
+              <h4 className="font-display text-lg text-destructive">Not enough Steel!</h4>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Steel is obtained by capturing mines on the map. Create some soldiers and go claim them!
+              </p>
+              <button
+                onClick={() => setSteelPopup(false)}
+                className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-display text-sm"
+              >
+                Got it
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
