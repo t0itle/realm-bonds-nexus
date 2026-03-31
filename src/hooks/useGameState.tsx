@@ -811,7 +811,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const resourcesRef = useRef(resources);
   resourcesRef.current = resources;
 
-  // Client-side resource interpolation: tick every 5 seconds based on per-minute production
+  // Storage capacity: base 2000 + 500 per level per warehouse building + 500 per village level
+  const storageCapacity = useMemo(() => {
+    const villageLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
+    const warehouseLevels = buildings.filter(b => b.type === 'warehouse').reduce((sum, b) => sum + b.level, 0);
+    return 2000 + (villageLevel - 1) * 500 + warehouseLevels * 500;
+  }, [buildings]);
+  const storageCapRef = useRef(storageCapacity);
+  storageCapRef.current = storageCapacity;
+
   const totalProductionRef = useRef(totalProduction);
   totalProductionRef.current = totalProduction;
   const steelProductionRef = useRef(steelProduction);
