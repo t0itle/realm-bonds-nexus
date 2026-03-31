@@ -938,6 +938,28 @@ export default function WorldMap() {
     return getPlayerPos(myVillage?.village.id || 'me');
   }, [user, allVillages]);
 
+  const visionSources = useMemo(() => {
+    const myPos = getMyPos();
+    const scoutCount = army.scout || 0;
+    const baseVisionWorld = 55000 + scoutCount * 10000;
+    const outpostBaseVision = 40000;
+
+    return [
+      { x: myPos.x, y: myPos.y, radius: baseVisionWorld },
+      ...outposts
+        .filter(outpost => outpost.user_id === user?.id)
+        .map(outpost => ({
+          x: outpost.x,
+          y: outpost.y,
+          radius: outpostBaseVision + (outpost.level || 1) * 5000,
+        })),
+    ];
+  }, [army.scout, getMyPos, outposts, user?.id]);
+
+  const isWithinVision = useCallback((wx: number, wy: number, padding = 0) => {
+    return visionSources.some(source => Math.hypot(wx - source.x, wy - source.y) <= source.radius + padding);
+  }, [visionSources]);
+
   // Collect all terrain for pathfinding
   const allTerrain = useMemo(() => {
     const terrain: TerrainFeature[] = [];
@@ -1365,6 +1387,7 @@ export default function WorldMap() {
 
         {/* NPC Realms */}
         {renderRealms.map(realm => {
+          if (!isWithinVision(realm.x, realm.y, Math.max(8000, realm.territory * 0.2))) return null;
           const { sx, sy } = worldToScreen(realm.x, realm.y);
           const npcRel = npcState.playerRelations.get(realm.id);
           const isVassal = npcRel?.status === 'vassal';
@@ -1400,6 +1423,7 @@ export default function WorldMap() {
 
         {/* Events */}
         {renderEvents.map((event) => {
+          if (!isWithinVision(event.x, event.y, 3000)) return null;
           const { sx, sy } = worldToScreen(event.x, event.y);
           const evSprite = event.type === 'mystery' ? mapRuins : EVENT_SPRITES[event.type];
           return (
@@ -1426,6 +1450,7 @@ export default function WorldMap() {
 
         {/* Steel Mines */}
         {visibleChunks.map(chunk => chunk.data.steelMines.map(mine => {
+          if (!isWithinVision(mine.x, mine.y, 4000)) return null;
           if (!isVisible(mine.x, mine.y, 60)) return null;
           const { sx, sy } = worldToScreen(mine.x, mine.y);
           const isCaptured = capturedMines.has(mine.id);
@@ -1454,6 +1479,7 @@ export default function WorldMap() {
             const isMe = pv.village.user_id === user?.id;
             return { pv, pos, sx, sy, isMe };
           }).filter(p => {
+            if (!isWithinVision(p.pos.x, p.pos.y, 5000)) return false;
             const margin = 80;
             return p.sx > -margin && p.sx < containerSize.w + margin && p.sy > -margin && p.sy < containerSize.h + margin;
           });
@@ -1584,6 +1610,7 @@ export default function WorldMap() {
           const progress = Math.min(1, Math.max(0, elapsed / totalDuration));
           const currentX = march.start_x + (march.target_x - march.start_x) * progress;
           const currentY = march.start_y + (march.target_y - march.start_y) * progress;
+          if (!isWithinVision(currentX, currentY, 3000)) return null;
           const { sx, sy } = worldToScreen(currentX, currentY);
           // Visibility check
           if (sx < -80 || sx > containerSize.w + 80 || sy < -80 || sy > containerSize.h + 80) return null;
@@ -1619,59 +1646,35 @@ export default function WorldMap() {
           );
         })}
 
-        {/* ── Fog of War — clean, opaque fog with soft vision cutouts ── */}
-        {(() => {
-          const myPos = getMyPos();
-          const scoutCount = army.scout || 0;
-          const baseVisionWorld = 55000 + scoutCount * 10000;
-          const outpostBaseVision = 40000;
-          
-          // Collect all vision sources: home + own outposts (vision scales with outpost level)
-          const myOutposts = outposts.filter(o => o.user_id === user?.id);
-          const visionSources = [
-            { x: myPos.x, y: myPos.y, radius: baseVisionWorld },
-            ...myOutposts.map(o => ({ x: o.x, y: o.y, radius: outpostBaseVision + ((o as any).level || 1) * 5000 })),
-          ];
+        {/* ── Fog of War — fully obscures anything outside vision ── */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 45 }}>
+          <defs>
+            <mask id="fog-mask">
+              <rect width="100%" height="100%" fill="white" />
+              {visionSources.map((source, index) => {
+                const { sx, sy } = worldToScreen(source.x, source.y);
+                const radius = source.radius * camera.ppu;
+                if (radius < 5) return null;
 
-          return (
-            <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 45 }}>
-              <defs>
-                <mask id="fog-mask">
-                  {/* White = fogged, black = clear */}
-                  <rect width="100%" height="100%" fill="white" />
-                  {visionSources.map((src, i) => {
-                    const { sx, sy } = worldToScreen(src.x, src.y);
-                    const r = src.radius * camera.ppu;
-                    if (r < 5) return null;
-                    return (
-                      <g key={i}>
-                        <circle cx={sx} cy={sy} r={r * 0.7} fill="black" />
-                        <circle cx={sx} cy={sy} r={r} fill="black" opacity="0.6" />
-                        <circle cx={sx} cy={sy} r={r * 1.15} fill="black" opacity="0.2" />
-                      </g>
-                    );
-                  })}
-                </mask>
-                {/* Cloud texture filter */}
-                <filter id="fog-clouds" x="-10%" y="-10%" width="120%" height="120%">
-                  <feTurbulence type="fractalNoise" baseFrequency="0.008" numOctaves="5" seed="7" result="noise" />
-                  <feColorMatrix type="saturate" values="0" in="noise" result="gn" />
-                  <feComponentTransfer in="gn" result="tn">
-                    <feFuncA type="linear" slope="0.35" intercept="0.05" />
-                  </feComponentTransfer>
-                  <feGaussianBlur stdDeviation="6" in="tn" />
-                </filter>
-              </defs>
-              {/* Main fog layer */}
-              <rect width="100%" height="100%" fill="hsl(220 20% 7% / 0.93)" mask="url(#fog-mask)" />
-              {/* Cloud texture */}
-              <rect width="100%" height="100%" fill="hsl(220 15% 18% / 0.4)" mask="url(#fog-mask)" filter="url(#fog-clouds)" />
-            </svg>
-          );
-        })()}
+                return <circle key={index} cx={sx} cy={sy} r={radius} fill="black" />;
+              })}
+            </mask>
+            <filter id="fog-clouds" x="-10%" y="-10%" width="120%" height="120%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.008" numOctaves="5" seed="7" result="noise" />
+              <feColorMatrix type="saturate" values="0" in="noise" result="gn" />
+              <feComponentTransfer in="gn" result="tn">
+                <feFuncA type="linear" slope="0.35" intercept="0.05" />
+              </feComponentTransfer>
+              <feGaussianBlur stdDeviation="6" in="tn" />
+            </filter>
+          </defs>
+          <rect width="100%" height="100%" fill="hsl(220 20% 7% / 0.93)" mask="url(#fog-mask)" />
+          <rect width="100%" height="100%" fill="hsl(220 15% 18% / 0.4)" mask="url(#fog-mask)" filter="url(#fog-clouds)" />
+        </svg>
 
         {/* ── Territory borders ── */}
         {outposts.map(outpost => {
+          if (!isWithinVision(outpost.x, outpost.y, outpost.territory_radius)) return null;
           if (!isVisible(outpost.x, outpost.y, 200)) return null;
           const { sx, sy } = worldToScreen(outpost.x, outpost.y);
           const isOwn = outpost.user_id === user?.id;
@@ -1699,14 +1702,22 @@ export default function WorldMap() {
 
         {/* ── Outpost markers on the map ── */}
         {outposts.map(outpost => {
+          if (!isWithinVision(outpost.x, outpost.y, 6000)) return null;
           if (!isVisible(outpost.x, outpost.y, 60)) return null;
           const { sx, sy } = worldToScreen(outpost.x, outpost.y);
           const opSize = Math.max(18, Math.min(36, camera.ppu * 6000));
+          const hitSize = Math.max(44, opSize * 1.9);
           const isOwn = outpost.user_id === user?.id;
           return (
-            <div key={outpost.id} className="absolute z-[46] flex flex-col items-center cursor-pointer"
-              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}
-              onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'outpost', data: outpost }); }}>
+            <button
+              key={outpost.id}
+              type="button"
+              data-map-item
+              aria-label={`Open ${outpost.name}`}
+              className="absolute z-[42] flex flex-col items-center justify-center cursor-pointer touch-manipulation"
+              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', minWidth: hitSize, minHeight: hitSize, padding: Math.max(6, opSize * 0.35) }}
+              onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'outpost', data: outpost }); }}
+            >
               <div className="relative">
                 <img src={mapVillage} alt={outpost.name} loading="lazy"
                   className={`drop-shadow-md ${isOwn ? 'brightness-90' : 'brightness-75 hue-rotate-180'}`}
@@ -1728,7 +1739,7 @@ export default function WorldMap() {
                   </p>
                 </div>
               )}
-            </div>
+            </button>
           );
         })}
         <div className="absolute bottom-4 right-3 flex flex-col gap-1 z-50">
