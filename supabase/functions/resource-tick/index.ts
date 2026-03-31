@@ -268,18 +268,16 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Starvation: lose troops if food at 0
+      // Starvation: lose at most 1 troop per tick if food is 0
       let updatedArmy = { ...armyCounts };
       if (newFood <= 0) {
-        const desertOrder = ["siege", "cavalry", "knight", "archer", "militia"];
-        const desertions = Math.max(1, Math.floor(elapsedMinutes / 5));
-        for (let d = 0; d < desertions; d++) {
-          for (const t of desertOrder) {
-            if (updatedArmy[t] > 0) {
-              updatedArmy[t]--;
-              newPop = Math.max(1, newPop - (TROOP_UPKEEP[t]?.popCost || 1));
-              break;
-            }
+        newFood = 0; // floor at 0
+        const desertOrder = ["siege", "cavalry", "knight", "archer", "militia", "scout"];
+        for (const t of desertOrder) {
+          if (updatedArmy[t] > 0) {
+            updatedArmy[t]--;
+            newPop = Math.max(1, newPop - (TROOP_UPKEEP[t]?.popCost || 1));
+            break; // only 1 troop lost per tick
           }
         }
       }
