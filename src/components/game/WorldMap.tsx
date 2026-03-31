@@ -939,7 +939,16 @@ export default function WorldMap() {
     return getPlayerPos(myVillage?.village.id || 'me');
   }, [user, allVillages]);
 
-  const visionSources = useMemo(() => {
+  // Center camera on player's village when map first loads
+  useEffect(() => {
+    if (initializedCamera.current) return;
+    const pos = getMyPos();
+    if (pos.x !== 100000 || pos.y !== 100000) {
+      setCamera(prev => ({ ...prev, cx: pos.x, cy: pos.y }));
+      initializedCamera.current = true;
+    }
+  }, [getMyPos]);
+
     const myPos = getMyPos();
     const scoutCount = army.scout || 0;
     const baseVisionWorld = 55000 + scoutCount * 10000;
