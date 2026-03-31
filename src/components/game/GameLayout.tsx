@@ -79,6 +79,25 @@ export default function GameLayout() {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
+  // Active marches tracker
+  useEffect(() => {
+    if (!user) return;
+    const fetchMarches = async () => {
+      const { data } = await supabase.from('active_marches')
+        .select('id, target_name, march_type, arrives_at, started_at')
+        .eq('user_id', user.id)
+        .gt('arrives_at', new Date().toISOString())
+        .order('arrives_at', { ascending: true });
+      setActiveMarches(data || []);
+    };
+    fetchMarches();
+    const interval = setInterval(fetchMarches, 10000);
+    const channel = supabase.channel('march-tracker')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'active_marches' }, () => fetchMarches())
+      .subscribe();
+    return () => { clearInterval(interval); supabase.removeChannel(channel); };
+  }, [user]);
+
   // Reset unread when viewing messages
   useEffect(() => {
     if (activeTab === 'social' && user) {
