@@ -1320,18 +1320,18 @@ export default function WorldMap() {
           return (
             <button key={event.id} data-map-item
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'event', data: event, chunkKey: '', index: 0 }); }}
-              className="absolute z-20"
+              className="absolute z-20 group transition-transform hover:scale-110"
               style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
               <img
                 src={evSprite}
                 alt={event.name}
                 loading="lazy"
-                className="drop-shadow-lg"
+                className="drop-shadow-md transition-all group-hover:drop-shadow-lg"
                 style={{ width: eventSize, height: eventSize, imageRendering: 'auto', objectFit: 'contain' }}
               />
-              {eventSize > 24 && (
-                <span className="absolute -bottom-3 left-1/2 -translate-x-1/2 text-foreground/60 font-display whitespace-nowrap"
-                  style={{ fontSize: Math.max(7, eventSize / 5) }}>
+              {eventSize > 28 && (
+                <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 text-foreground/40 whitespace-nowrap"
+                  style={{ fontSize: Math.max(7, eventSize / 6) }}>
                   {event.emoji}
                 </span>
               )}
