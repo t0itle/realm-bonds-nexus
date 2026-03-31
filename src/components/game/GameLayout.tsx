@@ -264,6 +264,59 @@ export default function GameLayout() {
       </nav>
 
       <PatchNotesModal />
+
+      {/* Vassalized info popup */}
+      <AnimatePresence>
+        {vassalPopup && myVassalage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-6"
+            onClick={() => setVassalPopup(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.85, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="game-panel border border-destructive/40 rounded-2xl p-5 max-w-sm w-full space-y-3"
+            >
+              <div className="text-center space-y-1">
+                <span className="text-3xl">⛓️</span>
+                <h3 className="font-display text-lg text-destructive">You Are Vassalized</h3>
+              </div>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Lord</span>
+                  <span className="text-foreground font-display">{lordName || '...'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tribute Rate</span>
+                  <span className="text-destructive font-bold">{myVassalage.tribute_rate}% of production</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Ransom Cost</span>
+                  <span className="text-foreground">{myVassalage.ransom_gold} 💰</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Rebellion Available</span>
+                  <span className="text-foreground text-xs">
+                    {new Date(myVassalage.rebellion_available_at) <= new Date() ? '✅ Now' : new Date(myVassalage.rebellion_available_at).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
+                A portion of your resources goes to your lord. Pay the ransom or attempt a rebellion from the Military → Troops tab to break free.
+              </p>
+              <button onClick={() => setVassalPopup(false)}
+                className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-display text-sm">
+                Close
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
