@@ -1936,6 +1936,113 @@ export default function WorldMap() {
               </div>
               );
             })()}
+
+            {selected.kind === 'empty' && (() => {
+              const thLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
+              const outpostCost = { gold: 300, wood: 200, stone: 150, food: 100 };
+              const settlementCost = { gold: 1000, wood: 600, stone: 400, food: 300 };
+              const canAffordOp = resources.gold >= outpostCost.gold && resources.wood >= outpostCost.wood && resources.stone >= outpostCost.stone && resources.food >= outpostCost.food;
+              const canAffordSettlement = resources.gold >= settlementCost.gold && resources.wood >= settlementCost.wood && resources.stone >= settlementCost.stone && resources.food >= settlementCost.food;
+              const canBuildOutpost = thLevel >= 3;
+              const canBuildSettlement = thLevel >= 5;
+              const dist = getDistance(selected.data.x, selected.data.y);
+              const inRange = dist <= getMaxRange(army);
+              const coordLabel = `${(selected.data.x / 1000).toFixed(1)}k, ${(selected.data.y / 1000).toFixed(1)}k`;
+              return (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">📍</span>
+                    <div>
+                      <h3 className="font-display text-sm text-foreground">Unexplored Territory</h3>
+                      <p className="text-[9px] text-muted-foreground font-mono">{coordLabel}</p>
+                    </div>
+                  </div>
+
+                  {/* Found Outpost */}
+                  <div className="bg-muted/30 rounded-lg p-2.5 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <p className="font-display text-[11px] text-foreground">🏕️ Found Outpost</p>
+                      {!canBuildOutpost && <span className="text-[8px] text-destructive">TH Lv.3+</span>}
+                    </div>
+                    <p className="text-[9px] text-muted-foreground">Expand your borders and reveal fog of war in this area.</p>
+                    <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+                      <span className={resources.gold >= outpostCost.gold ? '' : 'text-destructive'}>🪙{outpostCost.gold}</span>
+                      <span className={resources.wood >= outpostCost.wood ? '' : 'text-destructive'}>🪵{outpostCost.wood}</span>
+                      <span className={resources.stone >= outpostCost.stone ? '' : 'text-destructive'}>🪨{outpostCost.stone}</span>
+                      <span className={resources.food >= outpostCost.food ? '' : 'text-destructive'}>🌾{outpostCost.food}</span>
+                    </div>
+                    <motion.button whileTap={{ scale: 0.95 }}
+                      disabled={!canBuildOutpost || !canAffordOp || !inRange}
+                      onClick={() => {
+                        if (!canBuildOutpost) { toast.error('Town Hall level 3 required!'); return; }
+                        if (!canAffordOp) { toast.error('Not enough resources!'); return; }
+                        if (!inRange) { toast.error('Out of range! Train scouts to extend reach.'); return; }
+                        const travelSec = calcTravelTime(selected.data.x, selected.data.y);
+                        const targetData = selected.data;
+                        toast(`🏗️ Settlers heading out... ETA ${travelSec}s`);
+                        addResources({ gold: -outpostCost.gold, wood: -outpostCost.wood, stone: -outpostCost.stone, food: -outpostCost.food });
+                        createMarch(`outpost-${Date.now()}`, 'New Outpost', targetData.x, targetData.y, travelSec, () => {
+                          const opName = `Outpost ${outposts.length + 1}`;
+                          setOutposts(prev => [...prev, { id: `op-${Date.now()}`, x: targetData.x, y: targetData.y, name: opName }]);
+                          toast.success(`🏕️ ${opName} established! Fog lifted in this area.`);
+                        });
+                        setSelected(null);
+                      }}
+                      className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2 rounded-lg glow-gold-sm disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform">
+                      {!inRange ? '⚠️ Out of Range' : '🏕️ Found Outpost'}
+                    </motion.button>
+                  </div>
+
+                  {/* Found Settlement */}
+                  <div className="bg-muted/30 rounded-lg p-2.5 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <p className="font-display text-[11px] text-foreground">🏘️ Found Settlement</p>
+                      {!canBuildSettlement && <span className="text-[8px] text-destructive">TH Lv.5+</span>}
+                    </div>
+                    <p className="text-[9px] text-muted-foreground">Establish a new village with wider borders and independent resource production.</p>
+                    <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+                      <span className={resources.gold >= settlementCost.gold ? '' : 'text-destructive'}>🪙{settlementCost.gold}</span>
+                      <span className={resources.wood >= settlementCost.wood ? '' : 'text-destructive'}>🪵{settlementCost.wood}</span>
+                      <span className={resources.stone >= settlementCost.stone ? '' : 'text-destructive'}>🪨{settlementCost.stone}</span>
+                      <span className={resources.food >= settlementCost.food ? '' : 'text-destructive'}>🌾{settlementCost.food}</span>
+                    </div>
+                    <motion.button whileTap={{ scale: 0.95 }}
+                      disabled={!canBuildSettlement || !canAffordSettlement || !inRange}
+                      onClick={() => {
+                        if (!canBuildSettlement) { toast.error('Town Hall level 5 required!'); return; }
+                        if (!canAffordSettlement) { toast.error('Not enough resources!'); return; }
+                        if (!inRange) { toast.error('Out of range!'); return; }
+                        const travelSec = calcTravelTime(selected.data.x, selected.data.y);
+                        const targetData = selected.data;
+                        toast(`🏘️ Settlers marching... ETA ${travelSec}s`);
+                        addResources({ gold: -settlementCost.gold, wood: -settlementCost.wood, stone: -settlementCost.stone, food: -settlementCost.food });
+                        createMarch(`settle-${Date.now()}`, 'New Settlement', targetData.x, targetData.y, travelSec, async () => {
+                          // Create new village in DB
+                          if (user) {
+                            const settleName = `Settlement ${Math.floor(Math.random() * 100)}`;
+                            const { error } = await supabase.from('villages').insert({
+                              user_id: user.id,
+                              name: settleName,
+                              map_x: targetData.x,
+                              map_y: targetData.y,
+                              settlement_type: 'outpost',
+                              gold: 100, wood: 100, stone: 50, food: 50,
+                            });
+                            if (error) { toast.error('Failed to found settlement'); return; }
+                            // Also add as vision source
+                            setOutposts(prev => [...prev, { id: `settle-${Date.now()}`, x: targetData.x, y: targetData.y, name: settleName }]);
+                            toast.success(`🏘️ ${settleName} founded! New territory claimed.`);
+                          }
+                        });
+                        setSelected(null);
+                      }}
+                      className="w-full bg-accent text-accent-foreground font-display text-[11px] py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform">
+                      {!inRange ? '⚠️ Out of Range' : '🏘️ Found Settlement'}
+                    </motion.button>
+                  </div>
+                </div>
+              );
+            })()}
           </motion.div>
         )}
       </AnimatePresence>
