@@ -1040,7 +1040,7 @@ export default function WorldMap() {
   }
 
   // Cap rendered items when very zoomed out
-  const maxItems = 60;
+  const maxItems = 30;
   const renderRealms = visibleRealms.slice(0, maxItems);
   const renderEvents = visibleEvents.slice(0, maxItems);
 
