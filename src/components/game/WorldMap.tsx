@@ -2086,10 +2086,20 @@ export default function WorldMap() {
                           <span className={resources.stone >= upgradeCost.stone ? '' : 'text-destructive'}>🪨{upgradeCost.stone}</span>
                           <span className={resources.food >= upgradeCost.food ? '' : 'text-destructive'}>🌾{upgradeCost.food}</span>
                         </div>
-                        <motion.button whileTap={{ scale: 0.95 }} onClick={handleUpgrade} disabled={!canAffordUpgrade}
-                          className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
-                          ⬆️ Upgrade Outpost
-                        </motion.button>
+                        {isUpgrading ? (
+                          <div className="w-full bg-muted rounded-lg py-2 text-center space-y-1">
+                            <p className="font-display text-[11px] text-primary">⏳ Upgrading...</p>
+                            <div className="bg-background rounded-full h-1.5 mx-2 overflow-hidden">
+                              <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${Math.max(0, 100 - ((isUpgrading.finishTime - Date.now()) / (upgradeTimeSec * 1000)) * 100)}%` }} />
+                            </div>
+                            <p className="text-[9px] text-muted-foreground">{Math.max(0, Math.ceil((isUpgrading.finishTime - Date.now()) / 1000))}s remaining</p>
+                          </div>
+                        ) : (
+                          <motion.button whileTap={{ scale: 0.95 }} onClick={handleUpgrade} disabled={!canAffordUpgrade}
+                            className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
+                            ⬆️ Upgrade Outpost ({Math.floor(upgradeTimeSec / 60)}:{(upgradeTimeSec % 60).toString().padStart(2, '0')})
+                          </motion.button>
+                        )}
                       </div>
                       {/* Border Wall */}
                       <div className="bg-muted/30 rounded-lg p-2 space-y-1">
