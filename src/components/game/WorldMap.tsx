@@ -632,6 +632,7 @@ export default function WorldMap() {
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
   const [capturedMines, setCapturedMines] = useState<Set<string>>(new Set());
   const [outposts, setOutposts] = useState<{ id: string; x: number; y: number; name: string; user_id: string; level: number; garrison_power: number; has_wall: boolean; wall_level: number; territory_radius: number }[]>([]);
+  const [outpostBuildQueue, setOutpostBuildQueue] = useState<{ outpostId: string; action: 'upgrade' | 'wall'; finishTime: number; targetLevel: number; newGarrison: number; newRadius?: number }[]>([]);
   const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; startTime: number; startX: number; startY: number; targetX: number; targetY: number; waypoints: { x: number; y: number }[]; action: () => void }[]>([]);
   const [otherMarches, setOtherMarches] = useState<{ id: string; user_id: string; player_name: string; start_x: number; start_y: number; target_x: number; target_y: number; target_name: string; started_at: string; arrives_at: string; march_type: string }[]>([]);
   const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
@@ -716,6 +717,33 @@ export default function WorldMap() {
       }
     });
   }, [user]);
+
+  // ── Outpost build queue timer ──
+  useEffect(() => {
+    if (outpostBuildQueue.length === 0) return;
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setOutpostBuildQueue(prev => {
+        const completed = prev.filter(q => q.finishTime <= now);
+        const remaining = prev.filter(q => q.finishTime > now);
+        if (completed.length > 0) {
+          for (const q of completed) {
+            if (q.action === 'upgrade') {
+              supabase.from('outposts').update({ level: q.targetLevel, garrison_power: q.newGarrison, territory_radius: q.newRadius } as any).eq('id', q.outpostId);
+              setOutposts(prev2 => prev2.map(o => o.id === q.outpostId ? { ...o, level: q.targetLevel, garrison_power: q.newGarrison, territory_radius: q.newRadius! } : o));
+              toast.success(`🏕️ Outpost upgraded to Lv.${q.targetLevel}!`);
+            } else {
+              supabase.from('outposts').update({ has_wall: true, wall_level: q.targetLevel, garrison_power: q.newGarrison } as any).eq('id', q.outpostId);
+              setOutposts(prev2 => prev2.map(o => o.id === q.outpostId ? { ...o, has_wall: true, wall_level: q.targetLevel, garrison_power: q.newGarrison } : o));
+              toast.success(`🧱 Wall ${q.targetLevel > 1 ? 'upgraded' : 'built'}!`);
+            }
+          }
+        }
+        return remaining;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [outpostBuildQueue.length]);
 
   // NPC vassal tribute income (from persistent state)
   useEffect(() => {
@@ -2001,28 +2029,32 @@ export default function WorldMap() {
               const canAffordUpgrade = resources.gold >= upgradeCost.gold && resources.wood >= upgradeCost.wood && resources.stone >= upgradeCost.stone && resources.food >= upgradeCost.food;
               const canAffordWall = resources.gold >= wallCost.gold && resources.wood >= wallCost.wood && resources.stone >= wallCost.stone && resources.food >= wallCost.food;
 
+              const isUpgrading = outpostBuildQueue.find(q => q.outpostId === op.id && q.action === 'upgrade');
+              const isBuildingWall = outpostBuildQueue.find(q => q.outpostId === op.id && q.action === 'wall');
+              const upgradeTimeSec = 30 + op.level * 30; // 60s for lv2, 90s for lv3, etc.
+              const wallTimeSec = 45 + op.wall_level * 30; // 45s for first wall, 75s for lv2, etc.
+
               const handleUpgrade = async () => {
                 if (!canAffordUpgrade) { toast.error('Not enough resources!'); return; }
+                if (isUpgrading) { toast.error('Already upgrading!'); return; }
                 addResources({ gold: -upgradeCost.gold, wood: -upgradeCost.wood, stone: -upgradeCost.stone, food: -upgradeCost.food });
                 const newLevel = op.level + 1;
                 const newGarrison = op.garrison_power + 20;
                 const newRadius = op.territory_radius + 3000;
-                await supabase.from('outposts').update({ level: newLevel, garrison_power: newGarrison, territory_radius: newRadius } as any).eq('id', op.id);
-                setOutposts(prev => prev.map(o => o.id === op.id ? { ...o, level: newLevel, garrison_power: newGarrison, territory_radius: newRadius } : o));
-                setSelected({ kind: 'outpost', data: { ...op, level: newLevel, garrison_power: newGarrison, territory_radius: newRadius } });
-                toast.success(`🏕️ ${op.name} upgraded to Lv.${newLevel}!`);
+                setOutpostBuildQueue(prev => [...prev, { outpostId: op.id, action: 'upgrade', finishTime: Date.now() + upgradeTimeSec * 1000, targetLevel: newLevel, newGarrison, newRadius }]);
+                toast(`🏕️ Upgrading ${op.name} to Lv.${newLevel}... (${Math.floor(upgradeTimeSec / 60)}:${(upgradeTimeSec % 60).toString().padStart(2, '0')})`);
               };
 
               const handleWall = async () => {
                 if (!canAffordWall) { toast.error('Not enough resources!'); return; }
+                if (isBuildingWall) { toast.error('Already building wall!'); return; }
                 addResources({ gold: -wallCost.gold, wood: -wallCost.wood, stone: -wallCost.stone, food: -wallCost.food });
                 const newWallLevel = op.wall_level + 1;
                 const newGarrison = op.garrison_power + 30;
-                await supabase.from('outposts').update({ has_wall: true, wall_level: newWallLevel, garrison_power: newGarrison } as any).eq('id', op.id);
-                setOutposts(prev => prev.map(o => o.id === op.id ? { ...o, has_wall: true, wall_level: newWallLevel, garrison_power: newGarrison } : o));
-                setSelected({ kind: 'outpost', data: { ...op, has_wall: true, wall_level: newWallLevel, garrison_power: newGarrison } });
-                toast.success(`🧱 ${op.has_wall ? 'Wall upgraded' : 'Border wall built'} at ${op.name}!`);
+                setOutpostBuildQueue(prev => [...prev, { outpostId: op.id, action: 'wall', finishTime: Date.now() + wallTimeSec * 1000, targetLevel: newWallLevel, newGarrison }]);
+                toast(`🧱 ${op.has_wall ? 'Upgrading wall' : 'Building wall'} at ${op.name}... (${Math.floor(wallTimeSec / 60)}:${(wallTimeSec % 60).toString().padStart(2, '0')})`);
               };
+
 
               return (
                 <div className="space-y-2">
@@ -2054,10 +2086,20 @@ export default function WorldMap() {
                           <span className={resources.stone >= upgradeCost.stone ? '' : 'text-destructive'}>🪨{upgradeCost.stone}</span>
                           <span className={resources.food >= upgradeCost.food ? '' : 'text-destructive'}>🌾{upgradeCost.food}</span>
                         </div>
-                        <motion.button whileTap={{ scale: 0.95 }} onClick={handleUpgrade} disabled={!canAffordUpgrade}
-                          className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
-                          ⬆️ Upgrade Outpost
-                        </motion.button>
+                        {isUpgrading ? (
+                          <div className="w-full bg-muted rounded-lg py-2 text-center space-y-1">
+                            <p className="font-display text-[11px] text-primary">⏳ Upgrading...</p>
+                            <div className="bg-background rounded-full h-1.5 mx-2 overflow-hidden">
+                              <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${Math.max(0, 100 - ((isUpgrading.finishTime - Date.now()) / (upgradeTimeSec * 1000)) * 100)}%` }} />
+                            </div>
+                            <p className="text-[9px] text-muted-foreground">{Math.max(0, Math.ceil((isUpgrading.finishTime - Date.now()) / 1000))}s remaining</p>
+                          </div>
+                        ) : (
+                          <motion.button whileTap={{ scale: 0.95 }} onClick={handleUpgrade} disabled={!canAffordUpgrade}
+                            className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
+                            ⬆️ Upgrade Outpost ({Math.floor(upgradeTimeSec / 60)}:{(upgradeTimeSec % 60).toString().padStart(2, '0')})
+                          </motion.button>
+                        )}
                       </div>
                       {/* Border Wall */}
                       <div className="bg-muted/30 rounded-lg p-2 space-y-1">
@@ -2069,10 +2111,20 @@ export default function WorldMap() {
                           <span className={resources.stone >= wallCost.stone ? '' : 'text-destructive'}>🪨{wallCost.stone}</span>
                           {wallCost.food > 0 && <span className={resources.food >= wallCost.food ? '' : 'text-destructive'}>🌾{wallCost.food}</span>}
                         </div>
-                        <motion.button whileTap={{ scale: 0.95 }} onClick={handleWall} disabled={!canAffordWall}
-                          className="w-full bg-accent text-accent-foreground font-display text-[11px] py-2 rounded-lg disabled:opacity-40 active:scale-95 transition-transform">
-                          🧱 {op.has_wall ? 'Upgrade Wall' : 'Build Border Wall'}
-                        </motion.button>
+                        {isBuildingWall ? (
+                          <div className="w-full bg-muted rounded-lg py-2 text-center space-y-1">
+                            <p className="font-display text-[11px] text-accent-foreground">⏳ Building wall...</p>
+                            <div className="bg-background rounded-full h-1.5 mx-2 overflow-hidden">
+                              <div className="h-full bg-accent rounded-full transition-all" style={{ width: `${Math.max(0, 100 - ((isBuildingWall.finishTime - Date.now()) / (wallTimeSec * 1000)) * 100)}%` }} />
+                            </div>
+                            <p className="text-[9px] text-muted-foreground">{Math.max(0, Math.ceil((isBuildingWall.finishTime - Date.now()) / 1000))}s remaining</p>
+                          </div>
+                        ) : (
+                          <motion.button whileTap={{ scale: 0.95 }} onClick={handleWall} disabled={!canAffordWall}
+                            className="w-full bg-accent text-accent-foreground font-display text-[11px] py-2 rounded-lg disabled:opacity-40 active:scale-95 transition-transform">
+                            🧱 {op.has_wall ? 'Upgrade Wall' : 'Build Border Wall'} ({Math.floor(wallTimeSec / 60)}:{(wallTimeSec % 60).toString().padStart(2, '0')})
+                          </motion.button>
+                        )}
                       </div>
                     </div>
                   )}
