@@ -423,14 +423,13 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
   // 1-4 events per chunk — use time-based seed rotation so events change periodically
   const timeSeed = Math.floor(Date.now() / (1000 * 60 * 30)); // rotates every 30 minutes
   const eventRng = seededRandom(hashCoords(chunkX, chunkY, timeSeed + 99));
-  const eventCount = 1 + Math.floor(eventRng() * 4);
+  const eventCount = 1 + Math.floor(eventRng() * 2); // reduced from 4 to 2 max extras
   const events: ProceduralEvent[] = [];
   for (let i = 0; i < eventCount; i++) {
     const baseIdx = Math.floor(eventRng() * EVENT_BASES.length);
     const base = EVENT_BASES[baseIdx];
     const nameIdx = Math.floor(eventRng() * base.names.length);
     const descIdx = Math.floor(eventRng() * base.descs.length);
-    // Optionally add an adjective or location for extra variety
     let eventName = base.names[nameIdx];
     const adjRoll = eventRng();
     if (adjRoll < 0.3) {
@@ -449,8 +448,8 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
       emoji: base.emoji,
       type: base.type,
       power: Math.floor(base.basePower * difficultyMult),
-      x: worldBaseX + 2000 + eventRng() * (CHUNK_SIZE - 4000),
-      y: worldBaseY + 2000 + eventRng() * (CHUNK_SIZE - 4000),
+      x: worldBaseX + 10000 + eventRng() * (CHUNK_SIZE - 20000),
+      y: worldBaseY + 10000 + eventRng() * (CHUNK_SIZE - 20000),
       reward: {
         gold: Math.floor((50 + eventRng() * 200) * rewardMult),
         wood: base.type === 'opportunity' ? Math.floor((30 + eventRng() * 100) * rewardMult) : 0,
