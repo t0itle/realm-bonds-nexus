@@ -843,15 +843,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }).catch(() => {});
 
     // Interpolate resources locally every 2 seconds for visible trickle
+    // Cap at storage capacity
     const tickInterval = setInterval(() => {
       const prod = totalProductionRef.current;
       const steelProd = steelProductionRef.current;
       const fraction = 2 / 60; // 2 seconds worth of per-minute production
+      const cap = storageCapRef.current;
       setResources(prev => ({
-        gold: Math.max(0, prev.gold + prod.gold * fraction),
-        wood: Math.max(0, prev.wood + prod.wood * fraction),
-        stone: Math.max(0, prev.stone + prod.stone * fraction),
-        food: Math.max(0, prev.food + prod.food * fraction),
+        gold: Math.min(cap, Math.max(0, prev.gold + prod.gold * fraction)),
+        wood: Math.min(cap, Math.max(0, prev.wood + prod.wood * fraction)),
+        stone: Math.min(cap, Math.max(0, prev.stone + prod.stone * fraction)),
+        food: Math.min(cap, Math.max(0, prev.food + prod.food * fraction)),
       }));
       if (steelProd > 0) {
         setSteel(prev => Math.max(0, prev + steelProd * fraction));
