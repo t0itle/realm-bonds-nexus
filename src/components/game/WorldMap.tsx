@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useGame, TroopType, Resources, calcMarchTime, getMaxRange, Building, BUILDING_INFO, getSlowestTroopSpeed } from '@/hooks/useGameState';
+import { useGame, TroopType, Resources, calcMarchTime, getMaxRange, Building, BUILDING_INFO, getSlowestTroopSpeed, WATCHTOWER_RANGE_BONUS } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
 import { useNPCState } from '@/hooks/useNPCState';
 import { supabase } from '@/integrations/supabase/client';
@@ -986,7 +986,8 @@ export default function WorldMap() {
 
   const visionSources = useMemo(() => {
     const scoutCount = army.scout || 0;
-    const baseVisionWorld = 55000 + scoutCount * 10000;
+    const wtLevel = getWatchtowerLevel();
+    const baseVisionWorld = 55000 + scoutCount * 10000 + wtLevel * WATCHTOWER_RANGE_BONUS;
     const outpostBaseVision = 40000;
 
     // Add vision from ALL player settlements
@@ -1013,7 +1014,7 @@ export default function WorldMap() {
           radius: outpostBaseVision + (outpost.level || 1) * 5000,
         })),
     ];
-  }, [army.scout, getMyPos, allVillages, outposts, user?.id]);
+  }, [army.scout, getMyPos, allVillages, outposts, user?.id, getWatchtowerLevel]);
 
   const isWithinVision = useCallback((wx: number, wy: number, padding = 0) => {
     return visionSources.some(source => Math.hypot(wx - source.x, wy - source.y) <= source.radius + padding);
