@@ -1588,24 +1588,33 @@ export default function WorldMap() {
                             const targetPos = getPlayerPos(selected.data.village.id);
                             const travelSec = calcTravelTime(targetPos.x, targetPos.y);
                             const targetData = selected.data;
-                            toast(`⚔️ Troops marching... ETA ${travelSec}s`);
-                            createMarch(`pvp-${Date.now()}`, targetData.village.name, targetPos.x, targetPos.y, travelSec, async () => {
-                              const log = await attackPlayer(targetData.village.user_id, targetData.profile.display_name, targetData.village.id);
-                              if (!log) { toast.error('Attack failed — they may be your vassal!'); return; }
-                              if (log.result === 'victory') {
-                                let msg = `⚔️ Victory against ${targetData.profile.display_name}!`;
-                                if (log.resourcesGained) {
-                                  const r = log.resourcesGained;
-                                  msg += ` Raided: ${r.gold || 0}💰 ${r.wood || 0}🪵 ${r.stone || 0}🪨 ${r.food || 0}🌾`;
-                                }
-                                if (log.buildingDamaged) msg += ` Damaged their ${log.buildingDamaged}!`;
-                                if (log.vassalized) msg += ` 👑 They are now your vassal!`;
-                                toast.success(msg);
-                              } else {
-                                toast.error(`Defeated by ${targetData.profile.display_name}!`);
-                              }
+                            setAttackConfig({
+                              targetName: targetData.profile.display_name,
+                              targetX: targetPos.x, targetY: targetPos.y,
+                              travelTime: travelSec, showEspionage: true,
+                              targetId: targetData.village.user_id,
+                              onAttack: (sentArmy) => {
+                                toast(`⚔️ Troops marching... ETA ${travelSec}s`);
+                                createMarch(`pvp-${Date.now()}`, targetData.village.name, targetPos.x, targetPos.y, travelSec, async () => {
+                                  const log = await attackPlayer(targetData.village.user_id, targetData.profile.display_name, targetData.village.id, sentArmy);
+                                  if (!log) { toast.error('Attack failed — they may be your vassal!'); return; }
+                                  if (log.result === 'victory') {
+                                    let msg = `⚔️ Victory against ${targetData.profile.display_name}!`;
+                                    if (log.resourcesGained) {
+                                      const r = log.resourcesGained;
+                                      msg += ` Raided: ${r.gold || 0}💰 ${r.wood || 0}🪵 ${r.stone || 0}🪨 ${r.food || 0}🌾`;
+                                    }
+                                    if (log.buildingDamaged) msg += ` Damaged their ${log.buildingDamaged}!`;
+                                    if (log.vassalized) msg += ` 👑 They are now your vassal!`;
+                                    toast.success(msg);
+                                  } else {
+                                    toast.error(`Defeated by ${targetData.profile.display_name}!`);
+                                  }
+                                });
+                                setAttackConfig(null);
+                                setSelected(null);
+                              },
                             });
-                            setSelected(null);
                           }}
                           className="flex-1 bg-destructive/20 text-destructive font-display text-[11px] py-2.5 rounded-lg active:bg-destructive/30 transition-colors">
                           ⚔️ Attack
