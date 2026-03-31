@@ -667,20 +667,20 @@ export default function WorldMap() {
     return () => clearInterval(interval);
   }, [capturedMines, addSteel]);
 
-  // NPC vassal tribute income
+  // NPC vassal tribute income (from persistent state)
   useEffect(() => {
-    const vassalNPCs = Array.from(npcRelations.values()).filter(r => r.status === 'vassal');
+    const vassalNPCs = Array.from(npcState.playerRelations.values()).filter(r => r.status === 'vassal');
     if (vassalNPCs.length === 0) return;
     const interval = setInterval(() => {
       let totalGold = 0, totalFood = 0;
       for (const v of vassalNPCs) {
-        totalGold += Math.floor(v.tributeRate * 0.5);
-        totalFood += Math.floor(v.tributeRate * 0.3);
+        totalGold += Math.floor(v.tribute_rate * 0.5);
+        totalFood += Math.floor(v.tribute_rate * 0.3);
       }
       if (totalGold > 0 || totalFood > 0) addResources({ gold: totalGold, food: totalFood });
-    }, 15000); // every 15s
+    }, 15000);
     return () => clearInterval(interval);
-  }, [npcRelations, addResources]);
+  }, [npcState.playerRelations, addResources]);
 
   // Animate marches — re-render every 500ms for smooth interpolation
   useEffect(() => {
