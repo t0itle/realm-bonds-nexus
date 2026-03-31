@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      active_marches: {
+        Row: {
+          arrives_at: string
+          created_at: string
+          id: string
+          march_type: string
+          player_name: string
+          start_x: number
+          start_y: number
+          started_at: string
+          target_name: string
+          target_x: number
+          target_y: number
+          user_id: string
+        }
+        Insert: {
+          arrives_at: string
+          created_at?: string
+          id?: string
+          march_type?: string
+          player_name?: string
+          start_x: number
+          start_y: number
+          started_at?: string
+          target_name?: string
+          target_x: number
+          target_y: number
+          user_id: string
+        }
+        Update: {
+          arrives_at?: string
+          created_at?: string
+          id?: string
+          march_type?: string
+          player_name?: string
+          start_x?: number
+          start_y?: number
+          started_at?: string
+          target_name?: string
+          target_x?: number
+          target_y?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       alliance_contracts: {
         Row: {
           alliance_id: string
