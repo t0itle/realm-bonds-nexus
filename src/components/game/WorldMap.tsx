@@ -620,6 +620,7 @@ type SelectedItem =
   | { kind: 'event'; data: ProceduralEvent; chunkKey: string; index: number }
   | { kind: 'player'; data: any }
   | { kind: 'mine'; data: SteelMine }
+  | { kind: 'empty'; data: { x: number; y: number } }
   | null;
 
 export default function WorldMap() {
