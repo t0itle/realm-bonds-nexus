@@ -839,16 +839,15 @@ export default function WorldMap() {
   }, [safeSetCamera]);
 
   const getPlayerPos = (id: string) => {
-    // Deterministic position based solely on village id — no index dependency
+    // Deterministic position based solely on village id — spread across the map
     let h = 5381;
     for (let i = 0; i < id.length; i++) {
       h = ((h << 5) + h + id.charCodeAt(i)) >>> 0;
     }
     const h2 = ((h * 2654435761) >>> 0);
-    // Use golden-ratio-based spiral placement for even distribution
-    // Each player gets a unique angle/radius combo to avoid clustering
+    // Use golden-ratio-based spiral placement — much wider spread
     const angle = (h % 10000) / 10000 * Math.PI * 2;
-    const radius = 5000 + (h2 % 35000); // 5k-40k from center
+    const radius = 25000 + (h2 % 120000); // 25k-145k from center
     return {
       x: 100000 + Math.cos(angle) * radius,
       y: 100000 + Math.sin(angle) * radius,
