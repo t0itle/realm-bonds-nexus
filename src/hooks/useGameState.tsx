@@ -742,7 +742,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
   // Tax income from population
   const popTaxIncome = useMemo(() => {
     const civilians = Math.max(0, populationBase - totalWorkers - totalSoldiers);
-    return Math.floor(civilians * popTaxRate / 100 * 2); // 2 gold base per taxable civilian scaled by rate
+    // Each civilian produces 0.5 gold base, scaled by tax rate percentage
+    // At 5% rate with 10 civilians: 10 * 0.5 * 5/10 = 2.5 → 2 gold/min
+    const rawIncome = civilians * 0.5 * (popTaxRate / 10);
+    return Math.max(civilians > 0 && popTaxRate > 0 ? 1 : 0, Math.floor(rawIncome));
   }, [populationBase, totalWorkers, totalSoldiers, popTaxRate]);
 
   const population: PopulationStats = useMemo(() => ({
