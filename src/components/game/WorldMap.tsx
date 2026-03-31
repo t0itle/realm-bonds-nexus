@@ -963,11 +963,7 @@ export default function WorldMap() {
           const log = attackTarget(realm.name, realm.power, sentArmy);
           if (log.result === 'victory') {
             toast.success(`Victory against ${realm.name}! They are now your vassal.`);
-            setNpcRelations(prev => {
-              const next = new Map(prev);
-              next.set(realm.id, { realmId: realm.id, status: 'vassal', tributeRate: 15, friendshipLevel: 20 });
-              return next;
-            });
+            npcState.setRelationStatus(realm.id, 'vassal', 15);
           } else {
             toast.error(`Defeated by ${realm.name}!`);
           }
