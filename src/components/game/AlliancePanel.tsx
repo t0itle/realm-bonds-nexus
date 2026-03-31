@@ -127,6 +127,7 @@ export default function AlliancePanel() {
     setName('');
     setTag('');
     loadAlliances();
+    loadMembers(data.id);
   };
 
   const joinAlliance = async (allianceId: string) => {
