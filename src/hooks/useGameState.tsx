@@ -42,7 +42,7 @@ export const BUILDING_INFO: Record<Exclude<BuildingType, 'empty'>, BuildingInfo>
   temple: { name: 'Temple', icon: '⛪', description: 'Increases happiness through religion.', baseCost: { gold: 60, wood: 30, stone: 50, food: 0 }, steelCost: 2, maxLevel: 5, workersPerLevel: 1, buildTime: 45 },
   farm: { name: 'Farm', icon: '🌾', description: 'Produces food. Each worker boosts output.', baseCost: { gold: 30, wood: 40, stone: 10, food: 0 }, baseProduction: { food: 2 }, maxLevel: 10, workersPerLevel: 1, buildTime: 15 },
   lumbermill: { name: 'Lumber Mill', icon: '🪓', description: 'Harvests wood. Workers increase yield.', baseCost: { gold: 30, wood: 10, stone: 20, food: 0 }, baseProduction: { wood: 2 }, maxLevel: 10, workersPerLevel: 1, buildTime: 15 },
-  quarry: { name: 'Quarry', icon: '⛏️', description: 'Mines stone. Produces steel at Lv.3+. Assign workers for more output.', baseCost: { gold: 40, wood: 20, stone: 10, food: 0 }, baseProduction: { stone: 1 }, maxLevel: 10, workersPerLevel: 1, buildTime: 20 },
+  quarry: { name: 'Quarry', icon: '⛏️', description: 'Mines stone. Assign workers for more output.', baseCost: { gold: 40, wood: 20, stone: 10, food: 0 }, baseProduction: { stone: 1 }, maxLevel: 10, workersPerLevel: 1, buildTime: 20 },
   goldmine: { name: 'Gold Mine', icon: '💰', description: 'Extracts gold. Workers boost production.', baseCost: { gold: 10, wood: 30, stone: 40, food: 0 }, steelCost: 3, baseProduction: { gold: 1 }, maxLevel: 10, workersPerLevel: 1, buildTime: 25 },
   barracks: { name: 'Barracks', icon: '⚔️', description: 'Train warriors. Workers here increase army cap.', baseCost: { gold: 80, wood: 60, stone: 40, food: 20 }, steelCost: 8, maxLevel: 8, workersPerLevel: 2, buildTime: 40 },
   wall: { name: 'Wall', icon: '🧱', description: 'Fortify your village against invaders.', baseCost: { gold: 20, wood: 10, stone: 60, food: 0 }, steelCost: 4, maxLevel: 10, workersPerLevel: 0, buildTime: 30 },
@@ -73,11 +73,9 @@ export function getProduction(type: Exclude<BuildingType, 'empty'>, level: numbe
   return result;
 }
 
-/** Steel production: quarry produces steel at level 3+ */
-export function getSteelProduction(type: Exclude<BuildingType, 'empty'>, level: number, workers: number = 0): number {
-  if (type !== 'quarry' || level < 3) return 0;
-  const workerBonus = 1 + workers * 0.35;
-  return Math.floor((level - 2) * 1 * workerBonus); // 1 steel/min per level above 2
+/** Steel production: now comes only from captured iron mines on the map */
+export function getSteelProduction(_type: Exclude<BuildingType, 'empty'>, _level: number, _workers: number = 0): number {
+  return 0; // Steel is acquired from iron ore deposits on the world map
 }
 
 // === RATIONS SYSTEM ===

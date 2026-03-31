@@ -79,10 +79,8 @@ function getProduction(type: string, level: number, workers: number): Record<str
   return result;
 }
 
-function getSteelProduction(type: string, level: number, workers: number): number {
-  if (type !== 'quarry' || level < 3) return 0;
-  const workerBonus = 1 + workers * 0.35;
-  return Math.floor((level - 2) * 1 * workerBonus);
+function getSteelProduction(_type: string, _level: number, _workers: number): number {
+  return 0; // Steel now comes from iron ore deposits on the world map
 }
 
 Deno.serve(async (req) => {
