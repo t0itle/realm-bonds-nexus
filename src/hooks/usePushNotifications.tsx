@@ -34,6 +34,39 @@ export function usePushNotifications() {
     if (supported && !isInIframe && !isPreview) {
       navigator.serviceWorker.register('/sw.js').then(async (reg) => {
         const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+          // Check if existing subscription uses current VAPID key — if not, unsubscribe
+          const existingKey = sub.options?.applicationServerKey;
+          const currentKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+          if (existingKey) {
+            const existingArr = new Uint8Array(existingKey as ArrayBuffer);
+            if (existingArr.length !== currentKey.length || existingArr.some((v, i) => v !== currentKey[i])) {
+              console.log('VAPID key changed, re-subscribing...');
+              const endpoint = sub.endpoint;
+              await sub.unsubscribe();
+              // Clean old subscription from DB
+              if (user) {
+                await supabase.from('push_subscriptions' as any).delete().eq('endpoint', endpoint);
+              }
+              // Auto re-subscribe with new key
+              const newSub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: currentKey,
+              });
+              if (user) {
+                const subJson = newSub.toJSON();
+                await supabase.from('push_subscriptions' as any).upsert({
+                  user_id: user.id,
+                  endpoint: subJson.endpoint,
+                  p256dh: subJson.keys?.p256dh,
+                  auth: subJson.keys?.auth,
+                }, { onConflict: 'user_id,endpoint' });
+              }
+              setIsSubscribed(true);
+              return;
+            }
+          }
+        }
         setIsSubscribed(!!sub);
       }).catch(console.error);
     }
