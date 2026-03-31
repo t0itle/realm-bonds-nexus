@@ -10,7 +10,7 @@ export interface Building {
   village_id: string;
 }
 
-export type BuildingType = 'townhall' | 'farm' | 'lumbermill' | 'quarry' | 'goldmine' | 'barracks' | 'wall' | 'watchtower' | 'house' | 'temple' | 'apothecary' | 'empty';
+export type BuildingType = 'townhall' | 'farm' | 'lumbermill' | 'quarry' | 'goldmine' | 'barracks' | 'wall' | 'watchtower' | 'house' | 'temple' | 'apothecary' | 'warehouse' | 'empty';
 
 export interface Resources {
   gold: number;
@@ -48,6 +48,7 @@ export const BUILDING_INFO: Record<Exclude<BuildingType, 'empty'>, BuildingInfo>
   wall: { name: 'Wall', icon: '🧱', description: 'Fortify your village against invaders.', baseCost: { gold: 20, wood: 10, stone: 60, food: 0 }, steelCost: 4, maxLevel: 10, workersPerLevel: 0, buildTime: 30 },
   watchtower: { name: 'Watchtower', icon: '🗼', description: 'Spots incoming threats from afar.', baseCost: { gold: 50, wood: 40, stone: 30, food: 0 }, maxLevel: 5, workersPerLevel: 1, buildTime: 25 },
   apothecary: { name: 'Apothecary', icon: '⚗️', description: 'Heal injured troops and craft poisons for spies.', baseCost: { gold: 70, wood: 30, stone: 30, food: 20 }, steelCost: 2, maxLevel: 5, workersPerLevel: 1, buildTime: 35 },
+  warehouse: { name: 'Warehouse', icon: '🏪', description: 'Increases storage capacity by 500 per level. Store more resources safely.', baseCost: { gold: 50, wood: 80, stone: 60, food: 0 }, maxLevel: 10, workersPerLevel: 0, buildTime: 25 },
 };
 
 export function getUpgradeCost(type: Exclude<BuildingType, 'empty'>, level: number): Resources & { steel: number } {
@@ -395,6 +396,7 @@ interface GameContextType {
   healTroops: (type: TroopType, count: number) => boolean;
   craftPoison: (count: number) => boolean;
   getApothecaryLevel: () => number;
+  storageCapacity: number;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -810,7 +812,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const resourcesRef = useRef(resources);
   resourcesRef.current = resources;
 
-  // Client-side resource interpolation: tick every 5 seconds based on per-minute production
+  // Storage capacity: base 2000 + 500 per level per warehouse building + 500 per village level
+  const storageCapacity = useMemo(() => {
+    const villageLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
+    const warehouseLevels = buildings.filter(b => b.type === 'warehouse').reduce((sum, b) => sum + b.level, 0);
+    return 2000 + (villageLevel - 1) * 500 + warehouseLevels * 500;
+  }, [buildings]);
+  const storageCapRef = useRef(storageCapacity);
+  storageCapRef.current = storageCapacity;
+
   const totalProductionRef = useRef(totalProduction);
   totalProductionRef.current = totalProduction;
   const steelProductionRef = useRef(steelProduction);
@@ -842,15 +852,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }).catch(() => {});
 
     // Interpolate resources locally every 2 seconds for visible trickle
+    // Cap at storage capacity
     const tickInterval = setInterval(() => {
       const prod = totalProductionRef.current;
       const steelProd = steelProductionRef.current;
       const fraction = 2 / 60; // 2 seconds worth of per-minute production
+      const cap = storageCapRef.current;
       setResources(prev => ({
-        gold: Math.max(0, prev.gold + prod.gold * fraction),
-        wood: Math.max(0, prev.wood + prod.wood * fraction),
-        stone: Math.max(0, prev.stone + prod.stone * fraction),
-        food: Math.max(0, prev.food + prod.food * fraction),
+        gold: Math.min(cap, Math.max(0, prev.gold + prod.gold * fraction)),
+        wood: Math.min(cap, Math.max(0, prev.wood + prod.wood * fraction)),
+        stone: Math.min(cap, Math.max(0, prev.stone + prod.stone * fraction)),
+        food: Math.min(cap, Math.max(0, prev.food + prod.food * fraction)),
       }));
       if (steelProd > 0) {
         setSteel(prev => Math.max(0, prev + steelProd * fraction));
@@ -1609,6 +1621,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       spies, trainSpies, sendSpyMission, activeSpyMissions, spyTrainingQueue, intelReports, getWatchtowerLevel,
       attackPlayer, vassalages, payRansom, attemptRebellion, setVassalTributeRate, releaseVassal, getWallLevel,
       injuredTroops, poisons, healTroops, craftPoison, getApothecaryLevel,
+      storageCapacity,
     }}>
       {children}
     </GameContext.Provider>

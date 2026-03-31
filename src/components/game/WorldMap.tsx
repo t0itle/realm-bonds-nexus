@@ -630,7 +630,7 @@ export default function WorldMap() {
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
   const [capturedMines, setCapturedMines] = useState<Set<string>>(new Set());
-  const [outposts, setOutposts] = useState<{ id: string; x: number; y: number; name: string }[]>([]);
+  const [outposts, setOutposts] = useState<{ id: string; x: number; y: number; name: string; user_id: string }[]>([]);
   const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; startTime: number; startX: number; startY: number; targetX: number; targetY: number; waypoints: { x: number; y: number }[]; action: () => void }[]>([]);
   const [otherMarches, setOtherMarches] = useState<{ id: string; user_id: string; player_name: string; start_x: number; start_y: number; target_x: number; target_y: number; target_name: string; started_at: string; arrives_at: string; march_type: string }[]>([]);
   const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
@@ -709,9 +709,9 @@ export default function WorldMap() {
   // Load outposts from database on mount
   useEffect(() => {
     if (!user) return;
-    supabase.from('outposts').select('*').eq('user_id', user.id).then(({ data }) => {
+    supabase.from('outposts').select('*').then(({ data }) => {
       if (data && data.length > 0) {
-        setOutposts(data.map(o => ({ id: o.id, x: o.x, y: o.y, name: o.name })));
+        setOutposts(data.map((o: any) => ({ id: o.id, x: o.x, y: o.y, name: o.name, user_id: o.user_id })));
       }
     });
   }, [user]);
@@ -1625,10 +1625,11 @@ export default function WorldMap() {
           const baseVisionWorld = 45000 + scoutCount * 8000;
           const outpostVisionWorld = 25000;
           
-          // Collect all vision sources: home + outposts
+          // Collect all vision sources: home + own outposts only
+          const myOutposts = outposts.filter(o => o.user_id === user?.id);
           const visionSources = [
             { x: myPos.x, y: myPos.y, radius: baseVisionWorld },
-            ...outposts.map(o => ({ x: o.x, y: o.y, radius: outpostVisionWorld })),
+            ...myOutposts.map(o => ({ x: o.x, y: o.y, radius: outpostVisionWorld })),
           ];
 
           return (
@@ -1685,20 +1686,24 @@ export default function WorldMap() {
           if (!isVisible(outpost.x, outpost.y, 60)) return null;
           const { sx, sy } = worldToScreen(outpost.x, outpost.y);
           const opSize = Math.max(18, Math.min(36, camera.ppu * 6000));
+          const isOwn = outpost.user_id === user?.id;
           return (
             <div key={outpost.id} className="absolute z-[46] flex flex-col items-center pointer-events-none"
               style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
               <div className="relative">
                 <img src={mapVillage} alt={outpost.name} loading="lazy"
-                  className="drop-shadow-md brightness-90"
+                  className={`drop-shadow-md ${isOwn ? 'brightness-90' : 'brightness-75 hue-rotate-180'}`}
                   style={{ width: opSize, height: opSize, objectFit: 'contain' }} />
                 <div className="absolute -inset-1 rounded-full pointer-events-none"
-                  style={{ boxShadow: '0 0 10px 3px hsl(var(--primary) / 0.2)', border: '1px solid hsl(var(--primary) / 0.3)' }} />
+                  style={{
+                    boxShadow: isOwn ? '0 0 10px 3px hsl(var(--primary) / 0.2)' : '0 0 8px 2px hsl(var(--destructive) / 0.15)',
+                    border: isOwn ? '1px solid hsl(var(--primary) / 0.3)' : '1px solid hsl(var(--destructive) / 0.25)',
+                  }} />
               </div>
               {opSize > 22 && (
-                <div className="bg-background/70 backdrop-blur-sm rounded px-1.5 py-0.5 text-center mt-0.5 border border-primary/20">
+                <div className={`backdrop-blur-sm rounded px-1.5 py-0.5 text-center mt-0.5 border ${isOwn ? 'bg-background/70 border-primary/20' : 'bg-background/50 border-destructive/20'}`}>
                   <p className="text-foreground/80 font-display whitespace-nowrap" style={{ fontSize: Math.max(7, opSize / 5) }}>
-                    🏕️ {outpost.name}
+                    {isOwn ? '🏕️' : '⚑'} {outpost.name}
                   </p>
                 </div>
               )}
@@ -1984,7 +1989,7 @@ export default function WorldMap() {
                             user_id: user!.id, x: targetData.x, y: targetData.y, name: opName, outpost_type: 'outpost',
                           }).select().single();
                           if (error) { toast.error('Failed to build outpost'); return; }
-                          setOutposts(prev => [...prev, { id: data.id, x: data.x, y: data.y, name: data.name }]);
+                          setOutposts(prev => [...prev, { id: data.id, x: data.x, y: data.y, name: data.name, user_id: user!.id }]);
                           toast.success(`🏕️ ${opName} established! Fog lifted in this area.`);
                         });
                         setSelected(null);
@@ -2034,7 +2039,7 @@ export default function WorldMap() {
                             const { data: opData } = await supabase.from('outposts').insert({
                               user_id: user!.id, x: targetData.x, y: targetData.y, name: settleName, outpost_type: 'settlement',
                             }).select().single();
-                            if (opData) setOutposts(prev => [...prev, { id: opData.id, x: opData.x, y: opData.y, name: opData.name }]);
+                            if (opData) setOutposts(prev => [...prev, { id: opData.id, x: opData.x, y: opData.y, name: opData.name, user_id: user!.id }]);
                             toast.success(`🏘️ ${settleName} founded! New territory claimed.`);
                           }
                         });

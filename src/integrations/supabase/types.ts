@@ -366,6 +366,72 @@ export type Database = {
           },
         ]
       }
+      caravans: {
+        Row: {
+          arrives_at: string
+          created_at: string
+          departed_at: string
+          food: number
+          from_village_id: string
+          gold: number
+          id: string
+          raided_by: string | null
+          status: string
+          steel: number
+          stone: number
+          to_village_id: string
+          user_id: string
+          wood: number
+        }
+        Insert: {
+          arrives_at: string
+          created_at?: string
+          departed_at?: string
+          food?: number
+          from_village_id: string
+          gold?: number
+          id?: string
+          raided_by?: string | null
+          status?: string
+          steel?: number
+          stone?: number
+          to_village_id: string
+          user_id: string
+          wood?: number
+        }
+        Update: {
+          arrives_at?: string
+          created_at?: string
+          departed_at?: string
+          food?: number
+          from_village_id?: string
+          gold?: number
+          id?: string
+          raided_by?: string | null
+          status?: string
+          steel?: number
+          stone?: number
+          to_village_id?: string
+          user_id?: string
+          wood?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caravans_from_village_id_fkey"
+            columns: ["from_village_id"]
+            isOneToOne: false
+            referencedRelation: "villages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caravans_to_village_id_fkey"
+            columns: ["to_village_id"]
+            isOneToOne: false
+            referencedRelation: "villages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guild_proposals: {
         Row: {
           alliance_id: string
@@ -761,6 +827,7 @@ export type Database = {
           settlement_type: string
           steel: number
           stone: number
+          storage_capacity: number
           updated_at: string
           user_id: string
           wood: number
@@ -789,6 +856,7 @@ export type Database = {
           settlement_type?: string
           steel?: number
           stone?: number
+          storage_capacity?: number
           updated_at?: string
           user_id: string
           wood?: number
@@ -817,6 +885,7 @@ export type Database = {
           settlement_type?: string
           steel?: number
           stone?: number
+          storage_capacity?: number
           updated_at?: string
           user_id?: string
           wood?: number
