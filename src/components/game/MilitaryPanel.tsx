@@ -493,7 +493,7 @@ function EspionagePanel({
           <h3 className="font-display text-xs text-foreground">🕵️ Spy Roster</h3>
           <span className="text-xs text-primary font-bold">{spies} available</span>
         </div>
-        <p className="text-[9px] text-muted-foreground">Spies gather intel, sabotage enemies, and spread propaganda. Requires Barracks Lv.2+</p>
+        <p className="text-[9px] text-muted-foreground">Spies gather intel, sabotage enemies, and spread propaganda. Requires Spy Guild.</p>
         
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1">
