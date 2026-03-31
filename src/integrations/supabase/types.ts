@@ -1141,6 +1141,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      raze_outpost: { Args: { p_outpost_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
