@@ -476,7 +476,7 @@ function EspionagePanel({
   const trainReasons: string[] = [];
   const sendReasons: string[] = [];
 
-  if (barracksLevel < 2) trainReasons.push('Barracks Lv.2 required');
+  if (barracksLevel < 1) trainReasons.push('Spy Guild required');
   if (resources.gold < 40 * spyTrainCount) trainReasons.push(`Need ${40 * spyTrainCount} gold (have ${resources.gold})`);
   if (resources.food < 20 * spyTrainCount) trainReasons.push(`Need ${20 * spyTrainCount} food (have ${resources.food})`);
   if (population.civilians < spyTrainCount) trainReasons.push(`Need ${spyTrainCount} civilians (have ${population.civilians})`);
