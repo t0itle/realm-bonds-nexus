@@ -2244,7 +2244,7 @@ export default function WorldMap() {
                                 const log = attackTarget(outpostData.name, totalDefense, sentArmy);
                                 if (log.result === 'victory') {
                                   // Raze the enemy outpost
-                                  await supabase.from('outposts').delete().eq('id', outpostData.id);
+                                  await supabase.rpc('raze_outpost', { p_outpost_id: outpostData.id });
                                   setOutposts(prev => prev.filter(o => o.id !== outpostData.id));
                                   toast.success(`🔥 ${outpostData.name} razed! Enemy outpost destroyed.`);
                                 } else {
