@@ -2316,7 +2316,6 @@ export default function WorldMap() {
                             
                             toast.success(`🏘️ ${settleName} founded! Switch to it from the village selector to start building.`);
                           }
-                          }
                         });
                         setSelected(null);
                       }}
