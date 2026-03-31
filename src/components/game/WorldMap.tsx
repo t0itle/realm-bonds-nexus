@@ -1622,44 +1622,34 @@ export default function WorldMap() {
         {(() => {
           const myPos = getMyPos();
           const scoutCount = army.scout || 0;
-          const baseVisionWorld = 45000 + scoutCount * 8000;
-          const outpostVisionWorld = 25000;
+          const baseVisionWorld = 55000 + scoutCount * 10000;
+          const outpostBaseVision = 40000;
           
-          // Collect all vision sources: home + own outposts only
+          // Collect all vision sources: home + own outposts (vision scales with outpost level)
           const myOutposts = outposts.filter(o => o.user_id === user?.id);
           const visionSources = [
             { x: myPos.x, y: myPos.y, radius: baseVisionWorld },
-            ...myOutposts.map(o => ({ x: o.x, y: o.y, radius: outpostVisionWorld })),
+            ...myOutposts.map(o => ({ x: o.x, y: o.y, radius: outpostBaseVision + ((o as any).level || 1) * 5000 })),
           ];
 
           return (
             <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 45 }}>
               <defs>
-                {/* Radial gradient for soft-edged vision holes */}
-                {visionSources.map((src, i) => {
-                  const { sx, sy } = worldToScreen(src.x, src.y);
-                  const r = src.radius * camera.ppu;
-                  if (r < 5) return null;
-                  return (
-                    <radialGradient key={`vg-${i}`} id={`vision-grad-${i}`}
-                      cx={sx} cy={sy} r={r}
-                      gradientUnits="userSpaceOnUse">
-                      <stop offset="0%" stopColor="black" />
-                      <stop offset="60%" stopColor="black" stopOpacity="0.95" />
-                      <stop offset="85%" stopColor="black" stopOpacity="0.3" />
-                      <stop offset="100%" stopColor="white" stopOpacity="0" />
-                    </radialGradient>
-                  );
-                })}
                 <mask id="fog-mask">
-                  {/* White = fogged (opaque fog), black = clear (visible) */}
+                  {/* White = fogged, black = clear */}
                   <rect width="100%" height="100%" fill="white" />
                   {visionSources.map((src, i) => {
                     const { sx, sy } = worldToScreen(src.x, src.y);
                     const r = src.radius * camera.ppu;
                     if (r < 5) return null;
                     return (
-                      <circle key={i} cx={sx} cy={sy} r={r} fill={`url(#vision-grad-${i})`} />
+                      <React.Fragment key={i}>
+                        {/* Hard clear center */}
+                        <circle cx={sx} cy={sy} r={r * 0.7} fill="black" />
+                        {/* Soft fade ring */}
+                        <circle cx={sx} cy={sy} r={r} fill="black" opacity="0.6" />
+                        <circle cx={sx} cy={sy} r={r * 1.15} fill="black" opacity="0.2" />
+                      </React.Fragment>
                     );
                   })}
                 </mask>
@@ -1668,15 +1658,15 @@ export default function WorldMap() {
                   <feTurbulence type="fractalNoise" baseFrequency="0.008" numOctaves="5" seed="7" result="noise" />
                   <feColorMatrix type="saturate" values="0" in="noise" result="gn" />
                   <feComponentTransfer in="gn" result="tn">
-                    <feFuncA type="linear" slope="0.4" intercept="0.1" />
+                    <feFuncA type="linear" slope="0.35" intercept="0.05" />
                   </feComponentTransfer>
-                  <feGaussianBlur stdDeviation="4" in="tn" />
+                  <feGaussianBlur stdDeviation="6" in="tn" />
                 </filter>
               </defs>
-              {/* Main fog layer — solid dark */}
-              <rect width="100%" height="100%" fill="hsl(220 20% 7% / 0.95)" mask="url(#fog-mask)" />
-              {/* Cloud texture on top of fog for depth */}
-              <rect width="100%" height="100%" fill="hsl(220 15% 18% / 0.5)" mask="url(#fog-mask)" filter="url(#fog-clouds)" />
+              {/* Main fog layer */}
+              <rect width="100%" height="100%" fill="hsl(220 20% 7% / 0.93)" mask="url(#fog-mask)" />
+              {/* Cloud texture */}
+              <rect width="100%" height="100%" fill="hsl(220 15% 18% / 0.4)" mask="url(#fog-mask)" filter="url(#fog-clouds)" />
             </svg>
           );
         })()}
