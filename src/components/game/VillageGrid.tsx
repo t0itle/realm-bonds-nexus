@@ -263,7 +263,7 @@ export default function VillageGrid() {
                     {!upgrading && !isUnderConstruction && (
                       <>
                         <span className="text-[9px] font-display text-foreground/80 truncate w-full text-center px-1">
-                          {BUILDING_INFO[type!].name}
+                          {type === 'townhall' && building.level >= 7 ? '🏰 Castle' : BUILDING_INFO[type!].name}
                         </span>
                         <span className="text-[8px] text-primary font-bold bg-background/60 px-1.5 rounded-full">
                           Lv.{building.level}
