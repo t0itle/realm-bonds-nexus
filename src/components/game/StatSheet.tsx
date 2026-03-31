@@ -241,6 +241,23 @@ export default function StatSheet() {
                   {steelProd > 0 && <span>steel: <span className="text-foreground">{steelProd}</span>/min</span>}
                 </div>
               )}
+              {/* Non-resource worker benefits */}
+              {Object.keys(prod).length === 0 && (
+                <div className="text-[9px] text-muted-foreground ml-7">
+                  {b.type === 'barracks' && (
+                    <span>Army cap: <span className="text-foreground">{b.level * 5 + current * 3}</span> {current > 0 && <span className="text-primary">(+{current * 3} from workers)</span>}</span>
+                  )}
+                  {b.type === 'temple' && (
+                    <span>Happiness: <span className="text-foreground">+{b.level * 10 + current * 5}</span> {current > 0 && <span className="text-primary">(+{current * 5} from workers)</span>}</span>
+                  )}
+                  {b.type === 'watchtower' && (
+                    <span>Detection range: <span className="text-foreground">+{b.level + current}</span> tiles {current > 0 && <span className="text-primary">(+{current} from workers)</span>}</span>
+                  )}
+                  {b.type === 'apothecary' && (
+                    <span>Injury recovery: <span className="text-foreground">{Math.min(60, 20 + (b.level + current) * 8)}%</span> {current > 0 && <span className="text-primary">(+{current * 8}% from workers)</span>}</span>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
