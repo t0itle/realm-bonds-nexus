@@ -385,7 +385,9 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
       <div className="flex items-center gap-3">
         <img src={sprite} alt={info.name} className="w-16 h-16 object-contain" />
         <div>
-          <h3 className="font-display text-lg text-foreground">{info.name}</h3>
+          <h3 className="font-display text-lg text-foreground">
+            {type === 'townhall' && building.level >= 7 ? '🏰 Castle' : info.name}
+          </h3>
           <p className="text-xs text-primary font-bold">Level {building.level} / {info.maxLevel}</p>
         </div>
       </div>
