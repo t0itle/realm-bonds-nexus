@@ -986,7 +986,8 @@ export default function WorldMap() {
 
   const visionSources = useMemo(() => {
     const scoutCount = army.scout || 0;
-    const baseVisionWorld = 55000 + scoutCount * 10000;
+    const wtLevel = getWatchtowerLevel();
+    const baseVisionWorld = 55000 + scoutCount * 10000 + wtLevel * WATCHTOWER_RANGE_BONUS;
     const outpostBaseVision = 40000;
 
     // Add vision from ALL player settlements
