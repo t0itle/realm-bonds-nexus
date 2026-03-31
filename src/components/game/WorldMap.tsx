@@ -2024,6 +2024,7 @@ export default function WorldMap() {
             {selected.kind === 'outpost' && (() => {
               const op = selected.data;
               const isOwn = op.user_id === user?.id;
+              const isSettlement = op.outpost_type === 'settlement';
               const upgradeCost = { gold: 150 * op.level, wood: 100 * op.level, stone: 80 * op.level, food: 50 * op.level };
               const wallCost = op.has_wall
                 ? { gold: 200 * (op.wall_level + 1), wood: 150 * (op.wall_level + 1), stone: 200 * (op.wall_level + 1), food: 0 }
@@ -2033,8 +2034,8 @@ export default function WorldMap() {
 
               const isUpgrading = outpostBuildQueue.find(q => q.outpostId === op.id && q.action === 'upgrade');
               const isBuildingWall = outpostBuildQueue.find(q => q.outpostId === op.id && q.action === 'wall');
-              const upgradeTimeSec = 30 + op.level * 30; // 60s for lv2, 90s for lv3, etc.
-              const wallTimeSec = 45 + op.wall_level * 30; // 45s for first wall, 75s for lv2, etc.
+              const upgradeTimeSec = 30 + op.level * 30;
+              const wallTimeSec = 45 + op.wall_level * 30;
 
               const handleUpgrade = async () => {
                 if (!canAffordUpgrade) { toast.error('Not enough resources!'); return; }
@@ -2044,7 +2045,7 @@ export default function WorldMap() {
                 const newGarrison = op.garrison_power + 20;
                 const newRadius = op.territory_radius + 3000;
                 setOutpostBuildQueue(prev => [...prev, { outpostId: op.id, action: 'upgrade', finishTime: Date.now() + upgradeTimeSec * 1000, targetLevel: newLevel, newGarrison, newRadius }]);
-                toast(`🏕️ Upgrading ${op.name} to Lv.${newLevel}... (${Math.floor(upgradeTimeSec / 60)}:${(upgradeTimeSec % 60).toString().padStart(2, '0')})`);
+                toast(`${isSettlement ? '🏘️' : '🏕️'} Upgrading ${op.name} to Lv.${newLevel}... (${Math.floor(upgradeTimeSec / 60)}:${(upgradeTimeSec % 60).toString().padStart(2, '0')})`);
               };
 
               const handleWall = async () => {
@@ -2061,20 +2062,23 @@ export default function WorldMap() {
               return (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-3xl">{isOwn ? '🏕️' : '⚑'}</span>
+                    <span className="text-3xl">{isSettlement ? '🏘️' : (isOwn ? '🏕️' : '⚑')}</span>
                     <div className="flex-1">
                       <h3 className="font-display text-sm text-foreground">{op.name}</h3>
                       <div className="flex items-center gap-2 text-[9px]">
                         <span className="text-primary font-semibold">Lv.{op.level}</span>
                         <span className="text-muted-foreground">⚔️{op.garrison_power} defense</span>
                         {op.has_wall && <span className="text-accent-foreground bg-accent/20 px-1.5 rounded-full">🧱 Wall Lv.{op.wall_level}</span>}
+                        {isSettlement && <span className="text-primary bg-primary/10 px-1.5 rounded-full">Settlement</span>}
                       </div>
                     </div>
                   </div>
                   <p className="text-[10px] text-muted-foreground">
                     {isOwn
-                      ? 'Your outpost. Upgrade to increase vision, territory, and garrison. Build walls to repel invaders.'
-                      : `Enemy outpost. Garrison strength: ⚔️${op.garrison_power}${op.has_wall ? ` with Lv.${op.wall_level} walls` : ''}`}
+                      ? (isSettlement
+                        ? 'Your settlement. Switch to it from the resource bar to manage buildings and resources independently.'
+                        : 'Your outpost. Upgrade to increase vision, territory, and garrison. Build walls to repel invaders.')
+                      : `Enemy ${isSettlement ? 'settlement' : 'outpost'}. Garrison strength: ⚔️${op.garrison_power}${op.has_wall ? ` with Lv.${op.wall_level} walls` : ''}`}
                   </p>
                   {isOwn && (
                     <div className="space-y-2">
