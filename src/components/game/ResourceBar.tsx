@@ -48,6 +48,9 @@ export default function ResourceBar() {
         <span className="text-muted-foreground flex items-center gap-0.5">
           <ResourceIcon type="steel" size={10} /> Steel: <strong className="text-foreground">{steel}</strong>{steelProduction > 0 && <span className="text-primary"> +{steelProduction}/min</span>}
         </span>
+        <span className={`flex items-center gap-0.5 ${storageNearFull ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
+          🏪 {Math.floor(storagePct)}%
+        </span>
         <span className="text-muted-foreground flex items-center gap-0.5">
           <ResourceIcon type="population" size={10} /> {population.current}/{population.max}
         </span>
