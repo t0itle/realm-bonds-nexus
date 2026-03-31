@@ -759,7 +759,32 @@ function ApothecaryPanel({ apothecaryLevel, injuredTroops, poisons, healTroops, 
 
       {/* Heal Injured Troops */}
       <div className="game-panel border-glow rounded-xl p-3 space-y-2">
-        <h3 className="font-display text-xs text-foreground">🩹 Heal Injured Troops</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="font-display text-xs text-foreground">🩹 Heal Injured Troops</h3>
+          {totalInjured > 0 && (() => {
+            let totalGold = 0, totalFood = 0;
+            TROOP_TYPES.forEach(type => {
+              const injured = injuredTroops[type];
+              if (injured <= 0) return;
+              const info = TROOP_INFO[type];
+              totalGold += Math.floor(info.cost.gold * 0.3 * costMult * injured);
+              totalFood += Math.floor(info.cost.food * 0.5 * costMult * injured);
+            });
+            const allAffordable = canAfford({ gold: totalGold, wood: 0, stone: 0, food: totalFood });
+            return (
+              <motion.button whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  TROOP_TYPES.forEach(type => {
+                    if (injuredTroops[type] > 0) healTroops(type, injuredTroops[type]);
+                  });
+                }}
+                disabled={!allAffordable}
+                className={`font-display text-[9px] py-1 px-2 rounded-lg flex items-center gap-1 ${allAffordable ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
+                Heal All ({totalInjured}) · <ResourceIcon type="gold" size={9} />{totalGold} <ResourceIcon type="food" size={9} />{totalFood}
+              </motion.button>
+            );
+          })()}
+        </div>
         {totalInjured === 0 ? (
           <p className="text-[10px] text-muted-foreground">No injured troops. After battle, wounded soldiers will appear here for healing.</p>
         ) : (
