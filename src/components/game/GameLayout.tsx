@@ -66,6 +66,7 @@ export default function GameLayout() {
 
   // Check if player is vassalized
   const myVassalage = vassalages.find(v => v.vassal_id === user?.id && v.status === 'active');
+  const myVassalCount = vassalages.filter(v => v.lord_id === user?.id && v.status === 'active').length;
   const [lordName, setLordName] = useState<string | null>(null);
   useEffect(() => {
     if (!myVassalage) { setLordName(null); return; }
@@ -151,27 +152,39 @@ export default function GameLayout() {
 
   return (
     <div className="fixed inset-0 flex flex-col bg-background overflow-hidden">
-      <div className="px-4 pt-3 pb-1 flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <h1 className="font-display text-sm font-bold text-foreground text-shadow-gold">{villageName || displayName}</h1>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-primary font-semibold">Level {playerLevel}</span>
-          {myVassalage && (
-            <button onClick={() => setVassalPopup(true)}
-              className="text-[9px] font-bold text-destructive bg-destructive/15 px-2 py-0.5 rounded-full animate-pulse">
-              ⛓️ Vassalized
-            </button>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {totalTroops > 0 && (
-            <span className="text-[10px] text-foreground bg-secondary px-2 py-0.5 rounded-full">⚔️ {totalTroops} troops</span>
-          )}
-          {trainingQueue.length > 0 && (
-            <span className="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full animate-pulse">🔨 Training</span>
-          )}
-          <ThemeToggle />
+      <div className="px-4 pt-3 pb-1 space-y-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate font-display text-sm font-bold text-foreground text-shadow-gold">{villageName || displayName}</h1>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] text-primary font-semibold">Level {playerLevel}</span>
+              {myVassalage ? (
+                <button
+                  onClick={() => setVassalPopup(true)}
+                  className="text-[9px] font-bold text-destructive bg-destructive/15 px-2 py-0.5 rounded-full animate-pulse"
+                >
+                  ⛓️ Vassalized
+                </button>
+              ) : myVassalCount > 0 ? (
+                <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                  👑 {myVassalCount} Vassal{myVassalCount > 1 ? 's' : ''}
+                </span>
+              ) : (
+                <span className="text-[9px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                  🛡️ Sovereign
+                </span>
+              )}
+              {totalTroops > 0 && (
+                <span className="text-[10px] text-foreground bg-secondary px-2 py-0.5 rounded-full">⚔️ {totalTroops} troops</span>
+              )}
+              {trainingQueue.length > 0 && (
+                <span className="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full animate-pulse">🔨 Training</span>
+              )}
+            </div>
+          </div>
+          <div className="shrink-0 pt-0.5">
+            <ThemeToggle />
+          </div>
         </div>
       </div>
 

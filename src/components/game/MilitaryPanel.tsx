@@ -20,7 +20,7 @@ export default function MilitaryPanel() {
     army, trainingQueue, battleLogs, trainTroops, getBarracksLevel, canAfford, canAffordSteel,
     totalArmyPower, armyUpkeep, population, steel,
     spies, trainSpies, sendSpyMission, activeSpyMissions, spyTrainingQueue, intelReports, allVillages, getWatchtowerLevel,
-    injuredTroops, poisons, healTroops, craftPoison, getApothecaryLevel,
+    injuredTroops, poisons, healTroops, craftPoison, getApothecaryLevel, resources,
   } = useGame();
   const [trainCount, setTrainCount] = useState<Record<TroopType, number>>({ militia: 1, archer: 1, knight: 1, cavalry: 1, siege: 1, scout: 1 });
   const [spyTrainCount, setSpyTrainCount] = useState(1);
@@ -288,7 +288,7 @@ export default function MilitaryPanel() {
           allVillages={allVillages}
           population={population}
           canAfford={canAfford}
-          resources={useGame().resources}
+          resources={resources}
         />
       )}
 
@@ -301,7 +301,7 @@ export default function MilitaryPanel() {
           healTroops={healTroops}
           craftPoison={craftPoison}
           canAfford={canAfford}
-          resources={useGame().resources}
+          resources={resources}
         />
       )}
 
@@ -313,6 +313,7 @@ export default function MilitaryPanel() {
 
 function WarLogPanel() {
   const { user } = useAuth();
+  const { battleLogs } = useGame();
   const [reports, setReports] = useState<any[]>([]);
   const [filter, setFilter] = useState<'all' | 'sent' | 'received'>('all');
   const [loading, setLoading] = useState(true);
@@ -333,11 +334,31 @@ function WarLogPanel() {
     fetch();
   }, [user]);
 
-  const filtered = reports.filter(r => {
+  const localReports = battleLogs
+    .filter(log => !log.targetUserId)
+    .map(log => ({
+      id: `local-${log.id}`,
+      attacker_id: user?.id,
+      defender_id: null,
+      attacker_name: 'You',
+      defender_name: log.target,
+      result: log.result,
+      attacker_troops_lost: log.troopsLost,
+      defender_troops_lost: log.defenderTroopsLost || {},
+      resources_raided: log.resourcesGained || {},
+      building_damaged: log.buildingDamaged || null,
+      vassalized: log.vassalized || false,
+      created_at: new Date(log.timestamp).toISOString(),
+      source: 'local',
+    }));
+
+  const filtered = [...localReports, ...reports]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .filter(r => {
     if (filter === 'sent') return r.attacker_id === user?.id;
     if (filter === 'received') return r.defender_id === user?.id;
     return true;
-  });
+    });
 
   function timeAgo(dateStr: string) {
     const mins = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
@@ -370,6 +391,7 @@ function WarLogPanel() {
 
       {filtered.map(r => {
         const isSent = r.attacker_id === user?.id;
+        const isLocal = r.source === 'local';
         const raided = r.resources_raided || {};
         const raidStr = [
           raided.gold ? `${raided.gold} 💰` : '',
@@ -384,10 +406,15 @@ function WarLogPanel() {
           <div key={r.id} className={`game-panel rounded-xl p-3 border ${won ? 'border-primary/30' : 'border-destructive/30'}`}>
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1.5">
-                <span className="text-sm">{isSent ? '⚔️' : '🛡️'}</span>
+                <span className="text-sm">{isLocal ? '🧭' : isSent ? '⚔️' : '🛡️'}</span>
                 <span className="font-display text-xs text-foreground">
                   {isSent ? `→ ${r.defender_name}` : `← ${r.attacker_name}`}
                 </span>
+                {isLocal && (
+                  <span className="text-[8px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+                    Local
+                  </span>
+                )}
               </div>
               <div className="text-right">
                 <span className={`text-[10px] font-bold ${won ? 'text-primary' : 'text-destructive'}`}>
@@ -446,6 +473,17 @@ function EspionagePanel({
   const canTrainSpy = barracksLevel >= 2 && resources.gold >= 40 * spyTrainCount && resources.food >= 20 * spyTrainCount && population.civilians >= spyTrainCount;
   const missionInfo = SPY_MISSION_INFO[selectedMission];
   const canSend = spies >= missionInfo.spiesRequired && resources.gold >= missionInfo.goldCost && selectedTarget;
+  const trainReasons: string[] = [];
+  const sendReasons: string[] = [];
+
+  if (barracksLevel < 2) trainReasons.push('Barracks Lv.2 required');
+  if (resources.gold < 40 * spyTrainCount) trainReasons.push(`Need ${40 * spyTrainCount} gold (have ${resources.gold})`);
+  if (resources.food < 20 * spyTrainCount) trainReasons.push(`Need ${20 * spyTrainCount} food (have ${resources.food})`);
+  if (population.civilians < spyTrainCount) trainReasons.push(`Need ${spyTrainCount} civilians (have ${population.civilians})`);
+
+  if (!selectedTarget) sendReasons.push('Choose a target');
+  if (spies < missionInfo.spiesRequired) sendReasons.push(`Need ${missionInfo.spiesRequired} spy${missionInfo.spiesRequired > 1 ? 'ies' : ''} (have ${spies})`);
+  if (resources.gold < missionInfo.goldCost) sendReasons.push(`Need ${missionInfo.goldCost} gold (have ${resources.gold})`);
 
   return (
     <div className="space-y-3">
@@ -477,6 +515,9 @@ function EspionagePanel({
             Recruit
           </motion.button>
         </div>
+        {!canTrainSpy && trainReasons.length > 0 && (
+          <p className="text-[9px] text-destructive">{trainReasons.join(' · ')}</p>
+        )}
       </div>
 
       {/* Spy Training Queue */}
@@ -599,6 +640,9 @@ function EspionagePanel({
             }`}>
             {missionInfo.emoji} Send {missionInfo.name} Mission (<ResourceIcon type="gold" size={10} />{missionInfo.goldCost})
           </motion.button>
+          {!canSend && sendReasons.length > 0 && (
+            <p className="text-[9px] text-destructive">{sendReasons.join(' · ')}</p>
+          )}
         </div>
       )}
 

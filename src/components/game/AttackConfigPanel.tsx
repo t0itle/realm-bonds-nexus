@@ -67,7 +67,16 @@ export default function AttackConfigPanel({
   };
 
   const missionInfo = SPY_MISSION_INFO[spyMission];
+  const maxSpyOperatives = Math.max(1, Math.floor(spies / missionInfo.spiesRequired));
   const canSendSpies = spies >= missionInfo.spiesRequired * spyCount && resources.gold >= missionInfo.goldCost * spyCount;
+  const spyIssues: string[] = [];
+
+  if (spies < missionInfo.spiesRequired * spyCount) {
+    spyIssues.push(`Need ${missionInfo.spiesRequired * spyCount} spies (have ${spies})`);
+  }
+  if (resources.gold < missionInfo.goldCost * spyCount) {
+    spyIssues.push(`Need ${missionInfo.goldCost * spyCount} gold (have ${resources.gold})`);
+  }
 
   return (
     <div className="space-y-3">
@@ -189,7 +198,7 @@ export default function AttackConfigPanel({
               className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">−</motion.button>
             <span className="text-xs text-foreground font-bold w-6 text-center">{spyCount}</span>
             <motion.button whileTap={{ scale: 0.9 }}
-              onClick={() => setSpyCount(Math.min(Math.floor(spies / missionInfo.spiesRequired), spyCount + 1))}
+              onClick={() => setSpyCount(Math.min(maxSpyOperatives, spyCount + 1))}
               className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">+</motion.button>
             <span className="text-[9px] text-muted-foreground ml-auto">Cost: 💰{missionInfo.goldCost * spyCount}</span>
           </div>
@@ -202,6 +211,9 @@ export default function AttackConfigPanel({
             }`}>
             🕵️ Send Spies
           </motion.button>
+          {!canSendSpies && spyIssues.length > 0 && (
+            <p className="text-[9px] text-destructive">{spyIssues.join(' · ')}</p>
+          )}
         </div>
       )}
     </div>

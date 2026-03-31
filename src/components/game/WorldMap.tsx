@@ -2068,15 +2068,18 @@ export default function WorldMap() {
                     </div>
                   )}
                   {!isOwn && (
-                    <motion.button whileTap={{ scale: 0.95 }}
-                      onClick={() => {
-                        const hasTroops = Object.values(army).some(v => v > 0);
-                        if (!hasTroops) { toast.error('You need troops!'); return; }
-                        toast.info('Attack outpost coming soon...');
-                      }}
-                      className="w-full bg-destructive/20 text-destructive font-display text-[11px] py-2.5 rounded-lg active:scale-95 transition-transform">
-                      ⚔️ Attack Outpost (⚔️{op.garrison_power}{op.has_wall ? ` + 🧱${op.wall_level * 15}` : ''})
-                    </motion.button>
+                    <div className="space-y-1.5">
+                      <button
+                        type="button"
+                        disabled
+                        className="w-full bg-muted text-muted-foreground font-display text-[11px] py-2.5 rounded-lg cursor-not-allowed opacity-80"
+                      >
+                        🚧 Outpost Assaults Not Live Yet
+                      </button>
+                      <p className="text-[9px] text-muted-foreground">
+                        You can scout and manage outposts, but attacking enemy outposts has not been implemented yet.
+                      </p>
+                    </div>
                   )}
                 </div>
               );
