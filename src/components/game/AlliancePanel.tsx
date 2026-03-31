@@ -35,6 +35,7 @@ export default function AlliancePanel() {
   const [name, setName] = useState('');
   const [tag, setTag] = useState('');
   const [error, setError] = useState('');
+  const [members, setMembers] = useState<GuildMember[]>([]);
 
   useEffect(() => {
     loadAlliances();
