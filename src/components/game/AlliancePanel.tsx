@@ -8,6 +8,16 @@ import GuildTaxPanel from './GuildTaxPanel';
 import GuildContracts from './GuildContracts';
 import GuildVoting from './GuildVoting';
 
+interface GuildMember {
+  user_id: string;
+  role: string;
+  joined_at: string;
+  display_name: string;
+  avatar_emoji: string;
+  village_name: string;
+  population: number;
+}
+
 interface Alliance {
   id: string;
   name: string;
