@@ -1960,6 +1960,106 @@ export default function WorldMap() {
               );
             })()}
 
+            {selected.kind === 'outpost' && (() => {
+              const op = selected.data;
+              const isOwn = op.user_id === user?.id;
+              const upgradeCost = { gold: 150 * op.level, wood: 100 * op.level, stone: 80 * op.level, food: 50 * op.level };
+              const wallCost = op.has_wall
+                ? { gold: 200 * (op.wall_level + 1), wood: 150 * (op.wall_level + 1), stone: 200 * (op.wall_level + 1), food: 0 }
+                : { gold: 300, wood: 200, stone: 250, food: 50 };
+              const canAffordUpgrade = resources.gold >= upgradeCost.gold && resources.wood >= upgradeCost.wood && resources.stone >= upgradeCost.stone && resources.food >= upgradeCost.food;
+              const canAffordWall = resources.gold >= wallCost.gold && resources.wood >= wallCost.wood && resources.stone >= wallCost.stone && resources.food >= wallCost.food;
+
+              const handleUpgrade = async () => {
+                if (!canAffordUpgrade) { toast.error('Not enough resources!'); return; }
+                addResources({ gold: -upgradeCost.gold, wood: -upgradeCost.wood, stone: -upgradeCost.stone, food: -upgradeCost.food });
+                const newLevel = op.level + 1;
+                const newGarrison = op.garrison_power + 20;
+                const newRadius = op.territory_radius + 3000;
+                await supabase.from('outposts').update({ level: newLevel, garrison_power: newGarrison, territory_radius: newRadius } as any).eq('id', op.id);
+                setOutposts(prev => prev.map(o => o.id === op.id ? { ...o, level: newLevel, garrison_power: newGarrison, territory_radius: newRadius } : o));
+                setSelected({ kind: 'outpost', data: { ...op, level: newLevel, garrison_power: newGarrison, territory_radius: newRadius } });
+                toast.success(`🏕️ ${op.name} upgraded to Lv.${newLevel}!`);
+              };
+
+              const handleWall = async () => {
+                if (!canAffordWall) { toast.error('Not enough resources!'); return; }
+                addResources({ gold: -wallCost.gold, wood: -wallCost.wood, stone: -wallCost.stone, food: -wallCost.food });
+                const newWallLevel = op.wall_level + 1;
+                const newGarrison = op.garrison_power + 30;
+                await supabase.from('outposts').update({ has_wall: true, wall_level: newWallLevel, garrison_power: newGarrison } as any).eq('id', op.id);
+                setOutposts(prev => prev.map(o => o.id === op.id ? { ...o, has_wall: true, wall_level: newWallLevel, garrison_power: newGarrison } : o));
+                setSelected({ kind: 'outpost', data: { ...op, has_wall: true, wall_level: newWallLevel, garrison_power: newGarrison } });
+                toast.success(`🧱 ${op.has_wall ? 'Wall upgraded' : 'Border wall built'} at ${op.name}!`);
+              };
+
+              return (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-3xl">{isOwn ? '🏕️' : '⚑'}</span>
+                    <div className="flex-1">
+                      <h3 className="font-display text-sm text-foreground">{op.name}</h3>
+                      <div className="flex items-center gap-2 text-[9px]">
+                        <span className="text-primary font-semibold">Lv.{op.level}</span>
+                        <span className="text-muted-foreground">⚔️{op.garrison_power} defense</span>
+                        {op.has_wall && <span className="text-accent-foreground bg-accent/20 px-1.5 rounded-full">🧱 Wall Lv.{op.wall_level}</span>}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    {isOwn
+                      ? 'Your outpost. Upgrade to increase vision, territory, and garrison. Build walls to repel invaders.'
+                      : `Enemy outpost. Garrison strength: ⚔️${op.garrison_power}${op.has_wall ? ` with Lv.${op.wall_level} walls` : ''}`}
+                  </p>
+                  {isOwn && (
+                    <div className="space-y-2">
+                      {/* Upgrade */}
+                      <div className="bg-muted/30 rounded-lg p-2 space-y-1">
+                        <p className="text-[10px] font-semibold text-foreground">⬆️ Upgrade to Lv.{op.level + 1}</p>
+                        <p className="text-[8px] text-muted-foreground">+5k vision, +3k territory, +20 garrison</p>
+                        <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+                          <span className={resources.gold >= upgradeCost.gold ? '' : 'text-destructive'}>🪙{upgradeCost.gold}</span>
+                          <span className={resources.wood >= upgradeCost.wood ? '' : 'text-destructive'}>🪵{upgradeCost.wood}</span>
+                          <span className={resources.stone >= upgradeCost.stone ? '' : 'text-destructive'}>🪨{upgradeCost.stone}</span>
+                          <span className={resources.food >= upgradeCost.food ? '' : 'text-destructive'}>🌾{upgradeCost.food}</span>
+                        </div>
+                        <motion.button whileTap={{ scale: 0.95 }} onClick={handleUpgrade} disabled={!canAffordUpgrade}
+                          className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
+                          ⬆️ Upgrade Outpost
+                        </motion.button>
+                      </div>
+                      {/* Border Wall */}
+                      <div className="bg-muted/30 rounded-lg p-2 space-y-1">
+                        <p className="text-[10px] font-semibold text-foreground">🧱 {op.has_wall ? `Upgrade Wall to Lv.${op.wall_level + 1}` : 'Build Border Wall'}</p>
+                        <p className="text-[8px] text-muted-foreground">{op.has_wall ? '+30 garrison, stronger border' : 'Creates visible territory border, +30 garrison defense'}</p>
+                        <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+                          <span className={resources.gold >= wallCost.gold ? '' : 'text-destructive'}>🪙{wallCost.gold}</span>
+                          <span className={resources.wood >= wallCost.wood ? '' : 'text-destructive'}>🪵{wallCost.wood}</span>
+                          <span className={resources.stone >= wallCost.stone ? '' : 'text-destructive'}>🪨{wallCost.stone}</span>
+                          {wallCost.food > 0 && <span className={resources.food >= wallCost.food ? '' : 'text-destructive'}>🌾{wallCost.food}</span>}
+                        </div>
+                        <motion.button whileTap={{ scale: 0.95 }} onClick={handleWall} disabled={!canAffordWall}
+                          className="w-full bg-accent text-accent-foreground font-display text-[11px] py-2 rounded-lg disabled:opacity-40 active:scale-95 transition-transform">
+                          🧱 {op.has_wall ? 'Upgrade Wall' : 'Build Border Wall'}
+                        </motion.button>
+                      </div>
+                    </div>
+                  )}
+                  {!isOwn && (
+                    <motion.button whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        const hasTroops = Object.values(army).some(v => v > 0);
+                        if (!hasTroops) { toast.error('You need troops!'); return; }
+                        toast.info('Attack outpost coming soon...');
+                      }}
+                      className="w-full bg-destructive/20 text-destructive font-display text-[11px] py-2.5 rounded-lg active:scale-95 transition-transform">
+                      ⚔️ Attack Outpost (⚔️{op.garrison_power}{op.has_wall ? ` + 🧱${op.wall_level * 15}` : ''})
+                    </motion.button>
+                  )}
+                </div>
+              );
+            })()}
+
             {selected.kind === 'empty' && (() => {
               const thLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
               const outpostCost = { gold: 300, wood: 200, stone: 150, food: 100 };
