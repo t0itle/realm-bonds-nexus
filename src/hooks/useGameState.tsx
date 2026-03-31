@@ -1657,7 +1657,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       population, workerAssignments, assignWorker, unassignWorker, getMaxWorkers,
       rations, setRations, popTaxRate, setPopTaxRate, popFoodCost, popTaxIncome,
       isBuildingUpgrading, getBuildTime,
-      spies, trainSpies, sendSpyMission, activeSpyMissions, spyTrainingQueue, intelReports, getWatchtowerLevel,
+      spies, trainSpies, sendSpyMission, activeSpyMissions, spyTrainingQueue, intelReports, getWatchtowerLevel, getSpyGuildLevel,
       attackPlayer, vassalages, payRansom, attemptRebellion, setVassalTributeRate, releaseVassal, getWallLevel,
       injuredTroops, poisons, healTroops, craftPoison, getApothecaryLevel,
       storageCapacity,
