@@ -771,13 +771,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
     loadVillageData(newVillageId);
   }, [villageId, loadVillageData]);
 
+  // Realtime subscriptions
+  useEffect(() => {
+    if (!user) return;
+
     const villageChannel = supabase.channel('village-changes')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'villages', filter: `user_id=eq.${user.id}` }, (payload) => {
         const v = payload.new;
         // Only handle updates for current village
         if (v.id !== villageIdRef.current) return;
         // Skip resource fields — they're managed locally via client-side production ticks
-        // Only sync non-resource fields from DB updates
         setVillageNameLocal(v.name as string);
         setPlayerLevel(v.level as number);
         setSteel((v as any).steel ?? 0);
@@ -808,10 +811,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
     const vassalageChannel = supabase.channel(`vassalage-changes-${user.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'vassalages', filter: `lord_id=eq.${user.id}` }, () => {
-        void loadData();
+        void loadVillageData();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'vassalages', filter: `vassal_id=eq.${user.id}` }, () => {
-        void loadData();
+        void loadVillageData();
       })
       .subscribe();
 
