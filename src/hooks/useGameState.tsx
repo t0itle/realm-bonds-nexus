@@ -1232,7 +1232,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
             setBuildings(prevB => prevB.map(b => b.id === q.buildingId ? { ...b, level: q.targetLevel } : b));
           });
           // Clean up from DB
-          supabase.from('build_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').then();
+          supabase.from('build_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').not('building_type', 'in', '(outpost_upgrade,outpost_wall)').then();
           // Push notification
           const names = completed.map(q => {
             const info = BUILDING_INFO[q.buildingType];
