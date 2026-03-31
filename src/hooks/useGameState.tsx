@@ -402,6 +402,7 @@ interface GameContextType {
   myVillages: { id: string; name: string; settlement_type: string }[];
   switchVillage: (villageId: string) => void;
   refreshVillages: () => Promise<void>;
+  abandonSettlement: (villageId: string) => Promise<boolean>;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
