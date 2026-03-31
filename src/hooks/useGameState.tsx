@@ -844,6 +844,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }, 2000);
 
     // Alliance tax rate refresh
+    // Periodically sync with server every 2 minutes
+    const serverSync = setInterval(() => {
+      fetch(tickUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+      }).catch(() => {});
+    }, 120000);
+
     const taxRefresh = setInterval(async () => {
       const aid = allianceIdRef.current;
       if (!aid) return;
@@ -851,7 +859,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       if (data) setAllianceTaxRate(data.tax_rate);
     }, 60000);
 
-    return () => { clearInterval(tickInterval); clearInterval(taxRefresh); };
+    return () => { clearInterval(tickInterval); clearInterval(serverSync); clearInterval(taxRefresh); };
   }, [villageId, user]);
 
   // Training queue processing
