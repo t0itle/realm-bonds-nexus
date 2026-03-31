@@ -1686,20 +1686,24 @@ export default function WorldMap() {
           if (!isVisible(outpost.x, outpost.y, 60)) return null;
           const { sx, sy } = worldToScreen(outpost.x, outpost.y);
           const opSize = Math.max(18, Math.min(36, camera.ppu * 6000));
+          const isOwn = outpost.user_id === user?.id;
           return (
             <div key={outpost.id} className="absolute z-[46] flex flex-col items-center pointer-events-none"
               style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
               <div className="relative">
                 <img src={mapVillage} alt={outpost.name} loading="lazy"
-                  className="drop-shadow-md brightness-90"
+                  className={`drop-shadow-md ${isOwn ? 'brightness-90' : 'brightness-75 hue-rotate-180'}`}
                   style={{ width: opSize, height: opSize, objectFit: 'contain' }} />
                 <div className="absolute -inset-1 rounded-full pointer-events-none"
-                  style={{ boxShadow: '0 0 10px 3px hsl(var(--primary) / 0.2)', border: '1px solid hsl(var(--primary) / 0.3)' }} />
+                  style={{
+                    boxShadow: isOwn ? '0 0 10px 3px hsl(var(--primary) / 0.2)' : '0 0 8px 2px hsl(var(--destructive) / 0.15)',
+                    border: isOwn ? '1px solid hsl(var(--primary) / 0.3)' : '1px solid hsl(var(--destructive) / 0.25)',
+                  }} />
               </div>
               {opSize > 22 && (
-                <div className="bg-background/70 backdrop-blur-sm rounded px-1.5 py-0.5 text-center mt-0.5 border border-primary/20">
+                <div className={`backdrop-blur-sm rounded px-1.5 py-0.5 text-center mt-0.5 border ${isOwn ? 'bg-background/70 border-primary/20' : 'bg-background/50 border-destructive/20'}`}>
                   <p className="text-foreground/80 font-display whitespace-nowrap" style={{ fontSize: Math.max(7, opSize / 5) }}>
-                    🏕️ {outpost.name}
+                    {isOwn ? '🏕️' : '⚑'} {outpost.name}
                   </p>
                 </div>
               )}
