@@ -39,7 +39,40 @@ export default function AlliancePanel() {
 
   useEffect(() => {
     loadAlliances();
+    if (myAlliance) loadMembers(myAlliance);
   }, [user]);
+
+  const loadMembers = async (allianceId: string) => {
+    const { data: mems } = await supabase
+      .from('alliance_members')
+      .select('user_id, role, joined_at')
+      .eq('alliance_id', allianceId);
+    if (!mems) return;
+
+    const { data: profiles } = await supabase.from('profiles').select('user_id, display_name, avatar_emoji');
+    const { data: villages } = await supabase.from('villages').select('user_id, name, population');
+
+    const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
+    const villageMap = new Map((villages || []).map(v => [v.user_id, v]));
+
+    const memberList: GuildMember[] = mems.map(m => {
+      const profile = profileMap.get(m.user_id);
+      const village = villageMap.get(m.user_id);
+      return {
+        user_id: m.user_id,
+        role: m.role,
+        joined_at: m.joined_at,
+        display_name: profile?.display_name || 'Unknown',
+        avatar_emoji: profile?.avatar_emoji || '🛡️',
+        village_name: village?.name || 'Unknown',
+        population: village?.population || 0,
+      };
+    });
+    // Sort: leader first, then officers, then members
+    const roleOrder: Record<string, number> = { leader: 0, officer: 1, member: 2 };
+    memberList.sort((a, b) => (roleOrder[a.role] ?? 3) - (roleOrder[b.role] ?? 3));
+    setMembers(memberList);
+  };
 
   const loadAlliances = async () => {
     if (!user) return;
