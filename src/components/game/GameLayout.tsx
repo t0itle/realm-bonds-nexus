@@ -59,7 +59,16 @@ export default function GameLayout() {
   const { villageName, playerLevel, loading, displayName, army, trainingQueue } = useGame();
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [activeMarches, setActiveMarches] = useState<{ id: string; target_name: string; march_type: string; arrives_at: string; started_at: string }[]>([]);
   const totalTroops = Object.values(army).reduce((s, v) => s + v, 0);
+  const [, forceRender] = useState(0);
+
+  // Re-render every second for march countdowns
+  useEffect(() => {
+    if (activeMarches.length === 0) return;
+    const interval = setInterval(() => forceRender(v => v + 1), 1000);
+    return () => clearInterval(interval);
+  }, [activeMarches.length]);
 
   // Fetch unread message count
   useEffect(() => {
@@ -76,6 +85,25 @@ export default function GameLayout() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'player_messages' }, () => fetchUnread())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
+  // Active marches tracker
+  useEffect(() => {
+    if (!user) return;
+    const fetchMarches = async () => {
+      const { data } = await supabase.from('active_marches')
+        .select('id, target_name, march_type, arrives_at, started_at')
+        .eq('user_id', user.id)
+        .gt('arrives_at', new Date().toISOString())
+        .order('arrives_at', { ascending: true });
+      setActiveMarches(data || []);
+    };
+    fetchMarches();
+    const interval = setInterval(fetchMarches, 10000);
+    const channel = supabase.channel('march-tracker')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'active_marches' }, () => fetchMarches())
+      .subscribe();
+    return () => { clearInterval(interval); supabase.removeChannel(channel); };
   }, [user]);
 
   // Reset unread when viewing messages
@@ -129,6 +157,45 @@ export default function GameLayout() {
       </div>
 
       <ResourceBar />
+
+      {/* Active marches banner */}
+      {activeMarches.length > 0 && (
+        <div className="px-3 py-1.5">
+          {activeMarches.map(march => {
+            const now = Date.now();
+            const arrival = new Date(march.arrives_at).getTime();
+            const start = new Date(march.started_at).getTime();
+            const remaining = Math.max(0, arrival - now);
+            const total = arrival - start;
+            const progress = total > 0 ? Math.min(1, 1 - remaining / total) : 1;
+            const mins = Math.floor(remaining / 60000);
+            const secs = Math.floor((remaining % 60000) / 1000);
+            const emoji = march.march_type === 'attack' ? '⚔️' : march.march_type === 'scout' ? '🔍' : '🚶';
+            return (
+              <button
+                key={march.id}
+                onClick={() => setActiveTab('map')}
+                className="w-full flex items-center gap-2 game-panel border border-primary/30 rounded-lg px-3 py-1.5 mb-1 hover:border-primary/60 transition-colors"
+              >
+                <span className="text-sm animate-pulse">{emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-display text-foreground truncate">
+                      {march.march_type === 'attack' ? 'Attacking' : march.march_type === 'scout' ? 'Scouting' : 'Marching to'} {march.target_name || 'target'}
+                    </span>
+                    <span className="text-[10px] font-bold text-primary ml-2 shrink-0">
+                      {remaining > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : 'Arriving...'}
+                    </span>
+                  </div>
+                  <div className="w-full h-1 bg-muted rounded-full mt-0.5 overflow-hidden">
+                    <div className="h-full bg-primary rounded-full transition-all duration-1000" style={{ width: `${progress * 100}%` }} />
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div className="flex-1 overflow-hidden relative">
         <AnimatePresence mode="wait">
