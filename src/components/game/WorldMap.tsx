@@ -858,16 +858,32 @@ export default function WorldMap() {
     return getPlayerPos(myVillage?.village.id || 'me');
   }, [user, allVillages]);
 
-  // Helper to create a march with position data
-  const createMarch = useCallback((id: string, targetName: string, targetX: number, targetY: number, travelSec: number, action: () => void) => {
+  // Collect all terrain for pathfinding
+  const allTerrain = useMemo(() => {
+    const terrain: TerrainFeature[] = [];
+    for (const chunk of visibleChunks) {
+      terrain.push(...chunk.data.terrain);
+    }
+    return terrain;
+  }, [visibleChunks]);
+
+  // Helper to create a march with pathfinding around obstacles
+  const createMarch = useCallback((id: string, targetName: string, targetX: number, targetY: number, _travelSec: number, action: () => void) => {
     const myPos = getMyPos();
     const now = Date.now();
+    const waypoints = findPath(myPos.x, myPos.y, targetX, targetY, allTerrain);
+    // Recalculate travel time based on actual path length
+    const pathDist = getPathLength(waypoints);
+    const actualTravelSec = Math.max(5, Math.floor(pathDist / (getSlowestTroopSpeed(army) * 200)));
     setMarches(prev => [...prev, {
-      id, targetName, arrivalTime: now + travelSec * 1000,
+      id, targetName, arrivalTime: now + actualTravelSec * 1000,
       startTime: now, startX: myPos.x, startY: myPos.y,
-      targetX, targetY, action,
+      targetX, targetY, waypoints, action,
     }]);
-  }, [getMyPos]);
+    if (pathDist > Math.hypot(targetX - myPos.x, targetY - myPos.y) * 1.1) {
+      toast.info(`Route adjusted around obstacles — travel time: ${actualTravelSec}s`);
+    }
+  }, [getMyPos, allTerrain, army]);
 
   const getDistance = useCallback((targetX: number, targetY: number) => {
     const myPos = getMyPos();
