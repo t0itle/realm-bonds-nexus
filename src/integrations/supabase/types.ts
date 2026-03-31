@@ -655,28 +655,43 @@ export type Database = {
       outposts: {
         Row: {
           created_at: string
+          garrison_power: number
+          has_wall: boolean
           id: string
+          level: number
           name: string
           outpost_type: string
+          territory_radius: number
           user_id: string
+          wall_level: number
           x: number
           y: number
         }
         Insert: {
           created_at?: string
+          garrison_power?: number
+          has_wall?: boolean
           id?: string
+          level?: number
           name?: string
           outpost_type?: string
+          territory_radius?: number
           user_id: string
+          wall_level?: number
           x: number
           y: number
         }
         Update: {
           created_at?: string
+          garrison_power?: number
+          has_wall?: boolean
           id?: string
+          level?: number
           name?: string
           outpost_type?: string
+          territory_radius?: number
           user_id?: string
+          wall_level?: number
           x?: number
           y?: number
         }
