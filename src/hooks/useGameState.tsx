@@ -772,6 +772,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
     loadVillageData(newVillageId);
   }, [villageId, loadVillageData]);
 
+  const refreshVillages = useCallback(async () => {
+    if (!user) return;
+    const { data: userVillages } = await supabase.from('villages').select('id, name, settlement_type').eq('user_id', user.id).order('created_at', { ascending: true });
+    if (userVillages) setMyVillages(userVillages as any);
+  }, [user]);
+
   // Realtime subscriptions
   useEffect(() => {
     if (!user) return;
