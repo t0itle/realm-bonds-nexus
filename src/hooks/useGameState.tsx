@@ -559,6 +559,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
         const { data: blds } = await supabase.from('buildings').select('*').eq('village_id', village.id);
         if (blds) {
+          // Fix stuck buildings: any building at level 0 means it was being built but the page refreshed before completion
+          const stuckBuildings = blds.filter(b => b.level === 0);
+          if (stuckBuildings.length > 0) {
+            for (const sb of stuckBuildings) {
+              await supabase.from('buildings').update({ level: 1 }).eq('id', sb.id);
+              sb.level = 1;
+            }
+          }
           setBuildings(blds.map(b => ({ id: b.id, type: b.type as BuildingType, level: b.level, position: b.position, village_id: b.village_id })));
           // Load worker assignments from DB
           const wa: WorkerAssignments = {};
