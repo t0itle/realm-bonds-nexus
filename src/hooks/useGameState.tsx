@@ -564,6 +564,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setVillageId(village.id);
         setVillageNameLocal(village.name);
         setPlayerLevel(village.level);
+        settlementTypeRef.current = (village as any).settlement_type || 'village';
         setResources({ gold: Number(village.gold), wood: Number(village.wood), stone: Number(village.stone), food: Number(village.food) });
         setSteel((village as any).steel ?? 0);
         setPopulationBase((village as any).population ?? 10);
