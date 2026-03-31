@@ -2089,7 +2089,12 @@ export default function WorldMap() {
                 const newLevel = op.level + 1;
                 const newGarrison = op.garrison_power + 20;
                 const newRadius = op.territory_radius + 3000;
-                setOutpostBuildQueue(prev => [...prev, { outpostId: op.id, action: 'upgrade', finishTime: Date.now() + upgradeTimeSec * 1000, targetLevel: newLevel, newGarrison, newRadius }]);
+                const finishTime = Date.now() + upgradeTimeSec * 1000;
+                setOutpostBuildQueue(prev => [...prev, { outpostId: op.id, action: 'upgrade', finishTime, targetLevel: newLevel, newGarrison, newRadius }]);
+                // Persist to build_queue table
+                if (user) {
+                  supabase.from('build_queue').insert({ user_id: user.id, building_id: op.id, building_type: 'outpost_upgrade', target_level: newLevel, finish_time: new Date(finishTime).toISOString() } as any).then();
+                }
                 toast(`${isSettlement ? '🏘️' : '🏕️'} Upgrading ${op.name} to Lv.${newLevel}... (${Math.floor(upgradeTimeSec / 60)}:${(upgradeTimeSec % 60).toString().padStart(2, '0')})`);
               };
 
@@ -2099,7 +2104,12 @@ export default function WorldMap() {
                 addResources({ gold: -wallCost.gold, wood: -wallCost.wood, stone: -wallCost.stone, food: -wallCost.food });
                 const newWallLevel = op.wall_level + 1;
                 const newGarrison = op.garrison_power + 30;
-                setOutpostBuildQueue(prev => [...prev, { outpostId: op.id, action: 'wall', finishTime: Date.now() + wallTimeSec * 1000, targetLevel: newWallLevel, newGarrison }]);
+                const finishTime = Date.now() + wallTimeSec * 1000;
+                setOutpostBuildQueue(prev => [...prev, { outpostId: op.id, action: 'wall', finishTime, targetLevel: newWallLevel, newGarrison }]);
+                // Persist to build_queue table
+                if (user) {
+                  supabase.from('build_queue').insert({ user_id: user.id, building_id: op.id, building_type: 'outpost_wall', target_level: newWallLevel, finish_time: new Date(finishTime).toISOString() } as any).then();
+                }
                 toast(`🧱 ${op.has_wall ? 'Upgrading wall' : 'Building wall'} at ${op.name}... (${Math.floor(wallTimeSec / 60)}:${(wallTimeSec % 60).toString().padStart(2, '0')})`);
               };
 
