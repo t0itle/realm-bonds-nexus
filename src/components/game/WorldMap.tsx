@@ -625,7 +625,7 @@ type SelectedItem =
   | null;
 
 export default function WorldMap() {
-  const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, resources, getWatchtowerLevel, getSpyGuildLevel, refreshVillages } = useGame();
+  const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, resources, getWatchtowerLevel, getSpyGuildLevel, refreshVillages, myVillages } = useGame();
   const { user } = useAuth();
   const npcState = useNPCState();
   const [selected, setSelected] = useState<SelectedItem>(null);
