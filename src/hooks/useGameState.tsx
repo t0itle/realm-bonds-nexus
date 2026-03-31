@@ -1135,6 +1135,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
           });
           // Clean up from DB
           supabase.from('build_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').then();
+          // Push notification
+          const names = completed.map(q => {
+            const info = BUILDING_INFO[q.buildingType];
+            return info ? `${info.name} Lv.${q.targetLevel}` : q.buildingType;
+          });
+          supabase.functions.invoke('send-push', {
+            body: { user_id: user?.id, title: '🏗️ Construction Complete', body: `${names.join(', ')} finished!`, tag: 'build-done' },
+          }).catch(() => {});
         }
         return remaining;
       });
