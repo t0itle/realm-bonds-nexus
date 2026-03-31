@@ -448,6 +448,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [displayNameLocal, setDisplayNameLocal] = useState('Wanderer');
   const [avatarUrl, setAvatarUrlLocal] = useState<string | null>(null);
   const [allVillages, setAllVillages] = useState<PlayerVillage[]>([]);
+  const [myVillages, setMyVillages] = useState<{ id: string; name: string; settlement_type: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [army, setArmy] = useState<Army>({ ...EMPTY_ARMY });
   const [trainingQueue, setTrainingQueue] = useState<TrainingQueue[]>([]);
