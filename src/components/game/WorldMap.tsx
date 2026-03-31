@@ -942,30 +942,37 @@ export default function WorldMap() {
   }, [safeSetCamera]);
 
   const getPlayerPos = (id: string) => {
-    // Deterministic position based solely on village id — spread across the map
+    // Use actual map_x/map_y from the village data if available
+    const village = allVillages.find(v => v.village.id === id);
+    if (village && (village.village.map_x !== 0 || village.village.map_y !== 0)) {
+      return { x: village.village.map_x, y: village.village.map_y };
+    }
+    // Fallback: deterministic position based on village id
     let h = 5381;
     for (let i = 0; i < id.length; i++) {
       h = ((h << 5) + h + id.charCodeAt(i)) >>> 0;
     }
     const h2 = ((h * 2654435761) >>> 0);
-    // Use golden-ratio-based spiral placement — much wider spread
     const angle = (h % 10000) / 10000 * Math.PI * 2;
-    const radius = 25000 + (h2 % 120000); // 25k-145k from center
+    const radius = 25000 + (h2 % 120000);
     return {
       x: 100000 + Math.cos(angle) * radius,
       y: 100000 + Math.sin(angle) * radius,
     };
   };
 
-  const goHome = useCallback(() => {
-    setCamera({ cx: 100000, cy: 100000, ppu: 0.003 });
-  }, []);
+  // goHome moved below getMyPos
 
   const getMyPos = useCallback(() => {
     if (!user) return { x: 100000, y: 100000 };
     const myVillage = allVillages.find(v => v.village.user_id === user.id);
     return getPlayerPos(myVillage?.village.id || 'me');
   }, [user, allVillages]);
+
+  const goHome = useCallback(() => {
+    const pos = getMyPos();
+    setCamera({ cx: pos.x, cy: pos.y, ppu: 0.003 });
+  }, [getMyPos]);
 
   // Center camera on player's village when map first loads
   useEffect(() => {
