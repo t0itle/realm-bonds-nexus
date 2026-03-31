@@ -4,6 +4,7 @@ import { useGame, TroopType, Resources, calcMarchTime, getMaxRange, Building, BU
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import NPCInteractionPanel from './NPCInteractionPanel';
+import AttackConfigPanel from './AttackConfigPanel';
 
 // Map sprites
 import mapCastleHostile from '@/assets/sprites/map-castle-hostile.png';
@@ -621,7 +622,7 @@ type SelectedItem =
   | null;
 
 export default function WorldMap() {
-  const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName } = useGame();
+  const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, resources } = useGame();
   const { user } = useAuth();
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
@@ -631,6 +632,12 @@ export default function WorldMap() {
   const [legendOpen, setLegendOpen] = useState(false);
   const [, forceRender] = useState(0);
   const [npcRelations, setNpcRelations] = useState<Map<string, { realmId: string; status: 'neutral' | 'friendly' | 'vassal' | 'allied'; tributeRate: number; friendshipLevel: number }>>(new Map());
+  const [attackConfig, setAttackConfig] = useState<{
+    targetName: string; targetPower?: number; targetId?: string;
+    targetX: number; targetY: number; travelTime: number;
+    onAttack: (sentArmy: Partial<import('@/hooks/useGameState').Army>) => void;
+    showEspionage: boolean;
+  } | null>(null);
 
   // Get TH level for dynamic sprite
   const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
@@ -908,16 +915,25 @@ export default function WorldMap() {
     const travelSec = calcTravelTime(event.x, event.y);
     if (event.power > 0) {
       const eventData = event;
-      toast(`⚔️ Troops marching to ${event.name}... ETA ${travelSec}s`);
-      createMarch(`evt-${Date.now()}`, eventData.name, eventData.x, eventData.y, travelSec, () => {
-        const log = attackTarget(eventData.name, eventData.power);
-        if (log.result === 'victory') {
-          addResources(eventData.reward);
-          setClaimedEvents(prev => new Set(prev).add(eventData.id));
-          toast.success(`Victory at ${eventData.name}! Resources gained.`);
-        } else {
-          toast.error(`Defeated at ${eventData.name}!`);
-        }
+      setAttackConfig({
+        targetName: eventData.name, targetPower: eventData.power,
+        targetX: eventData.x, targetY: eventData.y, travelTime: travelSec,
+        showEspionage: false,
+        onAttack: (sentArmy) => {
+          toast(`⚔️ Troops marching to ${eventData.name}... ETA ${travelSec}s`);
+          createMarch(`evt-${Date.now()}`, eventData.name, eventData.x, eventData.y, travelSec, () => {
+            const log = attackTarget(eventData.name, eventData.power, sentArmy);
+            if (log.result === 'victory') {
+              addResources(eventData.reward);
+              setClaimedEvents(prev => new Set(prev).add(eventData.id));
+              toast.success(`Victory at ${eventData.name}! Resources gained.`);
+            } else {
+              toast.error(`Defeated at ${eventData.name}!`);
+            }
+          });
+          setAttackConfig(null);
+          setSelected(null);
+        },
       });
     } else {
       toast(`🚶 Collecting from ${event.name}... ETA ${travelSec}s`);
@@ -936,21 +952,29 @@ export default function WorldMap() {
     if (!hasTroops) { toast.error('You need troops to attack!'); return; }
     if (!isInRange(realm.x, realm.y)) { toast.error('Out of range! Train scouts to extend reach.'); return; }
     const travelSec = calcTravelTime(realm.x, realm.y);
-    toast(`⚔️ Troops marching to ${realm.name}... ETA ${travelSec}s`);
-    createMarch(`atk-${Date.now()}`, realm.name, realm.x, realm.y, travelSec, () => {
-      const log = attackTarget(realm.name, realm.power);
-      if (log.result === 'victory') {
-        toast.success(`Victory against ${realm.name}! They are now your vassal.`);
-        setNpcRelations(prev => {
-          const next = new Map(prev);
-          next.set(realm.id, { realmId: realm.id, status: 'vassal', tributeRate: 15, friendshipLevel: 20 });
-          return next;
+    setAttackConfig({
+      targetName: realm.name, targetPower: realm.power,
+      targetX: realm.x, targetY: realm.y, travelTime: travelSec,
+      showEspionage: true, targetId: realm.id,
+      onAttack: (sentArmy) => {
+        toast(`⚔️ Troops marching to ${realm.name}... ETA ${travelSec}s`);
+        createMarch(`atk-${Date.now()}`, realm.name, realm.x, realm.y, travelSec, () => {
+          const log = attackTarget(realm.name, realm.power, sentArmy);
+          if (log.result === 'victory') {
+            toast.success(`Victory against ${realm.name}! They are now your vassal.`);
+            setNpcRelations(prev => {
+              const next = new Map(prev);
+              next.set(realm.id, { realmId: realm.id, status: 'vassal', tributeRate: 15, friendshipLevel: 20 });
+              return next;
+            });
+          } else {
+            toast.error(`Defeated by ${realm.name}!`);
+          }
         });
-      } else {
-        toast.error(`Defeated by ${realm.name}!`);
-      }
+        setAttackConfig(null);
+        setSelected(null);
+      },
     });
-    setSelected(null);
   }, [army, attackTarget, calcTravelTime, createMarch, isInRange]);
 
   const handleEnvoy = useCallback((realm: ProceduralRealm) => {
@@ -1581,24 +1605,33 @@ export default function WorldMap() {
                             const targetPos = getPlayerPos(selected.data.village.id);
                             const travelSec = calcTravelTime(targetPos.x, targetPos.y);
                             const targetData = selected.data;
-                            toast(`⚔️ Troops marching... ETA ${travelSec}s`);
-                            createMarch(`pvp-${Date.now()}`, targetData.village.name, targetPos.x, targetPos.y, travelSec, async () => {
-                              const log = await attackPlayer(targetData.village.user_id, targetData.profile.display_name, targetData.village.id);
-                              if (!log) { toast.error('Attack failed — they may be your vassal!'); return; }
-                              if (log.result === 'victory') {
-                                let msg = `⚔️ Victory against ${targetData.profile.display_name}!`;
-                                if (log.resourcesGained) {
-                                  const r = log.resourcesGained;
-                                  msg += ` Raided: ${r.gold || 0}💰 ${r.wood || 0}🪵 ${r.stone || 0}🪨 ${r.food || 0}🌾`;
-                                }
-                                if (log.buildingDamaged) msg += ` Damaged their ${log.buildingDamaged}!`;
-                                if (log.vassalized) msg += ` 👑 They are now your vassal!`;
-                                toast.success(msg);
-                              } else {
-                                toast.error(`Defeated by ${targetData.profile.display_name}!`);
-                              }
+                            setAttackConfig({
+                              targetName: targetData.profile.display_name,
+                              targetX: targetPos.x, targetY: targetPos.y,
+                              travelTime: travelSec, showEspionage: true,
+                              targetId: targetData.village.user_id,
+                              onAttack: (sentArmy) => {
+                                toast(`⚔️ Troops marching... ETA ${travelSec}s`);
+                                createMarch(`pvp-${Date.now()}`, targetData.village.name, targetPos.x, targetPos.y, travelSec, async () => {
+                                  const log = await attackPlayer(targetData.village.user_id, targetData.profile.display_name, targetData.village.id, sentArmy);
+                                  if (!log) { toast.error('Attack failed — they may be your vassal!'); return; }
+                                  if (log.result === 'victory') {
+                                    let msg = `⚔️ Victory against ${targetData.profile.display_name}!`;
+                                    if (log.resourcesGained) {
+                                      const r = log.resourcesGained;
+                                      msg += ` Raided: ${r.gold || 0}💰 ${r.wood || 0}🪵 ${r.stone || 0}🪨 ${r.food || 0}🌾`;
+                                    }
+                                    if (log.buildingDamaged) msg += ` Damaged their ${log.buildingDamaged}!`;
+                                    if (log.vassalized) msg += ` 👑 They are now your vassal!`;
+                                    toast.success(msg);
+                                  } else {
+                                    toast.error(`Defeated by ${targetData.profile.display_name}!`);
+                                  }
+                                });
+                                setAttackConfig(null);
+                                setSelected(null);
+                              },
                             });
-                            setSelected(null);
                           }}
                           className="flex-1 bg-destructive/20 text-destructive font-display text-[11px] py-2.5 rounded-lg active:bg-destructive/30 transition-colors">
                           ⚔️ Attack
@@ -1634,17 +1667,25 @@ export default function WorldMap() {
                       if (!hasTroops) { toast.error('You need troops to capture a mine!'); return; }
                       const travelSec = calcTravelTime(selected.data.x, selected.data.y);
                       const mineData = selected.data;
-                      toast(`⚔️ Troops marching to ${mineData.name}... ETA ${travelSec}s`);
-                      createMarch(`mine-${Date.now()}`, mineData.name, mineData.x, mineData.y, travelSec, () => {
-                        const log = attackTarget(mineData.name, mineData.power);
-                        if (log.result === 'victory') {
-                          setCapturedMines(prev => new Set([...prev, mineData.id]));
-                          toast.success(`⚙️ ${mineData.name} captured! Producing steel.`);
-                        } else {
-                          toast.error('Defeat! The garrison held.');
-                        }
+                      setAttackConfig({
+                        targetName: mineData.name, targetPower: mineData.power,
+                        targetX: mineData.x, targetY: mineData.y, travelTime: travelSec,
+                        showEspionage: false,
+                        onAttack: (sentArmy) => {
+                          toast(`⚔️ Troops marching to ${mineData.name}... ETA ${travelSec}s`);
+                          createMarch(`mine-${Date.now()}`, mineData.name, mineData.x, mineData.y, travelSec, () => {
+                            const log = attackTarget(mineData.name, mineData.power, sentArmy);
+                            if (log.result === 'victory') {
+                              setCapturedMines(prev => new Set([...prev, mineData.id]));
+                              toast.success(`⚙️ ${mineData.name} captured! Producing steel.`);
+                            } else {
+                              toast.error('Defeat! The garrison held.');
+                            }
+                          });
+                          setAttackConfig(null);
+                          setSelected(null);
+                        },
                       });
-                      setSelected(null);
                     }}
                     className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2.5 rounded-lg glow-gold-sm active:scale-95 transition-transform">
                     ⚔️ Capture Mine (Garrison: ⚔️{selected.data.power})
@@ -1652,6 +1693,35 @@ export default function WorldMap() {
                 )}
               </div>
             )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Attack Configuration Panel */}
+      <AnimatePresence>
+        {attackConfig && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
+            className="absolute bottom-16 sm:bottom-14 inset-x-0 z-[60] mx-2 sm:mx-3 game-panel border-glow rounded-xl p-3 max-h-[55vh] overflow-y-auto safe-bottom">
+            <AttackConfigPanel
+              targetName={attackConfig.targetName}
+              targetPower={attackConfig.targetPower}
+              targetId={attackConfig.targetId}
+              targetX={attackConfig.targetX}
+              targetY={attackConfig.targetY}
+              travelTime={attackConfig.travelTime}
+              showEspionage={attackConfig.showEspionage}
+              onConfirmAttack={attackConfig.onAttack}
+              onConfirmEspionage={(mission, count) => {
+                if (attackConfig.targetId) {
+                  sendSpyMission(mission, attackConfig.targetName, attackConfig.targetId, attackConfig.targetX, attackConfig.targetY, count);
+                  toast(`🕵️ Spies dispatched to ${attackConfig.targetName}`);
+                }
+                setAttackConfig(null);
+                setSelected(null);
+              }}
+              onCancel={() => setAttackConfig(null)}
+            />
           </motion.div>
         )}
       </AnimatePresence>

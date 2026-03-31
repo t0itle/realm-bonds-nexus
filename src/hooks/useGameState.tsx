@@ -361,8 +361,8 @@ interface GameContextType {
   totalArmyPower: () => { attack: number; defense: number };
   addResources: (r: Partial<Resources>) => void;
   addSteel: (amount: number) => void;
-  attackTarget: (targetName: string, targetPower: number) => BattleLog;
-  attackPlayer: (targetUserId: string, targetName: string, targetVillageId: string) => Promise<BattleLog | null>;
+  attackTarget: (targetName: string, targetPower: number, sentArmy?: Partial<Army>) => BattleLog;
+  attackPlayer: (targetUserId: string, targetName: string, targetVillageId: string, sentArmy?: Partial<Army>) => Promise<BattleLog | null>;
   vassalages: Vassalage[];
   payRansom: (vassalageId: string) => Promise<boolean>;
   attemptRebellion: (vassalageId: string) => Promise<boolean>;
@@ -1007,8 +1007,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return wall?.level || 0;
   }, [buildings]);
 
-  const attackTarget = useCallback((targetName: string, targetPower: number) => {
-    // NPC combat - use simplified version with counter system
+  const attackTarget = useCallback((targetName: string, targetPower: number, sentArmy?: Partial<Army>) => {
+    // Use sent army or full army
+    const attackingArmy: Army = sentArmy ? {
+      militia: sentArmy.militia ?? 0, archer: sentArmy.archer ?? 0, knight: sentArmy.knight ?? 0,
+      cavalry: sentArmy.cavalry ?? 0, siege: sentArmy.siege ?? 0, scout: sentArmy.scout ?? 0,
+    } : { ...army };
     const fakeDefenderArmy: Army = {
       militia: Math.floor(targetPower / 8),
       archer: Math.floor(targetPower / 16),
@@ -1017,15 +1021,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
       siege: 0,
       scout: 0,
     };
-    const result = resolveCombat(army, fakeDefenderArmy, 0, Math.floor(targetPower / 50));
+    const result = resolveCombat(attackingArmy, fakeDefenderArmy, 0, Math.floor(targetPower / 50));
     
+    // Subtract losses from the FULL army (only sent troops can be lost)
     const newArmy = { ...army };
     let popLost = 0;
     const apothLvl = getApothecaryLevel();
     const injuryRate = apothLvl > 0 ? Math.min(0.6, 0.2 + apothLvl * 0.08) : 0;
     const newInjured: Partial<Army> = {};
     for (const [type, lost] of Object.entries(result.attackerLosses) as [TroopType, number][]) {
-      const actualLost = Math.min(lost, newArmy[type] || 0);
+      const actualLost = Math.min(lost, attackingArmy[type] || 0);
       const injured = Math.floor(actualLost * injuryRate);
       const dead = actualLost - injured;
       newArmy[type] = Math.max(0, (newArmy[type] || 0) - actualLost);
@@ -1059,8 +1064,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [army, addResources, persistArmyToVillage]);
 
   // PvP attack against another player
-  const attackPlayer = useCallback(async (targetUserId: string, targetName: string, targetVillageId: string): Promise<BattleLog | null> => {
+  const attackPlayer = useCallback(async (targetUserId: string, targetName: string, targetVillageId: string, sentArmy?: Partial<Army>): Promise<BattleLog | null> => {
     if (!user || !villageId) return null;
+    const attackingArmy: Army = sentArmy ? {
+      militia: sentArmy.militia ?? 0, archer: sentArmy.archer ?? 0, knight: sentArmy.knight ?? 0,
+      cavalry: sentArmy.cavalry ?? 0, siege: sentArmy.siege ?? 0, scout: sentArmy.scout ?? 0,
+    } : { ...army };
     
     // Prevent lords from attacking their own vassals
     const isMyVassal = vassalages.some(v => v.lord_id === user.id && v.vassal_id === targetUserId && v.status === 'active');
@@ -1086,16 +1095,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const defWall = defBuildings?.find(b => b.type === 'wall');
     const defWallLevel = defWall?.level || 0;
     
-    const result = resolveCombat(army, defArmy, getWallLevel(), defWallLevel);
+    const result = resolveCombat(attackingArmy, defArmy, getWallLevel(), defWallLevel);
     
-    // Apply attacker losses (with injury system)
+    // Apply attacker losses (with injury system) — only sent troops can be lost
     const newArmy = { ...army };
     let pvpPopLost = 0;
     const pvpApothLvl = getApothecaryLevel();
     const pvpInjuryRate = pvpApothLvl > 0 ? Math.min(0.6, 0.2 + pvpApothLvl * 0.08) : 0;
     const pvpInjured: Partial<Army> = {};
     for (const [type, lost] of Object.entries(result.attackerLosses) as [TroopType, number][]) {
-      const actualLost = Math.min(lost, newArmy[type] || 0);
+      const actualLost = Math.min(lost, attackingArmy[type] || 0);
       const injured = Math.floor(actualLost * pvpInjuryRate);
       const dead = actualLost - injured;
       newArmy[type] = Math.max(0, (newArmy[type] || 0) - actualLost);
