@@ -262,12 +262,12 @@ export default function VillageGrid() {
                       </div>
                     )}
                     {!upgrading && !isUnderConstruction && (
-                      <div className="absolute bottom-0 inset-x-0 bg-background/70 backdrop-blur-sm py-0.5 px-1 text-center">
-                        <span className="text-[8px] font-display text-foreground/90 leading-tight block truncate">
+                      <div className="absolute bottom-0 inset-x-0 bg-background/70 backdrop-blur-sm px-1 py-px flex items-center justify-center gap-1 leading-none">
+                        <span className="text-[7px] font-display text-foreground/90 truncate">
                           {type === 'townhall' && building.level >= 7 ? 'Castle' : BUILDING_INFO[type!].name}
                         </span>
                         <span className={`text-[7px] font-bold ${isMaxLevel ? 'text-amber-400' : 'text-primary'}`}>
-                          {isMaxLevel ? '✦ MAX' : `Lv.${building.level}`}
+                          {isMaxLevel ? '✦MAX' : `Lv${building.level}`}
                         </span>
                       </div>
                     )}
