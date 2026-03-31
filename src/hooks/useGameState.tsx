@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { useAuth } from './useAuth';
 
 export interface Building {
@@ -402,6 +403,7 @@ interface GameContextType {
   myVillages: { id: string; name: string; settlement_type: string }[];
   switchVillage: (villageId: string) => void;
   refreshVillages: () => Promise<void>;
+  abandonSettlement: (villageId: string) => Promise<boolean>;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -778,6 +780,31 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const { data: userVillages } = await supabase.from('villages').select('id, name, settlement_type').eq('user_id', user.id).order('created_at', { ascending: true });
     if (userVillages) setMyVillages(userVillages as any);
   }, [user]);
+
+  const abandonSettlement = useCallback(async (abandonId: string) => {
+    if (!user) return false;
+    if (myVillages.length <= 1) {
+      toast.error('Cannot abandon your last settlement!');
+      return false;
+    }
+    // Delete buildings first, then village
+    await supabase.from('buildings').delete().eq('village_id', abandonId);
+    await supabase.from('build_queue').delete().eq('user_id', user.id);
+    const { error } = await supabase.from('villages').delete().eq('id', abandonId).eq('user_id', user.id);
+    if (error) {
+      toast.error('Failed to abandon settlement');
+      return false;
+    }
+    // Also remove matching outpost if exists
+    await supabase.from('outposts').delete().eq('user_id', user.id).eq('outpost_type', 'settlement');
+    const remaining = myVillages.filter(v => v.id !== abandonId);
+    setMyVillages(remaining);
+    if (villageId === abandonId && remaining.length > 0) {
+      loadVillageData(remaining[0].id);
+    }
+    toast.success('Settlement abandoned');
+    return true;
+  }, [user, myVillages, villageId, loadVillageData]);
 
   // Realtime subscriptions
   useEffect(() => {
@@ -1936,7 +1963,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       attackPlayer, vassalages, payRansom, attemptRebellion, setVassalTributeRate, releaseVassal, getWallLevel,
       injuredTroops, poisons, healTroops, craftPoison, getApothecaryLevel,
       storageCapacity,
-      myVillages, switchVillage, refreshVillages,
+      myVillages, switchVillage, refreshVillages, abandonSettlement,
     }}>
       {children}
     </GameContext.Provider>
