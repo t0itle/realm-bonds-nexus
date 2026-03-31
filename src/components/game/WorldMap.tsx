@@ -2067,7 +2067,7 @@ export default function WorldMap() {
             })()}
 
             {selected.kind === 'outpost' && (() => {
-              const op = selected.data;
+              const op = outposts.find(outpost => outpost.id === selected.data.id) ?? selected.data;
               const isOwn = op.user_id === user?.id;
               const isSettlement = op.outpost_type === 'settlement';
               const upgradeCost = { gold: 150 * op.level, wood: 100 * op.level, stone: 80 * op.level, food: 50 * op.level };

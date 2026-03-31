@@ -621,8 +621,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
       // Build queue
       const { data: bqData } = await supabase.from('build_queue').select('*').eq('user_id', user.id);
       if (bqData && bqData.length > 0) {
-        const completed = bqData.filter((q: any) => new Date(q.finish_time).getTime() <= now);
-        const active = bqData.filter((q: any) => new Date(q.finish_time).getTime() > now);
+        const villageBuilds = bqData.filter((q: any) => q.building_type !== 'outpost_upgrade' && q.building_type !== 'outpost_wall');
+        const completed = villageBuilds.filter((q: any) => new Date(q.finish_time).getTime() <= now);
+        const active = villageBuilds.filter((q: any) => new Date(q.finish_time).getTime() > now);
         // Process completed items
         for (const q of completed) {
           await supabase.from('buildings').update({ level: q.target_level }).eq('id', q.building_id);
@@ -1231,7 +1232,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
             setBuildings(prevB => prevB.map(b => b.id === q.buildingId ? { ...b, level: q.targetLevel } : b));
           });
           // Clean up from DB
-          supabase.from('build_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').then();
+          supabase.from('build_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').not('building_type', 'in', '(outpost_upgrade,outpost_wall)').then();
           // Push notification
           const names = completed.map(q => {
             const info = BUILDING_INFO[q.buildingType];
