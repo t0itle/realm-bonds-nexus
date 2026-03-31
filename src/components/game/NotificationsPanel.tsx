@@ -59,8 +59,22 @@ export default function NotificationsPanel({ embedded = false }: { embedded?: bo
         .order('created_at', { ascending: false })
         .limit(30);
 
-      if (data) setDbAlerts(data as BattleAlert[]);
-    };
+      if (data) {
+        setDbAlerts(data as BattleAlert[]);
+        // Show wall tip on first attack received if no wall built
+        if (!wallTipShown.current && data.some(a => a.defender_id === user.id)) {
+          const hasWall = buildings.some(b => b.type === 'wall');
+          const dismissed = localStorage.getItem('wall_tip_dismissed');
+          if (!hasWall && !dismissed) {
+            wallTipShown.current = true;
+            toast('🧱 Build Walls!', {
+              description: 'Your village was attacked! Build Walls from your village grid to boost your defense and protect against future raids.',
+              duration: 12000,
+              action: { label: 'Got it', onClick: () => localStorage.setItem('wall_tip_dismissed', '1') },
+            });
+          }
+        }
+      }
 
     fetchAlerts();
 
