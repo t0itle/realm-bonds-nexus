@@ -1275,7 +1275,7 @@ export default function WorldMap() {
         {/* NPC Realms */}
         {renderRealms.map(realm => {
           const { sx, sy } = worldToScreen(realm.x, realm.y);
-          const npcRel = npcRelations.get(realm.id);
+          const npcRel = npcState.playerRelations.get(realm.id);
           const isVassal = npcRel?.status === 'vassal';
           const spriteType = isVassal ? 'friendly' : realm.type;
           return (
