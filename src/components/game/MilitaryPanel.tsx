@@ -280,7 +280,7 @@ export default function MilitaryPanel() {
           spyTrainCount={spyTrainCount}
           setSpyTrainCount={setSpyTrainCount}
           trainSpies={trainSpies}
-          barracksLevel={barracksLevel}
+          barracksLevel={getSpyGuildLevel()}
           sendSpyMission={sendSpyMission}
           activeSpyMissions={activeSpyMissions}
           spyTrainingQueue={spyTrainingQueue}
