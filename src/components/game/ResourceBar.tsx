@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { useGame } from '@/hooks/useGameState';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import ResourceIcon from './ResourceIcon';
+import CaravanPanel from './CaravanPanel';
 import ResourceIcon from './ResourceIcon';
 
 const RESOURCE_CONFIG = [
