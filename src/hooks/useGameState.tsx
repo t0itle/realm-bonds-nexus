@@ -310,6 +310,8 @@ export interface Village {
   stone: number;
   food: number;
   level: number;
+  map_x: number;
+  map_y: number;
 }
 
 export interface PlayerVillage {
