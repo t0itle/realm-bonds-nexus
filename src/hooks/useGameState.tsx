@@ -76,7 +76,7 @@ export function getProduction(type: Exclude<BuildingType, 'empty'>, level: numbe
 /** Steel production: quarry produces steel at level 3+ */
 export function getSteelProduction(type: Exclude<BuildingType, 'empty'>, level: number, workers: number = 0): number {
   if (type !== 'quarry' || level < 3) return 0;
-  const workerBonus = 1 + workers * 0.15;
+  const workerBonus = 1 + workers * 0.35;
   return Math.floor((level - 2) * 1 * workerBonus); // 1 steel/min per level above 2
 }
 

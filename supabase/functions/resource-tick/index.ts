@@ -81,7 +81,7 @@ function getProduction(type: string, level: number, workers: number): Record<str
 
 function getSteelProduction(type: string, level: number, workers: number): number {
   if (type !== 'quarry' || level < 3) return 0;
-  const workerBonus = 1 + workers * 0.15;
+  const workerBonus = 1 + workers * 0.35;
   return Math.floor((level - 2) * 1 * workerBonus);
 }
 
