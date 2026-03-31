@@ -61,6 +61,14 @@ export default function GameLayout() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeMarches, setActiveMarches] = useState<{ id: string; target_name: string; march_type: string; arrives_at: string; started_at: string }[]>([]);
   const totalTroops = Object.values(army).reduce((s, v) => s + v, 0);
+  const [, forceRender] = useState(0);
+
+  // Re-render every second for march countdowns
+  useEffect(() => {
+    if (activeMarches.length === 0) return;
+    const interval = setInterval(() => forceRender(v => v + 1), 1000);
+    return () => clearInterval(interval);
+  }, [activeMarches.length]);
 
   // Fetch unread message count
   useEffect(() => {
