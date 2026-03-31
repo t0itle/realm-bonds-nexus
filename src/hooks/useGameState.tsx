@@ -425,9 +425,11 @@ export function calcMarchTime(distance: number, army: Army): number {
   return Math.max(5, Math.floor(distance / (speed * 200)));
 }
 
-export function getMaxRange(army: Army): number {
+export const WATCHTOWER_RANGE_BONUS = 3000; // extra range per watchtower level
+
+export function getMaxRange(army: Army, watchtowerLevel: number = 0): number {
   const scoutCount = army.scout || 0;
-  return MAX_MARCH_RANGE + scoutCount * SCOUT_RANGE_BONUS;
+  return MAX_MARCH_RANGE + scoutCount * SCOUT_RANGE_BONUS + watchtowerLevel * WATCHTOWER_RANGE_BONUS;
 }
 
 export function GameProvider({ children }: { children: ReactNode }) {
