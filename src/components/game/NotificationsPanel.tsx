@@ -36,9 +36,10 @@ function timeAgoStr(dateStr: string): string {
 }
 
 export default function NotificationsPanel({ embedded = false }: { embedded?: boolean }) {
-  const { vassalages, battleLogs, resources, population } = useGame();
+  const { vassalages, battleLogs, resources, population, buildings } = useGame();
   const { user } = useAuth();
   const [dbAlerts, setDbAlerts] = useState<BattleAlert[]>([]);
+  const wallTipShown = useRef(false);
 
   useEffect(() => {
     if (!user) return;
