@@ -778,6 +778,7 @@ export default function WorldMap() {
   }, [tradeContracts.length]);
 
   const DEFAULT_CAMERA = { cx: 100000, cy: 100000, ppu: 0.003 };
+  const initializedCamera = useRef(false);
   const [camera, setCamera] = useState(DEFAULT_CAMERA);
   const safeSetCamera = useCallback((updater: (prev: typeof DEFAULT_CAMERA) => typeof DEFAULT_CAMERA) => {
     setCamera(prev => {
