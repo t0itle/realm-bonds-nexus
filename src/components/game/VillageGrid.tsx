@@ -431,18 +431,26 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
                   })}
           </div>
           <p className="text-[10px] text-muted-foreground flex items-center gap-0.5"><ResourceIcon type="timer" size={10} /> Build time: {formatTime(buildTime * 1000)}</p>
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={onUpgrade}
-            disabled={!affordable}
-            className={`w-full py-2.5 rounded-lg font-display text-sm font-bold transition-all ${
-              affordable
-                ? 'bg-primary text-primary-foreground glow-gold'
-                : 'bg-muted text-muted-foreground cursor-not-allowed'
-            }`}
-          >
-            {affordable ? `Upgrade to Level ${building.level + 1}` : 'Not Enough Resources'}
-          </motion.button>
+          {(() => {
+            const needsSteel = upgradeCost.steel > 0 && !canAffordSteel(upgradeCost.steel);
+            return (
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  if (needsSteel) { setSteelPopup(true); return; }
+                  onUpgrade();
+                }}
+                disabled={!affordable && !needsSteel}
+                className={`w-full py-2.5 rounded-lg font-display text-sm font-bold transition-all ${
+                  affordable
+                    ? 'bg-primary text-primary-foreground glow-gold'
+                    : 'bg-muted text-muted-foreground cursor-not-allowed'
+                }`}
+              >
+                {affordable ? `Upgrade to Level ${building.level + 1}` : 'Not Enough Resources'}
+              </motion.button>
+            );
+          })()}
         </div>
       )}
 
