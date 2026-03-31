@@ -949,6 +949,7 @@ export default function WorldMap() {
     }
   }, [getMyPos]);
 
+  const visionSources = useMemo(() => {
     const myPos = getMyPos();
     const scoutCount = army.scout || 0;
     const baseVisionWorld = 55000 + scoutCount * 10000;
