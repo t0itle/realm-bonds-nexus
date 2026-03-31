@@ -34,6 +34,20 @@ export function usePushNotifications() {
     if (supported && !isInIframe && !isPreview) {
       navigator.serviceWorker.register('/sw.js').then(async (reg) => {
         const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+          // Check if existing subscription uses current VAPID key — if not, unsubscribe
+          const existingKey = sub.options?.applicationServerKey;
+          const currentKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+          if (existingKey) {
+            const existingArr = new Uint8Array(existingKey as ArrayBuffer);
+            if (existingArr.length !== currentKey.length || existingArr.some((v, i) => v !== currentKey[i])) {
+              console.log('VAPID key changed, re-subscribing...');
+              await sub.unsubscribe();
+              setIsSubscribed(false);
+              return;
+            }
+          }
+        }
         setIsSubscribed(!!sub);
       }).catch(console.error);
     }
