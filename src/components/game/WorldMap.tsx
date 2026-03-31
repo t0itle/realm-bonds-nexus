@@ -620,6 +620,7 @@ type SelectedItem =
   | { kind: 'event'; data: ProceduralEvent; chunkKey: string; index: number }
   | { kind: 'player'; data: any }
   | { kind: 'mine'; data: SteelMine }
+  | { kind: 'outpost'; data: { id: string; x: number; y: number; name: string; user_id: string; level: number; garrison_power: number; has_wall: boolean; wall_level: number; territory_radius: number } }
   | { kind: 'empty'; data: { x: number; y: number } }
   | null;
 
@@ -630,7 +631,7 @@ export default function WorldMap() {
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
   const [capturedMines, setCapturedMines] = useState<Set<string>>(new Set());
-  const [outposts, setOutposts] = useState<{ id: string; x: number; y: number; name: string; user_id: string }[]>([]);
+  const [outposts, setOutposts] = useState<{ id: string; x: number; y: number; name: string; user_id: string; level: number; garrison_power: number; has_wall: boolean; wall_level: number; territory_radius: number }[]>([]);
   const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; startTime: number; startX: number; startY: number; targetX: number; targetY: number; waypoints: { x: number; y: number }[]; action: () => void }[]>([]);
   const [otherMarches, setOtherMarches] = useState<{ id: string; user_id: string; player_name: string; start_x: number; start_y: number; target_x: number; target_y: number; target_name: string; started_at: string; arrives_at: string; march_type: string }[]>([]);
   const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
@@ -711,7 +712,7 @@ export default function WorldMap() {
     if (!user) return;
     supabase.from('outposts').select('*').then(({ data }) => {
       if (data && data.length > 0) {
-        setOutposts(data.map((o: any) => ({ id: o.id, x: o.x, y: o.y, name: o.name, user_id: o.user_id })));
+        setOutposts(data.map((o: any) => ({ id: o.id, x: o.x, y: o.y, name: o.name, user_id: o.user_id, level: o.level || 1, garrison_power: o.garrison_power || 0, has_wall: o.has_wall || false, wall_level: o.wall_level || 0, territory_radius: o.territory_radius || 15000 })));
       }
     });
   }, [user]);
@@ -1622,44 +1623,32 @@ export default function WorldMap() {
         {(() => {
           const myPos = getMyPos();
           const scoutCount = army.scout || 0;
-          const baseVisionWorld = 45000 + scoutCount * 8000;
-          const outpostVisionWorld = 25000;
+          const baseVisionWorld = 55000 + scoutCount * 10000;
+          const outpostBaseVision = 40000;
           
-          // Collect all vision sources: home + own outposts only
+          // Collect all vision sources: home + own outposts (vision scales with outpost level)
           const myOutposts = outposts.filter(o => o.user_id === user?.id);
           const visionSources = [
             { x: myPos.x, y: myPos.y, radius: baseVisionWorld },
-            ...myOutposts.map(o => ({ x: o.x, y: o.y, radius: outpostVisionWorld })),
+            ...myOutposts.map(o => ({ x: o.x, y: o.y, radius: outpostBaseVision + ((o as any).level || 1) * 5000 })),
           ];
 
           return (
             <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 45 }}>
               <defs>
-                {/* Radial gradient for soft-edged vision holes */}
-                {visionSources.map((src, i) => {
-                  const { sx, sy } = worldToScreen(src.x, src.y);
-                  const r = src.radius * camera.ppu;
-                  if (r < 5) return null;
-                  return (
-                    <radialGradient key={`vg-${i}`} id={`vision-grad-${i}`}
-                      cx={sx} cy={sy} r={r}
-                      gradientUnits="userSpaceOnUse">
-                      <stop offset="0%" stopColor="black" />
-                      <stop offset="60%" stopColor="black" stopOpacity="0.95" />
-                      <stop offset="85%" stopColor="black" stopOpacity="0.3" />
-                      <stop offset="100%" stopColor="white" stopOpacity="0" />
-                    </radialGradient>
-                  );
-                })}
                 <mask id="fog-mask">
-                  {/* White = fogged (opaque fog), black = clear (visible) */}
+                  {/* White = fogged, black = clear */}
                   <rect width="100%" height="100%" fill="white" />
                   {visionSources.map((src, i) => {
                     const { sx, sy } = worldToScreen(src.x, src.y);
                     const r = src.radius * camera.ppu;
                     if (r < 5) return null;
                     return (
-                      <circle key={i} cx={sx} cy={sy} r={r} fill={`url(#vision-grad-${i})`} />
+                      <g key={i}>
+                        <circle cx={sx} cy={sy} r={r * 0.7} fill="black" />
+                        <circle cx={sx} cy={sy} r={r} fill="black" opacity="0.6" />
+                        <circle cx={sx} cy={sy} r={r * 1.15} fill="black" opacity="0.2" />
+                      </g>
                     );
                   })}
                 </mask>
@@ -1668,18 +1657,45 @@ export default function WorldMap() {
                   <feTurbulence type="fractalNoise" baseFrequency="0.008" numOctaves="5" seed="7" result="noise" />
                   <feColorMatrix type="saturate" values="0" in="noise" result="gn" />
                   <feComponentTransfer in="gn" result="tn">
-                    <feFuncA type="linear" slope="0.4" intercept="0.1" />
+                    <feFuncA type="linear" slope="0.35" intercept="0.05" />
                   </feComponentTransfer>
-                  <feGaussianBlur stdDeviation="4" in="tn" />
+                  <feGaussianBlur stdDeviation="6" in="tn" />
                 </filter>
               </defs>
-              {/* Main fog layer — solid dark */}
-              <rect width="100%" height="100%" fill="hsl(220 20% 7% / 0.95)" mask="url(#fog-mask)" />
-              {/* Cloud texture on top of fog for depth */}
-              <rect width="100%" height="100%" fill="hsl(220 15% 18% / 0.5)" mask="url(#fog-mask)" filter="url(#fog-clouds)" />
+              {/* Main fog layer */}
+              <rect width="100%" height="100%" fill="hsl(220 20% 7% / 0.93)" mask="url(#fog-mask)" />
+              {/* Cloud texture */}
+              <rect width="100%" height="100%" fill="hsl(220 15% 18% / 0.4)" mask="url(#fog-mask)" filter="url(#fog-clouds)" />
             </svg>
           );
         })()}
+
+        {/* ── Territory borders ── */}
+        {outposts.map(outpost => {
+          if (!isVisible(outpost.x, outpost.y, 200)) return null;
+          const { sx, sy } = worldToScreen(outpost.x, outpost.y);
+          const isOwn = outpost.user_id === user?.id;
+          const tr = outpost.territory_radius * camera.ppu;
+          if (tr < 10) return null;
+          const borderColor = isOwn ? 'hsl(var(--primary))' : 'hsl(var(--destructive))';
+          const fillColor = isOwn ? 'hsl(var(--primary) / 0.04)' : 'hsl(var(--destructive) / 0.03)';
+          return (
+            <div key={`territory-${outpost.id}`} className="absolute pointer-events-none z-[10]"
+              style={{ left: sx - tr, top: sy - tr, width: tr * 2, height: tr * 2 }}>
+              <div className="w-full h-full rounded-full" style={{
+                border: outpost.has_wall ? `2px solid ${borderColor}` : `1px dashed ${borderColor}`,
+                background: fillColor,
+                opacity: outpost.has_wall ? 0.7 : 0.4,
+              }} />
+              {outpost.has_wall && (
+                <div className="absolute inset-1 rounded-full" style={{
+                  border: `1px solid ${borderColor}`,
+                  opacity: 0.3,
+                }} />
+              )}
+            </div>
+          );
+        })}
 
         {/* ── Outpost markers on the map ── */}
         {outposts.map(outpost => {
@@ -1688,8 +1704,9 @@ export default function WorldMap() {
           const opSize = Math.max(18, Math.min(36, camera.ppu * 6000));
           const isOwn = outpost.user_id === user?.id;
           return (
-            <div key={outpost.id} className="absolute z-[46] flex flex-col items-center pointer-events-none"
-              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
+            <div key={outpost.id} className="absolute z-[46] flex flex-col items-center cursor-pointer"
+              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}
+              onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'outpost', data: outpost }); }}>
               <div className="relative">
                 <img src={mapVillage} alt={outpost.name} loading="lazy"
                   className={`drop-shadow-md ${isOwn ? 'brightness-90' : 'brightness-75 hue-rotate-180'}`}
@@ -1699,11 +1716,15 @@ export default function WorldMap() {
                     boxShadow: isOwn ? '0 0 10px 3px hsl(var(--primary) / 0.2)' : '0 0 8px 2px hsl(var(--destructive) / 0.15)',
                     border: isOwn ? '1px solid hsl(var(--primary) / 0.3)' : '1px solid hsl(var(--destructive) / 0.25)',
                   }} />
+                {outpost.has_wall && (
+                  <div className="absolute -inset-2 rounded-full pointer-events-none"
+                    style={{ border: `2px solid hsl(var(--${isOwn ? 'primary' : 'destructive'}) / 0.5)` }} />
+                )}
               </div>
               {opSize > 22 && (
                 <div className={`backdrop-blur-sm rounded px-1.5 py-0.5 text-center mt-0.5 border ${isOwn ? 'bg-background/70 border-primary/20' : 'bg-background/50 border-destructive/20'}`}>
                   <p className="text-foreground/80 font-display whitespace-nowrap" style={{ fontSize: Math.max(7, opSize / 5) }}>
-                    {isOwn ? '🏕️' : '⚑'} {outpost.name}
+                    {isOwn ? '🏕️' : '⚑'} {outpost.name} {outpost.level > 1 ? `Lv.${outpost.level}` : ''}
                   </p>
                 </div>
               )}
@@ -1939,6 +1960,106 @@ export default function WorldMap() {
               );
             })()}
 
+            {selected.kind === 'outpost' && (() => {
+              const op = selected.data;
+              const isOwn = op.user_id === user?.id;
+              const upgradeCost = { gold: 150 * op.level, wood: 100 * op.level, stone: 80 * op.level, food: 50 * op.level };
+              const wallCost = op.has_wall
+                ? { gold: 200 * (op.wall_level + 1), wood: 150 * (op.wall_level + 1), stone: 200 * (op.wall_level + 1), food: 0 }
+                : { gold: 300, wood: 200, stone: 250, food: 50 };
+              const canAffordUpgrade = resources.gold >= upgradeCost.gold && resources.wood >= upgradeCost.wood && resources.stone >= upgradeCost.stone && resources.food >= upgradeCost.food;
+              const canAffordWall = resources.gold >= wallCost.gold && resources.wood >= wallCost.wood && resources.stone >= wallCost.stone && resources.food >= wallCost.food;
+
+              const handleUpgrade = async () => {
+                if (!canAffordUpgrade) { toast.error('Not enough resources!'); return; }
+                addResources({ gold: -upgradeCost.gold, wood: -upgradeCost.wood, stone: -upgradeCost.stone, food: -upgradeCost.food });
+                const newLevel = op.level + 1;
+                const newGarrison = op.garrison_power + 20;
+                const newRadius = op.territory_radius + 3000;
+                await supabase.from('outposts').update({ level: newLevel, garrison_power: newGarrison, territory_radius: newRadius } as any).eq('id', op.id);
+                setOutposts(prev => prev.map(o => o.id === op.id ? { ...o, level: newLevel, garrison_power: newGarrison, territory_radius: newRadius } : o));
+                setSelected({ kind: 'outpost', data: { ...op, level: newLevel, garrison_power: newGarrison, territory_radius: newRadius } });
+                toast.success(`🏕️ ${op.name} upgraded to Lv.${newLevel}!`);
+              };
+
+              const handleWall = async () => {
+                if (!canAffordWall) { toast.error('Not enough resources!'); return; }
+                addResources({ gold: -wallCost.gold, wood: -wallCost.wood, stone: -wallCost.stone, food: -wallCost.food });
+                const newWallLevel = op.wall_level + 1;
+                const newGarrison = op.garrison_power + 30;
+                await supabase.from('outposts').update({ has_wall: true, wall_level: newWallLevel, garrison_power: newGarrison } as any).eq('id', op.id);
+                setOutposts(prev => prev.map(o => o.id === op.id ? { ...o, has_wall: true, wall_level: newWallLevel, garrison_power: newGarrison } : o));
+                setSelected({ kind: 'outpost', data: { ...op, has_wall: true, wall_level: newWallLevel, garrison_power: newGarrison } });
+                toast.success(`🧱 ${op.has_wall ? 'Wall upgraded' : 'Border wall built'} at ${op.name}!`);
+              };
+
+              return (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-3xl">{isOwn ? '🏕️' : '⚑'}</span>
+                    <div className="flex-1">
+                      <h3 className="font-display text-sm text-foreground">{op.name}</h3>
+                      <div className="flex items-center gap-2 text-[9px]">
+                        <span className="text-primary font-semibold">Lv.{op.level}</span>
+                        <span className="text-muted-foreground">⚔️{op.garrison_power} defense</span>
+                        {op.has_wall && <span className="text-accent-foreground bg-accent/20 px-1.5 rounded-full">🧱 Wall Lv.{op.wall_level}</span>}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    {isOwn
+                      ? 'Your outpost. Upgrade to increase vision, territory, and garrison. Build walls to repel invaders.'
+                      : `Enemy outpost. Garrison strength: ⚔️${op.garrison_power}${op.has_wall ? ` with Lv.${op.wall_level} walls` : ''}`}
+                  </p>
+                  {isOwn && (
+                    <div className="space-y-2">
+                      {/* Upgrade */}
+                      <div className="bg-muted/30 rounded-lg p-2 space-y-1">
+                        <p className="text-[10px] font-semibold text-foreground">⬆️ Upgrade to Lv.{op.level + 1}</p>
+                        <p className="text-[8px] text-muted-foreground">+5k vision, +3k territory, +20 garrison</p>
+                        <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+                          <span className={resources.gold >= upgradeCost.gold ? '' : 'text-destructive'}>🪙{upgradeCost.gold}</span>
+                          <span className={resources.wood >= upgradeCost.wood ? '' : 'text-destructive'}>🪵{upgradeCost.wood}</span>
+                          <span className={resources.stone >= upgradeCost.stone ? '' : 'text-destructive'}>🪨{upgradeCost.stone}</span>
+                          <span className={resources.food >= upgradeCost.food ? '' : 'text-destructive'}>🌾{upgradeCost.food}</span>
+                        </div>
+                        <motion.button whileTap={{ scale: 0.95 }} onClick={handleUpgrade} disabled={!canAffordUpgrade}
+                          className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
+                          ⬆️ Upgrade Outpost
+                        </motion.button>
+                      </div>
+                      {/* Border Wall */}
+                      <div className="bg-muted/30 rounded-lg p-2 space-y-1">
+                        <p className="text-[10px] font-semibold text-foreground">🧱 {op.has_wall ? `Upgrade Wall to Lv.${op.wall_level + 1}` : 'Build Border Wall'}</p>
+                        <p className="text-[8px] text-muted-foreground">{op.has_wall ? '+30 garrison, stronger border' : 'Creates visible territory border, +30 garrison defense'}</p>
+                        <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+                          <span className={resources.gold >= wallCost.gold ? '' : 'text-destructive'}>🪙{wallCost.gold}</span>
+                          <span className={resources.wood >= wallCost.wood ? '' : 'text-destructive'}>🪵{wallCost.wood}</span>
+                          <span className={resources.stone >= wallCost.stone ? '' : 'text-destructive'}>🪨{wallCost.stone}</span>
+                          {wallCost.food > 0 && <span className={resources.food >= wallCost.food ? '' : 'text-destructive'}>🌾{wallCost.food}</span>}
+                        </div>
+                        <motion.button whileTap={{ scale: 0.95 }} onClick={handleWall} disabled={!canAffordWall}
+                          className="w-full bg-accent text-accent-foreground font-display text-[11px] py-2 rounded-lg disabled:opacity-40 active:scale-95 transition-transform">
+                          🧱 {op.has_wall ? 'Upgrade Wall' : 'Build Border Wall'}
+                        </motion.button>
+                      </div>
+                    </div>
+                  )}
+                  {!isOwn && (
+                    <motion.button whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        const hasTroops = Object.values(army).some(v => v > 0);
+                        if (!hasTroops) { toast.error('You need troops!'); return; }
+                        toast.info('Attack outpost coming soon...');
+                      }}
+                      className="w-full bg-destructive/20 text-destructive font-display text-[11px] py-2.5 rounded-lg active:scale-95 transition-transform">
+                      ⚔️ Attack Outpost (⚔️{op.garrison_power}{op.has_wall ? ` + 🧱${op.wall_level * 15}` : ''})
+                    </motion.button>
+                  )}
+                </div>
+              );
+            })()}
+
             {selected.kind === 'empty' && (() => {
               const thLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
               const outpostCost = { gold: 300, wood: 200, stone: 150, food: 100 };
@@ -1989,7 +2110,7 @@ export default function WorldMap() {
                             user_id: user!.id, x: targetData.x, y: targetData.y, name: opName, outpost_type: 'outpost',
                           }).select().single();
                           if (error) { toast.error('Failed to build outpost'); return; }
-                          setOutposts(prev => [...prev, { id: data.id, x: data.x, y: data.y, name: data.name, user_id: user!.id }]);
+                          setOutposts(prev => [...prev, { id: data.id, x: data.x, y: data.y, name: data.name, user_id: user!.id, level: 1, garrison_power: 0, has_wall: false, wall_level: 0, territory_radius: 15000 }]);
                           toast.success(`🏕️ ${opName} established! Fog lifted in this area.`);
                         });
                         setSelected(null);
@@ -2039,7 +2160,7 @@ export default function WorldMap() {
                             const { data: opData } = await supabase.from('outposts').insert({
                               user_id: user!.id, x: targetData.x, y: targetData.y, name: settleName, outpost_type: 'settlement',
                             }).select().single();
-                            if (opData) setOutposts(prev => [...prev, { id: opData.id, x: opData.x, y: opData.y, name: opData.name, user_id: user!.id }]);
+                            if (opData) setOutposts(prev => [...prev, { id: opData.id, x: opData.x, y: opData.y, name: opData.name, user_id: user!.id, level: 1, garrison_power: 0, has_wall: false, wall_level: 0, territory_radius: 15000 }]);
                             toast.success(`🏘️ ${settleName} founded! New territory claimed.`);
                           }
                         });
