@@ -168,33 +168,46 @@ export default function MilitaryPanel() {
                   </div>
 
                   {unlocked && (
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1">
-                        <motion.button whileTap={{ scale: 0.9 }}
-                          onClick={() => setTrainCount(p => ({ ...p, [type]: Math.max(1, p[type] - 1) }))}
-                          className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">−</motion.button>
-                        <span className="text-xs text-foreground w-6 text-center font-bold">{count}</span>
-                        <motion.button whileTap={{ scale: 0.9 }}
-                          onClick={() => setTrainCount(p => ({ ...p, [type]: Math.min(50, p[type] + 1) }))}
-                          className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">+</motion.button>
-                        <motion.button whileTap={{ scale: 0.9 }}
-                          onClick={() => setTrainCount(p => ({ ...p, [type]: 10 }))}
-                          className="text-[9px] text-muted-foreground px-1">x10</motion.button>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
+                          <motion.button whileTap={{ scale: 0.9 }}
+                            onClick={() => setTrainCount(p => ({ ...p, [type]: Math.max(1, p[type] - 1) }))}
+                            className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">−</motion.button>
+                          <span className="text-xs text-foreground w-6 text-center font-bold">{count}</span>
+                          <motion.button whileTap={{ scale: 0.9 }}
+                            onClick={() => setTrainCount(p => ({ ...p, [type]: Math.min(50, p[type] + 1) }))}
+                            className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">+</motion.button>
+                          <motion.button whileTap={{ scale: 0.9 }}
+                            onClick={() => setTrainCount(p => ({ ...p, [type]: 10 }))}
+                            className="text-[9px] text-muted-foreground px-1">x10</motion.button>
+                        </div>
+                        <div className="flex-1 flex flex-wrap gap-1 text-[9px] text-muted-foreground">
+                          {Object.entries(totalCost).filter(([, v]) => v > 0).map(([k, v]) => {
+                            const rt = getResourceType(k);
+                            return <span key={k} className="flex items-center gap-px">{rt ? <ResourceIcon type={rt} size={9} /> : k}{v}</span>;
+                          })}
+                          {totalSteelCost > 0 && <span className="flex items-center gap-px"><ResourceIcon type="steel" size={9} />{totalSteelCost}</span>}
+                        </div>
+                        <motion.button whileTap={{ scale: 0.95 }}
+                          onClick={() => { if (trainTroops(type, count)) setTrainCount(p => ({ ...p, [type]: 1 })); }}
+                          disabled={!affordable}
+                          className={`font-display text-[10px] py-1 px-3 rounded-lg whitespace-nowrap ${
+                            affordable ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'
+                          }`}>
+                          Train
+                        </motion.button>
                       </div>
-                      <div className="flex-1 flex flex-wrap gap-1 text-[9px] text-muted-foreground">
-                        {Object.entries(totalCost).filter(([, v]) => v > 0).map(([k, v]) => (
-                          <span key={k} className="flex items-center gap-px">{(() => { const rt = getResourceType(k); return rt ? <ResourceIcon type={rt} size={9} /> : k; })()}{v}</span>
-                        ))}
-                        {totalSteelCost > 0 && <span className="flex items-center gap-px"><ResourceIcon type="steel" size={9} />{totalSteelCost}</span>}
-                      </div>
-                      <motion.button whileTap={{ scale: 0.95 }}
-                        onClick={() => { if (trainTroops(type, count)) setTrainCount(p => ({ ...p, [type]: 1 })); }}
-                        disabled={!affordable}
-                        className={`font-display text-[10px] py-1 px-3 rounded-lg whitespace-nowrap ${
-                          affordable ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'
-                        }`}>
-                        Train
-                      </motion.button>
+                      {!affordable && (() => {
+                        const reasons: string[] = [];
+                        if (!canAfford(totalCost)) reasons.push('Not enough resources');
+                        if (totalSteelCost > 0 && !canAffordSteel(totalSteelCost)) reasons.push('Not enough steel');
+                        if (population.civilians < popNeeded) reasons.push(`Need ${popNeeded} civilians (have ${population.civilians})`);
+                        if (population.soldiers + popNeeded > population.armyCap) reasons.push(`Army cap reached (${population.soldiers}/${population.armyCap})`);
+                        return reasons.length > 0 ? (
+                          <p className="text-[9px] text-destructive">{reasons.join(' · ')}</p>
+                        ) : null;
+                      })()}
                     </div>
                   )}
                 </div>
