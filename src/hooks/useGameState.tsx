@@ -991,12 +991,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
   }, [populationBase, villageId]);
 
-  // Player level = total number of settlements owned
+  // Player level = Town Hall level
   useEffect(() => {
-    if (myVillages.length > 0) {
-      setPlayerLevel(myVillages.length);
+    const th = buildings.find(b => b.type === 'townhall');
+    if (th) {
+      setPlayerLevel(th.level);
+      // Sync to DB
+      if (villageId) {
+        supabase.from('villages').update({ level: th.level }).eq('id', villageId).then();
+      }
     }
-  }, [myVillages.length]);
+  }, [buildings, villageId]);
 
   // Gross production from buildings (with worker bonuses)
   const grossProduction = useMemo(() => {
