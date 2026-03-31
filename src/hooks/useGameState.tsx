@@ -1095,16 +1095,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const defWall = defBuildings?.find(b => b.type === 'wall');
     const defWallLevel = defWall?.level || 0;
     
-    const result = resolveCombat(army, defArmy, getWallLevel(), defWallLevel);
+    const result = resolveCombat(attackingArmy, defArmy, getWallLevel(), defWallLevel);
     
-    // Apply attacker losses (with injury system)
+    // Apply attacker losses (with injury system) — only sent troops can be lost
     const newArmy = { ...army };
     let pvpPopLost = 0;
     const pvpApothLvl = getApothecaryLevel();
     const pvpInjuryRate = pvpApothLvl > 0 ? Math.min(0.6, 0.2 + pvpApothLvl * 0.08) : 0;
     const pvpInjured: Partial<Army> = {};
     for (const [type, lost] of Object.entries(result.attackerLosses) as [TroopType, number][]) {
-      const actualLost = Math.min(lost, newArmy[type] || 0);
+      const actualLost = Math.min(lost, attackingArmy[type] || 0);
       const injured = Math.floor(actualLost * pvpInjuryRate);
       const dead = actualLost - injured;
       newArmy[type] = Math.max(0, (newArmy[type] || 0) - actualLost);
