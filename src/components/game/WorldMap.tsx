@@ -479,6 +479,13 @@ export default function WorldMap() {
     return () => clearInterval(interval);
   }, [capturedMines, addSteel]);
 
+  // Animate marches — re-render every 500ms for smooth interpolation
+  useEffect(() => {
+    if (marches.length === 0) return;
+    const interval = setInterval(() => forceRender(v => v + 1), 500);
+    return () => clearInterval(interval);
+  }, [marches.length]);
+
   // Process marches
   useEffect(() => {
     if (marches.length === 0) return;
@@ -496,6 +503,17 @@ export default function WorldMap() {
     }, 1000);
     return () => clearInterval(interval);
   }, [marches.length]);
+
+  // Helper to create a march with position data
+  const createMarch = useCallback((id: string, targetName: string, targetX: number, targetY: number, travelSec: number, action: () => void) => {
+    const myPos = getMyPos();
+    const now = Date.now();
+    setMarches(prev => [...prev, {
+      id, targetName, arrivalTime: now + travelSec * 1000,
+      startTime: now, startX: myPos.x, startY: myPos.y,
+      targetX, targetY, action,
+    }]);
+  }, [getMyPos]);
 
   // Expire trade contracts
   useEffect(() => {
