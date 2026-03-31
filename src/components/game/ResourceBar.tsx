@@ -10,7 +10,10 @@ const RESOURCE_CONFIG = [
 ];
 
 export default function ResourceBar() {
-  const { resources, totalProduction, steel, steelProduction, population } = useGame();
+  const { resources, totalProduction, steel, steelProduction, population, storageCapacity } = useGame();
+  const totalStored = Math.floor(resources.gold + resources.wood + resources.stone + resources.food);
+  const storagePct = Math.min(100, (totalStored / (storageCapacity * 4)) * 100); // 4 resource types
+  const storageNearFull = storagePct > 85;
 
   const foodCritical = totalProduction.food < 0;
   const foodLow = resources.food < 50 && foodCritical;
