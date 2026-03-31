@@ -256,6 +256,9 @@ export default function StatSheet() {
                   {b.type === 'apothecary' && (
                     <span>Injury recovery: <span className="text-foreground">{Math.min(60, 20 + (b.level + current) * 8)}%</span> {current > 0 && <span className="text-primary">(+{current * 8}% from workers)</span>}</span>
                   )}
+                  {b.type === 'spyguild' && (
+                    <span>Spy training speed: <span className="text-foreground">{Math.round((1 - Math.max(0.4, 1 - (b.level - 1) * 0.15)) * 100)}%</span> faster {current > 0 && <span className="text-primary">(+{current} max concurrent missions)</span>}</span>
+                  )}
                 </div>
               )}
             </div>

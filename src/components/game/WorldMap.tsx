@@ -625,7 +625,7 @@ type SelectedItem =
   | null;
 
 export default function WorldMap() {
-  const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, resources } = useGame();
+  const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, resources, getWatchtowerLevel, getSpyGuildLevel } = useGame();
   const { user } = useAuth();
   const npcState = useNPCState();
   const [selected, setSelected] = useState<SelectedItem>(null);
@@ -1049,7 +1049,8 @@ export default function WorldMap() {
   }, [getDistance, army]);
 
   const isInRange = useCallback((targetX: number, targetY: number) => {
-    const maxRange = getMaxRange(army);
+    const wtLevel = getWatchtowerLevel();
+    const maxRange = getMaxRange(army, wtLevel);
     // Check range from home village
     const dist = getDistance(targetX, targetY);
     if (dist <= maxRange) return true;
@@ -1060,7 +1061,7 @@ export default function WorldMap() {
       if (opDist <= maxRange) return true;
     }
     return false;
-  }, [getDistance, army, outposts, user?.id]);
+  }, [getDistance, army, outposts, user?.id, getWatchtowerLevel]);
 
   const handleInvestigate = useCallback((event: ProceduralEvent) => {
     if (claimedEvents.has(event.id)) return;
@@ -1110,7 +1111,7 @@ export default function WorldMap() {
     setAttackConfig({
       targetName: realm.name, targetPower: realm.power,
       targetX: realm.x, targetY: realm.y, travelTime: travelSec,
-      showEspionage: true, targetId: realm.id,
+      showEspionage: getSpyGuildLevel() >= 1, targetId: realm.id,
       onAttack: (sentArmy) => {
         toast(`⚔️ Troops marching to ${realm.name}... ETA ${travelSec}s`);
         createMarch(`atk-${Date.now()}`, realm.name, realm.x, realm.y, travelSec, () => {
@@ -1916,7 +1917,7 @@ export default function WorldMap() {
                             setAttackConfig({
                               targetName: targetData.profile.display_name,
                               targetX: targetPos.x, targetY: targetPos.y,
-                              travelTime: travelSec, showEspionage: true,
+                              travelTime: travelSec, showEspionage: getSpyGuildLevel() >= 1,
                               targetId: targetData.village.user_id,
                               onAttack: (sentArmy) => {
                                 toast(`⚔️ Troops marching... ETA ${travelSec}s`);

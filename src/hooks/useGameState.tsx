@@ -10,7 +10,7 @@ export interface Building {
   village_id: string;
 }
 
-export type BuildingType = 'townhall' | 'farm' | 'lumbermill' | 'quarry' | 'goldmine' | 'barracks' | 'wall' | 'watchtower' | 'house' | 'temple' | 'apothecary' | 'warehouse' | 'empty';
+export type BuildingType = 'townhall' | 'farm' | 'lumbermill' | 'quarry' | 'goldmine' | 'barracks' | 'wall' | 'watchtower' | 'house' | 'temple' | 'apothecary' | 'warehouse' | 'spyguild' | 'empty';
 
 export interface Resources {
   gold: number;
@@ -49,6 +49,7 @@ export const BUILDING_INFO: Record<Exclude<BuildingType, 'empty'>, BuildingInfo>
   watchtower: { name: 'Watchtower', icon: '🗼', description: 'Spots incoming threats from afar.', baseCost: { gold: 50, wood: 40, stone: 30, food: 0 }, maxLevel: 5, workersPerLevel: 1, buildTime: 25 },
   apothecary: { name: 'Apothecary', icon: '⚗️', description: 'Heal injured troops and craft poisons for spies.', baseCost: { gold: 70, wood: 30, stone: 30, food: 20 }, steelCost: 2, maxLevel: 5, workersPerLevel: 1, buildTime: 35 },
   warehouse: { name: 'Warehouse', icon: '🏪', description: 'Increases storage capacity by 500 per level. Store more resources safely.', baseCost: { gold: 50, wood: 80, stone: 60, food: 0 }, maxLevel: 10, workersPerLevel: 0, buildTime: 25 },
+  spyguild: { name: 'Spy Guild', icon: '🕵️', description: 'Train spies and unlock espionage missions against other players. Workers speed up spy training.', baseCost: { gold: 100, wood: 50, stone: 40, food: 30 }, steelCost: 5, maxLevel: 5, workersPerLevel: 2, buildTime: 45 },
 };
 
 export function getUpgradeCost(type: Exclude<BuildingType, 'empty'>, level: number): Resources & { steel: number } {
@@ -390,6 +391,7 @@ interface GameContextType {
   spyTrainingQueue: { count: number; finishTime: number }[];
   intelReports: IntelReport[];
   getWatchtowerLevel: () => number;
+  getSpyGuildLevel: () => number;
   // Apothecary
   injuredTroops: InjuredArmy;
   poisons: number;
@@ -424,9 +426,11 @@ export function calcMarchTime(distance: number, army: Army): number {
   return Math.max(5, Math.floor(distance / (speed * 200)));
 }
 
-export function getMaxRange(army: Army): number {
+export const WATCHTOWER_RANGE_BONUS = 3000; // extra range per watchtower level
+
+export function getMaxRange(army: Army, watchtowerLevel: number = 0): number {
   const scoutCount = army.scout || 0;
-  return MAX_MARCH_RANGE + scoutCount * SCOUT_RANGE_BONUS;
+  return MAX_MARCH_RANGE + scoutCount * SCOUT_RANGE_BONUS + watchtowerLevel * WATCHTOWER_RANGE_BONUS;
 }
 
 export function GameProvider({ children }: { children: ReactNode }) {
@@ -1502,10 +1506,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return true;
   }, [getApothecaryLevel, canAfford]);
 
-  // Train spies (requires barracks lvl 2+, costs gold + food + 1 pop each)
+  // Spy Guild level
+  const getSpyGuildLevel = useCallback(() => {
+    const sg = buildings.find(b => b.type === 'spyguild');
+    return sg?.level || 0;
+  }, [buildings]);
+
+  // Train spies (requires spy guild, costs gold + food + 1 pop each)
    const trainSpies = useCallback((count: number) => {
-    console.log('[trainSpies]', { count, barracksLvl: getBarracksLevel(), civilians: population.civilians, gold: resources.gold, food: resources.food });
-    if (getBarracksLevel() < 2) { console.log('[trainSpies] FAIL: barracks < 2'); return false; }
+    const sgLevel = getSpyGuildLevel();
+    console.log('[trainSpies]', { count, spyGuildLvl: sgLevel, civilians: population.civilians, gold: resources.gold, food: resources.food });
+    if (sgLevel < 1) { console.log('[trainSpies] FAIL: no spy guild'); return false; }
     const cost = { gold: 40 * count, wood: 0, stone: 0, food: 20 * count };
     if (!canAfford(cost)) { console.log('[trainSpies] FAIL: cant afford'); return false; }
     if (population.civilians < count) { console.log('[trainSpies] FAIL: not enough civilians'); return false; }
@@ -1515,11 +1526,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (villageId) {
       supabase.from('villages').update(newResources).eq('id', villageId).then();
     }
-    // Spies train over time — use a dedicated spy queue entry
-    const finishTime = Date.now() + 20000 * count;
+    // Spies train faster with higher spy guild level
+    const baseTime = 20000;
+    const speedMultiplier = Math.max(0.4, 1 - (sgLevel - 1) * 0.15); // 15% faster per level
+    const finishTime = Date.now() + Math.floor(baseTime * count * speedMultiplier);
     setSpyTrainingQueue(prev => [...prev, { count, finishTime }]);
     return true;
-  }, [canAfford, getBarracksLevel, population.civilians, resources, villageId]);
+  }, [canAfford, getSpyGuildLevel, population.civilians, resources, villageId]);
 
   // Send spy mission
   const sendSpyMission = useCallback((mission: SpyMission, targetName: string, targetId: string, targetX: number, targetY: number, spiesCount: number) => {
@@ -1645,7 +1658,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       population, workerAssignments, assignWorker, unassignWorker, getMaxWorkers,
       rations, setRations, popTaxRate, setPopTaxRate, popFoodCost, popTaxIncome,
       isBuildingUpgrading, getBuildTime,
-      spies, trainSpies, sendSpyMission, activeSpyMissions, spyTrainingQueue, intelReports, getWatchtowerLevel,
+      spies, trainSpies, sendSpyMission, activeSpyMissions, spyTrainingQueue, intelReports, getWatchtowerLevel, getSpyGuildLevel,
       attackPlayer, vassalages, payRansom, attemptRebellion, setVassalTributeRate, releaseVassal, getWallLevel,
       injuredTroops, poisons, healTroops, craftPoison, getApothecaryLevel,
       storageCapacity,
