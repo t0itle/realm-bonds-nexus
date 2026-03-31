@@ -552,6 +552,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setHappinessBase((village as any).happiness ?? 50);
         setRations(((village as any).rations as RationsLevel) ?? 'normal');
         setPopTaxRate((village as any).pop_tax_rate ?? 5);
+        setSpies((village as any).spies ?? 0);
+        setPoisons((village as any).poisons ?? 0);
+        setInjuredTroops({
+          militia: (village as any).injured_militia ?? 0,
+          archer: (village as any).injured_archer ?? 0,
+          knight: (village as any).injured_knight ?? 0,
+          cavalry: (village as any).injured_cavalry ?? 0,
+          siege: (village as any).injured_siege ?? 0,
+          scout: (village as any).injured_scout ?? 0,
+        });
         setArmy({
           militia: (village as any).army_militia ?? 0,
           archer: (village as any).army_archer ?? 0,
