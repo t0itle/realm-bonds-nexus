@@ -1490,13 +1490,13 @@ export default function WorldMap() {
         })}
 
         {/* Zoom controls — larger touch targets on mobile */}
-        <div className="absolute bottom-3 right-3 flex flex-col gap-1.5 z-50">
+        <div className="absolute bottom-4 right-3 flex flex-col gap-1 z-50">
           <button onClick={() => safeSetCamera(prev => ({ ...prev, ppu: Math.min(0.05, prev.ppu * 1.5) }))}
-            className="w-10 h-10 sm:w-8 sm:h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-base sm:text-sm font-bold active:scale-90 transition-transform">+</button>
+            className="w-9 h-9 bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-sm font-medium active:scale-90 transition-all hover:bg-background/95 shadow-sm">+</button>
           <button onClick={() => safeSetCamera(prev => ({ ...prev, ppu: Math.max(0.00005, prev.ppu / 1.5) }))}
-            className="w-10 h-10 sm:w-8 sm:h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-base sm:text-sm font-bold active:scale-90 transition-transform">−</button>
+            className="w-9 h-9 bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-sm font-medium active:scale-90 transition-all hover:bg-background/95 shadow-sm">−</button>
           <button onClick={goHome}
-            className="w-10 h-10 sm:w-8 sm:h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-sm sm:text-[9px] active:scale-90 transition-transform">⌂</button>
+            className="w-9 h-9 bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-xs active:scale-90 transition-all hover:bg-background/95 shadow-sm mt-0.5">⌂</button>
         </div>
 
         {/* Legend — collapsible on mobile */}
