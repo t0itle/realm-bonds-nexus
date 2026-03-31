@@ -620,7 +620,7 @@ type SelectedItem =
   | { kind: 'event'; data: ProceduralEvent; chunkKey: string; index: number }
   | { kind: 'player'; data: any }
   | { kind: 'mine'; data: SteelMine }
-  | { kind: 'outpost'; data: { id: string; x: number; y: number; name: string; user_id: string; level: number; garrison_power: number; has_wall: boolean; wall_level: number; territory_radius: number } }
+  | { kind: 'outpost'; data: { id: string; x: number; y: number; name: string; user_id: string; level: number; garrison_power: number; has_wall: boolean; wall_level: number; territory_radius: number; outpost_type: string } }
   | { kind: 'empty'; data: { x: number; y: number } }
   | null;
 
@@ -631,7 +631,7 @@ export default function WorldMap() {
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
   const [capturedMines, setCapturedMines] = useState<Set<string>>(new Set());
-  const [outposts, setOutposts] = useState<{ id: string; x: number; y: number; name: string; user_id: string; level: number; garrison_power: number; has_wall: boolean; wall_level: number; territory_radius: number }[]>([]);
+  const [outposts, setOutposts] = useState<{ id: string; x: number; y: number; name: string; user_id: string; level: number; garrison_power: number; has_wall: boolean; wall_level: number; territory_radius: number; outpost_type: string }[]>([]);
   const [outpostBuildQueue, setOutpostBuildQueue] = useState<{ outpostId: string; action: 'upgrade' | 'wall'; finishTime: number; targetLevel: number; newGarrison: number; newRadius?: number }[]>([]);
   const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; startTime: number; startX: number; startY: number; targetX: number; targetY: number; waypoints: { x: number; y: number }[]; action: () => void }[]>([]);
   const [otherMarches, setOtherMarches] = useState<{ id: string; user_id: string; player_name: string; start_x: number; start_y: number; target_x: number; target_y: number; target_name: string; started_at: string; arrives_at: string; march_type: string }[]>([]);
@@ -713,7 +713,7 @@ export default function WorldMap() {
     if (!user) return;
     supabase.from('outposts').select('*').then(({ data }) => {
       if (data && data.length > 0) {
-        setOutposts(data.map((o: any) => ({ id: o.id, x: o.x, y: o.y, name: o.name, user_id: o.user_id, level: o.level || 1, garrison_power: o.garrison_power || 0, has_wall: o.has_wall || false, wall_level: o.wall_level || 0, territory_radius: o.territory_radius || 15000 })));
+        setOutposts(data.map((o: any) => ({ id: o.id, x: o.x, y: o.y, name: o.name, user_id: o.user_id, level: o.level || 1, garrison_power: o.garrison_power || 0, has_wall: o.has_wall || false, wall_level: o.wall_level || 0, territory_radius: o.territory_radius || 15000, outpost_type: o.outpost_type || 'outpost' })));
       }
     });
   }, [user]);
@@ -1757,6 +1757,7 @@ export default function WorldMap() {
           const opSize = Math.max(18, Math.min(36, camera.ppu * 6000));
           const hitSize = Math.max(44, opSize * 1.9);
           const isOwn = outpost.user_id === user?.id;
+          const isSettlement = outpost.outpost_type === 'settlement';
           return (
             <button
               key={outpost.id}
@@ -1784,7 +1785,7 @@ export default function WorldMap() {
               {opSize > 22 && (
                 <div className={`backdrop-blur-sm rounded px-1.5 py-0.5 text-center mt-0.5 border ${isOwn ? 'bg-background/70 border-primary/20' : 'bg-background/50 border-destructive/20'}`}>
                   <p className="text-foreground/80 font-display whitespace-nowrap" style={{ fontSize: Math.max(7, opSize / 5) }}>
-                    {isOwn ? '🏕️' : '⚑'} {outpost.name} {outpost.level > 1 ? `Lv.${outpost.level}` : ''}
+                    {isSettlement ? '🏘️' : (isOwn ? '🏕️' : '⚑')} {outpost.name} {outpost.level > 1 ? `Lv.${outpost.level}` : ''}
                   </p>
                 </div>
               )}
@@ -2023,6 +2024,7 @@ export default function WorldMap() {
             {selected.kind === 'outpost' && (() => {
               const op = selected.data;
               const isOwn = op.user_id === user?.id;
+              const isSettlement = op.outpost_type === 'settlement';
               const upgradeCost = { gold: 150 * op.level, wood: 100 * op.level, stone: 80 * op.level, food: 50 * op.level };
               const wallCost = op.has_wall
                 ? { gold: 200 * (op.wall_level + 1), wood: 150 * (op.wall_level + 1), stone: 200 * (op.wall_level + 1), food: 0 }
@@ -2032,8 +2034,8 @@ export default function WorldMap() {
 
               const isUpgrading = outpostBuildQueue.find(q => q.outpostId === op.id && q.action === 'upgrade');
               const isBuildingWall = outpostBuildQueue.find(q => q.outpostId === op.id && q.action === 'wall');
-              const upgradeTimeSec = 30 + op.level * 30; // 60s for lv2, 90s for lv3, etc.
-              const wallTimeSec = 45 + op.wall_level * 30; // 45s for first wall, 75s for lv2, etc.
+              const upgradeTimeSec = 30 + op.level * 30;
+              const wallTimeSec = 45 + op.wall_level * 30;
 
               const handleUpgrade = async () => {
                 if (!canAffordUpgrade) { toast.error('Not enough resources!'); return; }
@@ -2043,7 +2045,7 @@ export default function WorldMap() {
                 const newGarrison = op.garrison_power + 20;
                 const newRadius = op.territory_radius + 3000;
                 setOutpostBuildQueue(prev => [...prev, { outpostId: op.id, action: 'upgrade', finishTime: Date.now() + upgradeTimeSec * 1000, targetLevel: newLevel, newGarrison, newRadius }]);
-                toast(`🏕️ Upgrading ${op.name} to Lv.${newLevel}... (${Math.floor(upgradeTimeSec / 60)}:${(upgradeTimeSec % 60).toString().padStart(2, '0')})`);
+                toast(`${isSettlement ? '🏘️' : '🏕️'} Upgrading ${op.name} to Lv.${newLevel}... (${Math.floor(upgradeTimeSec / 60)}:${(upgradeTimeSec % 60).toString().padStart(2, '0')})`);
               };
 
               const handleWall = async () => {
@@ -2060,20 +2062,23 @@ export default function WorldMap() {
               return (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-3xl">{isOwn ? '🏕️' : '⚑'}</span>
+                    <span className="text-3xl">{isSettlement ? '🏘️' : (isOwn ? '🏕️' : '⚑')}</span>
                     <div className="flex-1">
                       <h3 className="font-display text-sm text-foreground">{op.name}</h3>
                       <div className="flex items-center gap-2 text-[9px]">
                         <span className="text-primary font-semibold">Lv.{op.level}</span>
                         <span className="text-muted-foreground">⚔️{op.garrison_power} defense</span>
                         {op.has_wall && <span className="text-accent-foreground bg-accent/20 px-1.5 rounded-full">🧱 Wall Lv.{op.wall_level}</span>}
+                        {isSettlement && <span className="text-primary bg-primary/10 px-1.5 rounded-full">Settlement</span>}
                       </div>
                     </div>
                   </div>
                   <p className="text-[10px] text-muted-foreground">
                     {isOwn
-                      ? 'Your outpost. Upgrade to increase vision, territory, and garrison. Build walls to repel invaders.'
-                      : `Enemy outpost. Garrison strength: ⚔️${op.garrison_power}${op.has_wall ? ` with Lv.${op.wall_level} walls` : ''}`}
+                      ? (isSettlement
+                        ? 'Your settlement. Switch to it from the resource bar to manage buildings and resources independently.'
+                        : 'Your outpost. Upgrade to increase vision, territory, and garrison. Build walls to repel invaders.')
+                      : `Enemy ${isSettlement ? 'settlement' : 'outpost'}. Garrison strength: ⚔️${op.garrison_power}${op.has_wall ? ` with Lv.${op.wall_level} walls` : ''}`}
                   </p>
                   {isOwn && (
                     <div className="space-y-2">
@@ -2223,7 +2228,7 @@ export default function WorldMap() {
                             user_id: user!.id, x: targetData.x, y: targetData.y, name: opName, outpost_type: 'outpost',
                           }).select().single();
                           if (error) { toast.error('Failed to build outpost'); return; }
-                          setOutposts(prev => [...prev, { id: data.id, x: data.x, y: data.y, name: data.name, user_id: user!.id, level: 1, garrison_power: 0, has_wall: false, wall_level: 0, territory_radius: 15000 }]);
+                          setOutposts(prev => [...prev, { id: data.id, x: data.x, y: data.y, name: data.name, user_id: user!.id, level: 1, garrison_power: 0, has_wall: false, wall_level: 0, territory_radius: 15000, outpost_type: 'outpost' }]);
                           toast.success(`🏕️ ${opName} established! Fog lifted in this area.`);
                         });
                         setSelected(null);
@@ -2273,7 +2278,7 @@ export default function WorldMap() {
                             const { data: opData } = await supabase.from('outposts').insert({
                               user_id: user!.id, x: targetData.x, y: targetData.y, name: settleName, outpost_type: 'settlement',
                             }).select().single();
-                            if (opData) setOutposts(prev => [...prev, { id: opData.id, x: opData.x, y: opData.y, name: opData.name, user_id: user!.id, level: 1, garrison_power: 0, has_wall: false, wall_level: 0, territory_radius: 15000 }]);
+                            if (opData) setOutposts(prev => [...prev, { id: opData.id, x: opData.x, y: opData.y, name: opData.name, user_id: user!.id, level: 1, garrison_power: 0, has_wall: false, wall_level: 0, territory_radius: 15000, outpost_type: 'settlement' }]);
                             toast.success(`🏘️ ${settleName} founded! New territory claimed.`);
                           }
                         });
