@@ -1093,16 +1093,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
         const remaining = prev.filter(q => q.finishTime > now);
         if (completed.length > 0) {
           completed.forEach(q => {
-            // Apply the level upgrade
             supabase.from('buildings').update({ level: q.targetLevel }).eq('id', q.buildingId).then();
             setBuildings(prevB => prevB.map(b => b.id === q.buildingId ? { ...b, level: q.targetLevel } : b));
           });
+          // Clean up from DB
+          supabase.from('build_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').then();
         }
         return remaining;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [buildQueue.length]);
+  }, [buildQueue.length, user?.id]);
 
   const getBuildTime = useCallback((type: Exclude<BuildingType, 'empty'>, level: number) => {
     const info = BUILDING_INFO[type];
