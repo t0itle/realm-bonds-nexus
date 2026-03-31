@@ -708,12 +708,26 @@ export default function WorldMap() {
     return () => clearInterval(interval);
   }, [capturedMines, addSteel]);
 
-  // Load outposts from database on mount
+  // Load outposts and outpost build queue from database on mount
   useEffect(() => {
     if (!user) return;
     supabase.from('outposts').select('*').then(({ data }) => {
       if (data && data.length > 0) {
         setOutposts(data.map((o: any) => ({ id: o.id, x: o.x, y: o.y, name: o.name, user_id: o.user_id, level: o.level || 1, garrison_power: o.garrison_power || 0, has_wall: o.has_wall || false, wall_level: o.wall_level || 0, territory_radius: o.territory_radius || 15000, outpost_type: o.outpost_type || 'outpost' })));
+      }
+    });
+    // Load persisted outpost build queue entries
+    supabase.from('build_queue').select('*').eq('user_id', user.id).in('building_type', ['outpost_upgrade', 'outpost_wall']).then(({ data }) => {
+      if (data && data.length > 0) {
+        const queue = data.map((q: any) => ({
+          outpostId: q.building_id,
+          action: q.building_type === 'outpost_upgrade' ? 'upgrade' as const : 'wall' as const,
+          finishTime: new Date(q.finish_time).getTime(),
+          targetLevel: q.target_level,
+          newGarrison: 0, // recalculated on completion
+          newRadius: 0,
+        }));
+        setOutpostBuildQueue(queue);
       }
     });
   }, [user]);
@@ -729,21 +743,31 @@ export default function WorldMap() {
         if (completed.length > 0) {
           for (const q of completed) {
             if (q.action === 'upgrade') {
-              supabase.from('outposts').update({ level: q.targetLevel, garrison_power: q.newGarrison, territory_radius: q.newRadius } as any).eq('id', q.outpostId);
-              setOutposts(prev2 => prev2.map(o => o.id === q.outpostId ? { ...o, level: q.targetLevel, garrison_power: q.newGarrison, territory_radius: q.newRadius! } : o));
+              // Recalculate values from target level
+              const baseGarrison = (q.targetLevel - 1) * 20;
+              const baseRadius = 15000 + (q.targetLevel - 1) * 3000;
+              supabase.from('outposts').update({ level: q.targetLevel, garrison_power: baseGarrison, territory_radius: baseRadius } as any).eq('id', q.outpostId);
+              setOutposts(prev2 => prev2.map(o => o.id === q.outpostId ? { ...o, level: q.targetLevel, garrison_power: baseGarrison, territory_radius: baseRadius } : o));
               toast.success(`🏕️ Outpost upgraded to Lv.${q.targetLevel}!`);
             } else {
-              supabase.from('outposts').update({ has_wall: true, wall_level: q.targetLevel, garrison_power: q.newGarrison } as any).eq('id', q.outpostId);
-              setOutposts(prev2 => prev2.map(o => o.id === q.outpostId ? { ...o, has_wall: true, wall_level: q.targetLevel, garrison_power: q.newGarrison } : o));
+              const wallGarrison = q.targetLevel * 30;
+              supabase.from('outposts').update({ has_wall: true, wall_level: q.targetLevel, garrison_power: wallGarrison } as any).eq('id', q.outpostId);
+              setOutposts(prev2 => prev2.map(o => o.id === q.outpostId ? { ...o, has_wall: true, wall_level: q.targetLevel, garrison_power: wallGarrison } : o));
               toast.success(`🧱 Wall ${q.targetLevel > 1 ? 'upgraded' : 'built'}!`);
             }
           }
+          // Clean up completed entries from DB
+          supabase.from('build_queue').delete()
+            .eq('user_id', user?.id ?? '')
+            .in('building_type', ['outpost_upgrade', 'outpost_wall'])
+            .lte('finish_time', new Date(now).toISOString())
+            .then();
         }
         return remaining;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [outpostBuildQueue.length]);
+  }, [outpostBuildQueue.length, user?.id]);
 
   // NPC vassal tribute income (from persistent state)
   useEffect(() => {
@@ -2065,7 +2089,12 @@ export default function WorldMap() {
                 const newLevel = op.level + 1;
                 const newGarrison = op.garrison_power + 20;
                 const newRadius = op.territory_radius + 3000;
-                setOutpostBuildQueue(prev => [...prev, { outpostId: op.id, action: 'upgrade', finishTime: Date.now() + upgradeTimeSec * 1000, targetLevel: newLevel, newGarrison, newRadius }]);
+                const finishTime = Date.now() + upgradeTimeSec * 1000;
+                setOutpostBuildQueue(prev => [...prev, { outpostId: op.id, action: 'upgrade', finishTime, targetLevel: newLevel, newGarrison, newRadius }]);
+                // Persist to build_queue table
+                if (user) {
+                  supabase.from('build_queue').insert({ user_id: user.id, building_id: op.id, building_type: 'outpost_upgrade', target_level: newLevel, finish_time: new Date(finishTime).toISOString() } as any).then();
+                }
                 toast(`${isSettlement ? '🏘️' : '🏕️'} Upgrading ${op.name} to Lv.${newLevel}... (${Math.floor(upgradeTimeSec / 60)}:${(upgradeTimeSec % 60).toString().padStart(2, '0')})`);
               };
 
@@ -2075,7 +2104,12 @@ export default function WorldMap() {
                 addResources({ gold: -wallCost.gold, wood: -wallCost.wood, stone: -wallCost.stone, food: -wallCost.food });
                 const newWallLevel = op.wall_level + 1;
                 const newGarrison = op.garrison_power + 30;
-                setOutpostBuildQueue(prev => [...prev, { outpostId: op.id, action: 'wall', finishTime: Date.now() + wallTimeSec * 1000, targetLevel: newWallLevel, newGarrison }]);
+                const finishTime = Date.now() + wallTimeSec * 1000;
+                setOutpostBuildQueue(prev => [...prev, { outpostId: op.id, action: 'wall', finishTime, targetLevel: newWallLevel, newGarrison }]);
+                // Persist to build_queue table
+                if (user) {
+                  supabase.from('build_queue').insert({ user_id: user.id, building_id: op.id, building_type: 'outpost_wall', target_level: newWallLevel, finish_time: new Date(finishTime).toISOString() } as any).then();
+                }
                 toast(`🧱 ${op.has_wall ? 'Upgrading wall' : 'Building wall'} at ${op.name}... (${Math.floor(wallTimeSec / 60)}:${(wallTimeSec % 60).toString().padStart(2, '0')})`);
               };
 
