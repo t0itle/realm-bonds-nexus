@@ -4,6 +4,7 @@ import { useGame, TroopType, Resources, calcMarchTime, getMaxRange, Building, BU
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import NPCInteractionPanel from './NPCInteractionPanel';
+import AttackConfigPanel from './AttackConfigPanel';
 
 // Map sprites
 import mapCastleHostile from '@/assets/sprites/map-castle-hostile.png';
