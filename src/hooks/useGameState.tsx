@@ -1049,12 +1049,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
           completed.forEach(q => { nextArmy[q.type] += q.count; });
           setArmy(nextArmy);
           persistArmyToVillage(nextArmy);
+          // Clean up completed entries from DB
+          supabase.from('training_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').then();
         }
         return remaining;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [trainingQueue.length, persistArmyToVillage]);
+  }, [trainingQueue.length, persistArmyToVillage, user?.id]);
 
   // Spy training queue processing
   useEffect(() => {
