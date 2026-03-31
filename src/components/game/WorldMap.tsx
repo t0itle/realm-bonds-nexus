@@ -778,6 +778,7 @@ export default function WorldMap() {
   }, [tradeContracts.length]);
 
   const DEFAULT_CAMERA = { cx: 100000, cy: 100000, ppu: 0.003 };
+  const initializedCamera = useRef(false);
   const [camera, setCamera] = useState(DEFAULT_CAMERA);
   const safeSetCamera = useCallback((updater: (prev: typeof DEFAULT_CAMERA) => typeof DEFAULT_CAMERA) => {
     setCamera(prev => {
@@ -937,6 +938,16 @@ export default function WorldMap() {
     const myVillage = allVillages.find(v => v.village.user_id === user.id);
     return getPlayerPos(myVillage?.village.id || 'me');
   }, [user, allVillages]);
+
+  // Center camera on player's village when map first loads
+  useEffect(() => {
+    if (initializedCamera.current) return;
+    const pos = getMyPos();
+    if (pos.x !== 100000 || pos.y !== 100000) {
+      setCamera(prev => ({ ...prev, cx: pos.x, cy: pos.y }));
+      initializedCamera.current = true;
+    }
+  }, [getMyPos]);
 
   const visionSources = useMemo(() => {
     const myPos = getMyPos();
