@@ -1079,6 +1079,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
           persistArmyToVillage(nextArmy);
           // Clean up completed entries from DB
           supabase.from('training_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').then();
+          // Push notification
+          const summary = completed.map(q => `${q.count} ${q.type}`).join(', ');
+          supabase.functions.invoke('send-push', {
+            body: { user_id: user?.id, title: '⚔️ Training Complete', body: `${summary} ready for battle!`, tag: 'training-done' },
+          }).catch(() => {});
         }
         return remaining;
       });
@@ -1104,6 +1109,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
           });
           // Clean up from DB
           supabase.from('spy_training_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').then();
+          // Push notification
+          supabase.functions.invoke('send-push', {
+            body: { user_id: user?.id, title: '🕵️ Spy Training Complete', body: `${totalSpies} spy${totalSpies > 1 ? 's' : ''} ready for missions!`, tag: 'spy-training-done' },
+          }).catch(() => {});
         }
         return remaining;
       });
@@ -1126,6 +1135,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
           });
           // Clean up from DB
           supabase.from('build_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').then();
+          // Push notification
+          const names = completed.map(q => {
+            const info = BUILDING_INFO[q.buildingType];
+            return info ? `${info.name} Lv.${q.targetLevel}` : q.buildingType;
+          });
+          supabase.functions.invoke('send-push', {
+            body: { user_id: user?.id, title: '🏗️ Construction Complete', body: `${names.join(', ')} finished!`, tag: 'build-done' },
+          }).catch(() => {});
         }
         return remaining;
       });
