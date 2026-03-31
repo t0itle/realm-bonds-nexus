@@ -1153,38 +1153,81 @@ export default function WorldMap() {
           // Sort so "me" renders on top
           const sorted = playerPositions.sort((a, b) => (a.isMe ? 1 : 0) - (b.isMe ? 1 : 0));
 
-          return sorted.map(({ pv, sx, sy, isMe }) => (
-            <button key={pv.village.id} data-map-item
-              onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'player', data: pv }); }}
-              className={`absolute flex flex-col items-center ${isMe ? 'z-40' : 'z-30'} hover:z-50`}
-              style={{ left: sx, top: sy, transform: 'translate(-50%, -80%)' }}>
-              <img
-                src={mapVillage}
-                alt={pv.profile.display_name}
-                loading="lazy"
-                className={`drop-shadow-lg ${isMe ? 'brightness-110 saturate-110' : 'brightness-75 grayscale-[20%]'}`}
-                style={{ width: iconSize * 1.2, height: iconSize * 1.2, imageRendering: 'auto', objectFit: 'contain' }}
-              />
-              {isMe && (
-                <div className="absolute -inset-2 rounded-full pointer-events-none"
-                  style={{ boxShadow: '0 0 18px 5px hsl(var(--primary) / 0.35)', border: '2px solid hsl(var(--primary) / 0.5)' }} />
-              )}
-              {iconSize > 28 && (
-                <div className={`text-center rounded-md px-1.5 py-0.5 backdrop-blur-sm ${isMe ? 'bg-primary/90 ring-1 ring-primary' : 'bg-background/80 border border-border/50'}`}
-                  style={{ marginTop: -2 }}>
-                  <p className={`font-display whitespace-nowrap leading-tight ${isMe ? 'text-primary-foreground' : 'text-foreground'}`}
-                    style={{ fontSize: Math.max(8, fontSize - 1) }}>
-                    {isMe ? '⭐ You' : pv.profile.display_name}
+          return sorted.map(({ pv, sx, sy, isMe }) => {
+            const pvThLevel = isMe ? townhallLevel : pv.village.level; // approximate TH level from village level for others
+            const sprite = getSettlementSprite(pvThLevel, isMe);
+            const settlementLabel = pvThLevel >= 7 ? '🏰 Castle' : pvThLevel >= 5 ? '🏘️ Town' : '🏠 Village';
+            return (
+              <button key={pv.village.id} data-map-item
+                onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'player', data: pv }); }}
+                className={`absolute flex flex-col items-center ${isMe ? 'z-40' : 'z-30'} hover:z-50`}
+                style={{ left: sx, top: sy, transform: 'translate(-50%, -80%)' }}>
+                <img
+                  src={sprite}
+                  alt={pv.profile.display_name}
+                  loading="lazy"
+                  className={`drop-shadow-lg ${isMe ? 'brightness-110 saturate-110' : 'brightness-75 grayscale-[20%]'}`}
+                  style={{ width: iconSize * 1.2, height: iconSize * 1.2, imageRendering: 'auto', objectFit: 'contain' }}
+                />
+                {isMe && (
+                  <div className="absolute -inset-2 rounded-full pointer-events-none"
+                    style={{ boxShadow: '0 0 18px 5px hsl(var(--primary) / 0.35)', border: '2px solid hsl(var(--primary) / 0.5)' }} />
+                )}
+                {iconSize > 28 && (
+                  <div className={`text-center rounded-md px-1.5 py-0.5 backdrop-blur-sm ${isMe ? 'bg-primary/90 ring-1 ring-primary' : 'bg-background/80 border border-border/50'}`}
+                    style={{ marginTop: -2 }}>
+                    <p className={`font-display whitespace-nowrap leading-tight ${isMe ? 'text-primary-foreground' : 'text-foreground'}`}
+                      style={{ fontSize: Math.max(8, fontSize - 1) }}>
+                      {isMe ? `⭐ ${settlementLabel}` : pv.profile.display_name}
+                    </p>
+                    <p className={`${isMe ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}
+                      style={{ fontSize: Math.max(7, fontSize - 3) }}>
+                      Lv.{pv.village.level}
+                    </p>
+                  </div>
+                )}
+              </button>
+            );
+          });
+        })()}
+
+        {/* ── Animated March Sprites ── */}
+        {marches.map(march => {
+          const now = Date.now();
+          const totalDuration = march.arrivalTime - march.startTime;
+          const elapsed = now - march.startTime;
+          const progress = Math.min(1, Math.max(0, elapsed / totalDuration));
+          const currentX = march.startX + (march.targetX - march.startX) * progress;
+          const currentY = march.startY + (march.targetY - march.startY) * progress;
+          const { sx, sy } = worldToScreen(currentX, currentY);
+          const { sx: startSx, sy: startSy } = worldToScreen(march.startX, march.startY);
+          const { sx: endSx, sy: endSy } = worldToScreen(march.targetX, march.targetY);
+          const marchSize = Math.max(16, Math.min(36, camera.ppu * 5000));
+          const remainingSec = Math.max(0, Math.ceil((march.arrivalTime - now) / 1000));
+          return (
+            <div key={march.id}>
+              {/* Dotted march path line */}
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible', zIndex: 35 }}>
+                <line x1={startSx} y1={startSy} x2={endSx} y2={endSy}
+                  stroke="hsl(var(--primary) / 0.4)" strokeWidth={2} strokeDasharray="6 4" />
+              </svg>
+              {/* Moving troop sprite */}
+              <div className="absolute z-40 flex flex-col items-center pointer-events-none"
+                style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', transition: 'left 0.4s linear, top 0.4s linear' }}>
+                <img src={mapPlayer} alt="March" className="drop-shadow-lg animate-bounce"
+                  style={{ width: marchSize, height: marchSize, objectFit: 'contain' }} />
+                <div className="bg-background/90 rounded px-1 py-0.5 text-center mt-0.5 border border-primary/30">
+                  <p className="text-primary font-display whitespace-nowrap" style={{ fontSize: Math.max(7, marchSize / 4) }}>
+                    🗡️ {march.targetName}
                   </p>
-                  <p className={`${isMe ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}
-                    style={{ fontSize: Math.max(7, fontSize - 3) }}>
-                    Lv.{pv.village.level}
+                  <p className="text-muted-foreground" style={{ fontSize: Math.max(6, marchSize / 5) }}>
+                    {remainingSec}s
                   </p>
                 </div>
-              )}
-            </button>
-          ));
-        })()}
+              </div>
+            </div>
+          );
+        })}
 
         {/* Zoom controls — larger touch targets on mobile */}
         <div className="absolute bottom-3 right-3 flex flex-col gap-1.5 z-50">
