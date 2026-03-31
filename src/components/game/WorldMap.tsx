@@ -442,14 +442,23 @@ type SelectedItem =
   | null;
 
 export default function WorldMap() {
-  const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer, vassalages } = useGame();
+  const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings } = useGame();
   const { user } = useAuth();
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
   const [capturedMines, setCapturedMines] = useState<Set<string>>(new Set());
-  const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; action: () => void }[]>([]);
+  const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; startTime: number; startX: number; startY: number; targetX: number; targetY: number; action: () => void }[]>([]);
   const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
   const [legendOpen, setLegendOpen] = useState(false);
+  const [, forceRender] = useState(0);
+
+  // Get TH level for dynamic sprite
+  const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
+  const getSettlementSprite = (thLevel: number, isMe: boolean) => {
+    if (thLevel >= 7) return isMe ? mapCastleFriendly : mapCastleNeutral;
+    if (thLevel >= 5) return mapCastleNeutral;
+    return mapVillage;
+  };
 
   // Steel production from captured mines
   useEffect(() => {
