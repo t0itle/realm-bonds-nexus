@@ -744,7 +744,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const villageChannel = supabase.channel('village-changes')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'villages', filter: `user_id=eq.${user.id}` }, (payload) => {
         const v = payload.new;
-        setResources({ gold: Number(v.gold), wood: Number(v.wood), stone: Number(v.stone), food: Number(v.food) });
+        // Only handle updates for current village
+        if (v.id !== villageIdRef.current) return;
+        // Skip resource fields — they're managed locally via client-side production ticks
+        // Only sync non-resource fields from DB updates
         setVillageNameLocal(v.name as string);
         setPlayerLevel(v.level as number);
         setSteel((v as any).steel ?? 0);
