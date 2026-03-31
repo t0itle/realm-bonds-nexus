@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useGame, TROOP_INFO, TroopType, SPY_MISSION_INFO, SpyMission } from '@/hooks/useGameState';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import ResourceIcon, { getResourceType } from './ResourceIcon';
 import VassalPanel from './VassalPanel';
 
@@ -22,7 +24,7 @@ export default function MilitaryPanel() {
   } = useGame();
   const [trainCount, setTrainCount] = useState<Record<TroopType, number>>({ militia: 1, archer: 1, knight: 1, cavalry: 1, siege: 1, scout: 1 });
   const [spyTrainCount, setSpyTrainCount] = useState(1);
-  const [tab, setTab] = useState<'troops' | 'espionage' | 'apothecary'>('troops');
+  const [tab, setTab] = useState<'troops' | 'espionage' | 'apothecary' | 'warlog'>('troops');
   const apothecaryLevel = getApothecaryLevel();
   const totalInjured = Object.values(injuredTroops).reduce((s, v) => s + v, 0);
   const [, forceUpdate] = useState(0);
@@ -107,6 +109,10 @@ export default function MilitaryPanel() {
             )}
           </button>
         )}
+        <button onClick={() => setTab('warlog')}
+          className={`flex-1 font-display text-[10px] py-1.5 rounded-lg transition-colors ${tab === 'warlog' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+          📜 War Log
+        </button>
       </div>
 
       {/* ===== TROOPS TAB ===== */}
@@ -298,6 +304,127 @@ export default function MilitaryPanel() {
           resources={useGame().resources}
         />
       )}
+
+      {/* ===== WAR LOG TAB ===== */}
+      {tab === 'warlog' && <WarLogPanel />}
+    </div>
+  );
+}
+
+function WarLogPanel() {
+  const { user } = useAuth();
+  const [reports, setReports] = useState<any[]>([]);
+  const [filter, setFilter] = useState<'all' | 'sent' | 'received'>('all');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetch = async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from('battle_reports')
+        .select('*')
+        .or(`attacker_id.eq.${user.id},defender_id.eq.${user.id}`)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      setReports(data || []);
+      setLoading(false);
+    };
+    fetch();
+  }, [user]);
+
+  const filtered = reports.filter(r => {
+    if (filter === 'sent') return r.attacker_id === user?.id;
+    if (filter === 'received') return r.defender_id === user?.id;
+    return true;
+  });
+
+  function timeAgo(dateStr: string) {
+    const mins = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-1">
+        {(['all', 'sent', 'received'] as const).map(f => (
+          <button key={f} onClick={() => setFilter(f)}
+            className={`flex-1 text-[10px] font-display py-1 rounded-lg transition-colors ${filter === f ? 'bg-secondary text-foreground' : 'text-muted-foreground'}`}>
+            {f === 'all' ? '📜 All' : f === 'sent' ? '⚔️ Sent' : '🛡️ Received'}
+          </button>
+        ))}
+      </div>
+
+      {loading && <p className="text-xs text-muted-foreground text-center py-4">Loading...</p>}
+
+      {!loading && filtered.length === 0 && (
+        <div className="text-center py-6 space-y-2">
+          <span className="text-3xl">📜</span>
+          <p className="text-sm text-muted-foreground">No battle records yet</p>
+        </div>
+      )}
+
+      {filtered.map(r => {
+        const isSent = r.attacker_id === user?.id;
+        const raided = r.resources_raided || {};
+        const raidStr = [
+          raided.gold ? `${raided.gold} 💰` : '',
+          raided.wood ? `${raided.wood} 🪵` : '',
+          raided.stone ? `${raided.stone} 🪨` : '',
+          raided.food ? `${raided.food} 🌾` : '',
+        ].filter(Boolean).join(' · ');
+
+        const won = isSent ? r.result === 'victory' : r.result !== 'victory';
+
+        return (
+          <div key={r.id} className={`game-panel rounded-xl p-3 border ${won ? 'border-primary/30' : 'border-destructive/30'}`}>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm">{isSent ? '⚔️' : '🛡️'}</span>
+                <span className="font-display text-xs text-foreground">
+                  {isSent ? `→ ${r.defender_name}` : `← ${r.attacker_name}`}
+                </span>
+              </div>
+              <div className="text-right">
+                <span className={`text-[10px] font-bold ${won ? 'text-primary' : 'text-destructive'}`}>
+                  {won ? 'Victory' : 'Defeat'}
+                </span>
+                <p className="text-[8px] text-muted-foreground">{timeAgo(r.created_at)}</p>
+              </div>
+            </div>
+
+            {/* Troop losses */}
+            <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[9px]">
+              {isSent && r.attacker_troops_lost && Object.entries(r.attacker_troops_lost).filter(([, v]) => v && (v as number) > 0).map(([type, count]) => (
+                <span key={type} className="text-destructive">-{count as number} {TROOP_INFO[type as TroopType]?.emoji || type}</span>
+              ))}
+              {!isSent && r.defender_troops_lost && Object.entries(r.defender_troops_lost).filter(([, v]) => v && (v as number) > 0).map(([type, count]) => (
+                <span key={type} className="text-destructive">-{count as number} {TROOP_INFO[type as TroopType]?.emoji || type}</span>
+              ))}
+            </div>
+
+            {/* Resources raided */}
+            {raidStr && (
+              <p className="text-[9px] mt-0.5">
+                <span className={isSent && r.result === 'victory' ? 'text-primary' : 'text-destructive'}>
+                  {isSent && r.result === 'victory' ? '📦 Raided: ' : '📦 Lost: '}{raidStr}
+                </span>
+              </p>
+            )}
+
+            {r.building_damaged && (
+              <p className="text-[9px] text-muted-foreground mt-0.5">🏚️ {r.building_damaged} damaged</p>
+            )}
+            {r.vassalized && (
+              <p className="text-[9px] text-primary font-bold mt-0.5">👑 {isSent ? 'Enemy vassalized!' : 'You were vassalized!'}</p>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
