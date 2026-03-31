@@ -1036,7 +1036,25 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return () => { clearInterval(tickInterval); clearInterval(serverSync); clearInterval(taxRefresh); };
   }, [villageId, user]);
 
-  // Training queue processing
+  // Persist injured troops whenever they change
+  const injuredInitRef = useRef(false);
+  useEffect(() => {
+    if (!villageId || !injuredInitRef.current) { injuredInitRef.current = true; return; }
+    supabase.from('villages').update({
+      injured_militia: injuredTroops.militia, injured_archer: injuredTroops.archer,
+      injured_knight: injuredTroops.knight, injured_cavalry: injuredTroops.cavalry,
+      injured_siege: injuredTroops.siege, injured_scout: injuredTroops.scout,
+    } as any).eq('id', villageId).then();
+  }, [injuredTroops, villageId]);
+
+  // Persist poisons whenever they change
+  const poisonsInitRef = useRef(false);
+  useEffect(() => {
+    if (!villageId || !poisonsInitRef.current) { poisonsInitRef.current = true; return; }
+    supabase.from('villages').update({ poisons } as any).eq('id', villageId).then();
+  }, [poisons, villageId]);
+
+
   useEffect(() => {
     if (trainingQueue.length === 0) return;
     const interval = setInterval(() => {
