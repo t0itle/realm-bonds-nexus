@@ -1670,6 +1670,33 @@ export default function WorldMap() {
           );
         })()}
 
+        {/* ── Territory borders ── */}
+        {outposts.map(outpost => {
+          if (!isVisible(outpost.x, outpost.y, 200)) return null;
+          const { sx, sy } = worldToScreen(outpost.x, outpost.y);
+          const isOwn = outpost.user_id === user?.id;
+          const tr = outpost.territory_radius * camera.ppu;
+          if (tr < 10) return null;
+          const borderColor = isOwn ? 'hsl(var(--primary))' : 'hsl(var(--destructive))';
+          const fillColor = isOwn ? 'hsl(var(--primary) / 0.04)' : 'hsl(var(--destructive) / 0.03)';
+          return (
+            <div key={`territory-${outpost.id}`} className="absolute pointer-events-none z-[10]"
+              style={{ left: sx - tr, top: sy - tr, width: tr * 2, height: tr * 2 }}>
+              <div className="w-full h-full rounded-full" style={{
+                border: outpost.has_wall ? `2px solid ${borderColor}` : `1px dashed ${borderColor}`,
+                background: fillColor,
+                opacity: outpost.has_wall ? 0.7 : 0.4,
+              }} />
+              {outpost.has_wall && (
+                <div className="absolute inset-1 rounded-full" style={{
+                  border: `1px solid ${borderColor}`,
+                  opacity: 0.3,
+                }} />
+              )}
+            </div>
+          );
+        })}
+
         {/* ── Outpost markers on the map ── */}
         {outposts.map(outpost => {
           if (!isVisible(outpost.x, outpost.y, 60)) return null;
@@ -1677,8 +1704,9 @@ export default function WorldMap() {
           const opSize = Math.max(18, Math.min(36, camera.ppu * 6000));
           const isOwn = outpost.user_id === user?.id;
           return (
-            <div key={outpost.id} className="absolute z-[46] flex flex-col items-center pointer-events-none"
-              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
+            <div key={outpost.id} className="absolute z-[46] flex flex-col items-center cursor-pointer"
+              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}
+              onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'outpost', data: outpost }); }}>
               <div className="relative">
                 <img src={mapVillage} alt={outpost.name} loading="lazy"
                   className={`drop-shadow-md ${isOwn ? 'brightness-90' : 'brightness-75 hue-rotate-180'}`}
@@ -1688,11 +1716,15 @@ export default function WorldMap() {
                     boxShadow: isOwn ? '0 0 10px 3px hsl(var(--primary) / 0.2)' : '0 0 8px 2px hsl(var(--destructive) / 0.15)',
                     border: isOwn ? '1px solid hsl(var(--primary) / 0.3)' : '1px solid hsl(var(--destructive) / 0.25)',
                   }} />
+                {outpost.has_wall && (
+                  <div className="absolute -inset-2 rounded-full pointer-events-none"
+                    style={{ border: `2px solid hsl(var(--${isOwn ? 'primary' : 'destructive'}) / 0.5)` }} />
+                )}
               </div>
               {opSize > 22 && (
                 <div className={`backdrop-blur-sm rounded px-1.5 py-0.5 text-center mt-0.5 border ${isOwn ? 'bg-background/70 border-primary/20' : 'bg-background/50 border-destructive/20'}`}>
                   <p className="text-foreground/80 font-display whitespace-nowrap" style={{ fontSize: Math.max(7, opSize / 5) }}>
-                    {isOwn ? '🏕️' : '⚑'} {outpost.name}
+                    {isOwn ? '🏕️' : '⚑'} {outpost.name} {outpost.level > 1 ? `Lv.${outpost.level}` : ''}
                   </p>
                 </div>
               )}
