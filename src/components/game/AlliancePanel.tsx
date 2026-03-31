@@ -217,6 +217,39 @@ export default function AlliancePanel() {
       {/* Guild features for members */}
       {myAlliance && (
         <>
+          {/* Member List */}
+          <div className="game-panel border-glow rounded-xl p-3 space-y-2">
+            <h3 className="font-display text-sm text-foreground flex items-center gap-1.5">
+              👥 Members <span className="text-[10px] text-muted-foreground font-normal">({members.length})</span>
+            </h3>
+            <div className="space-y-1.5 max-h-48 overflow-y-auto">
+              {members.map((m, i) => {
+                const roleLabel = m.role === 'leader' ? '👑' : m.role === 'officer' ? '⚔️' : '';
+                const roleColor = m.role === 'leader' ? 'text-primary' : m.role === 'officer' ? 'text-amber-500' : 'text-muted-foreground';
+                return (
+                  <motion.div key={m.user_id}
+                    initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-secondary/50">
+                    <span className="text-lg">{m.avatar_emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-display text-foreground truncate">
+                        {roleLabel} {m.display_name}
+                      </p>
+                      <p className="text-[9px] text-muted-foreground truncate">
+                        {m.village_name} · 👤{m.population}
+                      </p>
+                    </div>
+                    <span className={`text-[9px] font-semibold capitalize ${roleColor}`}>{m.role}</span>
+                  </motion.div>
+                );
+              })}
+              {members.length === 0 && (
+                <p className="text-[10px] text-muted-foreground text-center py-2">Loading members...</p>
+              )}
+            </div>
+          </div>
+
           <GuildChat allianceId={myAlliance} />
           <GuildTaxPanel allianceId={myAlliance} isLeader={alliances.find(a => a.id === myAlliance)?.leader_id === user?.id} />
           <GuildVoting allianceId={myAlliance} isLeader={alliances.find(a => a.id === myAlliance)?.leader_id === user?.id} />
