@@ -504,16 +504,7 @@ export default function WorldMap() {
     return () => clearInterval(interval);
   }, [marches.length]);
 
-  // Helper to create a march with position data
-  const createMarch = useCallback((id: string, targetName: string, targetX: number, targetY: number, travelSec: number, action: () => void) => {
-    const myPos = getMyPos();
-    const now = Date.now();
-    setMarches(prev => [...prev, {
-      id, targetName, arrivalTime: now + travelSec * 1000,
-      startTime: now, startX: myPos.x, startY: myPos.y,
-      targetX, targetY, action,
-    }]);
-  }, [getMyPos]);
+  // createMarch is defined below after getMyPos
 
   // Expire trade contracts
   useEffect(() => {
