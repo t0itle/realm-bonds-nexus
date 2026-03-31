@@ -1538,7 +1538,79 @@ export default function WorldMap() {
           );
         })}
 
-        {/* Zoom controls — larger touch targets on mobile */}
+        {/* ── Other Players' Marches (live from DB) ── */}
+        {otherMarches.map(march => {
+          const now = Date.now();
+          const startT = new Date(march.started_at).getTime();
+          const endT = new Date(march.arrives_at).getTime();
+          const totalDuration = endT - startT;
+          const elapsed = now - startT;
+          const progress = Math.min(1, Math.max(0, elapsed / totalDuration));
+          const currentX = march.start_x + (march.target_x - march.start_x) * progress;
+          const currentY = march.start_y + (march.target_y - march.start_y) * progress;
+          const { sx, sy } = worldToScreen(currentX, currentY);
+          // Visibility check
+          if (sx < -80 || sx > containerSize.w + 80 || sy < -80 || sy > containerSize.h + 80) return null;
+          const facingLeft = march.target_x < march.start_x;
+          const marchSize = Math.max(14, Math.min(28, camera.ppu * 4000));
+          const remainingSec = Math.max(0, Math.ceil((endT - now) / 1000));
+          // Draw line from start to end
+          const startScreen = worldToScreen(march.start_x, march.start_y);
+          const endScreen = worldToScreen(march.target_x, march.target_y);
+          const marchColor = march.march_type === 'attack' ? 'hsl(0 72% 50% / 0.3)' : march.march_type === 'envoy' ? 'hsl(42 72% 52% / 0.3)' : 'hsl(216 12% 50% / 0.25)';
+          return (
+            <div key={march.id}>
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible', zIndex: 32 }}>
+                <line x1={startScreen.sx} y1={startScreen.sy} x2={endScreen.sx} y2={endScreen.sy}
+                  stroke={marchColor} strokeWidth={1.5} strokeDasharray="4 3" opacity={0.6} />
+              </svg>
+              <div className="absolute z-35 flex flex-col items-center pointer-events-none"
+                style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', transition: 'left 0.8s linear, top 0.8s linear' }}>
+                <img src={mapSoldier} alt="Troops" className="drop-shadow-md opacity-70"
+                  style={{ width: marchSize, height: marchSize, objectFit: 'contain', transform: facingLeft ? 'scaleX(-1)' : undefined }} loading="lazy" />
+                {marchSize > 16 && (
+                  <div className="bg-background/70 backdrop-blur-sm rounded px-1 py-0.5 text-center mt-0.5 border border-border/30">
+                    <p className="text-foreground/70 font-display whitespace-nowrap" style={{ fontSize: Math.max(6, marchSize / 4) }}>
+                      {march.player_name}
+                    </p>
+                    <p className="text-muted-foreground/60 whitespace-nowrap" style={{ fontSize: Math.max(5, marchSize / 5) }}>
+                      → {march.target_name} · {remainingSec}s
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* ── Fog of War ── */}
+        {(() => {
+          const myPos = getMyPos();
+          const { sx: mySx, sy: mySy } = worldToScreen(myPos.x, myPos.y);
+          // Visibility radius in screen pixels — scouts extend this
+          const scoutCount = army.scout || 0;
+          const baseVisionWorld = 40000 + scoutCount * 8000;
+          const visionRadiusPx = baseVisionWorld * camera.ppu;
+          // Only render fog if it would actually obscure something
+          if (visionRadiusPx < 20) return null;
+          return (
+            <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 45, mixBlendMode: 'multiply' }}>
+              <defs>
+                <radialGradient id="fog-grad" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="transparent" />
+                  <stop offset="60%" stopColor="transparent" />
+                  <stop offset="85%" stopColor="hsl(216 28% 5% / 0.4)" />
+                  <stop offset="100%" stopColor="hsl(216 28% 5% / 0.7)" />
+                </radialGradient>
+                <mask id="fog-mask">
+                  <rect width="100%" height="100%" fill="white" />
+                  <ellipse cx={mySx} cy={mySy} rx={visionRadiusPx} ry={visionRadiusPx} fill="black" />
+                </mask>
+              </defs>
+              <rect width="100%" height="100%" fill="hsl(216 28% 5% / 0.55)" mask="url(#fog-mask)" />
+            </svg>
+          );
+        })()}
         <div className="absolute bottom-4 right-3 flex flex-col gap-1 z-50">
           <button onClick={() => safeSetCamera(prev => ({ ...prev, ppu: Math.min(0.05, prev.ppu * 1.5) }))}
             className="w-9 h-9 bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-sm font-medium active:scale-90 transition-all hover:bg-background/95 shadow-sm">+</button>
