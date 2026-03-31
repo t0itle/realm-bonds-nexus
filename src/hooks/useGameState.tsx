@@ -1621,6 +1621,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       spies, trainSpies, sendSpyMission, activeSpyMissions, spyTrainingQueue, intelReports, getWatchtowerLevel,
       attackPlayer, vassalages, payRansom, attemptRebellion, setVassalTributeRate, releaseVassal, getWallLevel,
       injuredTroops, poisons, healTroops, craftPoison, getApothecaryLevel,
+      storageCapacity,
     }}>
       {children}
     </GameContext.Provider>
