@@ -391,6 +391,7 @@ interface GameContextType {
   spyTrainingQueue: { count: number; finishTime: number }[];
   intelReports: IntelReport[];
   getWatchtowerLevel: () => number;
+  getSpyGuildLevel: () => number;
   // Apothecary
   injuredTroops: InjuredArmy;
   poisons: number;
