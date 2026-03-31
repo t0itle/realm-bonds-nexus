@@ -2153,6 +2153,53 @@ export default function WorldMap() {
                           </motion.button>
                         )}
                       </div>
+                      {/* Convert to Settlement at Lv.5+ */}
+                      {!isSettlement && op.level >= 5 && (
+                        <div className="bg-accent/20 rounded-lg p-2 space-y-1">
+                          <p className="text-[10px] font-semibold text-accent-foreground">🏘️ Convert to Settlement</p>
+                          <p className="text-[8px] text-muted-foreground">This outpost is developed enough to become a full settlement with its own village, buildings, and resource production.</p>
+                          <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+                            <span className={resources.gold >= 500 ? '' : 'text-destructive'}>🪙500</span>
+                            <span className={resources.wood >= 300 ? '' : 'text-destructive'}>🪵300</span>
+                            <span className={resources.stone >= 200 ? '' : 'text-destructive'}>🪨200</span>
+                            <span className={resources.food >= 100 ? '' : 'text-destructive'}>🌾100</span>
+                          </div>
+                          <motion.button whileTap={{ scale: 0.95 }}
+                            disabled={resources.gold < 500 || resources.wood < 300 || resources.stone < 200 || resources.food < 100}
+                            onClick={async () => {
+                              if (!user) return;
+                              if (!window.confirm(`Convert ${op.name} into a full settlement? This costs 500 gold, 300 wood, 200 stone, 100 food.`)) return;
+                              addResources({ gold: -500, wood: -300, stone: -200, food: -100 });
+                              // Create new village at outpost location
+                              const settleName = op.name || `Settlement ${Math.floor(Math.random() * 100)}`;
+                              const { data: newVillage, error } = await supabase.from('villages').insert({
+                                user_id: user.id,
+                                name: settleName,
+                                map_x: op.x,
+                                map_y: op.y,
+                                settlement_type: 'village',
+                                gold: 100, wood: 100, stone: 50, food: 50,
+                                population: 5, max_population: 15,
+                              }).select().single();
+                              if (error || !newVillage) { toast.error(`Failed: ${error?.message || 'Unknown'}`); return; }
+                              // Create starter buildings
+                              await supabase.from('buildings').insert([
+                                { village_id: newVillage.id, user_id: user.id, type: 'townhall', level: 1, position: 4 },
+                                { village_id: newVillage.id, user_id: user.id, type: 'farm', level: 1, position: 7 },
+                                { village_id: newVillage.id, user_id: user.id, type: 'lumbermill', level: 1, position: 3 },
+                              ]);
+                              // Convert outpost type to settlement
+                              await supabase.from('outposts').update({ outpost_type: 'settlement', name: settleName } as any).eq('id', op.id);
+                              setOutposts(prev => prev.map(o => o.id === op.id ? { ...o, outpost_type: 'settlement', name: settleName } : o));
+                              await refreshVillages();
+                              toast.success(`🏘️ ${settleName} is now a full settlement!`);
+                              setSelected(null);
+                            }}
+                            className="w-full bg-accent text-accent-foreground font-display text-[11px] py-2 rounded-lg disabled:opacity-40 active:scale-95 transition-transform">
+                            🏘️ Convert to Settlement
+                          </motion.button>
+                        </div>
+                      )}
                       {/* Delete Outpost (only for non-settlement outposts) */}
                       {!isSettlement && (
                         <div className="bg-destructive/10 rounded-lg p-2 space-y-1">
