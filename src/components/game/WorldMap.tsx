@@ -232,7 +232,7 @@ function hashCoords(cx: number, cy: number, salt = 0): number {
 }
 
 // ── Chunk-based procedural world ──
-const CHUNK_SIZE = 50000; // world units per chunk
+const CHUNK_SIZE = 90000; // world units per chunk — spread out for cleaner map
 
 interface TerrainFeature {
   type: 'lake' | 'mountain' | 'island' | 'river';
