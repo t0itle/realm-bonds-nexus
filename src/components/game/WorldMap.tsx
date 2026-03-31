@@ -1250,15 +1250,15 @@ export default function WorldMap() {
           const centerY = chunk.cy * CHUNK_SIZE + CHUNK_SIZE / 2;
           const { sx, sy } = worldToScreen(centerX, centerY);
           const regionSize = CHUNK_SIZE * camera.ppu;
-          if (regionSize < 40) return null; // too small to show label
+          if (regionSize < 60) return null;
           const biomeEmoji = REGION_EMOJIS[chunk.data.regionBiome] || '🗺️';
-          const labelFontSize = Math.max(10, Math.min(18, regionSize / 8));
+          const labelFontSize = Math.max(9, Math.min(14, regionSize / 12));
           return (
             <div key={`region-${chunk.cx}-${chunk.cy}`}
-              className="absolute pointer-events-none flex flex-col items-center opacity-40"
-              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
-              <span style={{ fontSize: labelFontSize * 1.2 }}>{biomeEmoji}</span>
-              <span className="font-display text-foreground/50 whitespace-nowrap text-center" style={{ fontSize: labelFontSize }}>
+              className="absolute pointer-events-none flex flex-col items-center"
+              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', opacity: 0.2 }}>
+              <span style={{ fontSize: labelFontSize }}>{biomeEmoji}</span>
+              <span className="font-display text-foreground/40 whitespace-nowrap text-center tracking-widest uppercase" style={{ fontSize: labelFontSize * 0.8, letterSpacing: '0.15em' }}>
                 {chunk.data.regionName}
               </span>
             </div>
