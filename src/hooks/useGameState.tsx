@@ -758,6 +758,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     };
     loadData();
+  }, [user, targetVillageId]);
+
+  // Initial load
+  useEffect(() => {
+    loadVillageData();
+  }, [user]);
+
+  const switchVillage = useCallback((newVillageId: string) => {
+    if (newVillageId === villageId) return;
+    setLoading(true);
+    loadVillageData(newVillageId);
+  }, [villageId, loadVillageData]);
 
     const villageChannel = supabase.channel('village-changes')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'villages', filter: `user_id=eq.${user.id}` }, (payload) => {
