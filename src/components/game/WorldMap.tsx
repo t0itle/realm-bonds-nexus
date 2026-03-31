@@ -1667,17 +1667,25 @@ export default function WorldMap() {
                       if (!hasTroops) { toast.error('You need troops to capture a mine!'); return; }
                       const travelSec = calcTravelTime(selected.data.x, selected.data.y);
                       const mineData = selected.data;
-                      toast(`⚔️ Troops marching to ${mineData.name}... ETA ${travelSec}s`);
-                      createMarch(`mine-${Date.now()}`, mineData.name, mineData.x, mineData.y, travelSec, () => {
-                        const log = attackTarget(mineData.name, mineData.power);
-                        if (log.result === 'victory') {
-                          setCapturedMines(prev => new Set([...prev, mineData.id]));
-                          toast.success(`⚙️ ${mineData.name} captured! Producing steel.`);
-                        } else {
-                          toast.error('Defeat! The garrison held.');
-                        }
+                      setAttackConfig({
+                        targetName: mineData.name, targetPower: mineData.power,
+                        targetX: mineData.x, targetY: mineData.y, travelTime: travelSec,
+                        showEspionage: false,
+                        onAttack: (sentArmy) => {
+                          toast(`⚔️ Troops marching to ${mineData.name}... ETA ${travelSec}s`);
+                          createMarch(`mine-${Date.now()}`, mineData.name, mineData.x, mineData.y, travelSec, () => {
+                            const log = attackTarget(mineData.name, mineData.power, sentArmy);
+                            if (log.result === 'victory') {
+                              setCapturedMines(prev => new Set([...prev, mineData.id]));
+                              toast.success(`⚙️ ${mineData.name} captured! Producing steel.`);
+                            } else {
+                              toast.error('Defeat! The garrison held.');
+                            }
+                          });
+                          setAttackConfig(null);
+                          setSelected(null);
+                        },
                       });
-                      setSelected(null);
                     }}
                     className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2.5 rounded-lg glow-gold-sm active:scale-95 transition-transform">
                     ⚔️ Capture Mine (Garrison: ⚔️{selected.data.power})
