@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame, Resources } from '@/hooks/useGameState';
+import { NPCPlayerRelation, NPCTownRelation, NPCTownState } from '@/hooks/useNPCState';
 import { toast } from 'sonner';
-import ResourceIcon from './ResourceIcon';
+import NPCMercenaryPanel from './NPCMercenaryPanel';
+import NPCDiplomacyInfo from './NPCDiplomacyInfo';
 
-// Trade rates by biome — each biome has resources they WANT (buy high) and SELL cheap
+// Trade rates by biome
 const BIOME_TRADE_PROFILES: Record<string, { wants: (keyof Resources)[]; sells: (keyof Resources)[]; desc: string }> = {
   Plains:     { wants: ['stone', 'gold'], sells: ['food', 'wood'], desc: 'Fertile farmlands with abundant harvests' },
   Highlands:  { wants: ['food', 'wood'], sells: ['stone', 'gold'], desc: 'Rich in minerals and precious metals' },
@@ -33,53 +35,52 @@ interface NPCRealm {
   territory: number;
 }
 
-interface NPCRelation {
-  realmId: string;
-  status: 'neutral' | 'friendly' | 'vassal' | 'allied';
-  tributeRate: number;
-  friendshipLevel: number; // 0-100, affects trade rates
-}
-
 interface Props {
   realm: NPCRealm;
   biome: string;
   onClose: () => void;
   onAttack: (realm: NPCRealm) => void;
   onEnvoy: (realm: NPCRealm) => void;
-  npcRelations: Map<string, NPCRelation>;
-  setNpcRelations: React.Dispatch<React.SetStateAction<Map<string, NPCRelation>>>;
+  // Persistent NPC state
+  playerRelation: NPCPlayerRelation | null;
+  townState: NPCTownState | null;
+  townRelations: NPCTownRelation[];
+  allRealmNames: Map<string, string>;
+  onUpdateSentiment: (npcTownId: string, delta: number, status?: NPCPlayerRelation['status']) => Promise<void>;
+  onSetRelationStatus: (npcTownId: string, status: NPCPlayerRelation['status'], tributeRate?: number) => Promise<void>;
+  onHireMercenaries: (npcTownId: string, troops: Record<string, number>, goldCost: number) => Promise<boolean>;
   isInRange: boolean;
   travelTime: number;
   hasActiveTrade: boolean;
 }
 
-export default function NPCInteractionPanel({ realm, biome, onClose, onAttack, onEnvoy, npcRelations, setNpcRelations, isInRange, travelTime, hasActiveTrade }: Props) {
+export default function NPCInteractionPanel({
+  realm, biome, onClose, onAttack, onEnvoy,
+  playerRelation, townState, townRelations, allRealmNames,
+  onUpdateSentiment, onSetRelationStatus, onHireMercenaries,
+  isInRange, travelTime, hasActiveTrade,
+}: Props) {
   const { resources, addResources } = useGame();
-  const [tab, setTab] = useState<'info' | 'trade' | 'talk'>('info');
-  const [tradeResource, setTradeResource] = useState<keyof Resources | null>(null);
+  const [tab, setTab] = useState<'info' | 'trade' | 'talk' | 'mercs'>('info');
   const [tradeAmount, setTradeAmount] = useState(50);
   const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const relation = npcRelations.get(realm.id) || { realmId: realm.id, status: realm.type === 'friendly' ? 'friendly' : 'neutral', tributeRate: 0, friendshipLevel: realm.type === 'friendly' ? 40 : 10 };
+  const sentiment = playerRelation?.sentiment ?? (realm.type === 'friendly' ? 20 : realm.type === 'hostile' ? -30 : 0);
+  const status = playerRelation?.status ?? (realm.type === 'friendly' ? 'friendly' : 'neutral');
   const profile = BIOME_TRADE_PROFILES[biome] || BIOME_TRADE_PROFILES['Plains'];
+  const effectivePower = townState?.current_power ?? realm.power;
 
-  // Trade rates: base 1:1 ratio, biome adjusts prices
-  // Selling what they WANT: you get more for it. Buying what they SELL: cheaper.
+  // Trade rates based on sentiment
   const getTradeRate = (fromResource: keyof Resources, toResource: keyof Resources): number => {
     let rate = 1.0;
-    // If the realm wants what you're selling, better rate
     if (profile.wants.includes(fromResource)) rate *= 1.4;
-    // If they sell what you want, better rate
     if (profile.sells.includes(toResource)) rate *= 1.3;
-    // Friendship bonus
-    rate *= 1 + (relation.friendshipLevel / 200);
-    // Hostile penalty
-    if (realm.type === 'hostile') rate *= 0.5;
-    // Vassal bonus
-    if (relation.status === 'vassal') rate *= 1.5;
+    rate *= 1 + (sentiment / 200);
+    if (realm.type === 'hostile' && sentiment < 0) rate *= 0.5;
+    if (status === 'vassal') rate *= 1.5;
     return Math.round(rate * 100) / 100;
   };
 
@@ -93,29 +94,20 @@ export default function NPCInteractionPanel({ realm, biome, onClose, onAttack, o
         if (rate > 0.3) trades.push({ give, receive, rate });
       }
     }
-    // Sort by best rates first
     return trades.sort((a, b) => b.rate - a.rate).slice(0, 6);
   })();
 
-  const executeTrade = (give: keyof Resources, receive: keyof Resources, amount: number) => {
+  const executeTrade = async (give: keyof Resources, receive: keyof Resources, amount: number) => {
     if (resources[give] < amount) { toast.error(`Not enough ${give}!`); return; }
     if (!isInRange) { toast.error('Out of range!'); return; }
     const rate = getTradeRate(give, receive);
     const received = Math.floor(amount * rate);
     addResources({ [give]: -amount, [receive]: received });
-    // Increase friendship
-    setNpcRelations(prev => {
-      const next = new Map(prev);
-      const r = next.get(realm.id) || { ...relation };
-      r.friendshipLevel = Math.min(100, r.friendshipLevel + Math.floor(amount / 50));
-      if (r.friendshipLevel >= 60 && r.status === 'neutral') r.status = 'friendly';
-      next.set(realm.id, r);
-      return next;
-    });
+    await onUpdateSentiment(realm.id, Math.floor(amount / 50));
     toast.success(`Traded ${amount} ${RESOURCE_ICONS[give]} for ${received} ${RESOURCE_ICONS[receive]}`);
   };
 
-  // AI chat with NPC ruler
+  // AI chat
   const sendChat = useCallback(async () => {
     if (!chatInput.trim() || chatLoading) return;
     const userMsg = chatInput.trim();
@@ -125,27 +117,16 @@ export default function NPCInteractionPanel({ realm, biome, onClose, onAttack, o
     setChatLoading(true);
 
     try {
-      const systemContext = `You are ${realm.ruler}, ruler of ${realm.name}, a ${realm.type} NPC kingdom in the ${biome} biome. Your realm has power level ${realm.power}. You speak in character as a medieval ruler. Keep responses SHORT (2-3 sentences). The player's friendship level with you is ${relation.friendshipLevel}/100. ${relation.status === 'vassal' ? 'They have conquered your realm and you are their vassal — be submissive but resentful.' : relation.status === 'friendly' ? 'You are on friendly terms — be warm and helpful.' : realm.type === 'hostile' ? 'You are hostile — be threatening and dismissive.' : 'You are cautious but open to diplomacy.'}`;
+      const systemContext = `You are ${realm.ruler}, ruler of ${realm.name}, a ${realm.type} NPC kingdom in the ${biome} biome. Power level ${effectivePower}. Speak in character as a medieval ruler. Keep responses SHORT (2-3 sentences). Player sentiment: ${sentiment}/100. ${status === 'vassal' ? 'They conquered you — be submissive but resentful.' : status === 'friendly' ? 'Be warm and helpful.' : realm.type === 'hostile' ? 'Be threatening.' : 'Be cautious but open.'}${townState?.last_action ? ` Recently: ${townState.last_action}.` : ''}`;
 
       const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/game-dm`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({
-          type: 'event',
-          messages: [{ role: 'system', content: systemContext }, ...newMessages],
-          gameState: null,
-        }),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        body: JSON.stringify({ type: 'event', messages: [{ role: 'system', content: systemContext }, ...newMessages], gameState: null }),
       });
 
-      if (!resp.ok) {
-        const errData = await resp.json().catch(() => ({}));
-        throw new Error(errData.error || 'Failed to get response');
-      }
+      if (!resp.ok) throw new Error('Failed');
 
-      // Stream the response
       const reader = resp.body?.getReader();
       if (!reader) throw new Error('No reader');
       const decoder = new TextDecoder();
@@ -156,7 +137,6 @@ export default function NPCInteractionPanel({ realm, biome, onClose, onAttack, o
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
-
         let newlineIdx: number;
         while ((newlineIdx = buffer.indexOf('\n')) !== -1) {
           let line = buffer.slice(0, newlineIdx);
@@ -186,42 +166,30 @@ export default function NPCInteractionPanel({ realm, biome, onClose, onAttack, o
         setChatMessages(prev => [...prev, { role: 'assistant', content: '*The ruler stares at you silently.*' }]);
       }
 
-      // Talking increases friendship slightly
-      setNpcRelations(prev => {
-        const next = new Map(prev);
-        const r = next.get(realm.id) || { ...relation };
-        r.friendshipLevel = Math.min(100, r.friendshipLevel + 2);
-        next.set(realm.id, r);
-        return next;
-      });
+      await onUpdateSentiment(realm.id, 2);
     } catch (e) {
       console.error('NPC chat error:', e);
       setChatMessages(prev => [...prev, { role: 'assistant', content: '*The ruler is unavailable.*' }]);
     } finally {
       setChatLoading(false);
     }
-  }, [chatInput, chatMessages, chatLoading, realm, biome, relation]);
+  }, [chatInput, chatMessages, chatLoading, realm, biome, sentiment, status, effectivePower, townState, onUpdateSentiment]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
-  // Vassalize NPC (after winning a battle, or through high friendship)
-  const vassalizeNPC = () => {
-    if (relation.friendshipLevel < 80 && realm.type !== 'friendly') {
-      toast.error('Friendship too low! Trade or talk more first (need 80+).');
+  const vassalizeNPC = async () => {
+    if (sentiment < 60 && realm.type !== 'friendly') {
+      toast.error('Sentiment too low! Trade or talk more (need 60+).');
       return;
     }
-    setNpcRelations(prev => {
-      const next = new Map(prev);
-      next.set(realm.id, { ...relation, status: 'vassal', tributeRate: 10, friendshipLevel: Math.max(relation.friendshipLevel, 60) });
-      return next;
-    });
-    toast.success(`${realm.name} has pledged allegiance! They are now your vassal.`);
+    await onSetRelationStatus(realm.id, 'vassal', 10);
+    toast.success(`${realm.name} has pledged allegiance!`);
   };
 
-  const friendshipColor = relation.friendshipLevel >= 80 ? 'text-food' : relation.friendshipLevel >= 40 ? 'text-primary' : 'text-muted-foreground';
-  const statusLabel = relation.status === 'vassal' ? '👑 Vassal' : relation.status === 'friendly' ? '🤝 Friendly' : relation.status === 'allied' ? '⭐ Allied' : '😐 Neutral';
+  const sentimentColor = sentiment >= 60 ? 'text-food' : sentiment >= 20 ? 'text-primary' : sentiment >= -20 ? 'text-muted-foreground' : 'text-destructive';
+  const statusLabel = status === 'vassal' ? '👑 Vassal' : status === 'friendly' ? '🤝 Friendly' : status === 'allied' ? '⭐ Allied' : '😐 Neutral';
 
   return (
     <div className="space-y-2">
@@ -234,22 +202,22 @@ export default function NPCInteractionPanel({ realm, biome, onClose, onAttack, o
         </div>
         <div className="flex flex-col items-end gap-0.5">
           <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-            relation.status === 'vassal' ? 'bg-primary/20 text-primary' :
+            status === 'vassal' ? 'bg-primary/20 text-primary' :
             realm.type === 'hostile' ? 'bg-destructive/20 text-destructive' :
             realm.type === 'friendly' ? 'bg-food/20 text-food' : 'bg-muted text-muted-foreground'
           }`}>{statusLabel}</span>
-          <span className={`text-[8px] ${friendshipColor}`}>❤️ {relation.friendshipLevel}/100</span>
+          <span className={`text-[8px] ${sentimentColor}`}>❤️ {sentiment > 0 ? '+' : ''}{sentiment}</span>
         </div>
       </div>
 
       {/* Tab bar */}
       <div className="flex gap-1 bg-muted/30 rounded-lg p-0.5">
-        {(['info', 'trade', 'talk'] as const).map(t => (
+        {(['info', 'trade', 'mercs', 'talk'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`flex-1 font-display text-[10px] py-1.5 rounded-md transition-colors ${
               tab === t ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'
             }`}>
-            {t === 'info' ? '📋 Info' : t === 'trade' ? '💱 Trade' : '💬 Talk'}
+            {t === 'info' ? '📋 Info' : t === 'trade' ? '💱 Trade' : t === 'mercs' ? '⚔️ Mercs' : '💬 Talk'}
           </button>
         ))}
       </div>
@@ -259,39 +227,57 @@ export default function NPCInteractionPanel({ realm, biome, onClose, onAttack, o
         {tab === 'info' && (
           <motion.div key="info" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-2">
             <p className="text-[10px] text-muted-foreground">{realm.desc}</p>
-            <div className="flex items-center gap-2 text-[10px]">
-              <span className="text-foreground font-bold">⚔️ Power: {realm.power}</span>
+            <div className="flex items-center gap-2 text-[10px] flex-wrap">
+              <span className="text-foreground font-bold">⚔️ Power: {effectivePower}</span>
               <span className="text-muted-foreground">·</span>
               <span className="text-muted-foreground">🌍 {biome}</span>
               <span className="text-muted-foreground">·</span>
               <span className="text-muted-foreground">📍 {isInRange ? `${travelTime}s away` : 'Out of range'}</span>
             </div>
-            <p className="text-[9px] text-muted-foreground italic">{profile.desc}</p>
 
+            {/* NPC Town autonomous actions */}
+            {townState?.last_action && (
+              <div className="bg-muted/30 rounded-lg p-1.5">
+                <p className="text-[9px] text-foreground">📰 Recent: <span className="text-primary">{townState.last_action}</span></p>
+                {townState.claimed_regions.length > 0 && (
+                  <p className="text-[8px] text-muted-foreground">🏴 Controls {townState.claimed_regions.length} region(s)</p>
+                )}
+              </div>
+            )}
+
+            {/* NPC-to-NPC diplomacy */}
+            <NPCDiplomacyInfo
+              realmId={realm.id}
+              realmName={realm.name}
+              townRelations={townRelations}
+              allRealmNames={allRealmNames}
+            />
+
+            <p className="text-[9px] text-muted-foreground italic">{profile.desc}</p>
             {hasActiveTrade && <span className="text-[9px] text-food font-bold block">📜 Active Trade Contract</span>}
 
             <div className="flex gap-1.5 mt-1.5">
-              {relation.status !== 'vassal' && realm.type !== 'hostile' && (
+              {status !== 'vassal' && realm.type !== 'hostile' && (
                 <motion.button whileTap={{ scale: 0.95 }} onClick={() => onEnvoy(realm)}
                   className="flex-1 bg-primary/20 text-primary font-display text-[10px] py-2 rounded-lg">
-                  📜 Envoy 💰{Math.floor(realm.power * 0.3)}
+                  📜 Envoy 💰{Math.floor(effectivePower * 0.3)}
                 </motion.button>
               )}
-              {relation.status !== 'vassal' && (
+              {status !== 'vassal' && (
                 <motion.button whileTap={{ scale: 0.95 }} onClick={() => onAttack(realm)}
                   className="flex-1 bg-destructive/20 text-destructive font-display text-[10px] py-2 rounded-lg">
                   ⚔️ Attack
                 </motion.button>
               )}
-              {relation.status !== 'vassal' && (relation.friendshipLevel >= 80 || realm.type === 'friendly') && (
+              {status !== 'vassal' && (sentiment >= 60 || realm.type === 'friendly') && (
                 <motion.button whileTap={{ scale: 0.95 }} onClick={vassalizeNPC}
                   className="flex-1 bg-food/20 text-food font-display text-[10px] py-2 rounded-lg">
                   👑 Vassalize
                 </motion.button>
               )}
-              {relation.status === 'vassal' && (
+              {status === 'vassal' && (
                 <div className="flex-1 bg-primary/10 text-primary font-display text-[10px] py-2 rounded-lg text-center">
-                  👑 Tribute: {relation.tributeRate}% • +{Math.floor(realm.power * 0.02)}/min
+                  👑 Tribute: {playerRelation?.tribute_rate || 10}% • +{Math.floor(effectivePower * 0.02)}/min
                 </div>
               )}
             </div>
@@ -326,9 +312,7 @@ export default function NPCInteractionPanel({ realm, biome, onClose, onAttack, o
                         ×{trade.rate}
                       </span>
                     </div>
-                    <p className="text-[9px] text-muted-foreground">
-                      {tradeAmount} → {receiveAmt}
-                    </p>
+                    <p className="text-[9px] text-muted-foreground">{tradeAmount} → {receiveAmt}</p>
                   </motion.button>
                 );
               })}
@@ -343,6 +327,20 @@ export default function NPCInteractionPanel({ realm, biome, onClose, onAttack, o
             </div>
 
             {!isInRange && <p className="text-[9px] text-destructive text-center">Out of range — train scouts to extend reach</p>}
+          </motion.div>
+        )}
+
+        {/* MERCENARIES TAB */}
+        {tab === 'mercs' && (
+          <motion.div key="mercs" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <NPCMercenaryPanel
+              realmId={realm.id}
+              realmName={realm.name}
+              realmPower={effectivePower}
+              relation={playerRelation}
+              townState={townState}
+              onHire={(troops, goldCost) => onHireMercenaries(realm.id, troops, goldCost)}
+            />
           </motion.div>
         )}
 
