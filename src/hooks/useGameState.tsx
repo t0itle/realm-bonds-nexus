@@ -399,6 +399,8 @@ interface GameContextType {
   craftPoison: (count: number) => boolean;
   getApothecaryLevel: () => number;
   storageCapacity: number;
+  myVillages: { id: string; name: string; settlement_type: string }[];
+  switchVillage: (villageId: string) => void;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
