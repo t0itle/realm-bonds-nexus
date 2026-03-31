@@ -61,7 +61,17 @@ export default function GameLayout() {
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeMarches, setActiveMarches] = useState<{ id: string; target_name: string; march_type: string; arrives_at: string; started_at: string }[]>([]);
+  const [vassalPopup, setVassalPopup] = useState(false);
   const totalTroops = Object.values(army).reduce((s, v) => s + v, 0);
+
+  // Check if player is vassalized
+  const myVassalage = vassalages.find(v => v.vassal_id === user?.id && v.status === 'active');
+  const [lordName, setLordName] = useState<string | null>(null);
+  useEffect(() => {
+    if (!myVassalage) { setLordName(null); return; }
+    supabase.from('profiles').select('display_name').eq('user_id', myVassalage.lord_id).single()
+      .then(({ data }) => setLordName(data?.display_name || 'Unknown Lord'));
+  }, [myVassalage?.lord_id]);
   const [, forceRender] = useState(0);
 
   // Re-render every second for march countdowns
