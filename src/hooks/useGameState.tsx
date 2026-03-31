@@ -1689,8 +1689,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
       phase: 'traveling',
     };
     setActiveSpyMissions(prev => [...prev, missionObj]);
+    // Persist to DB and update spies count
+    if (user) {
+      supabase.from('active_spy_missions').insert({
+        id: missionObj.id, user_id: user.id, mission, target_name: targetName,
+        target_id: targetId, spies_count: missionObj.spiesCount,
+        depart_time: new Date(missionObj.departTime).toISOString(),
+        arrival_time: new Date(missionObj.arrivalTime).toISOString(),
+        target_x: targetX, target_y: targetY,
+      } as any).then();
+      supabase.from('villages').update({ spies: spies - info.spiesRequired * spiesCount, gold: resources.gold - goldCost } as any).eq('user_id', user.id).then();
+    }
     return true;
-  }, [spies, resources.gold]);
+  }, [spies, resources.gold, user]);
 
   // Process spy missions
   useEffect(() => {
