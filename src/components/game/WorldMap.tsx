@@ -1265,15 +1265,16 @@ export default function WorldMap() {
           );
         })}
 
-        {/* Territory circles */}
+        {/* Territory circles — subtle radial glow */}
         {renderRealms.map(realm => {
           const { sx, sy } = worldToScreen(realm.x, realm.y);
           const r = realm.territory * camera.ppu;
-          if (r < 3) return null;
-          const borderColor = realm.type === 'hostile' ? 'hsl(0 72% 50% / 0.15)' : realm.type === 'friendly' ? 'hsl(130 45% 40% / 0.15)' : 'hsl(216 12% 50% / 0.15)';
+          if (r < 5) return null;
+          const borderColor = realm.type === 'hostile' ? 'hsl(0 72% 50% / 0.08)' : realm.type === 'friendly' ? 'hsl(130 45% 40% / 0.08)' : 'hsl(216 12% 50% / 0.06)';
+          const ringColor = realm.type === 'hostile' ? 'hsl(0 72% 50% / 0.12)' : realm.type === 'friendly' ? 'hsl(130 45% 40% / 0.12)' : 'hsl(216 12% 50% / 0.08)';
           return (
             <div key={`t-${realm.id}`} className="absolute rounded-full pointer-events-none"
-              style={{ left: sx - r, top: sy - r, width: r * 2, height: r * 2, background: `radial-gradient(circle, ${borderColor}, transparent 70%)` }} />
+              style={{ left: sx - r, top: sy - r, width: r * 2, height: r * 2, background: `radial-gradient(circle, ${borderColor}, transparent 65%)`, border: `1px solid ${ringColor}` }} />
           );
         })}
 
