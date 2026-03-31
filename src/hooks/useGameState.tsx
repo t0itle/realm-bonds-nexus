@@ -540,7 +540,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setAvatarUrlLocal((profile as any).avatar_url ?? null);
       }
 
-      const { data: village } = await supabase.from('villages').select('*').eq('user_id', user.id).single();
+      const { data: village } = await supabase.from('villages').select('*').eq('user_id', user.id).order('created_at', { ascending: true }).limit(1).maybeSingle();
       if (village) {
         setVillageId(village.id);
         setVillageNameLocal(village.name);
