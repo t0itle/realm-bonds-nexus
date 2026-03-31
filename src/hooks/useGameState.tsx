@@ -943,6 +943,30 @@ export function GameProvider({ children }: { children: ReactNode }) {
     currentHouses,
   }), [populationBase, maxPopulation, totalWorkers, totalSoldiers, armyCap, happiness, housingCapacity, maxHouses, currentHouses]);
 
+  // Auto-update settlement_type based on population thresholds
+  // village (< 30 pop) → town (30-59 pop) → city (60+ pop)
+  const settlementTypeRef = useRef<string>('village');
+  useEffect(() => {
+    if (!villageId) return;
+    let newType = 'village';
+    if (populationBase >= 60) newType = 'city';
+    else if (populationBase >= 30) newType = 'town';
+    
+    if (newType !== settlementTypeRef.current) {
+      settlementTypeRef.current = newType;
+      supabase.from('villages').update({ settlement_type: newType } as any).eq('id', villageId).then();
+      // Update myVillages locally
+      setMyVillages(prev => prev.map(v => v.id === villageId ? { ...v, settlement_type: newType } : v));
+    }
+  }, [populationBase, villageId]);
+
+  // Player level = total number of settlements owned
+  useEffect(() => {
+    if (myVillages.length > 0) {
+      setPlayerLevel(myVillages.length);
+    }
+  }, [myVillages.length]);
+
   // Gross production from buildings (with worker bonuses)
   const grossProduction = useMemo(() => {
     return buildings.reduce<Resources>(
