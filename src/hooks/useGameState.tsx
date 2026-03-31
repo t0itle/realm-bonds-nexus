@@ -1137,8 +1137,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
     const finishTime = Date.now() + info.trainTime * 1000 * count;
     setTrainingQueue(prev => [...prev, { type, count, finishTime }]);
+    // Persist to training_queue table
+    if (user) supabase.from('training_queue').insert({ user_id: user.id, troop_type: type, count, finish_time: new Date(finishTime).toISOString() } as any).then();
     return true;
-  }, [canAfford, canAffordSteel, getBarracksLevel, totalSoldiers, armyCap, population.civilians, resources, steel, villageId]);
+  }, [canAfford, canAffordSteel, getBarracksLevel, totalSoldiers, armyCap, population.civilians, resources, steel, villageId, user]);
 
   const totalArmyPower = useCallback(() => {
     let attack = 0, defense = 0;
