@@ -2069,16 +2069,43 @@ export default function WorldMap() {
                   )}
                   {!isOwn && (
                     <div className="space-y-1.5">
-                      <button
-                        type="button"
-                        disabled
-                        className="w-full bg-muted text-muted-foreground font-display text-[11px] py-2.5 rounded-lg cursor-not-allowed opacity-80"
-                      >
-                        🚧 Outpost Assaults Not Live Yet
-                      </button>
                       <p className="text-[9px] text-muted-foreground">
-                        You can scout and manage outposts, but attacking enemy outposts has not been implemented yet.
+                        Defeat the garrison to raze this outpost. Wall level adds +{op.wall_level * 10} bonus defense.
                       </p>
+                      <motion.button whileTap={{ scale: 0.95 }}
+                        onClick={() => {
+                          const hasTroops = Object.values(army).some(v => v > 0);
+                          if (!hasTroops) { toast.error('You need troops to attack!'); return; }
+                          if (!isInRange(op.x, op.y)) { toast.error('Out of range! Train scouts to extend reach.'); return; }
+                          const travelSec = calcTravelTime(op.x, op.y);
+                          const totalDefense = op.garrison_power + (op.wall_level * 10);
+                          const outpostData = op;
+                          setAttackConfig({
+                            targetName: outpostData.name,
+                            targetPower: totalDefense,
+                            targetX: outpostData.x, targetY: outpostData.y,
+                            travelTime: travelSec, showEspionage: false,
+                            onAttack: (sentArmy) => {
+                              toast(`⚔️ Troops marching to ${outpostData.name}... ETA ${travelSec}s`);
+                              createMarch(`atk-op-${Date.now()}`, outpostData.name, outpostData.x, outpostData.y, travelSec, async () => {
+                                const log = attackTarget(outpostData.name, totalDefense, sentArmy);
+                                if (log.result === 'victory') {
+                                  // Raze the enemy outpost
+                                  await supabase.from('outposts').delete().eq('id', outpostData.id);
+                                  setOutposts(prev => prev.filter(o => o.id !== outpostData.id));
+                                  toast.success(`🔥 ${outpostData.name} razed! Enemy outpost destroyed.`);
+                                } else {
+                                  toast.error(`Defeated! ${outpostData.name}'s garrison held.`);
+                                }
+                              });
+                              setAttackConfig(null);
+                              setSelected(null);
+                            },
+                          });
+                        }}
+                        className="w-full bg-destructive text-destructive-foreground font-display text-[11px] py-2.5 rounded-lg glow-gold-sm active:scale-95 transition-transform">
+                        ⚔️ Attack Outpost (⚔️{op.garrison_power + op.wall_level * 10})
+                      </motion.button>
                     </div>
                   )}
                 </div>
