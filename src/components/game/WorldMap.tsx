@@ -1067,15 +1067,14 @@ export default function WorldMap() {
         onTouchMove={handleTouchMove}
         onWheel={handleWheel}
       >
-        {/* Grid lines — capped count */}
+        {/* Subtle grid lines */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible' }}>
           {(() => {
             const w = containerSize.w;
             const h = containerSize.h;
             if (w === 0 || h === 0) return null;
-            // Adaptive grid step — ensure max ~20 lines per axis
             const viewW = w / camera.ppu;
-            const rawStep = viewW / 8;
+            const rawStep = viewW / 5;
             const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
             const gridStep = rawStep / mag < 2 ? mag : rawStep / mag < 5 ? mag * 2 : mag * 5;
 
@@ -1086,17 +1085,15 @@ export default function WorldMap() {
             const endY = camera.cy + h / 2 / camera.ppu;
 
             let count = 0;
-            const MAX_LINES = 40;
+            const MAX_LINES = 20;
             for (let gx = startX; gx <= endX && count < MAX_LINES; gx += gridStep) {
               const { sx } = worldToScreen(gx, 0);
-              lines.push(<line key={`gx-${gx}`} x1={sx} y1={0} x2={sx} y2={h} stroke="hsl(42 72% 52% / 0.08)" strokeWidth={1} />);
-              lines.push(<text key={`lx-${gx}`} x={sx + 4} y={14} fill="hsl(42 72% 52% / 0.3)" fontSize={10} fontFamily="Inter">{(gx / 1000).toFixed(0)}k</text>);
+              lines.push(<line key={`gx-${gx}`} x1={sx} y1={0} x2={sx} y2={h} stroke="hsl(42 72% 52% / 0.04)" strokeWidth={0.5} />);
               count++;
             }
             for (let gy = startY; gy <= endY && count < MAX_LINES * 2; gy += gridStep) {
               const { sy } = worldToScreen(0, gy);
-              lines.push(<line key={`gy-${gy}`} x1={0} y1={sy} x2={w} y2={sy} stroke="hsl(42 72% 52% / 0.08)" strokeWidth={1} />);
-              lines.push(<text key={`ly-${gy}`} x={4} y={sy - 4} fill="hsl(42 72% 52% / 0.3)" fontSize={10} fontFamily="Inter">{(gy / 1000).toFixed(0)}k</text>);
+              lines.push(<line key={`gy-${gy}`} x1={0} y1={sy} x2={w} y2={sy} stroke="hsl(42 72% 52% / 0.04)" strokeWidth={0.5} />);
               count++;
             }
             return lines;
