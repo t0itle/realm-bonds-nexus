@@ -535,8 +535,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
-  // Load player data
-  useEffect(() => {
+  const loadVillageData = useCallback(async (targetVillageId?: string) => {
     if (!user) return;
     const loadData = async () => {
       const { data: profile } = await supabase.from('profiles').select('*').eq('user_id', user.id).single();
@@ -545,7 +544,21 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setAvatarUrlLocal((profile as any).avatar_url ?? null);
       }
 
-      const { data: village } = await supabase.from('villages').select('*').eq('user_id', user.id).order('created_at', { ascending: true }).limit(1).maybeSingle();
+      // Load all user's villages for switching
+      const { data: userVillages } = await supabase.from('villages').select('id, name, settlement_type').eq('user_id', user.id).order('created_at', { ascending: true });
+      if (userVillages) setMyVillages(userVillages as any);
+
+      // Pick village: use targetVillageId if given, else current, else first
+      let village: any = null;
+      const pickId = targetVillageId || villageId;
+      if (pickId) {
+        const { data } = await supabase.from('villages').select('*').eq('id', pickId).eq('user_id', user.id).maybeSingle();
+        village = data;
+      }
+      if (!village && userVillages && userVillages.length > 0) {
+        const { data } = await supabase.from('villages').select('*').eq('id', userVillages[0].id).maybeSingle();
+        village = data;
+      }
       if (village) {
         setVillageId(village.id);
         setVillageNameLocal(village.name);
