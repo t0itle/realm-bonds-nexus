@@ -208,6 +208,7 @@ export default function VillageGrid() {
             const worker = type ? WORKER_FOR_BUILDING[type] : null;
             const upgrading = building ? isBuildingUpgrading(building.id) : undefined;
             const isUnderConstruction = building && building.level === 0;
+            const isMaxLevel = type ? building!.level >= BUILDING_INFO[type].maxLevel : false;
 
             return (
               <motion.button
@@ -265,10 +266,14 @@ export default function VillageGrid() {
                         <span className="text-[8px] font-display text-foreground/90 leading-tight block truncate">
                           {type === 'townhall' && building.level >= 7 ? 'Castle' : BUILDING_INFO[type!].name}
                         </span>
-                        <span className="text-[7px] text-primary font-bold">
-                          Lv.{building.level}
+                        <span className={`text-[7px] font-bold ${isMaxLevel ? 'text-amber-400' : 'text-primary'}`}>
+                          {isMaxLevel ? '✦ MAX' : `Lv.${building.level}`}
                         </span>
                       </div>
+                    )}
+                    {/* Max level star badge */}
+                    {isMaxLevel && !upgrading && !isUnderConstruction && (
+                      <div className="absolute top-0.5 right-0.5 text-amber-400 text-[10px] drop-shadow-[0_0_4px_rgba(251,191,36,0.7)]">⭐</div>
                     )}
                   </>
                 ) : (
