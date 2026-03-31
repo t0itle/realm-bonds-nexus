@@ -2029,16 +2029,30 @@ export default function WorldMap() {
               const canAffordUpgrade = resources.gold >= upgradeCost.gold && resources.wood >= upgradeCost.wood && resources.stone >= upgradeCost.stone && resources.food >= upgradeCost.food;
               const canAffordWall = resources.gold >= wallCost.gold && resources.wood >= wallCost.wood && resources.stone >= wallCost.stone && resources.food >= wallCost.food;
 
+              const isUpgrading = outpostBuildQueue.find(q => q.outpostId === op.id && q.action === 'upgrade');
+              const isBuildingWall = outpostBuildQueue.find(q => q.outpostId === op.id && q.action === 'wall');
+              const upgradeTimeSec = 30 + op.level * 30; // 60s for lv2, 90s for lv3, etc.
+              const wallTimeSec = 45 + op.wall_level * 30; // 45s for first wall, 75s for lv2, etc.
+
               const handleUpgrade = async () => {
                 if (!canAffordUpgrade) { toast.error('Not enough resources!'); return; }
+                if (isUpgrading) { toast.error('Already upgrading!'); return; }
                 addResources({ gold: -upgradeCost.gold, wood: -upgradeCost.wood, stone: -upgradeCost.stone, food: -upgradeCost.food });
                 const newLevel = op.level + 1;
                 const newGarrison = op.garrison_power + 20;
                 const newRadius = op.territory_radius + 3000;
-                await supabase.from('outposts').update({ level: newLevel, garrison_power: newGarrison, territory_radius: newRadius } as any).eq('id', op.id);
-                setOutposts(prev => prev.map(o => o.id === op.id ? { ...o, level: newLevel, garrison_power: newGarrison, territory_radius: newRadius } : o));
-                setSelected({ kind: 'outpost', data: { ...op, level: newLevel, garrison_power: newGarrison, territory_radius: newRadius } });
-                toast.success(`🏕️ ${op.name} upgraded to Lv.${newLevel}!`);
+                setOutpostBuildQueue(prev => [...prev, { outpostId: op.id, action: 'upgrade', finishTime: Date.now() + upgradeTimeSec * 1000, targetLevel: newLevel, newGarrison, newRadius }]);
+                toast(`🏕️ Upgrading ${op.name} to Lv.${newLevel}... (${Math.floor(upgradeTimeSec / 60)}:${(upgradeTimeSec % 60).toString().padStart(2, '0')})`);
+              };
+
+              const handleWall = async () => {
+                if (!canAffordWall) { toast.error('Not enough resources!'); return; }
+                if (isBuildingWall) { toast.error('Already building wall!'); return; }
+                addResources({ gold: -wallCost.gold, wood: -wallCost.wood, stone: -wallCost.stone, food: -wallCost.food });
+                const newWallLevel = op.wall_level + 1;
+                const newGarrison = op.garrison_power + 30;
+                setOutpostBuildQueue(prev => [...prev, { outpostId: op.id, action: 'wall', finishTime: Date.now() + wallTimeSec * 1000, targetLevel: newWallLevel, newGarrison }]);
+                toast(`🧱 ${op.has_wall ? 'Upgrading wall' : 'Building wall'} at ${op.name}... (${Math.floor(wallTimeSec / 60)}:${(wallTimeSec % 60).toString().padStart(2, '0')})`);
               };
 
               const handleWall = async () => {
