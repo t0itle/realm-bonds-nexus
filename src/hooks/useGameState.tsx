@@ -1064,8 +1064,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [army, addResources, persistArmyToVillage]);
 
   // PvP attack against another player
-  const attackPlayer = useCallback(async (targetUserId: string, targetName: string, targetVillageId: string): Promise<BattleLog | null> => {
+  const attackPlayer = useCallback(async (targetUserId: string, targetName: string, targetVillageId: string, sentArmy?: Partial<Army>): Promise<BattleLog | null> => {
     if (!user || !villageId) return null;
+    const attackingArmy: Army = sentArmy ? {
+      militia: sentArmy.militia ?? 0, archer: sentArmy.archer ?? 0, knight: sentArmy.knight ?? 0,
+      cavalry: sentArmy.cavalry ?? 0, siege: sentArmy.siege ?? 0, scout: sentArmy.scout ?? 0,
+    } : { ...army };
     
     // Prevent lords from attacking their own vassals
     const isMyVassal = vassalages.some(v => v.lord_id === user.id && v.vassal_id === targetUserId && v.status === 'active');
