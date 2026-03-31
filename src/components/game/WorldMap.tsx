@@ -1061,25 +1061,32 @@ export default function WorldMap() {
         {/* NPC Realms */}
         {renderRealms.map(realm => {
           const { sx, sy } = worldToScreen(realm.x, realm.y);
+          const npcRel = npcRelations.get(realm.id);
+          const isVassal = npcRel?.status === 'vassal';
+          const spriteType = isVassal ? 'friendly' : realm.type;
           return (
             <button key={realm.id} data-map-item
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'npc', data: realm, biome: realm.biome }); }}
               className="absolute flex flex-col items-center z-10 hover:z-20"
               style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
               <img
-                src={REALM_SPRITES[realm.type]}
+                src={REALM_SPRITES[spriteType]}
                 alt={realm.name}
                 loading="lazy"
-                className="drop-shadow-lg"
+                className={`drop-shadow-lg ${isVassal ? 'brightness-110' : ''}`}
                 style={{ width: iconSize, height: iconSize, imageRendering: 'auto' }}
               />
               {iconSize > 28 && (
-                <div className="text-center bg-background/80 rounded mt-0.5 px-1.5 py-0.5">
-                  <p className="font-display text-foreground leading-tight whitespace-nowrap" style={{ fontSize: Math.max(8, fontSize - 2) }}>{realm.name}</p>
-                  <p className="text-muted-foreground" style={{ fontSize: Math.max(7, fontSize - 3) }}>⚔️{realm.power}</p>
+                <div className={`text-center rounded mt-0.5 px-1.5 py-0.5 ${isVassal ? 'bg-primary/20 border border-primary/30' : 'bg-background/80'}`}>
+                  <p className="font-display text-foreground leading-tight whitespace-nowrap" style={{ fontSize: Math.max(8, fontSize - 2) }}>
+                    {isVassal ? '👑 ' : ''}{realm.name}
+                  </p>
+                  <p className="text-muted-foreground" style={{ fontSize: Math.max(7, fontSize - 3) }}>
+                    {isVassal ? '🤝 Vassal' : `⚔️${realm.power}`}
+                  </p>
                 </div>
               )}
-              {realm.type === 'hostile' && (
+              {realm.type === 'hostile' && !isVassal && (
                 <div className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-destructive animate-pulse border border-background" />
               )}
             </button>
