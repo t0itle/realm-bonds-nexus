@@ -19,7 +19,7 @@ export default function MilitaryPanel() {
   const {
     army, trainingQueue, battleLogs, trainTroops, getBarracksLevel, canAfford, canAffordSteel,
     totalArmyPower, armyUpkeep, population, steel,
-    spies, trainSpies, sendSpyMission, activeSpyMissions, spyTrainingQueue, intelReports, allVillages, getWatchtowerLevel,
+    spies, trainSpies, sendSpyMission, activeSpyMissions, spyTrainingQueue, intelReports, allVillages, getWatchtowerLevel, getSpyGuildLevel,
     injuredTroops, poisons, healTroops, craftPoison, getApothecaryLevel, resources,
   } = useGame();
   const [trainCount, setTrainCount] = useState<Record<TroopType, number>>({ militia: 1, archer: 1, knight: 1, cavalry: 1, siege: 1, scout: 1 });
@@ -280,7 +280,7 @@ export default function MilitaryPanel() {
           spyTrainCount={spyTrainCount}
           setSpyTrainCount={setSpyTrainCount}
           trainSpies={trainSpies}
-          barracksLevel={barracksLevel}
+          barracksLevel={getSpyGuildLevel()}
           sendSpyMission={sendSpyMission}
           activeSpyMissions={activeSpyMissions}
           spyTrainingQueue={spyTrainingQueue}
@@ -470,13 +470,13 @@ function EspionagePanel({
     return () => clearInterval(t);
   }, [activeSpyMissions.length]);
 
-  const canTrainSpy = barracksLevel >= 2 && resources.gold >= 40 * spyTrainCount && resources.food >= 20 * spyTrainCount && population.civilians >= spyTrainCount;
+  const canTrainSpy = barracksLevel >= 1 && resources.gold >= 40 * spyTrainCount && resources.food >= 20 * spyTrainCount && population.civilians >= spyTrainCount;
   const missionInfo = SPY_MISSION_INFO[selectedMission];
   const canSend = spies >= missionInfo.spiesRequired && resources.gold >= missionInfo.goldCost && selectedTarget;
   const trainReasons: string[] = [];
   const sendReasons: string[] = [];
 
-  if (barracksLevel < 2) trainReasons.push('Barracks Lv.2 required');
+  if (barracksLevel < 1) trainReasons.push('Spy Guild required');
   if (resources.gold < 40 * spyTrainCount) trainReasons.push(`Need ${40 * spyTrainCount} gold (have ${resources.gold})`);
   if (resources.food < 20 * spyTrainCount) trainReasons.push(`Need ${20 * spyTrainCount} food (have ${resources.food})`);
   if (population.civilians < spyTrainCount) trainReasons.push(`Need ${spyTrainCount} civilians (have ${population.civilians})`);
@@ -493,7 +493,7 @@ function EspionagePanel({
           <h3 className="font-display text-xs text-foreground">🕵️ Spy Roster</h3>
           <span className="text-xs text-primary font-bold">{spies} available</span>
         </div>
-        <p className="text-[9px] text-muted-foreground">Spies gather intel, sabotage enemies, and spread propaganda. Requires Barracks Lv.2+</p>
+        <p className="text-[9px] text-muted-foreground">Spies gather intel, sabotage enemies, and spread propaganda. Requires Spy Guild.</p>
         
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1">
