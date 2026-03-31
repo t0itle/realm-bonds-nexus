@@ -72,7 +72,7 @@ function getProduction(type: string, level: number, workers: number): Record<str
   const base = BASE_PRODUCTION[type];
   if (!base) return {};
   const result: Record<string, number> = {};
-  const workerBonus = 1 + workers * 0.15;
+  const workerBonus = 1 + workers * 0.35;
   for (const [key, val] of Object.entries(base)) {
     result[key] = Math.floor(val! * level * 1.2 * workerBonus);
   }

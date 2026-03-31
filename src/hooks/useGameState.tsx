@@ -66,7 +66,7 @@ export function getProduction(type: Exclude<BuildingType, 'empty'>, level: numbe
   const info = BUILDING_INFO[type];
   if (!info.baseProduction) return {};
   const result: Partial<Resources> = {};
-  const workerBonus = 1 + workers * 0.15;
+  const workerBonus = 1 + workers * 0.35;
   for (const [key, val] of Object.entries(info.baseProduction)) {
     result[key as keyof Resources] = Math.floor(val * level * 1.2 * workerBonus);
   }
