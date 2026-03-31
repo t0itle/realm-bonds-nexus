@@ -1962,7 +1962,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       attackPlayer, vassalages, payRansom, attemptRebellion, setVassalTributeRate, releaseVassal, getWallLevel,
       injuredTroops, poisons, healTroops, craftPoison, getApothecaryLevel,
       storageCapacity,
-      myVillages, switchVillage, refreshVillages,
+      myVillages, switchVillage, refreshVillages, abandonSettlement,
     }}>
       {children}
     </GameContext.Provider>
