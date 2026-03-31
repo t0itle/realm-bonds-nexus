@@ -69,7 +69,7 @@ export function getProduction(type: Exclude<BuildingType, 'empty'>, level: numbe
   const result: Partial<Resources> = {};
   const workerBonus = 1 + workers * 0.35;
   for (const [key, val] of Object.entries(info.baseProduction)) {
-    result[key as keyof Resources] = Math.floor(val * level * 1.2 * workerBonus);
+    result[key as keyof Resources] = Math.floor(val * level * 1.2 * workerBonus * 0.8); // 20% nerf
   }
   return result;
 }
@@ -949,7 +949,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const getBuildTime = useCallback((type: Exclude<BuildingType, 'empty'>, level: number) => {
     const info = BUILDING_INFO[type];
-    return Math.floor(info.buildTime * Math.pow(1.3, level)); // scales with level
+    return Math.floor(info.buildTime * 3 * Math.pow(1.3, level)); // 3x base, scales with level
   }, []);
 
   const isBuildingUpgrading = useCallback((buildingId: string) => {

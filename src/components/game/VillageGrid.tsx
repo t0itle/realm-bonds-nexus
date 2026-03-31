@@ -261,14 +261,14 @@ export default function VillageGrid() {
                       </div>
                     )}
                     {!upgrading && !isUnderConstruction && (
-                      <>
-                        <span className="text-[9px] font-display text-foreground/80 truncate w-full text-center px-1">
-                          {type === 'townhall' && building.level >= 7 ? '🏰 Castle' : BUILDING_INFO[type!].name}
+                      <div className="absolute bottom-0 inset-x-0 bg-background/70 backdrop-blur-sm py-0.5 px-1 text-center">
+                        <span className="text-[8px] font-display text-foreground/90 leading-tight block truncate">
+                          {type === 'townhall' && building.level >= 7 ? 'Castle' : BUILDING_INFO[type!].name}
                         </span>
-                        <span className="text-[8px] text-primary font-bold bg-background/60 px-1.5 rounded-full">
+                        <span className="text-[7px] text-primary font-bold">
                           Lv.{building.level}
                         </span>
-                      </>
+                      </div>
                     )}
                   </>
                 ) : (
@@ -360,6 +360,7 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
   getBuildTime: (type: Exclude<BuildingType, 'empty'>, level: number) => number;
 }) {
   const [confirmDemolish, setConfirmDemolish] = useState(false);
+  const [steelPopup, setSteelPopup] = useState(false);
   const type = building.type as Exclude<BuildingType, 'empty'>;
   const info = BUILDING_INFO[type];
   const sprite = BUILDING_SPRITES[type];
@@ -430,18 +431,26 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
                   })}
           </div>
           <p className="text-[10px] text-muted-foreground flex items-center gap-0.5"><ResourceIcon type="timer" size={10} /> Build time: {formatTime(buildTime * 1000)}</p>
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={onUpgrade}
-            disabled={!affordable}
-            className={`w-full py-2.5 rounded-lg font-display text-sm font-bold transition-all ${
-              affordable
-                ? 'bg-primary text-primary-foreground glow-gold'
-                : 'bg-muted text-muted-foreground cursor-not-allowed'
-            }`}
-          >
-            {affordable ? `Upgrade to Level ${building.level + 1}` : 'Not Enough Resources'}
-          </motion.button>
+          {(() => {
+            const needsSteel = upgradeCost.steel > 0 && !canAffordSteel(upgradeCost.steel);
+            return (
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  if (needsSteel) { setSteelPopup(true); return; }
+                  onUpgrade();
+                }}
+                disabled={!affordable && !needsSteel}
+                className={`w-full py-2.5 rounded-lg font-display text-sm font-bold transition-all ${
+                  affordable
+                    ? 'bg-primary text-primary-foreground glow-gold'
+                    : 'bg-muted text-muted-foreground cursor-not-allowed'
+                }`}
+              >
+                {affordable ? `Upgrade to Level ${building.level + 1}` : 'Not Enough Resources'}
+              </motion.button>
+            );
+          })()}
         </div>
       )}
 
@@ -480,6 +489,39 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
           )}
         </div>
       )}
+
+      {/* Steel popup */}
+      <AnimatePresence>
+        {steelPopup && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-6"
+            onClick={() => setSteelPopup(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="game-panel border border-destructive/50 rounded-2xl p-5 max-w-sm w-full space-y-3 text-center"
+            >
+              <div className="text-3xl">⚒️</div>
+              <h4 className="font-display text-lg text-destructive">Not enough Steel!</h4>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Steel is obtained by capturing mines on the map. Create some soldiers and go claim them!
+              </p>
+              <button
+                onClick={() => setSteelPopup(false)}
+                className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-display text-sm"
+              >
+                Got it
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
