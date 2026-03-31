@@ -738,11 +738,15 @@ export default function WorldMap() {
           toast.success(`Troops arrived at ${m.targetName}!`);
           m.action();
         });
+        // Clean up arrived marches from DB
+        if (arrived.length > 0 && user) {
+          supabase.from('active_marches').delete().eq('user_id', user.id).lte('arrives_at', new Date().toISOString()).then(() => {});
+        }
         return remaining;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [marches.length]);
+  }, [marches.length, user]);
 
   // createMarch is defined below after getMyPos
 
