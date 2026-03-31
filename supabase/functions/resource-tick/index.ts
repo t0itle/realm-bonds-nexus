@@ -74,7 +74,7 @@ function getProduction(type: string, level: number, workers: number): Record<str
   const result: Record<string, number> = {};
   const workerBonus = 1 + workers * 0.35;
   for (const [key, val] of Object.entries(base)) {
-    result[key] = Math.floor(val! * level * 1.2 * workerBonus);
+    result[key] = Math.floor(val! * level * 1.2 * workerBonus * 0.8); // 20% nerf
   }
   return result;
 }
