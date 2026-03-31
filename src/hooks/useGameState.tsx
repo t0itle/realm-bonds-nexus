@@ -758,7 +758,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     };
     loadData();
-  }, [user, targetVillageId]);
+  }, [user, villageId]);
 
   // Initial load
   useEffect(() => {
