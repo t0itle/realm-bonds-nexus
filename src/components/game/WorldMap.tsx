@@ -2129,8 +2129,7 @@ export default function WorldMap() {
               const canAffordSettlement = resources.gold >= settlementCost.gold && resources.wood >= settlementCost.wood && resources.stone >= settlementCost.stone && resources.food >= settlementCost.food;
               const canBuildOutpost = thLevel >= 3;
               const canBuildSettlement = thLevel >= 5;
-              const dist = getDistance(selected.data.x, selected.data.y);
-              const inRange = dist <= getMaxRange(army);
+              const inRange = isInRange(selected.data.x, selected.data.y);
               const coordLabel = `${(selected.data.x / 1000).toFixed(1)}k, ${(selected.data.y / 1000).toFixed(1)}k`;
               return (
                 <div className="space-y-3">
