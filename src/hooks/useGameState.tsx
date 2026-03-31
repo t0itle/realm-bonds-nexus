@@ -716,11 +716,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return cap;
   }, [buildings, workerAssignments]);
 
-  // Food cost of population = civilians * rations multiplier
+  // Food cost of population = (civilians + workers) * rations multiplier
+  // Workers still need to eat! Only soldiers have separate upkeep.
   const popFoodCost = useMemo(() => {
-    const civilians = Math.max(0, populationBase - totalWorkers - totalSoldiers);
-    return Math.floor(civilians * RATIONS_INFO[rations].foodMultiplier);
-  }, [populationBase, totalWorkers, totalSoldiers, rations]);
+    const nonSoldiers = Math.max(0, populationBase - totalSoldiers);
+    return Math.floor(nonSoldiers * RATIONS_INFO[rations].foodMultiplier);
+  }, [populationBase, totalSoldiers, rations]);
 
   // Tax income from population
   const popTaxIncome = useMemo(() => {
