@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGame, TroopType, Resources, calcMarchTime, getMaxRange, Building, BUILDING_INFO } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import NPCInteractionPanel from './NPCInteractionPanel';
 
 // Map sprites
 import mapCastleHostile from '@/assets/sprites/map-castle-hostile.png';
@@ -436,7 +437,7 @@ const TYPE_COLORS = { hostile: 'bg-destructive', neutral: 'bg-muted-foreground',
 const EVENT_COLORS = { danger: 'border-destructive/60 bg-destructive/20', opportunity: 'border-primary/60 bg-primary/20', mystery: 'border-accent/60 bg-accent/20' };
 
 type SelectedItem =
-  | { kind: 'npc'; data: ProceduralRealm }
+  | { kind: 'npc'; data: ProceduralRealm; biome: string }
   | { kind: 'event'; data: ProceduralEvent; chunkKey: string; index: number }
   | { kind: 'player'; data: any }
   | { kind: 'mine'; data: SteelMine }
@@ -452,6 +453,7 @@ export default function WorldMap() {
   const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
   const [legendOpen, setLegendOpen] = useState(false);
   const [, forceRender] = useState(0);
+  const [npcRelations, setNpcRelations] = useState<Map<string, { realmId: string; status: 'neutral' | 'friendly' | 'vassal' | 'allied'; tributeRate: number; friendshipLevel: number }>>(new Map());
 
   // Get TH level for dynamic sprite
   const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
@@ -479,6 +481,21 @@ export default function WorldMap() {
     }, 10000); // every 10s
     return () => clearInterval(interval);
   }, [capturedMines, addSteel]);
+
+  // NPC vassal tribute income
+  useEffect(() => {
+    const vassalNPCs = Array.from(npcRelations.values()).filter(r => r.status === 'vassal');
+    if (vassalNPCs.length === 0) return;
+    const interval = setInterval(() => {
+      let totalGold = 0, totalFood = 0;
+      for (const v of vassalNPCs) {
+        totalGold += Math.floor(v.tributeRate * 0.5);
+        totalFood += Math.floor(v.tributeRate * 0.3);
+      }
+      if (totalGold > 0 || totalFood > 0) addResources({ gold: totalGold, food: totalFood });
+    }, 15000); // every 15s
+    return () => clearInterval(interval);
+  }, [npcRelations, addResources]);
 
   // Animate marches — re-render every 500ms for smooth interpolation
   useEffect(() => {
@@ -729,11 +746,19 @@ export default function WorldMap() {
     toast(`⚔️ Troops marching to ${realm.name}... ETA ${travelSec}s`);
     createMarch(`atk-${Date.now()}`, realm.name, realm.x, realm.y, travelSec, () => {
       const log = attackTarget(realm.name, realm.power);
-      if (log.result === 'victory') toast.success(`Victory against ${realm.name}!`);
-      else toast.error(`Defeated by ${realm.name}!`);
+      if (log.result === 'victory') {
+        toast.success(`Victory against ${realm.name}! They are now your vassal.`);
+        setNpcRelations(prev => {
+          const next = new Map(prev);
+          next.set(realm.id, { realmId: realm.id, status: 'vassal', tributeRate: 15, friendshipLevel: 20 });
+          return next;
+        });
+      } else {
+        toast.error(`Defeated by ${realm.name}!`);
+      }
     });
     setSelected(null);
-  }, [army, attackTarget, calcTravelTime, createMarch]);
+  }, [army, attackTarget, calcTravelTime, createMarch, isInRange]);
 
   const handleEnvoy = useCallback((realm: ProceduralRealm) => {
     if (tradeContracts.some(c => c.realmId === realm.id)) {
@@ -781,11 +806,11 @@ export default function WorldMap() {
   const eventSize = Math.max(20, Math.min(48, camera.ppu * 6000));
 
   // Collect all visible realms and events from chunks
-  const visibleRealms: ProceduralRealm[] = [];
+  const visibleRealms: (ProceduralRealm & { biome: string })[] = [];
   const visibleEvents: ProceduralEvent[] = [];
   for (const chunk of visibleChunks) {
     for (const realm of chunk.data.realms) {
-      if (isVisible(realm.x, realm.y, 100)) visibleRealms.push(realm);
+      if (isVisible(realm.x, realm.y, 100)) visibleRealms.push({ ...realm, biome: chunk.data.regionBiome });
     }
     for (const event of chunk.data.events) {
       if (!claimedEvents.has(event.id) && isVisible(event.x, event.y, 60)) visibleEvents.push(event);
@@ -1036,25 +1061,32 @@ export default function WorldMap() {
         {/* NPC Realms */}
         {renderRealms.map(realm => {
           const { sx, sy } = worldToScreen(realm.x, realm.y);
+          const npcRel = npcRelations.get(realm.id);
+          const isVassal = npcRel?.status === 'vassal';
+          const spriteType = isVassal ? 'friendly' : realm.type;
           return (
             <button key={realm.id} data-map-item
-              onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'npc', data: realm }); }}
+              onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'npc', data: realm, biome: realm.biome }); }}
               className="absolute flex flex-col items-center z-10 hover:z-20"
               style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
               <img
-                src={REALM_SPRITES[realm.type]}
+                src={REALM_SPRITES[spriteType]}
                 alt={realm.name}
                 loading="lazy"
-                className="drop-shadow-lg"
+                className={`drop-shadow-lg ${isVassal ? 'brightness-110' : ''}`}
                 style={{ width: iconSize, height: iconSize, imageRendering: 'auto' }}
               />
               {iconSize > 28 && (
-                <div className="text-center bg-background/80 rounded mt-0.5 px-1.5 py-0.5">
-                  <p className="font-display text-foreground leading-tight whitespace-nowrap" style={{ fontSize: Math.max(8, fontSize - 2) }}>{realm.name}</p>
-                  <p className="text-muted-foreground" style={{ fontSize: Math.max(7, fontSize - 3) }}>⚔️{realm.power}</p>
+                <div className={`text-center rounded mt-0.5 px-1.5 py-0.5 ${isVassal ? 'bg-primary/20 border border-primary/30' : 'bg-background/80'}`}>
+                  <p className="font-display text-foreground leading-tight whitespace-nowrap" style={{ fontSize: Math.max(8, fontSize - 2) }}>
+                    {isVassal ? '👑 ' : ''}{realm.name}
+                  </p>
+                  <p className="text-muted-foreground" style={{ fontSize: Math.max(7, fontSize - 3) }}>
+                    {isVassal ? '🤝 Vassal' : `⚔️${realm.power}`}
+                  </p>
                 </div>
               )}
-              {realm.type === 'hostile' && (
+              {realm.type === 'hostile' && !isVassal && (
                 <div className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-destructive animate-pulse border border-background" />
               )}
             </button>
@@ -1275,36 +1307,18 @@ export default function WorldMap() {
             <button onClick={() => setSelected(null)} className="absolute top-2 right-2 text-muted-foreground text-sm w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted/50 active:scale-90 transition-transform">✕</button>
 
             {selected.kind === 'npc' && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-3xl">{selected.data.emoji}</span>
-                  <div className="flex-1">
-                    <h3 className="font-display text-sm text-foreground">{selected.data.name}</h3>
-                    <p className="text-[10px] text-muted-foreground">Ruled by {selected.data.ruler}</p>
-                  </div>
-                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                    selected.data.type === 'hostile' ? 'bg-destructive/20 text-destructive' :
-                    selected.data.type === 'friendly' ? 'bg-food/20 text-food' : 'bg-muted text-muted-foreground'
-                  }`}>{selected.data.type}</span>
-                </div>
-                <p className="text-[10px] text-muted-foreground">{selected.data.desc}</p>
-                <span className="text-[10px] text-foreground font-bold">⚔️ Power: {selected.data.power}</span>
-                {tradeContracts.some(c => c.realmId === selected.data.id) && (
-                  <span className="text-[9px] text-food font-bold">📜 Active Trade</span>
-                )}
-                <div className="flex gap-2 mt-1">
-                  {selected.data.type !== 'hostile' && (
-                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleEnvoy(selected.data)}
-                      className="flex-1 bg-primary/20 text-primary font-display text-[11px] py-2.5 px-3 rounded-lg active:bg-primary/30 transition-colors">
-                      📜 Trade 💰{Math.floor(selected.data.power * 0.3)}
-                    </motion.button>
-                  )}
-                  <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleAttackNPC(selected.data)}
-                    className="flex-1 bg-destructive/20 text-destructive font-display text-[11px] py-2.5 px-3 rounded-lg active:bg-destructive/30 transition-colors">
-                    ⚔️ Attack
-                  </motion.button>
-                </div>
-              </div>
+              <NPCInteractionPanel
+                realm={selected.data}
+                biome={selected.biome}
+                onClose={() => setSelected(null)}
+                onAttack={(r) => handleAttackNPC(r)}
+                onEnvoy={(r) => handleEnvoy(r)}
+                npcRelations={npcRelations}
+                setNpcRelations={setNpcRelations}
+                isInRange={isInRange(selected.data.x, selected.data.y)}
+                travelTime={calcTravelTime(selected.data.x, selected.data.y)}
+                hasActiveTrade={tradeContracts.some(c => c.realmId === selected.data.id)}
+              />
             )}
 
             {selected.kind === 'event' && (
