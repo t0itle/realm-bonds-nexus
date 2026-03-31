@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useGame } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface BattleAlert {
   id: string;
@@ -35,9 +36,10 @@ function timeAgoStr(dateStr: string): string {
 }
 
 export default function NotificationsPanel({ embedded = false }: { embedded?: boolean }) {
-  const { vassalages, battleLogs, resources, population } = useGame();
+  const { vassalages, battleLogs, resources, population, buildings } = useGame();
   const { user } = useAuth();
   const [dbAlerts, setDbAlerts] = useState<BattleAlert[]>([]);
+  const wallTipShown = useRef(false);
 
   useEffect(() => {
     if (!user) return;
@@ -57,7 +59,22 @@ export default function NotificationsPanel({ embedded = false }: { embedded?: bo
         .order('created_at', { ascending: false })
         .limit(30);
 
-      if (data) setDbAlerts(data as BattleAlert[]);
+      if (data) {
+        setDbAlerts(data as BattleAlert[]);
+        // Show wall tip on first attack received if no wall built
+        if (!wallTipShown.current && data.some(a => a.defender_id === user.id)) {
+          const hasWall = buildings.some(b => b.type === 'wall');
+          const dismissed = localStorage.getItem('wall_tip_dismissed');
+          if (!hasWall && !dismissed) {
+            wallTipShown.current = true;
+            toast('🧱 Build Walls!', {
+              description: 'Your village was attacked! Build Walls from your village grid to boost your defense and protect against future raids.',
+              duration: 12000,
+              action: { label: 'Got it', onClick: () => localStorage.setItem('wall_tip_dismissed', '1') },
+            });
+          }
+        }
+      }
     };
 
     fetchAlerts();
@@ -72,7 +89,7 @@ export default function NotificationsPanel({ embedded = false }: { embedded?: bo
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [user, vassalages]);
+  }, [user, vassalages, buildings]);
 
   // Build unified notification list
   const notifications: NotifItem[] = [];
