@@ -1030,7 +1030,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const injuryRate = apothLvl > 0 ? Math.min(0.6, 0.2 + apothLvl * 0.08) : 0;
     const newInjured: Partial<Army> = {};
     for (const [type, lost] of Object.entries(result.attackerLosses) as [TroopType, number][]) {
-      const actualLost = Math.min(lost, newArmy[type] || 0);
+      const actualLost = Math.min(lost, attackingArmy[type] || 0);
       const injured = Math.floor(actualLost * injuryRate);
       const dead = actualLost - injured;
       newArmy[type] = Math.max(0, (newArmy[type] || 0) - actualLost);
