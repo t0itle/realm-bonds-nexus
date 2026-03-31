@@ -401,6 +401,7 @@ interface GameContextType {
   storageCapacity: number;
   myVillages: { id: string; name: string; settlement_type: string }[];
   switchVillage: (villageId: string) => void;
+  refreshVillages: () => Promise<void>;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -563,6 +564,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setVillageId(village.id);
         setVillageNameLocal(village.name);
         setPlayerLevel(village.level);
+        settlementTypeRef.current = (village as any).settlement_type || 'village';
         setResources({ gold: Number(village.gold), wood: Number(village.wood), stone: Number(village.stone), food: Number(village.food) });
         setSteel((village as any).steel ?? 0);
         setPopulationBase((village as any).population ?? 10);
@@ -771,6 +773,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
     loadVillageData(newVillageId);
   }, [villageId, loadVillageData]);
 
+  const refreshVillages = useCallback(async () => {
+    if (!user) return;
+    const { data: userVillages } = await supabase.from('villages').select('id, name, settlement_type').eq('user_id', user.id).order('created_at', { ascending: true });
+    if (userVillages) setMyVillages(userVillages as any);
+  }, [user]);
+
   // Realtime subscriptions
   useEffect(() => {
     if (!user) return;
@@ -935,6 +943,30 @@ export function GameProvider({ children }: { children: ReactNode }) {
     maxHouses,
     currentHouses,
   }), [populationBase, maxPopulation, totalWorkers, totalSoldiers, armyCap, happiness, housingCapacity, maxHouses, currentHouses]);
+
+  // Auto-update settlement_type based on population thresholds
+  // village (< 30 pop) → town (30-59 pop) → city (60+ pop)
+  const settlementTypeRef = useRef<string>('village');
+  useEffect(() => {
+    if (!villageId) return;
+    let newType = 'village';
+    if (populationBase >= 60) newType = 'city';
+    else if (populationBase >= 30) newType = 'town';
+    
+    if (newType !== settlementTypeRef.current) {
+      settlementTypeRef.current = newType;
+      supabase.from('villages').update({ settlement_type: newType } as any).eq('id', villageId).then();
+      // Update myVillages locally
+      setMyVillages(prev => prev.map(v => v.id === villageId ? { ...v, settlement_type: newType } : v));
+    }
+  }, [populationBase, villageId]);
+
+  // Player level = total number of settlements owned
+  useEffect(() => {
+    if (myVillages.length > 0) {
+      setPlayerLevel(myVillages.length);
+    }
+  }, [myVillages.length]);
 
   // Gross production from buildings (with worker bonuses)
   const grossProduction = useMemo(() => {
@@ -1904,7 +1936,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       attackPlayer, vassalages, payRansom, attemptRebellion, setVassalTributeRate, releaseVassal, getWallLevel,
       injuredTroops, poisons, healTroops, craftPoison, getApothecaryLevel,
       storageCapacity,
-      myVillages, switchVillage,
+      myVillages, switchVillage, refreshVillages,
     }}>
       {children}
     </GameContext.Provider>
