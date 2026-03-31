@@ -360,6 +360,7 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
   getBuildTime: (type: Exclude<BuildingType, 'empty'>, level: number) => number;
 }) {
   const [confirmDemolish, setConfirmDemolish] = useState(false);
+  const [steelPopup, setSteelPopup] = useState(false);
   const type = building.type as Exclude<BuildingType, 'empty'>;
   const info = BUILDING_INFO[type];
   const sprite = BUILDING_SPRITES[type];
