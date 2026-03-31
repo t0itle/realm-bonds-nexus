@@ -1785,7 +1785,7 @@ export default function WorldMap() {
               {opSize > 22 && (
                 <div className={`backdrop-blur-sm rounded px-1.5 py-0.5 text-center mt-0.5 border ${isOwn ? 'bg-background/70 border-primary/20' : 'bg-background/50 border-destructive/20'}`}>
                   <p className="text-foreground/80 font-display whitespace-nowrap" style={{ fontSize: Math.max(7, opSize / 5) }}>
-                    {isOwn ? '🏕️' : '⚑'} {outpost.name} {outpost.level > 1 ? `Lv.${outpost.level}` : ''}
+                    {isSettlement ? '🏘️' : (isOwn ? '🏕️' : '⚑')} {outpost.name} {outpost.level > 1 ? `Lv.${outpost.level}` : ''}
                   </p>
                 </div>
               )}
