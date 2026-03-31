@@ -709,9 +709,9 @@ export default function WorldMap() {
   // Load outposts from database on mount
   useEffect(() => {
     if (!user) return;
-    supabase.from('outposts').select('*').eq('user_id', user.id).then(({ data }) => {
+    supabase.from('outposts').select('*').then(({ data }) => {
       if (data && data.length > 0) {
-        setOutposts(data.map(o => ({ id: o.id, x: o.x, y: o.y, name: o.name })));
+        setOutposts(data.map((o: any) => ({ id: o.id, x: o.x, y: o.y, name: o.name, user_id: o.user_id })));
       }
     });
   }, [user]);
