@@ -1021,9 +1021,18 @@ export default function WorldMap() {
   }, [getDistance, army]);
 
   const isInRange = useCallback((targetX: number, targetY: number) => {
+    const maxRange = getMaxRange(army);
+    // Check range from home village
     const dist = getDistance(targetX, targetY);
-    return dist <= getMaxRange(army);
-  }, [getDistance, army]);
+    if (dist <= maxRange) return true;
+    // Check range from owned outposts
+    const myOutposts = outposts.filter(o => o.user_id === user?.id);
+    for (const op of myOutposts) {
+      const opDist = Math.hypot(targetX - op.x, targetY - op.y);
+      if (opDist <= maxRange) return true;
+    }
+    return false;
+  }, [getDistance, army, outposts, user?.id]);
 
   const handleInvestigate = useCallback((event: ProceduralEvent) => {
     if (claimedEvents.has(event.id)) return;
@@ -2120,8 +2129,7 @@ export default function WorldMap() {
               const canAffordSettlement = resources.gold >= settlementCost.gold && resources.wood >= settlementCost.wood && resources.stone >= settlementCost.stone && resources.food >= settlementCost.food;
               const canBuildOutpost = thLevel >= 3;
               const canBuildSettlement = thLevel >= 5;
-              const dist = getDistance(selected.data.x, selected.data.y);
-              const inRange = dist <= getMaxRange(army);
+              const inRange = isInRange(selected.data.x, selected.data.y);
               const coordLabel = `${(selected.data.x / 1000).toFixed(1)}k, ${(selected.data.y / 1000).toFixed(1)}k`;
               return (
                 <div className="space-y-3">
