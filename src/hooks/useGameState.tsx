@@ -1007,8 +1007,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return wall?.level || 0;
   }, [buildings]);
 
-  const attackTarget = useCallback((targetName: string, targetPower: number) => {
-    // NPC combat - use simplified version with counter system
+  const attackTarget = useCallback((targetName: string, targetPower: number, sentArmy?: Partial<Army>) => {
+    // Use sent army or full army
+    const attackingArmy: Army = sentArmy ? {
+      militia: sentArmy.militia ?? 0, archer: sentArmy.archer ?? 0, knight: sentArmy.knight ?? 0,
+      cavalry: sentArmy.cavalry ?? 0, siege: sentArmy.siege ?? 0, scout: sentArmy.scout ?? 0,
+    } : { ...army };
     const fakeDefenderArmy: Army = {
       militia: Math.floor(targetPower / 8),
       archer: Math.floor(targetPower / 16),
