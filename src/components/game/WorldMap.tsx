@@ -2283,21 +2283,39 @@ export default function WorldMap() {
                           // Create new village in DB
                           if (user) {
                             const settleName = `Settlement ${Math.floor(Math.random() * 100)}`;
-                            const { error } = await supabase.from('villages').insert({
+                            const { data: newVillage, error } = await supabase.from('villages').insert({
                               user_id: user.id,
                               name: settleName,
                               map_x: targetData.x,
                               map_y: targetData.y,
-                              settlement_type: 'settlement',
+                              settlement_type: 'village',
                               gold: 100, wood: 100, stone: 50, food: 50,
-                            });
-                            if (error) { console.error('Settlement error:', error); toast.error(`Failed to found settlement: ${error.message}`); return; }
+                              population: 5, max_population: 15,
+                            }).select().single();
+                            if (error || !newVillage) { console.error('Settlement error:', error); toast.error(`Failed to found settlement: ${error?.message || 'Unknown error'}`); return; }
+                            
+                            // Create starter buildings for the new village
+                            await supabase.from('buildings').insert([
+                              { village_id: newVillage.id, user_id: user.id, type: 'townhall', level: 1, position: 4 },
+                              { village_id: newVillage.id, user_id: user.id, type: 'farm', level: 1, position: 7 },
+                              { village_id: newVillage.id, user_id: user.id, type: 'lumbermill', level: 1, position: 3 },
+                            ]);
+
                             // Also persist as vision source
                             const { data: opData } = await supabase.from('outposts').insert({
                               user_id: user!.id, x: targetData.x, y: targetData.y, name: settleName, outpost_type: 'settlement',
                             }).select().single();
                             if (opData) setOutposts(prev => [...prev, { id: opData.id, x: opData.x, y: opData.y, name: opData.name, user_id: user!.id, level: 1, garrison_power: 0, has_wall: false, wall_level: 0, territory_radius: 15000, outpost_type: 'settlement' }]);
-                            toast.success(`🏘️ ${settleName} founded! New territory claimed.`);
+                            
+                            // Refresh village list so switcher shows the new settlement
+                            const { data: updatedVillages } = await supabase.from('villages').select('id, name, settlement_type').eq('user_id', user.id).order('created_at', { ascending: true });
+                            if (updatedVillages) {
+                              // Update myVillages via game context - we need to trigger a reload
+                              loadVillageData();
+                            }
+                            
+                            toast.success(`🏘️ ${settleName} founded! Switch to it from the village selector to start building.`);
+                          }
                           }
                         });
                         setSelected(null);
