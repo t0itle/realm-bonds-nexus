@@ -43,7 +43,7 @@ export default function SocialPanel({ initialDm, onDmHandled }: {
         ))}
       </div>
 
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <Suspense fallback={<TabFallback />}>
           {subTab === 'mail' && <MessagesPanel initialDm={initialDm} onDmHandled={onDmHandled} />}
           {subTab === 'guild' && <AlliancePanel />}
