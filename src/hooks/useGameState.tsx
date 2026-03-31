@@ -579,12 +579,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
         })));
       }
 
+      const loadVassalages = async () => {
+        const { data: vassals } = await supabase.from('vassalages')
+          .select('*')
+          .or(`lord_id.eq.${user.id},vassal_id.eq.${user.id}`)
+          .eq('status', 'active');
+        setVassalages((vassals || []) as any as Vassalage[]);
+      };
+
       // Load vassalages
-      const { data: vassals } = await supabase.from('vassalages')
-        .select('*')
-        .or(`lord_id.eq.${user.id},vassal_id.eq.${user.id}`)
-        .eq('status', 'active');
-      if (vassals) setVassalages(vassals as any as Vassalage[]);
+      await loadVassalages();
 
       // Load alliance membership & tax rate
       const { data: membership } = await supabase.from('alliance_members')
@@ -630,7 +634,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
         });
       }).subscribe();
 
-    return () => { supabase.removeChannel(villageChannel); };
+    const vassalageChannel = supabase.channel(`vassalage-changes-${user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vassalages', filter: `lord_id=eq.${user.id}` }, () => {
+        void loadData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vassalages', filter: `vassal_id=eq.${user.id}` }, () => {
+        void loadData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(villageChannel);
+      supabase.removeChannel(vassalageChannel);
+    };
   }, [user]);
 
   const canAfford = useCallback((cost: Resources) => {
