@@ -1608,7 +1608,7 @@ export default function WorldMap() {
           );
         })}
 
-        {/* ── Fog of War — dense, opaque fog with vision cutouts ── */}
+        {/* ── Fog of War — clean, opaque fog with soft vision cutouts ── */}
         {(() => {
           const myPos = getMyPos();
           const scoutCount = army.scout || 0;
@@ -1624,61 +1624,48 @@ export default function WorldMap() {
           return (
             <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 45 }}>
               <defs>
-                {/* Fog texture filter for cloud-like appearance */}
-                <filter id="fog-turbulence" x="-20%" y="-20%" width="140%" height="140%">
-                  <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="4" seed="42" result="noise" />
-                  <feColorMatrix type="saturate" values="0" in="noise" result="grayNoise" />
-                  <feComponentTransfer in="grayNoise" result="threshNoise">
-                    <feFuncA type="linear" slope="1.5" intercept="-0.2" />
+                {/* Radial gradient for soft-edged vision holes */}
+                {visionSources.map((src, i) => {
+                  const { sx, sy } = worldToScreen(src.x, src.y);
+                  const r = src.radius * camera.ppu;
+                  if (r < 5) return null;
+                  return (
+                    <radialGradient key={`vg-${i}`} id={`vision-grad-${i}`}
+                      cx={sx} cy={sy} r={r}
+                      gradientUnits="userSpaceOnUse">
+                      <stop offset="0%" stopColor="black" />
+                      <stop offset="60%" stopColor="black" stopOpacity="0.95" />
+                      <stop offset="85%" stopColor="black" stopOpacity="0.3" />
+                      <stop offset="100%" stopColor="white" stopOpacity="0" />
+                    </radialGradient>
+                  );
+                })}
+                <mask id="fog-mask">
+                  {/* White = fogged (opaque fog), black = clear (visible) */}
+                  <rect width="100%" height="100%" fill="white" />
+                  {visionSources.map((src, i) => {
+                    const { sx, sy } = worldToScreen(src.x, src.y);
+                    const r = src.radius * camera.ppu;
+                    if (r < 5) return null;
+                    return (
+                      <circle key={i} cx={sx} cy={sy} r={r} fill={`url(#vision-grad-${i})`} />
+                    );
+                  })}
+                </mask>
+                {/* Cloud texture filter */}
+                <filter id="fog-clouds" x="-10%" y="-10%" width="120%" height="120%">
+                  <feTurbulence type="fractalNoise" baseFrequency="0.008" numOctaves="5" seed="7" result="noise" />
+                  <feColorMatrix type="saturate" values="0" in="noise" result="gn" />
+                  <feComponentTransfer in="gn" result="tn">
+                    <feFuncA type="linear" slope="0.4" intercept="0.1" />
                   </feComponentTransfer>
-                  <feGaussianBlur stdDeviation="3" in="threshNoise" result="blurNoise" />
+                  <feGaussianBlur stdDeviation="4" in="tn" />
                 </filter>
-                <mask id="fog-vision-mask">
-                  {/* White = fogged, black = visible */}
-                  <rect width="100%" height="100%" fill="white" />
-                  {visionSources.map((src, i) => {
-                    const { sx, sy } = worldToScreen(src.x, src.y);
-                    const r = src.radius * camera.ppu;
-                    if (r < 5) return null;
-                    return (
-                      <ellipse key={i} cx={sx} cy={sy} rx={r} ry={r} fill="black" />
-                    );
-                  })}
-                </mask>
-                {/* Soft edge mask for the transition zone */}
-                <mask id="fog-soft-mask">
-                  <rect width="100%" height="100%" fill="white" />
-                  {visionSources.map((src, i) => {
-                    const { sx, sy } = worldToScreen(src.x, src.y);
-                    const r = src.radius * camera.ppu;
-                    if (r < 5) return null;
-                    return (
-                      <ellipse key={i} cx={sx} cy={sy} rx={r * 1.3} ry={r * 1.3} fill="url(#fog-edge-grad)" />
-                    );
-                  })}
-                </mask>
-                <radialGradient id="fog-edge-grad">
-                  <stop offset="0%" stopColor="black" />
-                  <stop offset="50%" stopColor="black" stopOpacity="0.8" />
-                  <stop offset="80%" stopColor="white" stopOpacity="0.3" />
-                  <stop offset="100%" stopColor="white" />
-                </radialGradient>
               </defs>
-              {/* Layer 1: Dense dark fog — fully opaque outside vision */}
-              <rect width="100%" height="100%" fill="hsl(216 28% 4% / 0.92)" mask="url(#fog-vision-mask)" />
-              {/* Layer 2: Fog cloud texture overlay */}
-              <rect width="100%" height="100%" fill="hsl(220 20% 12% / 0.6)" mask="url(#fog-vision-mask)" filter="url(#fog-turbulence)" />
-              {/* Layer 3: Subtle fog wisps at the edges for atmosphere */}
-              {visionSources.map((src, i) => {
-                const { sx, sy } = worldToScreen(src.x, src.y);
-                const r = src.radius * camera.ppu;
-                if (r < 20) return null;
-                return (
-                  <ellipse key={`edge-${i}`} cx={sx} cy={sy} rx={r * 1.1} ry={r * 1.1}
-                    fill="none" stroke="hsl(220 15% 20% / 0.4)" strokeWidth={r * 0.3}
-                    filter="url(#fog-turbulence)" style={{ mixBlendMode: 'multiply' }} />
-                );
-              })}
+              {/* Main fog layer — solid dark */}
+              <rect width="100%" height="100%" fill="hsl(220 20% 7% / 0.95)" mask="url(#fog-mask)" />
+              {/* Cloud texture on top of fog for depth */}
+              <rect width="100%" height="100%" fill="hsl(220 15% 18% / 0.5)" mask="url(#fog-mask)" filter="url(#fog-clouds)" />
             </svg>
           );
         })()}
@@ -1689,7 +1676,7 @@ export default function WorldMap() {
           const { sx, sy } = worldToScreen(outpost.x, outpost.y);
           const opSize = Math.max(18, Math.min(36, camera.ppu * 6000));
           return (
-            <div key={outpost.id} className="absolute z-30 flex flex-col items-center pointer-events-none"
+            <div key={outpost.id} className="absolute z-[46] flex flex-col items-center pointer-events-none"
               style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
               <div className="relative">
                 <img src={mapVillage} alt={outpost.name} loading="lazy"
