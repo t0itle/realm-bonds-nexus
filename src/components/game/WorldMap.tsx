@@ -706,6 +706,16 @@ export default function WorldMap() {
     return () => clearInterval(interval);
   }, [capturedMines, addSteel]);
 
+  // Load outposts from database on mount
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('outposts').select('*').eq('user_id', user.id).then(({ data }) => {
+      if (data && data.length > 0) {
+        setOutposts(data.map(o => ({ id: o.id, x: o.x, y: o.y, name: o.name })));
+      }
+    });
+  }, [user]);
+
   // NPC vassal tribute income (from persistent state)
   useEffect(() => {
     const vassalNPCs = Array.from(npcState.playerRelations.values()).filter(r => r.status === 'vassal');
@@ -1968,9 +1978,13 @@ export default function WorldMap() {
                         const targetData = selected.data;
                         toast(`🏗️ Settlers heading out... ETA ${travelSec}s`);
                         addResources({ gold: -outpostCost.gold, wood: -outpostCost.wood, stone: -outpostCost.stone, food: -outpostCost.food });
-                        createMarch(`outpost-${Date.now()}`, 'New Outpost', targetData.x, targetData.y, travelSec, () => {
+                        createMarch(`outpost-${Date.now()}`, 'New Outpost', targetData.x, targetData.y, travelSec, async () => {
                           const opName = `Outpost ${outposts.length + 1}`;
-                          setOutposts(prev => [...prev, { id: `op-${Date.now()}`, x: targetData.x, y: targetData.y, name: opName }]);
+                          const { data, error } = await supabase.from('outposts').insert({
+                            user_id: user!.id, x: targetData.x, y: targetData.y, name: opName, outpost_type: 'outpost',
+                          }).select().single();
+                          if (error) { toast.error('Failed to build outpost'); return; }
+                          setOutposts(prev => [...prev, { id: data.id, x: data.x, y: data.y, name: data.name }]);
                           toast.success(`🏕️ ${opName} established! Fog lifted in this area.`);
                         });
                         setSelected(null);
@@ -2016,8 +2030,11 @@ export default function WorldMap() {
                               gold: 100, wood: 100, stone: 50, food: 50,
                             });
                             if (error) { toast.error('Failed to found settlement'); return; }
-                            // Also add as vision source
-                            setOutposts(prev => [...prev, { id: `settle-${Date.now()}`, x: targetData.x, y: targetData.y, name: settleName }]);
+                            // Also persist as vision source
+                            const { data: opData } = await supabase.from('outposts').insert({
+                              user_id: user!.id, x: targetData.x, y: targetData.y, name: settleName, outpost_type: 'settlement',
+                            }).select().single();
+                            if (opData) setOutposts(prev => [...prev, { id: opData.id, x: opData.x, y: opData.y, name: opData.name }]);
                             toast.success(`🏘️ ${settleName} founded! New territory claimed.`);
                           }
                         });

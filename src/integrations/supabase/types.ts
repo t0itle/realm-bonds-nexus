@@ -586,6 +586,36 @@ export type Database = {
         }
         Relationships: []
       }
+      outposts: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          outpost_type: string
+          user_id: string
+          x: number
+          y: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string
+          outpost_type?: string
+          user_id: string
+          x: number
+          y: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          outpost_type?: string
+          user_id?: string
+          x?: number
+          y?: number
+        }
+        Relationships: []
+      }
       player_messages: {
         Row: {
           content: string
