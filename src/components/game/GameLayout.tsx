@@ -152,9 +152,17 @@ export default function GameLayout() {
   return (
     <div className="fixed inset-0 flex flex-col bg-background overflow-hidden">
       <div className="px-4 pt-3 pb-1 flex items-center justify-between">
-        <div>
+        <div className="flex items-center gap-1.5">
           <h1 className="font-display text-sm font-bold text-foreground text-shadow-gold">{villageName || displayName}</h1>
+        </div>
+        <div className="flex items-center gap-1.5">
           <span className="text-[10px] text-primary font-semibold">Level {playerLevel}</span>
+          {myVassalage && (
+            <button onClick={() => setVassalPopup(true)}
+              className="text-[9px] font-bold text-destructive bg-destructive/15 px-2 py-0.5 rounded-full animate-pulse">
+              ⛓️ Vassalized
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {totalTroops > 0 && (
