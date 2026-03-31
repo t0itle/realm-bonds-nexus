@@ -1557,7 +1557,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (cost.steel > 0) setSteel(prev => prev - cost.steel);
     const newLevel = building.level + 1;
     const buildTime = getBuildTime(building.type, building.level);
-    setBuildQueue(prev => [...prev, { buildingId: id, buildingType: building.type as BuildingType, targetLevel: newLevel, finishTime: Date.now() + buildTime * 1000 }]);
+    const finishTime = Date.now() + buildTime * 1000;
+    setBuildQueue(prev => [...prev, { buildingId: id, buildingType: building.type as BuildingType, targetLevel: newLevel, finishTime }]);
+    // Persist build queue to DB
+    supabase.from('build_queue').insert({ user_id: user.id, building_id: id, building_type: building.type, target_level: newLevel, finish_time: new Date(finishTime).toISOString() } as any).then();
     return true;
   }, [buildings, villageId, user, resources, canAfford, canAffordSteel, buildQueue, getBuildTime]);
 
