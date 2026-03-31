@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useGame, TroopType, Resources, calcMarchTime, getMaxRange, Building, BUILDING_INFO } from '@/hooks/useGameState';
+import { useGame, TroopType, Resources, calcMarchTime, getMaxRange, Building, BUILDING_INFO, getSlowestTroopSpeed } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import NPCInteractionPanel from './NPCInteractionPanel';
@@ -34,6 +34,183 @@ const EVENT_SPRITES: Record<string, string> = {
   opportunity: mapEventOpportunity,
   mystery: mapEventMystery,
 };
+
+// ── A* Pathfinding around terrain obstacles ──
+const PATH_GRID_CELL = 2000; // world units per pathfinding cell
+
+function isPointInEllipse(px: number, py: number, cx: number, cy: number, rw: number, rh: number): boolean {
+  const dx = (px - cx) / rw;
+  const dy = (py - cy) / rh;
+  return dx * dx + dy * dy <= 1;
+}
+
+function isPointNearRiverSegment(px: number, py: number, p1: { x: number; y: number }, p2: { x: number; y: number }, riverWidth: number): boolean {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return Math.hypot(px - p1.x, py - p1.y) < riverWidth;
+  const t = Math.max(0, Math.min(1, ((px - p1.x) * dx + (py - p1.y) * dy) / lenSq));
+  const closestX = p1.x + t * dx;
+  const closestY = p1.y + t * dy;
+  return Math.hypot(px - closestX, py - closestY) < riverWidth;
+}
+
+function isPointNearBridge(px: number, py: number, bridges: { x: number; y: number }[], radius: number): boolean {
+  return bridges.some(b => Math.hypot(px - b.x, py - b.y) < radius);
+}
+
+function isCellBlocked(wx: number, wy: number, terrainFeatures: TerrainFeature[]): boolean {
+  const pad = PATH_GRID_CELL * 0.5;
+  for (const t of terrainFeatures) {
+    if (t.type === 'mountain') {
+      if (isPointInEllipse(wx, wy, t.x, t.y, t.width / 2 + pad, t.height / 2 + pad)) return true;
+    }
+    if (t.type === 'lake') {
+      if (isPointInEllipse(wx, wy, t.x, t.y, t.width / 2 + pad, t.height / 2 + pad)) return true;
+    }
+    if (t.type === 'river' && t.points && t.points.length > 1) {
+      const riverW = (t.width || 1000) + pad;
+      // Check if near river but NOT near a bridge
+      for (let i = 0; i < t.points.length - 1; i++) {
+        if (isPointNearRiverSegment(wx, wy, t.points[i], t.points[i + 1], riverW)) {
+          if (t.bridgeAt && isPointNearBridge(wx, wy, t.bridgeAt, riverW * 2)) return false; // bridge crossing OK
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+interface PathNode {
+  x: number; y: number;
+  g: number; h: number; f: number;
+  parent: PathNode | null;
+}
+
+function findPath(startX: number, startY: number, endX: number, endY: number, terrainFeatures: TerrainFeature[]): { x: number; y: number }[] {
+  const cell = PATH_GRID_CELL;
+  const toGrid = (v: number) => Math.round(v / cell);
+  const fromGrid = (g: number) => g * cell;
+  
+  const sx = toGrid(startX), sy = toGrid(startY);
+  const ex = toGrid(endX), ey = toGrid(endY);
+  
+  // If start == end, return direct
+  if (sx === ex && sy === ey) return [{ x: startX, y: startY }, { x: endX, y: endY }];
+  
+  // Limit search area to avoid performance issues
+  const maxSearch = 800;
+  const key = (gx: number, gy: number) => `${gx},${gy}`;
+  
+  const open: PathNode[] = [{ x: sx, y: sy, g: 0, h: Math.abs(ex - sx) + Math.abs(ey - sy), f: Math.abs(ex - sx) + Math.abs(ey - sy), parent: null }];
+  const closed = new Set<string>();
+  const gScores = new Map<string, number>();
+  gScores.set(key(sx, sy), 0);
+  
+  let iterations = 0;
+  const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]];
+  
+  while (open.length > 0 && iterations < maxSearch) {
+    iterations++;
+    // Find lowest f
+    let bestIdx = 0;
+    for (let i = 1; i < open.length; i++) {
+      if (open[i].f < open[bestIdx].f) bestIdx = i;
+    }
+    const current = open[bestIdx];
+    open.splice(bestIdx, 1);
+    
+    if (current.x === ex && current.y === ey) {
+      // Reconstruct path
+      const path: { x: number; y: number }[] = [];
+      let node: PathNode | null = current;
+      while (node) {
+        path.unshift({ x: fromGrid(node.x), y: fromGrid(node.y) });
+        node = node.parent;
+      }
+      // Replace first and last with exact positions
+      path[0] = { x: startX, y: startY };
+      path[path.length - 1] = { x: endX, y: endY };
+      // Simplify: remove collinear points
+      return simplifyPath(path);
+    }
+    
+    const ck = key(current.x, current.y);
+    if (closed.has(ck)) continue;
+    closed.add(ck);
+    
+    for (const [dx, dy] of dirs) {
+      const nx = current.x + dx;
+      const ny = current.y + dy;
+      const nk = key(nx, ny);
+      if (closed.has(nk)) continue;
+      
+      const worldX = fromGrid(nx);
+      const worldY = fromGrid(ny);
+      if (isCellBlocked(worldX, worldY, terrainFeatures)) continue;
+      
+      const moveCost = dx !== 0 && dy !== 0 ? 1.414 : 1;
+      const ng = current.g + moveCost;
+      const existingG = gScores.get(nk);
+      if (existingG !== undefined && ng >= existingG) continue;
+      
+      gScores.set(nk, ng);
+      const h = Math.sqrt((ex - nx) ** 2 + (ey - ny) ** 2);
+      open.push({ x: nx, y: ny, g: ng, h, f: ng + h, parent: current });
+    }
+  }
+  
+  // No path found — fall back to straight line
+  return [{ x: startX, y: startY }, { x: endX, y: endY }];
+}
+
+function simplifyPath(path: { x: number; y: number }[]): { x: number; y: number }[] {
+  if (path.length <= 2) return path;
+  const result = [path[0]];
+  for (let i = 1; i < path.length - 1; i++) {
+    const prev = result[result.length - 1];
+    const cur = path[i];
+    const next = path[i + 1];
+    // Check if collinear (within tolerance)
+    const cross = (cur.x - prev.x) * (next.y - prev.y) - (cur.y - prev.y) * (next.x - prev.x);
+    if (Math.abs(cross) > PATH_GRID_CELL * PATH_GRID_CELL * 0.1) {
+      result.push(cur);
+    }
+  }
+  result.push(path[path.length - 1]);
+  return result;
+}
+
+function getPathLength(waypoints: { x: number; y: number }[]): number {
+  let len = 0;
+  for (let i = 1; i < waypoints.length; i++) {
+    len += Math.hypot(waypoints[i].x - waypoints[i - 1].x, waypoints[i].y - waypoints[i - 1].y);
+  }
+  return len;
+}
+
+function interpolateAlongPath(waypoints: { x: number; y: number }[], progress: number): { x: number; y: number } {
+  if (waypoints.length < 2 || progress <= 0) return waypoints[0];
+  if (progress >= 1) return waypoints[waypoints.length - 1];
+  
+  const totalLen = getPathLength(waypoints);
+  const targetDist = totalLen * progress;
+  
+  let accumulated = 0;
+  for (let i = 1; i < waypoints.length; i++) {
+    const segLen = Math.hypot(waypoints[i].x - waypoints[i - 1].x, waypoints[i].y - waypoints[i - 1].y);
+    if (accumulated + segLen >= targetDist) {
+      const segProgress = (targetDist - accumulated) / segLen;
+      return {
+        x: waypoints[i - 1].x + (waypoints[i].x - waypoints[i - 1].x) * segProgress,
+        y: waypoints[i - 1].y + (waypoints[i].y - waypoints[i - 1].y) * segProgress,
+      };
+    }
+    accumulated += segLen;
+  }
+  return waypoints[waypoints.length - 1];
+}
 
 // ── Seeded random for deterministic procedural generation ──
 function seededRandom(seed: number) {
@@ -449,7 +626,7 @@ export default function WorldMap() {
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
   const [capturedMines, setCapturedMines] = useState<Set<string>>(new Set());
-  const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; startTime: number; startX: number; startY: number; targetX: number; targetY: number; action: () => void }[]>([]);
+  const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; startTime: number; startX: number; startY: number; targetX: number; targetY: number; waypoints: { x: number; y: number }[]; action: () => void }[]>([]);
   const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
   const [legendOpen, setLegendOpen] = useState(false);
   const [, forceRender] = useState(0);
@@ -681,16 +858,32 @@ export default function WorldMap() {
     return getPlayerPos(myVillage?.village.id || 'me');
   }, [user, allVillages]);
 
-  // Helper to create a march with position data
-  const createMarch = useCallback((id: string, targetName: string, targetX: number, targetY: number, travelSec: number, action: () => void) => {
+  // Collect all terrain for pathfinding
+  const allTerrain = useMemo(() => {
+    const terrain: TerrainFeature[] = [];
+    for (const chunk of visibleChunks) {
+      terrain.push(...chunk.data.terrain);
+    }
+    return terrain;
+  }, [visibleChunks]);
+
+  // Helper to create a march with pathfinding around obstacles
+  const createMarch = useCallback((id: string, targetName: string, targetX: number, targetY: number, _travelSec: number, action: () => void) => {
     const myPos = getMyPos();
     const now = Date.now();
+    const waypoints = findPath(myPos.x, myPos.y, targetX, targetY, allTerrain);
+    // Recalculate travel time based on actual path length
+    const pathDist = getPathLength(waypoints);
+    const actualTravelSec = Math.max(5, Math.floor(pathDist / (getSlowestTroopSpeed(army) * 200)));
     setMarches(prev => [...prev, {
-      id, targetName, arrivalTime: now + travelSec * 1000,
+      id, targetName, arrivalTime: now + actualTravelSec * 1000,
       startTime: now, startX: myPos.x, startY: myPos.y,
-      targetX, targetY, action,
+      targetX, targetY, waypoints, action,
     }]);
-  }, [getMyPos]);
+    if (pathDist > Math.hypot(targetX - myPos.x, targetY - myPos.y) * 1.1) {
+      toast.info(`Route adjusted around obstacles — travel time: ${actualTravelSec}s`);
+    }
+  }, [getMyPos, allTerrain, army]);
 
   const getDistance = useCallback((targetX: number, targetY: number) => {
     const myPos = getMyPos();
@@ -1224,31 +1417,35 @@ export default function WorldMap() {
           });
         })()}
 
-        {/* ── Animated March Sprites ── */}
+        {/* ── Animated March Sprites with waypoint paths ── */}
         {marches.map(march => {
           const now = Date.now();
           const totalDuration = march.arrivalTime - march.startTime;
           const elapsed = now - march.startTime;
           const progress = Math.min(1, Math.max(0, elapsed / totalDuration));
-          const currentX = march.startX + (march.targetX - march.startX) * progress;
-          const currentY = march.startY + (march.targetY - march.startY) * progress;
-          const { sx, sy } = worldToScreen(currentX, currentY);
-          const { sx: startSx, sy: startSy } = worldToScreen(march.startX, march.startY);
-          const { sx: endSx, sy: endSy } = worldToScreen(march.targetX, march.targetY);
+          const wp = march.waypoints;
+          const currentPos = interpolateAlongPath(wp, progress);
+          const { sx, sy } = worldToScreen(currentPos.x, currentPos.y);
+          // Determine facing direction from next waypoint
+          const aheadPos = interpolateAlongPath(wp, Math.min(1, progress + 0.05));
+          const facingLeft = aheadPos.x < currentPos.x;
           const marchSize = Math.max(16, Math.min(36, camera.ppu * 5000));
           const remainingSec = Math.max(0, Math.ceil((march.arrivalTime - now) / 1000));
+          // Build polyline path from waypoints
+          const screenWaypoints = wp.map(p => worldToScreen(p.x, p.y));
+          const polylinePoints = screenWaypoints.map(p => `${p.sx},${p.sy}`).join(' ');
           return (
             <div key={march.id}>
-              {/* Dotted march path line */}
+              {/* Dotted march path polyline */}
               <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible', zIndex: 35 }}>
-                <line x1={startSx} y1={startSy} x2={endSx} y2={endSy}
-                  stroke="hsl(var(--primary) / 0.4)" strokeWidth={2} strokeDasharray="6 4" />
+                <polyline points={polylinePoints}
+                  fill="none" stroke="hsl(var(--primary) / 0.4)" strokeWidth={2} strokeDasharray="6 4" />
               </svg>
               {/* Moving soldier sprite */}
               <div className="absolute z-40 flex flex-col items-center pointer-events-none"
                 style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', transition: 'left 0.4s linear, top 0.4s linear' }}>
                 <img src={mapSoldier} alt="Army" className="drop-shadow-lg"
-                  style={{ width: marchSize, height: marchSize, objectFit: 'contain', transform: march.targetX < march.startX ? 'scaleX(-1)' : undefined }} loading="lazy" />
+                  style={{ width: marchSize, height: marchSize, objectFit: 'contain', transform: facingLeft ? 'scaleX(-1)' : undefined }} loading="lazy" />
                 <div className="bg-background/90 rounded px-1.5 py-0.5 text-center mt-0.5 border border-primary/30 shadow-md">
                   <p className="text-foreground font-display whitespace-nowrap font-bold" style={{ fontSize: Math.max(7, marchSize / 4) }}>
                     {displayName}
