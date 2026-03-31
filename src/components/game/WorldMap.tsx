@@ -1917,7 +1917,7 @@ export default function WorldMap() {
                             setAttackConfig({
                               targetName: targetData.profile.display_name,
                               targetX: targetPos.x, targetY: targetPos.y,
-                              travelTime: travelSec, showEspionage: true,
+                              travelTime: travelSec, showEspionage: getSpyGuildLevel() >= 1,
                               targetId: targetData.village.user_id,
                               onAttack: (sentArmy) => {
                                 toast(`⚔️ Troops marching... ETA ${travelSec}s`);
