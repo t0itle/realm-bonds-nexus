@@ -1,0 +1,1 @@
+ALTER TABLE public.villages DROP CONSTRAINT IF EXISTS villages_user_id_key;
