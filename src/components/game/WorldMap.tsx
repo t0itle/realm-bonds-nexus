@@ -1111,7 +1111,7 @@ export default function WorldMap() {
     setAttackConfig({
       targetName: realm.name, targetPower: realm.power,
       targetX: realm.x, targetY: realm.y, travelTime: travelSec,
-      showEspionage: true, targetId: realm.id,
+      showEspionage: getSpyGuildLevel() >= 1, targetId: realm.id,
       onAttack: (sentArmy) => {
         toast(`⚔️ Troops marching to ${realm.name}... ETA ${travelSec}s`);
         createMarch(`atk-${Date.now()}`, realm.name, realm.x, realm.y, travelSec, () => {
