@@ -1277,36 +1277,18 @@ export default function WorldMap() {
             <button onClick={() => setSelected(null)} className="absolute top-2 right-2 text-muted-foreground text-sm w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted/50 active:scale-90 transition-transform">✕</button>
 
             {selected.kind === 'npc' && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-3xl">{selected.data.emoji}</span>
-                  <div className="flex-1">
-                    <h3 className="font-display text-sm text-foreground">{selected.data.name}</h3>
-                    <p className="text-[10px] text-muted-foreground">Ruled by {selected.data.ruler}</p>
-                  </div>
-                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                    selected.data.type === 'hostile' ? 'bg-destructive/20 text-destructive' :
-                    selected.data.type === 'friendly' ? 'bg-food/20 text-food' : 'bg-muted text-muted-foreground'
-                  }`}>{selected.data.type}</span>
-                </div>
-                <p className="text-[10px] text-muted-foreground">{selected.data.desc}</p>
-                <span className="text-[10px] text-foreground font-bold">⚔️ Power: {selected.data.power}</span>
-                {tradeContracts.some(c => c.realmId === selected.data.id) && (
-                  <span className="text-[9px] text-food font-bold">📜 Active Trade</span>
-                )}
-                <div className="flex gap-2 mt-1">
-                  {selected.data.type !== 'hostile' && (
-                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleEnvoy(selected.data)}
-                      className="flex-1 bg-primary/20 text-primary font-display text-[11px] py-2.5 px-3 rounded-lg active:bg-primary/30 transition-colors">
-                      📜 Trade 💰{Math.floor(selected.data.power * 0.3)}
-                    </motion.button>
-                  )}
-                  <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleAttackNPC(selected.data)}
-                    className="flex-1 bg-destructive/20 text-destructive font-display text-[11px] py-2.5 px-3 rounded-lg active:bg-destructive/30 transition-colors">
-                    ⚔️ Attack
-                  </motion.button>
-                </div>
-              </div>
+              <NPCInteractionPanel
+                realm={selected.data}
+                biome={selected.biome}
+                onClose={() => setSelected(null)}
+                onAttack={(r) => handleAttackNPC(r)}
+                onEnvoy={(r) => handleEnvoy(r)}
+                npcRelations={npcRelations}
+                setNpcRelations={setNpcRelations}
+                isInRange={isInRange(selected.data.x, selected.data.y)}
+                travelTime={calcTravelTime(selected.data.x, selected.data.y)}
+                hasActiveTrade={tradeContracts.some(c => c.realmId === selected.data.id)}
+              />
             )}
 
             {selected.kind === 'event' && (
