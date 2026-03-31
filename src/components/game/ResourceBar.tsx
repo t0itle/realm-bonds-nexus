@@ -57,7 +57,7 @@ export default function ResourceBar() {
                           : 'text-muted-foreground hover:bg-muted/50'
                       }`}
                     >
-                      <span>{v.settlement_type === 'settlement' ? '🏘️' : '🏰'}</span>
+                      <span>{v.settlement_type === 'city' ? '🏙️' : v.settlement_type === 'town' ? '🏘️' : '🏠'}</span>
                       <span className="truncate">{v.name}</span>
                       {v.id === villageId && <span className="ml-auto text-[8px]">● Active</span>}
                     </button>
