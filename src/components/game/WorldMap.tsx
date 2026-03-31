@@ -19,6 +19,7 @@ import mapGrass from '@/assets/sprites/map-grass.png';
 import mapRocks from '@/assets/sprites/map-rocks.png';
 import mapVillage from '@/assets/sprites/map-village.png';
 import mapRuins from '@/assets/sprites/map-ruins.png';
+import mapSoldier from '@/assets/sprites/map-soldier.png';
 import mapMountain from '@/assets/sprites/map-mountain.png';
 
 const REALM_SPRITES: Record<string, string> = {
