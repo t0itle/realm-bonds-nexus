@@ -1643,13 +1643,11 @@ export default function WorldMap() {
                     const r = src.radius * camera.ppu;
                     if (r < 5) return null;
                     return (
-                      <>
-                        {/* Hard clear center */}
+                      <g key={i}>
                         <circle cx={sx} cy={sy} r={r * 0.7} fill="black" />
-                        {/* Soft fade ring */}
                         <circle cx={sx} cy={sy} r={r} fill="black" opacity="0.6" />
                         <circle cx={sx} cy={sy} r={r * 1.15} fill="black" opacity="0.2" />
-                      </>
+                      </g>
                     );
                   })}
                 </mask>
