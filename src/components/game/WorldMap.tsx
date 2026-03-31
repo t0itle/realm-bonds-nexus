@@ -1021,9 +1021,18 @@ export default function WorldMap() {
   }, [getDistance, army]);
 
   const isInRange = useCallback((targetX: number, targetY: number) => {
+    const maxRange = getMaxRange(army);
+    // Check range from home village
     const dist = getDistance(targetX, targetY);
-    return dist <= getMaxRange(army);
-  }, [getDistance, army]);
+    if (dist <= maxRange) return true;
+    // Check range from owned outposts
+    const myOutposts = outposts.filter(o => o.user_id === user?.id);
+    for (const op of myOutposts) {
+      const opDist = Math.hypot(targetX - op.x, targetY - op.y);
+      if (opDist <= maxRange) return true;
+    }
+    return false;
+  }, [getDistance, army, outposts, user?.id]);
 
   const handleInvestigate = useCallback((event: ProceduralEvent) => {
     if (claimedEvents.has(event.id)) return;
