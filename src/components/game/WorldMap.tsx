@@ -969,6 +969,11 @@ export default function WorldMap() {
     return getPlayerPos(myVillage?.village.id || 'me');
   }, [user, allVillages]);
 
+  const goHome = useCallback(() => {
+    const pos = getMyPos();
+    setCamera({ cx: pos.x, cy: pos.y, ppu: 0.003 });
+  }, [getMyPos]);
+
   // Center camera on player's village when map first loads
   useEffect(() => {
     if (initializedCamera.current) return;
