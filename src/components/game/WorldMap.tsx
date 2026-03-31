@@ -564,25 +564,25 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
     });
   }
 
-  // ── Decorations (trees, grass, rocks) — scatter per biome ──
+  // ── Decorations (trees, grass, rocks) — sparse scatter for clean look ──
   const decorations: Decoration[] = [];
   const decoTypes: Decoration['type'][] = 
-    regionBiome === 'Forest' || regionBiome === 'Jungle' ? ['trees', 'trees', 'grass', 'trees'] :
-    regionBiome === 'Plains' || regionBiome === 'Steppe' ? ['grass', 'grass', 'trees', 'grass'] :
-    regionBiome === 'Highlands' || regionBiome === 'Badlands' ? ['rocks', 'rocks', 'trees', 'rocks'] :
-    regionBiome === 'Tundra' ? ['rocks', 'rocks', 'grass'] :
-    regionBiome === 'Desert' ? ['rocks', 'rocks'] :
+    regionBiome === 'Forest' || regionBiome === 'Jungle' ? ['trees', 'trees', 'grass'] :
+    regionBiome === 'Plains' || regionBiome === 'Steppe' ? ['grass', 'grass', 'trees'] :
+    regionBiome === 'Highlands' || regionBiome === 'Badlands' ? ['rocks', 'rocks', 'trees'] :
+    regionBiome === 'Tundra' ? ['rocks', 'grass'] :
+    regionBiome === 'Desert' ? ['rocks'] :
     ['trees', 'grass', 'rocks'];
-  const decoCount = regionBiome === 'Desert' ? 3 + Math.floor(rng() * 4) : 8 + Math.floor(rng() * 10);
+  const decoCount = regionBiome === 'Desert' ? 2 + Math.floor(rng() * 2) : 4 + Math.floor(rng() * 4);
   for (let i = 0; i < decoCount; i++) {
     const dt = decoTypes[Math.floor(rng() * decoTypes.length)];
     decorations.push({
       type: dt,
-      x: worldBaseX + 2000 + rng() * (CHUNK_SIZE - 4000),
-      y: worldBaseY + 2000 + rng() * (CHUNK_SIZE - 4000),
-      size: dt === 'trees' ? 3000 + rng() * 5000 : dt === 'grass' ? 4000 + rng() * 8000 : 2000 + rng() * 4000,
+      x: worldBaseX + 8000 + rng() * (CHUNK_SIZE - 16000),
+      y: worldBaseY + 8000 + rng() * (CHUNK_SIZE - 16000),
+      size: dt === 'trees' ? 3500 + rng() * 4000 : dt === 'grass' ? 5000 + rng() * 6000 : 2500 + rng() * 3500,
       rotation: rng() * 360,
-      opacity: 0.3 + rng() * 0.4,
+      opacity: 0.15 + rng() * 0.25,
     });
   }
 
