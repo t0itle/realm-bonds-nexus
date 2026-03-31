@@ -1984,7 +1984,7 @@ export default function WorldMap() {
                             user_id: user!.id, x: targetData.x, y: targetData.y, name: opName, outpost_type: 'outpost',
                           }).select().single();
                           if (error) { toast.error('Failed to build outpost'); return; }
-                          setOutposts(prev => [...prev, { id: data.id, x: data.x, y: data.y, name: data.name }]);
+                          setOutposts(prev => [...prev, { id: data.id, x: data.x, y: data.y, name: data.name, user_id: user!.id }]);
                           toast.success(`🏕️ ${opName} established! Fog lifted in this area.`);
                         });
                         setSelected(null);
