@@ -1046,12 +1046,12 @@ export default function WorldMap() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="px-3 pt-2 pb-1 flex items-center justify-between">
-        <h2 className="font-display text-sm text-foreground text-shadow-gold">Map</h2>
-        <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
-          {marches.length > 0 && <span className="text-primary animate-pulse">🚶{marches.length} marching</span>}
-          {tradeContracts.length > 0 && <span className="text-food">📜{tradeContracts.length} trades</span>}
-          <span>⚔️{power.attack} 🛡️{power.defense}</span>
+      <div className="px-3 pt-2 pb-1.5 flex items-center justify-between border-b border-border/30">
+        <h2 className="font-display text-sm text-foreground/90 tracking-wide">World Map</h2>
+        <div className="flex items-center gap-3 text-[9px] text-muted-foreground/70">
+          {marches.length > 0 && <span className="text-primary/80 animate-pulse">🚶 {marches.length}</span>}
+          {tradeContracts.length > 0 && <span className="text-food/80">📜 {tradeContracts.length}</span>}
+          <span className="font-mono">⚔️{power.attack} 🛡️{power.defense}</span>
         </div>
       </div>
 
