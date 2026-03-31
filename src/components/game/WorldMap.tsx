@@ -2132,6 +2132,24 @@ export default function WorldMap() {
                           </motion.button>
                         )}
                       </div>
+                      {/* Delete Outpost (only for non-settlement outposts) */}
+                      {!isSettlement && (
+                        <div className="bg-destructive/10 rounded-lg p-2 space-y-1">
+                          <p className="text-[10px] font-semibold text-destructive">🗑️ Demolish Outpost</p>
+                          <p className="text-[8px] text-muted-foreground">Permanently remove this outpost. This cannot be undone.</p>
+                          <motion.button whileTap={{ scale: 0.95 }}
+                            onClick={async () => {
+                              if (!window.confirm(`Demolish ${op.name}? This cannot be undone.`)) return;
+                              await supabase.from('outposts').delete().eq('id', op.id);
+                              setOutposts(prev => prev.filter(o => o.id !== op.id));
+                              toast.success(`🗑️ ${op.name} demolished.`);
+                              setSelected(null);
+                            }}
+                            className="w-full bg-destructive text-destructive-foreground font-display text-[11px] py-2 rounded-lg active:scale-95 transition-transform">
+                            🗑️ Demolish
+                          </motion.button>
+                        </div>
+                      )}
                     </div>
                   )}
                   {!isOwn && (
