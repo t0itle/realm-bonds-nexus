@@ -88,7 +88,7 @@ export default function NotificationsPanel({ embedded = false }: { embedded?: bo
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [user, vassalages]);
+  }, [user, vassalages, buildings]);
 
   // Build unified notification list
   const notifications: NotifItem[] = [];
