@@ -8,6 +8,16 @@ import GuildTaxPanel from './GuildTaxPanel';
 import GuildContracts from './GuildContracts';
 import GuildVoting from './GuildVoting';
 
+interface GuildMember {
+  user_id: string;
+  role: string;
+  joined_at: string;
+  display_name: string;
+  avatar_emoji: string;
+  village_name: string;
+  population: number;
+}
+
 interface Alliance {
   id: string;
   name: string;
@@ -25,10 +35,47 @@ export default function AlliancePanel() {
   const [name, setName] = useState('');
   const [tag, setTag] = useState('');
   const [error, setError] = useState('');
+  const [members, setMembers] = useState<GuildMember[]>([]);
 
   useEffect(() => {
     loadAlliances();
   }, [user]);
+
+  useEffect(() => {
+    if (myAlliance) loadMembers(myAlliance);
+  }, [myAlliance]);
+
+  const loadMembers = async (allianceId: string) => {
+    const { data: mems } = await supabase
+      .from('alliance_members')
+      .select('user_id, role, joined_at')
+      .eq('alliance_id', allianceId);
+    if (!mems) return;
+
+    const { data: profiles } = await supabase.from('profiles').select('user_id, display_name, avatar_emoji');
+    const { data: villages } = await supabase.from('villages').select('user_id, name, population');
+
+    const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
+    const villageMap = new Map((villages || []).map(v => [v.user_id, v]));
+
+    const memberList: GuildMember[] = mems.map(m => {
+      const profile = profileMap.get(m.user_id);
+      const village = villageMap.get(m.user_id);
+      return {
+        user_id: m.user_id,
+        role: m.role,
+        joined_at: m.joined_at,
+        display_name: profile?.display_name || 'Unknown',
+        avatar_emoji: profile?.avatar_emoji || '🛡️',
+        village_name: village?.name || 'Unknown',
+        population: village?.population || 0,
+      };
+    });
+    // Sort: leader first, then officers, then members
+    const roleOrder: Record<string, number> = { leader: 0, officer: 1, member: 2 };
+    memberList.sort((a, b) => (roleOrder[a.role] ?? 3) - (roleOrder[b.role] ?? 3));
+    setMembers(memberList);
+  };
 
   const loadAlliances = async () => {
     if (!user) return;
@@ -83,6 +130,7 @@ export default function AlliancePanel() {
     setName('');
     setTag('');
     loadAlliances();
+    loadMembers(data.id);
   };
 
   const joinAlliance = async (allianceId: string) => {
@@ -94,6 +142,7 @@ export default function AlliancePanel() {
     });
     setMyAlliance(allianceId);
     loadAlliances();
+    loadMembers(allianceId);
   };
 
   const leaveAlliance = async () => {
@@ -171,6 +220,39 @@ export default function AlliancePanel() {
       {/* Guild features for members */}
       {myAlliance && (
         <>
+          {/* Member List */}
+          <div className="game-panel border-glow rounded-xl p-3 space-y-2">
+            <h3 className="font-display text-sm text-foreground flex items-center gap-1.5">
+              👥 Members <span className="text-[10px] text-muted-foreground font-normal">({members.length})</span>
+            </h3>
+            <div className="space-y-1.5 max-h-48 overflow-y-auto">
+              {members.map((m, i) => {
+                const roleLabel = m.role === 'leader' ? '👑' : m.role === 'officer' ? '⚔️' : '';
+                const roleColor = m.role === 'leader' ? 'text-primary' : m.role === 'officer' ? 'text-amber-500' : 'text-muted-foreground';
+                return (
+                  <motion.div key={m.user_id}
+                    initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-secondary/50">
+                    <span className="text-lg">{m.avatar_emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-display text-foreground truncate">
+                        {roleLabel} {m.display_name}
+                      </p>
+                      <p className="text-[9px] text-muted-foreground truncate">
+                        {m.village_name} · 👤{m.population}
+                      </p>
+                    </div>
+                    <span className={`text-[9px] font-semibold capitalize ${roleColor}`}>{m.role}</span>
+                  </motion.div>
+                );
+              })}
+              {members.length === 0 && (
+                <p className="text-[10px] text-muted-foreground text-center py-2">Loading members...</p>
+              )}
+            </div>
+          </div>
+
           <GuildChat allianceId={myAlliance} />
           <GuildTaxPanel allianceId={myAlliance} isLeader={alliances.find(a => a.id === myAlliance)?.leader_id === user?.id} />
           <GuildVoting allianceId={myAlliance} isLeader={alliances.find(a => a.id === myAlliance)?.leader_id === user?.id} />
