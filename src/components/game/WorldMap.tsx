@@ -2055,16 +2055,6 @@ export default function WorldMap() {
                 toast(`🧱 ${op.has_wall ? 'Upgrading wall' : 'Building wall'} at ${op.name}... (${Math.floor(wallTimeSec / 60)}:${(wallTimeSec % 60).toString().padStart(2, '0')})`);
               };
 
-              const handleWall = async () => {
-                if (!canAffordWall) { toast.error('Not enough resources!'); return; }
-                addResources({ gold: -wallCost.gold, wood: -wallCost.wood, stone: -wallCost.stone, food: -wallCost.food });
-                const newWallLevel = op.wall_level + 1;
-                const newGarrison = op.garrison_power + 30;
-                await supabase.from('outposts').update({ has_wall: true, wall_level: newWallLevel, garrison_power: newGarrison } as any).eq('id', op.id);
-                setOutposts(prev => prev.map(o => o.id === op.id ? { ...o, has_wall: true, wall_level: newWallLevel, garrison_power: newGarrison } : o));
-                setSelected({ kind: 'outpost', data: { ...op, has_wall: true, wall_level: newWallLevel, garrison_power: newGarrison } });
-                toast.success(`🧱 ${op.has_wall ? 'Wall upgraded' : 'Border wall built'} at ${op.name}!`);
-              };
 
               return (
                 <div className="space-y-2">
