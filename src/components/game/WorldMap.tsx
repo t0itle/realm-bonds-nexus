@@ -2265,10 +2265,10 @@ export default function WorldMap() {
                               name: settleName,
                               map_x: targetData.x,
                               map_y: targetData.y,
-                              settlement_type: 'outpost',
+                              settlement_type: 'settlement',
                               gold: 100, wood: 100, stone: 50, food: 50,
                             });
-                            if (error) { toast.error('Failed to found settlement'); return; }
+                            if (error) { console.error('Settlement error:', error); toast.error(`Failed to found settlement: ${error.message}`); return; }
                             // Also persist as vision source
                             const { data: opData } = await supabase.from('outposts').insert({
                               user_id: user!.id, x: targetData.x, y: targetData.y, name: settleName, outpost_type: 'settlement',

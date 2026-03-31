@@ -440,6 +440,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [villageNameLocal, setVillageNameLocal] = useState('');
   const [villageId, setVillageId] = useState<string | null>(null);
+  const villageIdRef = useRef<string | null>(null);
+  useEffect(() => { villageIdRef.current = villageId; }, [villageId]);
   const [playerLevel, setPlayerLevel] = useState(1);
   const [displayNameLocal, setDisplayNameLocal] = useState('Wanderer');
   const [avatarUrl, setAvatarUrlLocal] = useState<string | null>(null);
@@ -540,7 +542,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setAvatarUrlLocal((profile as any).avatar_url ?? null);
       }
 
-      const { data: village } = await supabase.from('villages').select('*').eq('user_id', user.id).single();
+      const { data: village } = await supabase.from('villages').select('*').eq('user_id', user.id).order('created_at', { ascending: true }).limit(1).maybeSingle();
       if (village) {
         setVillageId(village.id);
         setVillageNameLocal(village.name);
@@ -744,7 +746,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const villageChannel = supabase.channel('village-changes')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'villages', filter: `user_id=eq.${user.id}` }, (payload) => {
         const v = payload.new;
-        setResources({ gold: Number(v.gold), wood: Number(v.wood), stone: Number(v.stone), food: Number(v.food) });
+        // Only handle updates for current village
+        if (v.id !== villageIdRef.current) return;
+        // Skip resource fields — they're managed locally via client-side production ticks
+        // Only sync non-resource fields from DB updates
         setVillageNameLocal(v.name as string);
         setPlayerLevel(v.level as number);
         setSteel((v as any).steel ?? 0);
