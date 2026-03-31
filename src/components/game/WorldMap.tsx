@@ -1696,6 +1696,35 @@ export default function WorldMap() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Attack Configuration Panel */}
+      <AnimatePresence>
+        {attackConfig && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
+            className="absolute bottom-16 sm:bottom-14 inset-x-0 z-[60] mx-2 sm:mx-3 game-panel border-glow rounded-xl p-3 max-h-[55vh] overflow-y-auto safe-bottom">
+            <AttackConfigPanel
+              targetName={attackConfig.targetName}
+              targetPower={attackConfig.targetPower}
+              targetId={attackConfig.targetId}
+              targetX={attackConfig.targetX}
+              targetY={attackConfig.targetY}
+              travelTime={attackConfig.travelTime}
+              showEspionage={attackConfig.showEspionage}
+              onConfirmAttack={attackConfig.onAttack}
+              onConfirmEspionage={(mission, count) => {
+                if (attackConfig.targetId) {
+                  sendSpyMission(mission, attackConfig.targetName, attackConfig.targetId, attackConfig.targetX, attackConfig.targetY, count);
+                  toast(`🕵️ Spies dispatched to ${attackConfig.targetName}`);
+                }
+                setAttackConfig(null);
+                setSelected(null);
+              }}
+              onCancel={() => setAttackConfig(null)}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
