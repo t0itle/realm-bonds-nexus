@@ -73,11 +73,9 @@ export function getProduction(type: Exclude<BuildingType, 'empty'>, level: numbe
   return result;
 }
 
-/** Steel production: quarry produces steel at level 3+ */
-export function getSteelProduction(type: Exclude<BuildingType, 'empty'>, level: number, workers: number = 0): number {
-  if (type !== 'quarry' || level < 3) return 0;
-  const workerBonus = 1 + workers * 0.35;
-  return Math.floor((level - 2) * 1 * workerBonus); // 1 steel/min per level above 2
+/** Steel production: now comes only from captured iron mines on the map */
+export function getSteelProduction(_type: Exclude<BuildingType, 'empty'>, _level: number, _workers: number = 0): number {
+  return 0; // Steel is acquired from iron ore deposits on the world map
 }
 
 // === RATIONS SYSTEM ===
