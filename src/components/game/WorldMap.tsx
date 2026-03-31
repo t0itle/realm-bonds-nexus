@@ -783,11 +783,11 @@ export default function WorldMap() {
   const eventSize = Math.max(20, Math.min(48, camera.ppu * 6000));
 
   // Collect all visible realms and events from chunks
-  const visibleRealms: ProceduralRealm[] = [];
+  const visibleRealms: (ProceduralRealm & { biome: string })[] = [];
   const visibleEvents: ProceduralEvent[] = [];
   for (const chunk of visibleChunks) {
     for (const realm of chunk.data.realms) {
-      if (isVisible(realm.x, realm.y, 100)) visibleRealms.push(realm);
+      if (isVisible(realm.x, realm.y, 100)) visibleRealms.push({ ...realm, biome: chunk.data.regionBiome });
     }
     for (const event of chunk.data.events) {
       if (!claimedEvents.has(event.id) && isVisible(event.x, event.y, 60)) visibleEvents.push(event);
