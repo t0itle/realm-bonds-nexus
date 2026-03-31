@@ -858,7 +858,26 @@ export default function WorldMap() {
     }));
   }, [safeSetCamera]);
 
-  const handlePointerUp = useCallback(() => { dragStart.current = null; }, []);
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    const drag = dragStart.current;
+    if (drag) {
+      const dx = e.clientX - drag.x;
+      const dy = e.clientY - drag.y;
+      const moved = Math.abs(dx) + Math.abs(dy);
+      // If barely moved, treat as a click on empty space
+      if (moved < 5 && !(e.target as HTMLElement).closest('[data-map-item]')) {
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (rect) {
+          const screenX = e.clientX - rect.left;
+          const screenY = e.clientY - rect.top;
+          const worldX = camera.cx + (screenX - containerSize.w / 2) / camera.ppu;
+          const worldY = camera.cy + (screenY - containerSize.h / 2) / camera.ppu;
+          setSelected({ kind: 'empty', data: { x: worldX, y: worldY } });
+        }
+      }
+    }
+    dragStart.current = null;
+  }, [camera, containerSize]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 2) {
