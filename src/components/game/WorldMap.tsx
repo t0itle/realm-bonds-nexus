@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGame, TroopType, Resources, calcMarchTime, getMaxRange, Building, BUILDING_INFO, getSlowestTroopSpeed } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
 import { useNPCState } from '@/hooks/useNPCState';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import NPCInteractionPanel from './NPCInteractionPanel';
 import AttackConfigPanel from './AttackConfigPanel';
@@ -629,6 +630,7 @@ export default function WorldMap() {
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
   const [capturedMines, setCapturedMines] = useState<Set<string>>(new Set());
   const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; startTime: number; startX: number; startY: number; targetX: number; targetY: number; waypoints: { x: number; y: number }[]; action: () => void }[]>([]);
+  const [otherMarches, setOtherMarches] = useState<{ id: string; user_id: string; player_name: string; start_x: number; start_y: number; target_x: number; target_y: number; target_name: string; started_at: string; arrives_at: string; march_type: string }[]>([]);
   const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
   const [legendOpen, setLegendOpen] = useState(false);
   const [, forceRender] = useState(0);
@@ -638,6 +640,42 @@ export default function WorldMap() {
     onAttack: (sentArmy: Partial<import('@/hooks/useGameState').Army>) => void;
     showEspionage: boolean;
   } | null>(null);
+
+  // ── Subscribe to other players' marches in realtime ──
+  useEffect(() => {
+    if (!user) return;
+    // Load existing active marches
+    const loadMarches = async () => {
+      const { data } = await supabase.from('active_marches').select('*');
+      if (data) setOtherMarches(data.filter((m: any) => m.user_id !== user.id && new Date(m.arrives_at).getTime() > Date.now()));
+    };
+    loadMarches();
+
+    const channel = supabase
+      .channel('active-marches')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'active_marches' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const m = payload.new as any;
+          if (m.user_id !== user.id) {
+            setOtherMarches(prev => [...prev, m]);
+          }
+        } else if (payload.eventType === 'DELETE') {
+          setOtherMarches(prev => prev.filter(m => m.id !== (payload.old as any).id));
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
+  // Clean up expired other marches
+  useEffect(() => {
+    if (otherMarches.length === 0) return;
+    const interval = setInterval(() => {
+      setOtherMarches(prev => prev.filter(m => new Date(m.arrives_at).getTime() > Date.now()));
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [otherMarches.length]);
 
   // Get TH level for dynamic sprite
   const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
@@ -700,11 +738,15 @@ export default function WorldMap() {
           toast.success(`Troops arrived at ${m.targetName}!`);
           m.action();
         });
+        // Clean up arrived marches from DB
+        if (arrived.length > 0 && user) {
+          supabase.from('active_marches').delete().eq('user_id', user.id).lte('arrives_at', new Date().toISOString()).then(() => {});
+        }
         return remaining;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [marches.length]);
+  }, [marches.length, user]);
 
   // createMarch is defined below after getMyPos
 
@@ -839,16 +881,15 @@ export default function WorldMap() {
   }, [safeSetCamera]);
 
   const getPlayerPos = (id: string) => {
-    // Deterministic position based solely on village id — no index dependency
+    // Deterministic position based solely on village id — spread across the map
     let h = 5381;
     for (let i = 0; i < id.length; i++) {
       h = ((h << 5) + h + id.charCodeAt(i)) >>> 0;
     }
     const h2 = ((h * 2654435761) >>> 0);
-    // Use golden-ratio-based spiral placement for even distribution
-    // Each player gets a unique angle/radius combo to avoid clustering
+    // Use golden-ratio-based spiral placement — much wider spread
     const angle = (h % 10000) / 10000 * Math.PI * 2;
-    const radius = 5000 + (h2 % 35000); // 5k-40k from center
+    const radius = 25000 + (h2 % 120000); // 25k-145k from center
     return {
       x: 100000 + Math.cos(angle) * radius,
       y: 100000 + Math.sin(angle) * radius,
@@ -879,18 +920,30 @@ export default function WorldMap() {
     const myPos = getMyPos();
     const now = Date.now();
     const waypoints = findPath(myPos.x, myPos.y, targetX, targetY, allTerrain);
-    // Recalculate travel time based on actual path length
     const pathDist = getPathLength(waypoints);
     const actualTravelSec = Math.max(5, Math.floor(pathDist / (getSlowestTroopSpeed(army) * 200)));
+    const arrivalTime = now + actualTravelSec * 1000;
     setMarches(prev => [...prev, {
-      id, targetName, arrivalTime: now + actualTravelSec * 1000,
+      id, targetName, arrivalTime,
       startTime: now, startX: myPos.x, startY: myPos.y,
       targetX, targetY, waypoints, action,
     }]);
+    // Persist to DB for live visibility by other players
+    if (user) {
+      supabase.from('active_marches').insert({
+        user_id: user.id,
+        player_name: displayName,
+        start_x: myPos.x, start_y: myPos.y,
+        target_x: targetX, target_y: targetY,
+        target_name: targetName,
+        arrives_at: new Date(arrivalTime).toISOString(),
+        march_type: id.startsWith('atk') || id.startsWith('pvp') ? 'attack' : id.startsWith('envoy') ? 'envoy' : 'march',
+      }).then(() => {});
+    }
     if (pathDist > Math.hypot(targetX - myPos.x, targetY - myPos.y) * 1.1) {
       toast.info(`Route adjusted around obstacles — travel time: ${actualTravelSec}s`);
     }
-  }, [getMyPos, allTerrain, army]);
+  }, [getMyPos, allTerrain, army, user, displayName]);
 
   const getDistance = useCallback((targetX: number, targetY: number) => {
     const myPos = getMyPos();
@@ -1489,7 +1542,79 @@ export default function WorldMap() {
           );
         })}
 
-        {/* Zoom controls — larger touch targets on mobile */}
+        {/* ── Other Players' Marches (live from DB) ── */}
+        {otherMarches.map(march => {
+          const now = Date.now();
+          const startT = new Date(march.started_at).getTime();
+          const endT = new Date(march.arrives_at).getTime();
+          const totalDuration = endT - startT;
+          const elapsed = now - startT;
+          const progress = Math.min(1, Math.max(0, elapsed / totalDuration));
+          const currentX = march.start_x + (march.target_x - march.start_x) * progress;
+          const currentY = march.start_y + (march.target_y - march.start_y) * progress;
+          const { sx, sy } = worldToScreen(currentX, currentY);
+          // Visibility check
+          if (sx < -80 || sx > containerSize.w + 80 || sy < -80 || sy > containerSize.h + 80) return null;
+          const facingLeft = march.target_x < march.start_x;
+          const marchSize = Math.max(14, Math.min(28, camera.ppu * 4000));
+          const remainingSec = Math.max(0, Math.ceil((endT - now) / 1000));
+          // Draw line from start to end
+          const startScreen = worldToScreen(march.start_x, march.start_y);
+          const endScreen = worldToScreen(march.target_x, march.target_y);
+          const marchColor = march.march_type === 'attack' ? 'hsl(0 72% 50% / 0.3)' : march.march_type === 'envoy' ? 'hsl(42 72% 52% / 0.3)' : 'hsl(216 12% 50% / 0.25)';
+          return (
+            <div key={march.id}>
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible', zIndex: 32 }}>
+                <line x1={startScreen.sx} y1={startScreen.sy} x2={endScreen.sx} y2={endScreen.sy}
+                  stroke={marchColor} strokeWidth={1.5} strokeDasharray="4 3" opacity={0.6} />
+              </svg>
+              <div className="absolute z-35 flex flex-col items-center pointer-events-none"
+                style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', transition: 'left 0.8s linear, top 0.8s linear' }}>
+                <img src={mapSoldier} alt="Troops" className="drop-shadow-md opacity-70"
+                  style={{ width: marchSize, height: marchSize, objectFit: 'contain', transform: facingLeft ? 'scaleX(-1)' : undefined }} loading="lazy" />
+                {marchSize > 16 && (
+                  <div className="bg-background/70 backdrop-blur-sm rounded px-1 py-0.5 text-center mt-0.5 border border-border/30">
+                    <p className="text-foreground/70 font-display whitespace-nowrap" style={{ fontSize: Math.max(6, marchSize / 4) }}>
+                      {march.player_name}
+                    </p>
+                    <p className="text-muted-foreground/60 whitespace-nowrap" style={{ fontSize: Math.max(5, marchSize / 5) }}>
+                      → {march.target_name} · {remainingSec}s
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* ── Fog of War ── */}
+        {(() => {
+          const myPos = getMyPos();
+          const { sx: mySx, sy: mySy } = worldToScreen(myPos.x, myPos.y);
+          // Visibility radius in screen pixels — scouts extend this
+          const scoutCount = army.scout || 0;
+          const baseVisionWorld = 40000 + scoutCount * 8000;
+          const visionRadiusPx = baseVisionWorld * camera.ppu;
+          // Only render fog if it would actually obscure something
+          if (visionRadiusPx < 20) return null;
+          return (
+            <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 45, mixBlendMode: 'multiply' }}>
+              <defs>
+                <radialGradient id="fog-grad" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="transparent" />
+                  <stop offset="60%" stopColor="transparent" />
+                  <stop offset="85%" stopColor="hsl(216 28% 5% / 0.4)" />
+                  <stop offset="100%" stopColor="hsl(216 28% 5% / 0.7)" />
+                </radialGradient>
+                <mask id="fog-mask">
+                  <rect width="100%" height="100%" fill="white" />
+                  <ellipse cx={mySx} cy={mySy} rx={visionRadiusPx} ry={visionRadiusPx} fill="black" />
+                </mask>
+              </defs>
+              <rect width="100%" height="100%" fill="hsl(216 28% 5% / 0.55)" mask="url(#fog-mask)" />
+            </svg>
+          );
+        })()}
         <div className="absolute bottom-4 right-3 flex flex-col gap-1 z-50">
           <button onClick={() => safeSetCamera(prev => ({ ...prev, ppu: Math.min(0.05, prev.ppu * 1.5) }))}
             className="w-9 h-9 bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-sm font-medium active:scale-90 transition-all hover:bg-background/95 shadow-sm">+</button>
