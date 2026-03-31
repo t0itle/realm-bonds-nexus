@@ -453,6 +453,7 @@ export default function WorldMap() {
   const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
   const [legendOpen, setLegendOpen] = useState(false);
   const [, forceRender] = useState(0);
+  const [npcRelations, setNpcRelations] = useState<Map<string, { realmId: string; status: 'neutral' | 'friendly' | 'vassal' | 'allied'; tributeRate: number; friendshipLevel: number }>>(new Map());
 
   // Get TH level for dynamic sprite
   const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
