@@ -620,6 +620,7 @@ type SelectedItem =
   | { kind: 'event'; data: ProceduralEvent; chunkKey: string; index: number }
   | { kind: 'player'; data: any }
   | { kind: 'mine'; data: SteelMine }
+  | { kind: 'empty'; data: { x: number; y: number } }
   | null;
 
 export default function WorldMap() {
@@ -629,6 +630,7 @@ export default function WorldMap() {
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
   const [capturedMines, setCapturedMines] = useState<Set<string>>(new Set());
+  const [outposts, setOutposts] = useState<{ id: string; x: number; y: number; name: string }[]>([]);
   const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; startTime: number; startX: number; startY: number; targetX: number; targetY: number; waypoints: { x: number; y: number }[]; action: () => void }[]>([]);
   const [otherMarches, setOtherMarches] = useState<{ id: string; user_id: string; player_name: string; start_x: number; start_y: number; target_x: number; target_y: number; target_name: string; started_at: string; arrives_at: string; march_type: string }[]>([]);
   const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
@@ -856,7 +858,26 @@ export default function WorldMap() {
     }));
   }, [safeSetCamera]);
 
-  const handlePointerUp = useCallback(() => { dragStart.current = null; }, []);
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    const drag = dragStart.current;
+    if (drag) {
+      const dx = e.clientX - drag.x;
+      const dy = e.clientY - drag.y;
+      const moved = Math.abs(dx) + Math.abs(dy);
+      // If barely moved, treat as a click on empty space
+      if (moved < 5 && !(e.target as HTMLElement).closest('[data-map-item]')) {
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (rect) {
+          const screenX = e.clientX - rect.left;
+          const screenY = e.clientY - rect.top;
+          const worldX = camera.cx + (screenX - containerSize.w / 2) / camera.ppu;
+          const worldY = camera.cy + (screenY - containerSize.h / 2) / camera.ppu;
+          setSelected({ kind: 'empty', data: { x: worldX, y: worldY } });
+        }
+      }
+    }
+    dragStart.current = null;
+  }, [camera, containerSize]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 2) {
@@ -1587,34 +1608,106 @@ export default function WorldMap() {
           );
         })}
 
-        {/* ── Fog of War ── */}
+        {/* ── Fog of War — dense, opaque fog with vision cutouts ── */}
         {(() => {
           const myPos = getMyPos();
-          const { sx: mySx, sy: mySy } = worldToScreen(myPos.x, myPos.y);
-          // Visibility radius in screen pixels — scouts extend this
           const scoutCount = army.scout || 0;
-          const baseVisionWorld = 40000 + scoutCount * 8000;
-          const visionRadiusPx = baseVisionWorld * camera.ppu;
-          // Only render fog if it would actually obscure something
-          if (visionRadiusPx < 20) return null;
+          const baseVisionWorld = 45000 + scoutCount * 8000;
+          const outpostVisionWorld = 25000;
+          
+          // Collect all vision sources: home + outposts
+          const visionSources = [
+            { x: myPos.x, y: myPos.y, radius: baseVisionWorld },
+            ...outposts.map(o => ({ x: o.x, y: o.y, radius: outpostVisionWorld })),
+          ];
+
           return (
-            <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 45, mixBlendMode: 'multiply' }}>
+            <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 45 }}>
               <defs>
-                <radialGradient id="fog-grad" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="transparent" />
-                  <stop offset="60%" stopColor="transparent" />
-                  <stop offset="85%" stopColor="hsl(216 28% 5% / 0.4)" />
-                  <stop offset="100%" stopColor="hsl(216 28% 5% / 0.7)" />
-                </radialGradient>
-                <mask id="fog-mask">
+                {/* Fog texture filter for cloud-like appearance */}
+                <filter id="fog-turbulence" x="-20%" y="-20%" width="140%" height="140%">
+                  <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="4" seed="42" result="noise" />
+                  <feColorMatrix type="saturate" values="0" in="noise" result="grayNoise" />
+                  <feComponentTransfer in="grayNoise" result="threshNoise">
+                    <feFuncA type="linear" slope="1.5" intercept="-0.2" />
+                  </feComponentTransfer>
+                  <feGaussianBlur stdDeviation="3" in="threshNoise" result="blurNoise" />
+                </filter>
+                <mask id="fog-vision-mask">
+                  {/* White = fogged, black = visible */}
                   <rect width="100%" height="100%" fill="white" />
-                  <ellipse cx={mySx} cy={mySy} rx={visionRadiusPx} ry={visionRadiusPx} fill="black" />
+                  {visionSources.map((src, i) => {
+                    const { sx, sy } = worldToScreen(src.x, src.y);
+                    const r = src.radius * camera.ppu;
+                    if (r < 5) return null;
+                    return (
+                      <ellipse key={i} cx={sx} cy={sy} rx={r} ry={r} fill="black" />
+                    );
+                  })}
                 </mask>
+                {/* Soft edge mask for the transition zone */}
+                <mask id="fog-soft-mask">
+                  <rect width="100%" height="100%" fill="white" />
+                  {visionSources.map((src, i) => {
+                    const { sx, sy } = worldToScreen(src.x, src.y);
+                    const r = src.radius * camera.ppu;
+                    if (r < 5) return null;
+                    return (
+                      <ellipse key={i} cx={sx} cy={sy} rx={r * 1.3} ry={r * 1.3} fill="url(#fog-edge-grad)" />
+                    );
+                  })}
+                </mask>
+                <radialGradient id="fog-edge-grad">
+                  <stop offset="0%" stopColor="black" />
+                  <stop offset="50%" stopColor="black" stopOpacity="0.8" />
+                  <stop offset="80%" stopColor="white" stopOpacity="0.3" />
+                  <stop offset="100%" stopColor="white" />
+                </radialGradient>
               </defs>
-              <rect width="100%" height="100%" fill="hsl(216 28% 5% / 0.55)" mask="url(#fog-mask)" />
+              {/* Layer 1: Dense dark fog — fully opaque outside vision */}
+              <rect width="100%" height="100%" fill="hsl(216 28% 4% / 0.92)" mask="url(#fog-vision-mask)" />
+              {/* Layer 2: Fog cloud texture overlay */}
+              <rect width="100%" height="100%" fill="hsl(220 20% 12% / 0.6)" mask="url(#fog-vision-mask)" filter="url(#fog-turbulence)" />
+              {/* Layer 3: Subtle fog wisps at the edges for atmosphere */}
+              {visionSources.map((src, i) => {
+                const { sx, sy } = worldToScreen(src.x, src.y);
+                const r = src.radius * camera.ppu;
+                if (r < 20) return null;
+                return (
+                  <ellipse key={`edge-${i}`} cx={sx} cy={sy} rx={r * 1.1} ry={r * 1.1}
+                    fill="none" stroke="hsl(220 15% 20% / 0.4)" strokeWidth={r * 0.3}
+                    filter="url(#fog-turbulence)" style={{ mixBlendMode: 'multiply' }} />
+                );
+              })}
             </svg>
           );
         })()}
+
+        {/* ── Outpost markers on the map ── */}
+        {outposts.map(outpost => {
+          if (!isVisible(outpost.x, outpost.y, 60)) return null;
+          const { sx, sy } = worldToScreen(outpost.x, outpost.y);
+          const opSize = Math.max(18, Math.min(36, camera.ppu * 6000));
+          return (
+            <div key={outpost.id} className="absolute z-30 flex flex-col items-center pointer-events-none"
+              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
+              <div className="relative">
+                <img src={mapVillage} alt={outpost.name} loading="lazy"
+                  className="drop-shadow-md brightness-90"
+                  style={{ width: opSize, height: opSize, objectFit: 'contain' }} />
+                <div className="absolute -inset-1 rounded-full pointer-events-none"
+                  style={{ boxShadow: '0 0 10px 3px hsl(var(--primary) / 0.2)', border: '1px solid hsl(var(--primary) / 0.3)' }} />
+              </div>
+              {opSize > 22 && (
+                <div className="bg-background/70 backdrop-blur-sm rounded px-1.5 py-0.5 text-center mt-0.5 border border-primary/20">
+                  <p className="text-foreground/80 font-display whitespace-nowrap" style={{ fontSize: Math.max(7, opSize / 5) }}>
+                    🏕️ {outpost.name}
+                  </p>
+                </div>
+              )}
+            </div>
+          );
+        })}
         <div className="absolute bottom-4 right-3 flex flex-col gap-1 z-50">
           <button onClick={() => safeSetCamera(prev => ({ ...prev, ppu: Math.min(0.05, prev.ppu * 1.5) }))}
             className="w-9 h-9 bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-sm font-medium active:scale-90 transition-all hover:bg-background/95 shadow-sm">+</button>
@@ -1841,6 +1934,113 @@ export default function WorldMap() {
                   </div>
                 )}
               </div>
+              );
+            })()}
+
+            {selected.kind === 'empty' && (() => {
+              const thLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
+              const outpostCost = { gold: 300, wood: 200, stone: 150, food: 100 };
+              const settlementCost = { gold: 1000, wood: 600, stone: 400, food: 300 };
+              const canAffordOp = resources.gold >= outpostCost.gold && resources.wood >= outpostCost.wood && resources.stone >= outpostCost.stone && resources.food >= outpostCost.food;
+              const canAffordSettlement = resources.gold >= settlementCost.gold && resources.wood >= settlementCost.wood && resources.stone >= settlementCost.stone && resources.food >= settlementCost.food;
+              const canBuildOutpost = thLevel >= 3;
+              const canBuildSettlement = thLevel >= 5;
+              const dist = getDistance(selected.data.x, selected.data.y);
+              const inRange = dist <= getMaxRange(army);
+              const coordLabel = `${(selected.data.x / 1000).toFixed(1)}k, ${(selected.data.y / 1000).toFixed(1)}k`;
+              return (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">📍</span>
+                    <div>
+                      <h3 className="font-display text-sm text-foreground">Unexplored Territory</h3>
+                      <p className="text-[9px] text-muted-foreground font-mono">{coordLabel}</p>
+                    </div>
+                  </div>
+
+                  {/* Found Outpost */}
+                  <div className="bg-muted/30 rounded-lg p-2.5 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <p className="font-display text-[11px] text-foreground">🏕️ Found Outpost</p>
+                      {!canBuildOutpost && <span className="text-[8px] text-destructive">TH Lv.3+</span>}
+                    </div>
+                    <p className="text-[9px] text-muted-foreground">Expand your borders and reveal fog of war in this area.</p>
+                    <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+                      <span className={resources.gold >= outpostCost.gold ? '' : 'text-destructive'}>🪙{outpostCost.gold}</span>
+                      <span className={resources.wood >= outpostCost.wood ? '' : 'text-destructive'}>🪵{outpostCost.wood}</span>
+                      <span className={resources.stone >= outpostCost.stone ? '' : 'text-destructive'}>🪨{outpostCost.stone}</span>
+                      <span className={resources.food >= outpostCost.food ? '' : 'text-destructive'}>🌾{outpostCost.food}</span>
+                    </div>
+                    <motion.button whileTap={{ scale: 0.95 }}
+                      disabled={!canBuildOutpost || !canAffordOp || !inRange}
+                      onClick={() => {
+                        if (!canBuildOutpost) { toast.error('Town Hall level 3 required!'); return; }
+                        if (!canAffordOp) { toast.error('Not enough resources!'); return; }
+                        if (!inRange) { toast.error('Out of range! Train scouts to extend reach.'); return; }
+                        const travelSec = calcTravelTime(selected.data.x, selected.data.y);
+                        const targetData = selected.data;
+                        toast(`🏗️ Settlers heading out... ETA ${travelSec}s`);
+                        addResources({ gold: -outpostCost.gold, wood: -outpostCost.wood, stone: -outpostCost.stone, food: -outpostCost.food });
+                        createMarch(`outpost-${Date.now()}`, 'New Outpost', targetData.x, targetData.y, travelSec, () => {
+                          const opName = `Outpost ${outposts.length + 1}`;
+                          setOutposts(prev => [...prev, { id: `op-${Date.now()}`, x: targetData.x, y: targetData.y, name: opName }]);
+                          toast.success(`🏕️ ${opName} established! Fog lifted in this area.`);
+                        });
+                        setSelected(null);
+                      }}
+                      className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2 rounded-lg glow-gold-sm disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform">
+                      {!inRange ? '⚠️ Out of Range' : '🏕️ Found Outpost'}
+                    </motion.button>
+                  </div>
+
+                  {/* Found Settlement */}
+                  <div className="bg-muted/30 rounded-lg p-2.5 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <p className="font-display text-[11px] text-foreground">🏘️ Found Settlement</p>
+                      {!canBuildSettlement && <span className="text-[8px] text-destructive">TH Lv.5+</span>}
+                    </div>
+                    <p className="text-[9px] text-muted-foreground">Establish a new village with wider borders and independent resource production.</p>
+                    <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+                      <span className={resources.gold >= settlementCost.gold ? '' : 'text-destructive'}>🪙{settlementCost.gold}</span>
+                      <span className={resources.wood >= settlementCost.wood ? '' : 'text-destructive'}>🪵{settlementCost.wood}</span>
+                      <span className={resources.stone >= settlementCost.stone ? '' : 'text-destructive'}>🪨{settlementCost.stone}</span>
+                      <span className={resources.food >= settlementCost.food ? '' : 'text-destructive'}>🌾{settlementCost.food}</span>
+                    </div>
+                    <motion.button whileTap={{ scale: 0.95 }}
+                      disabled={!canBuildSettlement || !canAffordSettlement || !inRange}
+                      onClick={() => {
+                        if (!canBuildSettlement) { toast.error('Town Hall level 5 required!'); return; }
+                        if (!canAffordSettlement) { toast.error('Not enough resources!'); return; }
+                        if (!inRange) { toast.error('Out of range!'); return; }
+                        const travelSec = calcTravelTime(selected.data.x, selected.data.y);
+                        const targetData = selected.data;
+                        toast(`🏘️ Settlers marching... ETA ${travelSec}s`);
+                        addResources({ gold: -settlementCost.gold, wood: -settlementCost.wood, stone: -settlementCost.stone, food: -settlementCost.food });
+                        createMarch(`settle-${Date.now()}`, 'New Settlement', targetData.x, targetData.y, travelSec, async () => {
+                          // Create new village in DB
+                          if (user) {
+                            const settleName = `Settlement ${Math.floor(Math.random() * 100)}`;
+                            const { error } = await supabase.from('villages').insert({
+                              user_id: user.id,
+                              name: settleName,
+                              map_x: targetData.x,
+                              map_y: targetData.y,
+                              settlement_type: 'outpost',
+                              gold: 100, wood: 100, stone: 50, food: 50,
+                            });
+                            if (error) { toast.error('Failed to found settlement'); return; }
+                            // Also add as vision source
+                            setOutposts(prev => [...prev, { id: `settle-${Date.now()}`, x: targetData.x, y: targetData.y, name: settleName }]);
+                            toast.success(`🏘️ ${settleName} founded! New territory claimed.`);
+                          }
+                        });
+                        setSelected(null);
+                      }}
+                      className="w-full bg-accent text-accent-foreground font-display text-[11px] py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform">
+                      {!inRange ? '⚠️ Out of Range' : '🏘️ Found Settlement'}
+                    </motion.button>
+                  </div>
+                </div>
               );
             })()}
           </motion.div>
