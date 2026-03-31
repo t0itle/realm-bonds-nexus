@@ -232,7 +232,7 @@ function hashCoords(cx: number, cy: number, salt = 0): number {
 }
 
 // ── Chunk-based procedural world ──
-const CHUNK_SIZE = 50000; // world units per chunk
+const CHUNK_SIZE = 90000; // world units per chunk — spread out for cleaner map
 
 interface TerrainFeature {
   type: 'lake' | 'mountain' | 'island' | 'river';
@@ -398,8 +398,8 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
   const regionName = generateRegionName(rng);
   const regionBiome = BIOME_TYPES[Math.floor(rng() * BIOME_TYPES.length)];
 
-  // 0-2 realms per chunk
-  const realmCount = rng() < 0.3 ? 0 : rng() < 0.7 ? 1 : 2;
+  // 0-1 realms per chunk (reduced density for cleaner map)
+  const realmCount = rng() < 0.45 ? 0 : 1;
   const realms: ProceduralRealm[] = [];
   for (let i = 0; i < realmCount; i++) {
     const emojiIdx = Math.floor(rng() * REALM_EMOJIS.length);
@@ -411,26 +411,25 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
       name: generateName(rng),
       ruler: generateRulerName(rng),
       power: Math.floor(basePower * difficultyMult),
-      x: worldBaseX + 5000 + rng() * (CHUNK_SIZE - 10000),
-      y: worldBaseY + 5000 + rng() * (CHUNK_SIZE - 10000),
+      x: worldBaseX + 15000 + rng() * (CHUNK_SIZE - 30000),
+      y: worldBaseY + 15000 + rng() * (CHUNK_SIZE - 30000),
       emoji: REALM_EMOJIS[emojiIdx],
       type,
       desc: `A ${type} kingdom in the ${dist < 3 ? 'heartlands' : dist < 8 ? 'frontier' : 'deep wilds'}. Power grows with distance from the center.`,
-      territory: 6000 + Math.floor(rng() * 14000),
+      territory: 8000 + Math.floor(rng() * 16000),
     });
   }
 
   // 1-4 events per chunk — use time-based seed rotation so events change periodically
   const timeSeed = Math.floor(Date.now() / (1000 * 60 * 30)); // rotates every 30 minutes
   const eventRng = seededRandom(hashCoords(chunkX, chunkY, timeSeed + 99));
-  const eventCount = 1 + Math.floor(eventRng() * 4);
+  const eventCount = 1 + Math.floor(eventRng() * 2); // reduced from 4 to 2 max extras
   const events: ProceduralEvent[] = [];
   for (let i = 0; i < eventCount; i++) {
     const baseIdx = Math.floor(eventRng() * EVENT_BASES.length);
     const base = EVENT_BASES[baseIdx];
     const nameIdx = Math.floor(eventRng() * base.names.length);
     const descIdx = Math.floor(eventRng() * base.descs.length);
-    // Optionally add an adjective or location for extra variety
     let eventName = base.names[nameIdx];
     const adjRoll = eventRng();
     if (adjRoll < 0.3) {
@@ -449,8 +448,8 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
       emoji: base.emoji,
       type: base.type,
       power: Math.floor(base.basePower * difficultyMult),
-      x: worldBaseX + 2000 + eventRng() * (CHUNK_SIZE - 4000),
-      y: worldBaseY + 2000 + eventRng() * (CHUNK_SIZE - 4000),
+      x: worldBaseX + 10000 + eventRng() * (CHUNK_SIZE - 20000),
+      y: worldBaseY + 10000 + eventRng() * (CHUNK_SIZE - 20000),
       reward: {
         gold: Math.floor((50 + eventRng() * 200) * rewardMult),
         wood: base.type === 'opportunity' ? Math.floor((30 + eventRng() * 100) * rewardMult) : 0,
@@ -553,37 +552,37 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
   // Steel mines (0-1 per chunk, more common in Highlands/Badlands)
   const MINE_NAMES = ['Iron Vein', 'Deep Forge', 'Obsidian Pit', 'Steelcrag Mine', 'The Black Seam', 'Titan\'s Quarry', 'Shadowsteel Delve', 'Ore Hollow', 'Molten Core', 'The Crucible'];
   const steelMines: SteelMine[] = [];
-  const mineChance = regionBiome === 'Highlands' || regionBiome === 'Badlands' ? 0.6 : regionBiome === 'Tundra' ? 0.4 : 0.15;
+  const mineChance = regionBiome === 'Highlands' || regionBiome === 'Badlands' ? 0.5 : regionBiome === 'Tundra' ? 0.3 : 0.12;
   if (rng() < mineChance) {
     steelMines.push({
       id: `mine-${chunkX}-${chunkY}`,
       name: MINE_NAMES[Math.floor(rng() * MINE_NAMES.length)],
-      x: worldBaseX + 8000 + rng() * (CHUNK_SIZE - 16000),
-      y: worldBaseY + 8000 + rng() * (CHUNK_SIZE - 16000),
+      x: worldBaseX + 15000 + rng() * (CHUNK_SIZE - 30000),
+      y: worldBaseY + 15000 + rng() * (CHUNK_SIZE - 30000),
       steelPerTick: 1 + Math.floor(rng() * 3 * difficultyMult),
       power: Math.floor((30 + rng() * 80) * difficultyMult),
     });
   }
 
-  // ── Decorations (trees, grass, rocks) — scatter per biome ──
+  // ── Decorations (trees, grass, rocks) — sparse scatter for clean look ──
   const decorations: Decoration[] = [];
   const decoTypes: Decoration['type'][] = 
-    regionBiome === 'Forest' || regionBiome === 'Jungle' ? ['trees', 'trees', 'grass', 'trees'] :
-    regionBiome === 'Plains' || regionBiome === 'Steppe' ? ['grass', 'grass', 'trees', 'grass'] :
-    regionBiome === 'Highlands' || regionBiome === 'Badlands' ? ['rocks', 'rocks', 'trees', 'rocks'] :
-    regionBiome === 'Tundra' ? ['rocks', 'rocks', 'grass'] :
-    regionBiome === 'Desert' ? ['rocks', 'rocks'] :
+    regionBiome === 'Forest' || regionBiome === 'Jungle' ? ['trees', 'trees', 'grass'] :
+    regionBiome === 'Plains' || regionBiome === 'Steppe' ? ['grass', 'grass', 'trees'] :
+    regionBiome === 'Highlands' || regionBiome === 'Badlands' ? ['rocks', 'rocks', 'trees'] :
+    regionBiome === 'Tundra' ? ['rocks', 'grass'] :
+    regionBiome === 'Desert' ? ['rocks'] :
     ['trees', 'grass', 'rocks'];
-  const decoCount = regionBiome === 'Desert' ? 3 + Math.floor(rng() * 4) : 8 + Math.floor(rng() * 10);
+  const decoCount = regionBiome === 'Desert' ? 2 + Math.floor(rng() * 2) : 4 + Math.floor(rng() * 4);
   for (let i = 0; i < decoCount; i++) {
     const dt = decoTypes[Math.floor(rng() * decoTypes.length)];
     decorations.push({
       type: dt,
-      x: worldBaseX + 2000 + rng() * (CHUNK_SIZE - 4000),
-      y: worldBaseY + 2000 + rng() * (CHUNK_SIZE - 4000),
-      size: dt === 'trees' ? 3000 + rng() * 5000 : dt === 'grass' ? 4000 + rng() * 8000 : 2000 + rng() * 4000,
+      x: worldBaseX + 8000 + rng() * (CHUNK_SIZE - 16000),
+      y: worldBaseY + 8000 + rng() * (CHUNK_SIZE - 16000),
+      size: dt === 'trees' ? 3500 + rng() * 4000 : dt === 'grass' ? 5000 + rng() * 6000 : 2500 + rng() * 3500,
       rotation: rng() * 360,
-      opacity: 0.3 + rng() * 0.4,
+      opacity: 0.15 + rng() * 0.25,
     });
   }
 
@@ -1015,9 +1014,9 @@ export default function WorldMap() {
   }, [tradeContracts, addResources]);
 
   const power = totalArmyPower();
-  const iconSize = Math.max(24, Math.min(64, camera.ppu * 8000));
-  const fontSize = Math.max(9, Math.min(14, camera.ppu * 3000));
-  const eventSize = Math.max(20, Math.min(48, camera.ppu * 6000));
+  const iconSize = Math.max(28, Math.min(56, camera.ppu * 12000));
+  const fontSize = Math.max(9, Math.min(13, camera.ppu * 4000));
+  const eventSize = Math.max(22, Math.min(44, camera.ppu * 9000));
 
   // Collect all visible realms and events from chunks
   const visibleRealms: (ProceduralRealm & { biome: string })[] = [];
@@ -1041,18 +1040,18 @@ export default function WorldMap() {
   }
 
   // Cap rendered items when very zoomed out
-  const maxItems = 60;
+  const maxItems = 30;
   const renderRealms = visibleRealms.slice(0, maxItems);
   const renderEvents = visibleEvents.slice(0, maxItems);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="px-3 pt-2 pb-1 flex items-center justify-between">
-        <h2 className="font-display text-sm text-foreground text-shadow-gold">Map</h2>
-        <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
-          {marches.length > 0 && <span className="text-primary animate-pulse">🚶{marches.length} marching</span>}
-          {tradeContracts.length > 0 && <span className="text-food">📜{tradeContracts.length} trades</span>}
-          <span>⚔️{power.attack} 🛡️{power.defense}</span>
+      <div className="px-3 pt-2 pb-1.5 flex items-center justify-between border-b border-border/30">
+        <h2 className="font-display text-sm text-foreground/90 tracking-wide">World Map</h2>
+        <div className="flex items-center gap-3 text-[9px] text-muted-foreground/70">
+          {marches.length > 0 && <span className="text-primary/80 animate-pulse">🚶 {marches.length}</span>}
+          {tradeContracts.length > 0 && <span className="text-food/80">📜 {tradeContracts.length}</span>}
+          <span className="font-mono">⚔️{power.attack} 🛡️{power.defense}</span>
         </div>
       </div>
 
@@ -1068,15 +1067,14 @@ export default function WorldMap() {
         onTouchMove={handleTouchMove}
         onWheel={handleWheel}
       >
-        {/* Grid lines — capped count */}
+        {/* Subtle grid lines */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible' }}>
           {(() => {
             const w = containerSize.w;
             const h = containerSize.h;
             if (w === 0 || h === 0) return null;
-            // Adaptive grid step — ensure max ~20 lines per axis
             const viewW = w / camera.ppu;
-            const rawStep = viewW / 8;
+            const rawStep = viewW / 5;
             const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
             const gridStep = rawStep / mag < 2 ? mag : rawStep / mag < 5 ? mag * 2 : mag * 5;
 
@@ -1087,17 +1085,15 @@ export default function WorldMap() {
             const endY = camera.cy + h / 2 / camera.ppu;
 
             let count = 0;
-            const MAX_LINES = 40;
+            const MAX_LINES = 20;
             for (let gx = startX; gx <= endX && count < MAX_LINES; gx += gridStep) {
               const { sx } = worldToScreen(gx, 0);
-              lines.push(<line key={`gx-${gx}`} x1={sx} y1={0} x2={sx} y2={h} stroke="hsl(42 72% 52% / 0.08)" strokeWidth={1} />);
-              lines.push(<text key={`lx-${gx}`} x={sx + 4} y={14} fill="hsl(42 72% 52% / 0.3)" fontSize={10} fontFamily="Inter">{(gx / 1000).toFixed(0)}k</text>);
+              lines.push(<line key={`gx-${gx}`} x1={sx} y1={0} x2={sx} y2={h} stroke="hsl(42 72% 52% / 0.04)" strokeWidth={0.5} />);
               count++;
             }
             for (let gy = startY; gy <= endY && count < MAX_LINES * 2; gy += gridStep) {
               const { sy } = worldToScreen(0, gy);
-              lines.push(<line key={`gy-${gy}`} x1={0} y1={sy} x2={w} y2={sy} stroke="hsl(42 72% 52% / 0.08)" strokeWidth={1} />);
-              lines.push(<text key={`ly-${gy}`} x={4} y={sy - 4} fill="hsl(42 72% 52% / 0.3)" fontSize={10} fontFamily="Inter">{(gy / 1000).toFixed(0)}k</text>);
+              lines.push(<line key={`gy-${gy}`} x1={0} y1={sy} x2={w} y2={sy} stroke="hsl(42 72% 52% / 0.04)" strokeWidth={0.5} />);
               count++;
             }
             return lines;
@@ -1254,30 +1250,31 @@ export default function WorldMap() {
           const centerY = chunk.cy * CHUNK_SIZE + CHUNK_SIZE / 2;
           const { sx, sy } = worldToScreen(centerX, centerY);
           const regionSize = CHUNK_SIZE * camera.ppu;
-          if (regionSize < 40) return null; // too small to show label
+          if (regionSize < 60) return null;
           const biomeEmoji = REGION_EMOJIS[chunk.data.regionBiome] || '🗺️';
-          const labelFontSize = Math.max(10, Math.min(18, regionSize / 8));
+          const labelFontSize = Math.max(9, Math.min(14, regionSize / 12));
           return (
             <div key={`region-${chunk.cx}-${chunk.cy}`}
-              className="absolute pointer-events-none flex flex-col items-center opacity-40"
-              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
-              <span style={{ fontSize: labelFontSize * 1.2 }}>{biomeEmoji}</span>
-              <span className="font-display text-foreground/50 whitespace-nowrap text-center" style={{ fontSize: labelFontSize }}>
+              className="absolute pointer-events-none flex flex-col items-center"
+              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', opacity: 0.2 }}>
+              <span style={{ fontSize: labelFontSize }}>{biomeEmoji}</span>
+              <span className="font-display text-foreground/40 whitespace-nowrap text-center tracking-widest uppercase" style={{ fontSize: labelFontSize * 0.8, letterSpacing: '0.15em' }}>
                 {chunk.data.regionName}
               </span>
             </div>
           );
         })}
 
-        {/* Territory circles */}
+        {/* Territory circles — subtle radial glow */}
         {renderRealms.map(realm => {
           const { sx, sy } = worldToScreen(realm.x, realm.y);
           const r = realm.territory * camera.ppu;
-          if (r < 3) return null;
-          const borderColor = realm.type === 'hostile' ? 'hsl(0 72% 50% / 0.15)' : realm.type === 'friendly' ? 'hsl(130 45% 40% / 0.15)' : 'hsl(216 12% 50% / 0.15)';
+          if (r < 5) return null;
+          const borderColor = realm.type === 'hostile' ? 'hsl(0 72% 50% / 0.08)' : realm.type === 'friendly' ? 'hsl(130 45% 40% / 0.08)' : 'hsl(216 12% 50% / 0.06)';
+          const ringColor = realm.type === 'hostile' ? 'hsl(0 72% 50% / 0.12)' : realm.type === 'friendly' ? 'hsl(130 45% 40% / 0.12)' : 'hsl(216 12% 50% / 0.08)';
           return (
             <div key={`t-${realm.id}`} className="absolute rounded-full pointer-events-none"
-              style={{ left: sx - r, top: sy - r, width: r * 2, height: r * 2, background: `radial-gradient(circle, ${borderColor}, transparent 70%)` }} />
+              style={{ left: sx - r, top: sy - r, width: r * 2, height: r * 2, background: `radial-gradient(circle, ${borderColor}, transparent 65%)`, border: `1px solid ${ringColor}` }} />
           );
         })}
 
@@ -1290,27 +1287,27 @@ export default function WorldMap() {
           return (
             <button key={realm.id} data-map-item
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'npc', data: realm, biome: realm.biome }); }}
-              className="absolute flex flex-col items-center z-10 hover:z-20"
+              className="absolute flex flex-col items-center z-10 hover:z-20 group transition-transform hover:scale-105"
               style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
               <img
                 src={REALM_SPRITES[spriteType]}
                 alt={realm.name}
                 loading="lazy"
-                className={`drop-shadow-lg ${isVassal ? 'brightness-110' : ''}`}
+                className={`drop-shadow-lg transition-all ${isVassal ? 'brightness-110' : 'group-hover:brightness-110'}`}
                 style={{ width: iconSize, height: iconSize, imageRendering: 'auto' }}
               />
-              {iconSize > 28 && (
-                <div className={`text-center rounded mt-0.5 px-1.5 py-0.5 ${isVassal ? 'bg-primary/20 border border-primary/30' : 'bg-background/80'}`}>
-                  <p className="font-display text-foreground leading-tight whitespace-nowrap" style={{ fontSize: Math.max(8, fontSize - 2) }}>
+              {iconSize > 30 && (
+                <div className={`text-center rounded-md mt-1 px-2 py-0.5 backdrop-blur-sm shadow-sm ${isVassal ? 'bg-primary/15 border border-primary/25' : 'bg-background/70 border border-border/30'}`}>
+                  <p className="font-display text-foreground leading-tight whitespace-nowrap" style={{ fontSize: Math.max(8, fontSize - 1) }}>
                     {isVassal ? '👑 ' : ''}{realm.name}
                   </p>
-                  <p className="text-muted-foreground" style={{ fontSize: Math.max(7, fontSize - 3) }}>
-                    {isVassal ? '🤝 Vassal' : `⚔️${realm.power}`}
+                  <p className="text-muted-foreground/70" style={{ fontSize: Math.max(7, fontSize - 3) }}>
+                    {isVassal ? 'Vassal' : `⚔️ ${realm.power}`}
                   </p>
                 </div>
               )}
               {realm.type === 'hostile' && !isVassal && (
-                <div className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-destructive animate-pulse border border-background" />
+                <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-destructive/80 animate-pulse" />
               )}
             </button>
           );
@@ -1323,18 +1320,18 @@ export default function WorldMap() {
           return (
             <button key={event.id} data-map-item
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'event', data: event, chunkKey: '', index: 0 }); }}
-              className="absolute z-20"
+              className="absolute z-20 group transition-transform hover:scale-110"
               style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
               <img
                 src={evSprite}
                 alt={event.name}
                 loading="lazy"
-                className="drop-shadow-lg"
+                className="drop-shadow-md transition-all group-hover:drop-shadow-lg"
                 style={{ width: eventSize, height: eventSize, imageRendering: 'auto', objectFit: 'contain' }}
               />
-              {eventSize > 24 && (
-                <span className="absolute -bottom-3 left-1/2 -translate-x-1/2 text-foreground/60 font-display whitespace-nowrap"
-                  style={{ fontSize: Math.max(7, eventSize / 5) }}>
+              {eventSize > 28 && (
+                <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 text-foreground/40 whitespace-nowrap"
+                  style={{ fontSize: Math.max(7, eventSize / 6) }}>
                   {event.emoji}
                 </span>
               )}
@@ -1493,13 +1490,13 @@ export default function WorldMap() {
         })}
 
         {/* Zoom controls — larger touch targets on mobile */}
-        <div className="absolute bottom-3 right-3 flex flex-col gap-1.5 z-50">
+        <div className="absolute bottom-4 right-3 flex flex-col gap-1 z-50">
           <button onClick={() => safeSetCamera(prev => ({ ...prev, ppu: Math.min(0.05, prev.ppu * 1.5) }))}
-            className="w-10 h-10 sm:w-8 sm:h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-base sm:text-sm font-bold active:scale-90 transition-transform">+</button>
+            className="w-9 h-9 bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-sm font-medium active:scale-90 transition-all hover:bg-background/95 shadow-sm">+</button>
           <button onClick={() => safeSetCamera(prev => ({ ...prev, ppu: Math.max(0.00005, prev.ppu / 1.5) }))}
-            className="w-10 h-10 sm:w-8 sm:h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-base sm:text-sm font-bold active:scale-90 transition-transform">−</button>
+            className="w-9 h-9 bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-sm font-medium active:scale-90 transition-all hover:bg-background/95 shadow-sm">−</button>
           <button onClick={goHome}
-            className="w-10 h-10 sm:w-8 sm:h-8 game-panel border-glow rounded-lg flex items-center justify-center text-foreground text-sm sm:text-[9px] active:scale-90 transition-transform">⌂</button>
+            className="w-9 h-9 bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-xs active:scale-90 transition-all hover:bg-background/95 shadow-sm mt-0.5">⌂</button>
         </div>
 
         {/* Legend — collapsible on mobile */}
