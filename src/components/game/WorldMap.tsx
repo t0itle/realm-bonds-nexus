@@ -1652,11 +1652,8 @@ export default function WorldMap() {
                     const { sx, sy } = worldToScreen(src.x, src.y);
                     const r = src.radius * camera.ppu;
                     if (r < 5) return null;
-                    const innerR = r * 0.6;
                     return (
-                      <React.Fragment key={i}>
-                        <ellipse cx={sx} cy={sy} rx={r * 1.3} ry={r * 1.3} fill="url(#fog-edge-grad)" />
-                      </React.Fragment>
+                      <ellipse key={i} cx={sx} cy={sy} rx={r * 1.3} ry={r * 1.3} fill="url(#fog-edge-grad)" />
                     );
                   })}
                 </mask>
