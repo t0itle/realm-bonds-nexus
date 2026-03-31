@@ -19,7 +19,7 @@ export default function MilitaryPanel() {
   const {
     army, trainingQueue, battleLogs, trainTroops, getBarracksLevel, canAfford, canAffordSteel,
     totalArmyPower, armyUpkeep, population, steel,
-    spies, trainSpies, sendSpyMission, activeSpyMissions, spyTrainingQueue, intelReports, allVillages, getWatchtowerLevel,
+    spies, trainSpies, sendSpyMission, activeSpyMissions, spyTrainingQueue, intelReports, allVillages, getWatchtowerLevel, getSpyGuildLevel,
     injuredTroops, poisons, healTroops, craftPoison, getApothecaryLevel, resources,
   } = useGame();
   const [trainCount, setTrainCount] = useState<Record<TroopType, number>>({ militia: 1, archer: 1, knight: 1, cavalry: 1, siege: 1, scout: 1 });
