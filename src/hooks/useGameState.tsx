@@ -1082,11 +1082,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       cavalry: sentArmy.cavalry ?? 0, siege: sentArmy.siege ?? 0, scout: sentArmy.scout ?? 0,
     } : { ...army };
     
-    // Prevent lords from attacking their own vassals
-    const isMyVassal = vassalages.some(v => v.lord_id === user.id && v.vassal_id === targetUserId && v.status === 'active');
-    if (isMyVassal) {
-      return null;
-    }
+    // Lords CAN attack their own vassals (raid, punish, etc.)
+    // Vassalization won't be re-applied if already vassalized
     
     // Fetch defender's village data (troops, resources, buildings)
     const { data: defVillage } = await supabase.from('villages').select('*').eq('id', targetVillageId).single();
