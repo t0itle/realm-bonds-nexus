@@ -5,6 +5,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import { useGame } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import PatchNotesModal from './PatchNotesModal';
 
 function lazyRetry<T extends { default: React.ComponentType<any> }>(
   fn: () => Promise<T>
