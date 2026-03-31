@@ -1079,6 +1079,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
           persistArmyToVillage(nextArmy);
           // Clean up completed entries from DB
           supabase.from('training_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').then();
+          // Push notification
+          const summary = completed.map(q => `${q.count} ${q.type}`).join(', ');
+          supabase.functions.invoke('send-push', {
+            body: { user_id: user?.id, title: '⚔️ Training Complete', body: `${summary} ready for battle!`, tag: 'training-done' },
+          }).catch(() => {});
         }
         return remaining;
       });
