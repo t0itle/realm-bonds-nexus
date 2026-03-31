@@ -170,7 +170,12 @@ export default function AllianceResourceSharing({ allianceId }: { allianceId: st
                 min={0}
                 max={resources[res]}
                 value={amounts[res] || ''}
-                onChange={e => setAmounts(prev => ({ ...prev, [res]: Math.max(0, Math.min(resources[res], parseInt(e.target.value) || 0)) }))}
+                onChange={e => {
+                  const raw = e.target.value;
+                  if (raw === '') { setAmounts(prev => ({ ...prev, [res]: 0 })); return; }
+                  const val = Math.max(0, Math.min(Math.floor(resources[res]), parseInt(raw) || 0));
+                  setAmounts(prev => ({ ...prev, [res]: val }));
+                }}
                 placeholder="0"
                 className="w-full bg-secondary border border-border rounded-lg px-2 py-1.5 text-xs text-foreground"
               />

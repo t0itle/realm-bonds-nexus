@@ -389,8 +389,11 @@ export default function MessagesPanel({ initialDm, onDmHandled }: MessagesPanelP
         {(['gold', 'wood', 'stone', 'food', 'steel'] as const).map(key => (
           <div key={key} className="flex flex-col items-center">
             <span className="text-[10px]">{RES_ICONS[key]}</span>
-            <input type="number" min={0} value={values[key] || ''} placeholder="0"
-              onChange={e => onChange({ ...values, [key]: parseInt(e.target.value) || 0 })}
+            <input type="number" min={0} value={values[key] ?? ''} placeholder="0"
+              onChange={e => {
+                const raw = e.target.value;
+                onChange({ ...values, [key]: raw === '' ? undefined : (parseInt(raw) || 0) });
+              }}
               className="w-full bg-muted border border-border rounded text-[10px] text-foreground text-center py-0.5 px-0.5" />
           </div>
         ))}
@@ -434,7 +437,7 @@ export default function MessagesPanel({ initialDm, onDmHandled }: MessagesPanelP
       )}
 
       {!activeConvo && !composing && (
-        <div className="space-y-2">
+        <div className="flex-1 overflow-y-auto space-y-2 min-h-0">
           {convoList.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-8">No messages yet. Send one from the Map!</p>
           )}
