@@ -1,0 +1,1 @@
+CREATE POLICY "Users can delete own villages" ON public.villages FOR DELETE TO authenticated USING (auth.uid() = user_id);
