@@ -591,6 +591,113 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      // Load persisted queues and catch up on completed items
+      const now = Date.now();
+
+      // Build queue
+      const { data: bqData } = await supabase.from('build_queue').select('*').eq('user_id', user.id);
+      if (bqData && bqData.length > 0) {
+        const completed = bqData.filter((q: any) => new Date(q.finish_time).getTime() <= now);
+        const active = bqData.filter((q: any) => new Date(q.finish_time).getTime() > now);
+        // Process completed items
+        for (const q of completed) {
+          await supabase.from('buildings').update({ level: q.target_level }).eq('id', q.building_id);
+          setBuildings(prev => prev.map(b => b.id === q.building_id ? { ...b, level: q.target_level } : b));
+          await supabase.from('build_queue').delete().eq('id', q.id);
+        }
+        setBuildQueue(active.map((q: any) => ({
+          buildingId: q.building_id,
+          buildingType: q.building_type as BuildingType,
+          targetLevel: q.target_level,
+          finishTime: new Date(q.finish_time).getTime(),
+        })));
+      }
+
+      // Training queue
+      const { data: tqData } = await supabase.from('training_queue').select('*').eq('user_id', user.id);
+      if (tqData && tqData.length > 0) {
+        const completed = tqData.filter((q: any) => new Date(q.finish_time).getTime() <= now);
+        const active = tqData.filter((q: any) => new Date(q.finish_time).getTime() > now);
+        if (completed.length > 0) {
+          const nextArmy = { ...EMPTY_ARMY };
+          // Load current army first
+          if (village) {
+            nextArmy.militia = (village as any).army_militia ?? 0;
+            nextArmy.archer = (village as any).army_archer ?? 0;
+            nextArmy.knight = (village as any).army_knight ?? 0;
+            nextArmy.cavalry = (village as any).army_cavalry ?? 0;
+            nextArmy.siege = (village as any).army_siege ?? 0;
+            nextArmy.scout = (village as any).army_scout ?? 0;
+          }
+          for (const q of completed) {
+            nextArmy[q.troop_type as TroopType] += q.count;
+            await supabase.from('training_queue').delete().eq('id', q.id);
+          }
+          setArmy(nextArmy);
+          await supabase.from('villages').update({
+            army_militia: nextArmy.militia, army_archer: nextArmy.archer,
+            army_knight: nextArmy.knight, army_cavalry: nextArmy.cavalry,
+            army_siege: nextArmy.siege, army_scout: nextArmy.scout,
+          }).eq('id', village!.id);
+        }
+        setTrainingQueue(active.map((q: any) => ({
+          type: q.troop_type as TroopType,
+          count: q.count,
+          finishTime: new Date(q.finish_time).getTime(),
+        })));
+      }
+
+      // Spy training queue
+      const { data: stqData } = await supabase.from('spy_training_queue').select('*').eq('user_id', user.id);
+      if (stqData && stqData.length > 0) {
+        const completed = stqData.filter((q: any) => new Date(q.finish_time).getTime() <= now);
+        const active = stqData.filter((q: any) => new Date(q.finish_time).getTime() > now);
+        if (completed.length > 0) {
+          const totalNewSpies = completed.reduce((s: number, q: any) => s + q.count, 0);
+          const currentSpies = (village as any)?.spies ?? 0;
+          setSpies(currentSpies + totalNewSpies);
+          await supabase.from('villages').update({ spies: currentSpies + totalNewSpies } as any).eq('id', village!.id);
+          for (const q of completed) {
+            await supabase.from('spy_training_queue').delete().eq('id', q.id);
+          }
+        }
+        setSpyTrainingQueue(active.map((q: any) => ({
+          count: q.count,
+          finishTime: new Date(q.finish_time).getTime(),
+        })));
+      }
+
+      // Active spy missions
+      const { data: asmData } = await supabase.from('active_spy_missions').select('*').eq('user_id', user.id);
+      if (asmData && asmData.length > 0) {
+        setActiveSpyMissions(asmData.map((m: any) => ({
+          id: m.id,
+          mission: m.mission as SpyMission,
+          targetName: m.target_name,
+          targetId: m.target_id,
+          spiesCount: m.spies_count,
+          departTime: new Date(m.depart_time).getTime(),
+          arrivalTime: new Date(m.arrival_time).getTime(),
+          returnTime: new Date(m.arrival_time).getTime() + 15000, // reconstruct return time
+          phase: new Date(m.arrival_time).getTime() <= now ? 'operating' : 'traveling',
+        })));
+      }
+
+      // Intel reports
+      const { data: irData } = await supabase.from('intel_reports').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(30);
+      if (irData && irData.length > 0) {
+        setIntelReports(irData.map((r: any) => ({
+          id: r.id,
+          targetName: r.target_name,
+          targetId: '',
+          mission: r.mission as SpyMission,
+          result: r.success ? 'success' : 'failure',
+          timestamp: new Date(r.created_at).getTime(),
+          data: r.data,
+          spiesLost: r.spies_lost,
+        })));
+      }
+
       const { data: villages } = await supabase.from('villages').select('*').limit(50);
       if (villages) {
         const { data: profiles } = await supabase.from('profiles').select('*');
