@@ -10,6 +10,7 @@ import houseSprite from '@/assets/sprites/house.png';
 import templeSprite from '@/assets/sprites/temple.png';
 import apothecarySprite from '@/assets/sprites/apothecary.png';
 import warehouseSprite from '@/assets/sprites/warehouse.png';
+import spyguildSprite from '@/assets/sprites/spyguild.png';
 import workersSprite from '@/assets/sprites/workers.png';
 import type { BuildingType } from '@/hooks/useGameState';
 
@@ -26,6 +27,7 @@ export const BUILDING_SPRITES: Record<Exclude<BuildingType, 'empty'>, string> = 
   temple: templeSprite,
   apothecary: apothecarySprite,
   warehouse: warehouseSprite,
+  spyguild: spyguildSprite,
 };
 
 export const WORKERS_SPRITE = workersSprite;
