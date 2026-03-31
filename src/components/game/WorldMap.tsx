@@ -718,6 +718,33 @@ export default function WorldMap() {
     });
   }, [user]);
 
+  // ── Outpost build queue timer ──
+  useEffect(() => {
+    if (outpostBuildQueue.length === 0) return;
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setOutpostBuildQueue(prev => {
+        const completed = prev.filter(q => q.finishTime <= now);
+        const remaining = prev.filter(q => q.finishTime > now);
+        if (completed.length > 0) {
+          for (const q of completed) {
+            if (q.action === 'upgrade') {
+              supabase.from('outposts').update({ level: q.targetLevel, garrison_power: q.newGarrison, territory_radius: q.newRadius } as any).eq('id', q.outpostId);
+              setOutposts(prev2 => prev2.map(o => o.id === q.outpostId ? { ...o, level: q.targetLevel, garrison_power: q.newGarrison, territory_radius: q.newRadius! } : o));
+              toast.success(`🏕️ Outpost upgraded to Lv.${q.targetLevel}!`);
+            } else {
+              supabase.from('outposts').update({ has_wall: true, wall_level: q.targetLevel, garrison_power: q.newGarrison } as any).eq('id', q.outpostId);
+              setOutposts(prev2 => prev2.map(o => o.id === q.outpostId ? { ...o, has_wall: true, wall_level: q.targetLevel, garrison_power: q.newGarrison } : o));
+              toast.success(`🧱 Wall ${q.targetLevel > 1 ? 'upgraded' : 'built'}!`);
+            }
+          }
+        }
+        return remaining;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [outpostBuildQueue.length]);
+
   // NPC vassal tribute income (from persistent state)
   useEffect(() => {
     const vassalNPCs = Array.from(npcState.playerRelations.values()).filter(r => r.status === 'vassal');
