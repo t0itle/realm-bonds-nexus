@@ -629,6 +629,7 @@ export default function WorldMap() {
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
   const [capturedMines, setCapturedMines] = useState<Set<string>>(new Set());
   const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; startTime: number; startX: number; startY: number; targetX: number; targetY: number; waypoints: { x: number; y: number }[]; action: () => void }[]>([]);
+  const [otherMarches, setOtherMarches] = useState<{ id: string; user_id: string; player_name: string; start_x: number; start_y: number; target_x: number; target_y: number; target_name: string; started_at: string; arrives_at: string; march_type: string }[]>([]);
   const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
   const [legendOpen, setLegendOpen] = useState(false);
   const [, forceRender] = useState(0);
@@ -638,6 +639,42 @@ export default function WorldMap() {
     onAttack: (sentArmy: Partial<import('@/hooks/useGameState').Army>) => void;
     showEspionage: boolean;
   } | null>(null);
+
+  // ── Subscribe to other players' marches in realtime ──
+  useEffect(() => {
+    if (!user) return;
+    // Load existing active marches
+    const loadMarches = async () => {
+      const { data } = await supabase.from('active_marches').select('*');
+      if (data) setOtherMarches(data.filter((m: any) => m.user_id !== user.id && new Date(m.arrives_at).getTime() > Date.now()));
+    };
+    loadMarches();
+
+    const channel = supabase
+      .channel('active-marches')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'active_marches' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const m = payload.new as any;
+          if (m.user_id !== user.id) {
+            setOtherMarches(prev => [...prev, m]);
+          }
+        } else if (payload.eventType === 'DELETE') {
+          setOtherMarches(prev => prev.filter(m => m.id !== (payload.old as any).id));
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
+  // Clean up expired other marches
+  useEffect(() => {
+    if (otherMarches.length === 0) return;
+    const interval = setInterval(() => {
+      setOtherMarches(prev => prev.filter(m => new Date(m.arrives_at).getTime() > Date.now()));
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [otherMarches.length]);
 
   // Get TH level for dynamic sprite
   const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
