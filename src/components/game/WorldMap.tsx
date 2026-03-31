@@ -943,21 +943,29 @@ export default function WorldMap() {
     if (!hasTroops) { toast.error('You need troops to attack!'); return; }
     if (!isInRange(realm.x, realm.y)) { toast.error('Out of range! Train scouts to extend reach.'); return; }
     const travelSec = calcTravelTime(realm.x, realm.y);
-    toast(`⚔️ Troops marching to ${realm.name}... ETA ${travelSec}s`);
-    createMarch(`atk-${Date.now()}`, realm.name, realm.x, realm.y, travelSec, () => {
-      const log = attackTarget(realm.name, realm.power);
-      if (log.result === 'victory') {
-        toast.success(`Victory against ${realm.name}! They are now your vassal.`);
-        setNpcRelations(prev => {
-          const next = new Map(prev);
-          next.set(realm.id, { realmId: realm.id, status: 'vassal', tributeRate: 15, friendshipLevel: 20 });
-          return next;
+    setAttackConfig({
+      targetName: realm.name, targetPower: realm.power,
+      targetX: realm.x, targetY: realm.y, travelTime: travelSec,
+      showEspionage: true, targetId: realm.id,
+      onAttack: (sentArmy) => {
+        toast(`⚔️ Troops marching to ${realm.name}... ETA ${travelSec}s`);
+        createMarch(`atk-${Date.now()}`, realm.name, realm.x, realm.y, travelSec, () => {
+          const log = attackTarget(realm.name, realm.power, sentArmy);
+          if (log.result === 'victory') {
+            toast.success(`Victory against ${realm.name}! They are now your vassal.`);
+            setNpcRelations(prev => {
+              const next = new Map(prev);
+              next.set(realm.id, { realmId: realm.id, status: 'vassal', tributeRate: 15, friendshipLevel: 20 });
+              return next;
+            });
+          } else {
+            toast.error(`Defeated by ${realm.name}!`);
+          }
         });
-      } else {
-        toast.error(`Defeated by ${realm.name}!`);
-      }
+        setAttackConfig(null);
+        setSelected(null);
+      },
     });
-    setSelected(null);
   }, [army, attackTarget, calcTravelTime, createMarch, isInRange]);
 
   const handleEnvoy = useCallback((realm: ProceduralRealm) => {
