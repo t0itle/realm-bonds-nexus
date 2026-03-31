@@ -916,18 +916,30 @@ export default function WorldMap() {
     const myPos = getMyPos();
     const now = Date.now();
     const waypoints = findPath(myPos.x, myPos.y, targetX, targetY, allTerrain);
-    // Recalculate travel time based on actual path length
     const pathDist = getPathLength(waypoints);
     const actualTravelSec = Math.max(5, Math.floor(pathDist / (getSlowestTroopSpeed(army) * 200)));
+    const arrivalTime = now + actualTravelSec * 1000;
     setMarches(prev => [...prev, {
-      id, targetName, arrivalTime: now + actualTravelSec * 1000,
+      id, targetName, arrivalTime,
       startTime: now, startX: myPos.x, startY: myPos.y,
       targetX, targetY, waypoints, action,
     }]);
+    // Persist to DB for live visibility by other players
+    if (user) {
+      supabase.from('active_marches').insert({
+        user_id: user.id,
+        player_name: displayName,
+        start_x: myPos.x, start_y: myPos.y,
+        target_x: targetX, target_y: targetY,
+        target_name: targetName,
+        arrives_at: new Date(arrivalTime).toISOString(),
+        march_type: id.startsWith('atk') || id.startsWith('pvp') ? 'attack' : id.startsWith('envoy') ? 'envoy' : 'march',
+      }).then(() => {});
+    }
     if (pathDist > Math.hypot(targetX - myPos.x, targetY - myPos.y) * 1.1) {
       toast.info(`Route adjusted around obstacles — travel time: ${actualTravelSec}s`);
     }
-  }, [getMyPos, allTerrain, army]);
+  }, [getMyPos, allTerrain, army, user, displayName]);
 
   const getDistance = useCallback((targetX: number, targetY: number) => {
     const myPos = getMyPos();
