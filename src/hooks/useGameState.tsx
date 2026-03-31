@@ -761,6 +761,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
           siege: (v as any).army_siege ?? 0,
           scout: (v as any).army_scout ?? 0,
         });
+        setSpies((v as any).spies ?? 0);
+        setPoisons((v as any).poisons ?? 0);
+        setInjuredTroops({
+          militia: (v as any).injured_militia ?? 0,
+          archer: (v as any).injured_archer ?? 0,
+          knight: (v as any).injured_knight ?? 0,
+          cavalry: (v as any).injured_cavalry ?? 0,
+          siege: (v as any).injured_siege ?? 0,
+          scout: (v as any).injured_scout ?? 0,
+        });
       }).subscribe();
 
     const vassalageChannel = supabase.channel(`vassalage-changes-${user.id}`)
