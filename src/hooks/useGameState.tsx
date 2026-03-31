@@ -1021,8 +1021,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
       siege: 0,
       scout: 0,
     };
-    const result = resolveCombat(army, fakeDefenderArmy, 0, Math.floor(targetPower / 50));
+    const result = resolveCombat(attackingArmy, fakeDefenderArmy, 0, Math.floor(targetPower / 50));
     
+    // Subtract losses from the FULL army (only sent troops can be lost)
     const newArmy = { ...army };
     let popLost = 0;
     const apothLvl = getApothecaryLevel();
