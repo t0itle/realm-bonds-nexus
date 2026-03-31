@@ -915,16 +915,25 @@ export default function WorldMap() {
     const travelSec = calcTravelTime(event.x, event.y);
     if (event.power > 0) {
       const eventData = event;
-      toast(`⚔️ Troops marching to ${event.name}... ETA ${travelSec}s`);
-      createMarch(`evt-${Date.now()}`, eventData.name, eventData.x, eventData.y, travelSec, () => {
-        const log = attackTarget(eventData.name, eventData.power);
-        if (log.result === 'victory') {
-          addResources(eventData.reward);
-          setClaimedEvents(prev => new Set(prev).add(eventData.id));
-          toast.success(`Victory at ${eventData.name}! Resources gained.`);
-        } else {
-          toast.error(`Defeated at ${eventData.name}!`);
-        }
+      setAttackConfig({
+        targetName: eventData.name, targetPower: eventData.power,
+        targetX: eventData.x, targetY: eventData.y, travelTime: travelSec,
+        showEspionage: false,
+        onAttack: (sentArmy) => {
+          toast(`⚔️ Troops marching to ${eventData.name}... ETA ${travelSec}s`);
+          createMarch(`evt-${Date.now()}`, eventData.name, eventData.x, eventData.y, travelSec, () => {
+            const log = attackTarget(eventData.name, eventData.power, sentArmy);
+            if (log.result === 'victory') {
+              addResources(eventData.reward);
+              setClaimedEvents(prev => new Set(prev).add(eventData.id));
+              toast.success(`Victory at ${eventData.name}! Resources gained.`);
+            } else {
+              toast.error(`Defeated at ${eventData.name}!`);
+            }
+          });
+          setAttackConfig(null);
+          setSelected(null);
+        },
       });
     } else {
       toast(`🚶 Collecting from ${event.name}... ETA ${travelSec}s`);
