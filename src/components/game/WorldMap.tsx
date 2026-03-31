@@ -961,10 +961,7 @@ export default function WorldMap() {
     };
   };
 
-  const goHome = useCallback(() => {
-    const pos = getMyPos();
-    setCamera({ cx: pos.x, cy: pos.y, ppu: 0.003 });
-  }, [getMyPos]);
+  // goHome moved below getMyPos
 
   const getMyPos = useCallback(() => {
     if (!user) return { x: 100000, y: 100000 };
