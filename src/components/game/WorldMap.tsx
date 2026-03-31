@@ -1625,10 +1625,11 @@ export default function WorldMap() {
           const baseVisionWorld = 45000 + scoutCount * 8000;
           const outpostVisionWorld = 25000;
           
-          // Collect all vision sources: home + outposts
+          // Collect all vision sources: home + own outposts only
+          const myOutposts = outposts.filter(o => o.user_id === user?.id);
           const visionSources = [
             { x: myPos.x, y: myPos.y, radius: baseVisionWorld },
-            ...outposts.map(o => ({ x: o.x, y: o.y, radius: outpostVisionWorld })),
+            ...myOutposts.map(o => ({ x: o.x, y: o.y, radius: outpostVisionWorld })),
           ];
 
           return (
