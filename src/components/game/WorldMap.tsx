@@ -1676,7 +1676,7 @@ export default function WorldMap() {
           const { sx, sy } = worldToScreen(outpost.x, outpost.y);
           const opSize = Math.max(18, Math.min(36, camera.ppu * 6000));
           return (
-            <div key={outpost.id} className="absolute z-30 flex flex-col items-center pointer-events-none"
+            <div key={outpost.id} className="absolute z-[46] flex flex-col items-center pointer-events-none"
               style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
               <div className="relative">
                 <img src={mapVillage} alt={outpost.name} loading="lazy"
