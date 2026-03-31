@@ -204,10 +204,11 @@ Deno.serve(async (req) => {
         armyGoldUpkeep += info.gold * count;
       }
 
-      const civilians = Math.max(0, village.population - totalWorkers - totalSoldiers);
+      // Workers still eat — only soldiers have separate upkeep
+      const nonSoldiers = Math.max(0, village.population - totalSoldiers);
 
       // Pop food cost per hour
-      const popFoodCost = Math.floor(civilians * rationsMultiplier);
+      const popFoodCost = Math.floor(nonSoldiers * rationsMultiplier);
 
       // Tax income per hour
       const popTaxIncome = Math.floor(civilians * village.pop_tax_rate / 100 * 2);
