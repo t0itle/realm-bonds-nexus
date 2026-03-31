@@ -75,6 +75,7 @@ export default function NotificationsPanel({ embedded = false }: { embedded?: bo
           }
         }
       }
+    };
 
     fetchAlerts();
 
