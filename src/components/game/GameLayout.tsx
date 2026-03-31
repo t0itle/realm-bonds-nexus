@@ -59,6 +59,7 @@ export default function GameLayout() {
   const { villageName, playerLevel, loading, displayName, army, trainingQueue } = useGame();
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [activeMarches, setActiveMarches] = useState<{ id: string; target_name: string; march_type: string; arrives_at: string; started_at: string }[]>([]);
   const totalTroops = Object.values(army).reduce((s, v) => s + v, 0);
 
   // Fetch unread message count
