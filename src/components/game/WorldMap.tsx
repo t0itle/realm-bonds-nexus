@@ -756,11 +756,10 @@ export default function WorldMap() {
         expiresAt: Date.now() + contractDuration,
         bonus: bonusPerTick,
       }]);
-        toast.success(`Trade contract with ${realm.name} established! (${Math.floor(contractDuration / 1000)}s)`);
-      },
-    }]);
+      toast.success(`Trade contract with ${realm.name} established! (${Math.floor(contractDuration / 1000)}s)`);
+    });
     setSelected(null);
-  }, [addResources, calcTravelTime, tradeContracts]);
+  }, [addResources, calcTravelTime, tradeContracts, createMarch]);
 
   // Collect trade contract resources periodically
   useEffect(() => {
