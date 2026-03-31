@@ -1656,8 +1656,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const speedMultiplier = Math.max(0.4, 1 - (sgLevel - 1) * 0.15); // 15% faster per level
     const finishTime = Date.now() + Math.floor(baseTime * count * speedMultiplier);
     setSpyTrainingQueue(prev => [...prev, { count, finishTime }]);
+    // Persist to spy_training_queue table
+    if (user) supabase.from('spy_training_queue').insert({ user_id: user.id, count, finish_time: new Date(finishTime).toISOString() } as any).then();
     return true;
-  }, [canAfford, getSpyGuildLevel, population.civilians, resources, villageId]);
+  }, [canAfford, getSpyGuildLevel, population.civilians, resources, villageId, user]);
 
   // Send spy mission
   const sendSpyMission = useCallback((mission: SpyMission, targetName: string, targetId: string, targetX: number, targetY: number, spiesCount: number) => {
