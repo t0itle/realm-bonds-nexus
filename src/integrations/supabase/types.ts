@@ -406,6 +406,141 @@ export type Database = {
           },
         ]
       }
+      npc_mercenary_contracts: {
+        Row: {
+          created_at: string
+          expires_at: string
+          gold_paid: number
+          id: string
+          npc_town_id: string
+          troops_hired: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          gold_paid?: number
+          id?: string
+          npc_town_id: string
+          troops_hired?: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          gold_paid?: number
+          id?: string
+          npc_town_id?: string
+          troops_hired?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      npc_player_relations: {
+        Row: {
+          created_at: string
+          id: string
+          last_interaction: string | null
+          npc_town_id: string
+          sentiment: number
+          status: string
+          trades_completed: number
+          tribute_rate: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_interaction?: string | null
+          npc_town_id: string
+          sentiment?: number
+          status?: string
+          trades_completed?: number
+          tribute_rate?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_interaction?: string | null
+          npc_town_id?: string
+          sentiment?: number
+          status?: string
+          trades_completed?: number
+          tribute_rate?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      npc_town_relations: {
+        Row: {
+          created_at: string
+          id: string
+          last_event: string | null
+          relation_type: string
+          strength: number
+          town_a_id: string
+          town_b_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_event?: string | null
+          relation_type?: string
+          strength?: number
+          town_a_id: string
+          town_b_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_event?: string | null
+          relation_type?: string
+          strength?: number
+          town_a_id?: string
+          town_b_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      npc_town_state: {
+        Row: {
+          available_mercenaries: Json
+          claimed_regions: Json
+          created_at: string
+          current_power: number
+          id: string
+          last_action: string | null
+          last_action_at: string | null
+          npc_town_id: string
+          updated_at: string
+        }
+        Insert: {
+          available_mercenaries?: Json
+          claimed_regions?: Json
+          created_at?: string
+          current_power?: number
+          id?: string
+          last_action?: string | null
+          last_action_at?: string | null
+          npc_town_id: string
+          updated_at?: string
+        }
+        Update: {
+          available_mercenaries?: Json
+          claimed_regions?: Json
+          created_at?: string
+          current_power?: number
+          id?: string
+          last_action?: string | null
+          last_action_at?: string | null
+          npc_town_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       player_messages: {
         Row: {
           content: string
