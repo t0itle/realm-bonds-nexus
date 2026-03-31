@@ -2308,11 +2308,7 @@ export default function WorldMap() {
                             if (opData) setOutposts(prev => [...prev, { id: opData.id, x: opData.x, y: opData.y, name: opData.name, user_id: user!.id, level: 1, garrison_power: 0, has_wall: false, wall_level: 0, territory_radius: 15000, outpost_type: 'settlement' }]);
                             
                             // Refresh village list so switcher shows the new settlement
-                            const { data: updatedVillages } = await supabase.from('villages').select('id, name, settlement_type').eq('user_id', user.id).order('created_at', { ascending: true });
-                            if (updatedVillages) {
-                              // Update myVillages via game context - we need to trigger a reload
-                              loadVillageData();
-                            }
+                            await refreshVillages();
                             
                             toast.success(`🏘️ ${settleName} founded! Switch to it from the village selector to start building.`);
                           }
