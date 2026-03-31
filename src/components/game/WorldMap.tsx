@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useGame, TroopType, Resources, calcMarchTime, getMaxRange, Building, BUILDING_INFO } from '@/hooks/useGameState';
+import { useGame, TroopType, Resources, calcMarchTime, getMaxRange, Building, BUILDING_INFO, getSlowestTroopSpeed } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import NPCInteractionPanel from './NPCInteractionPanel';
