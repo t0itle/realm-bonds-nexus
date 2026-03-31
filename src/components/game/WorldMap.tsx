@@ -1022,6 +1022,15 @@ export default function WorldMap() {
   // Collect all visible realms and events from chunks
   const visibleRealms: (ProceduralRealm & { biome: string })[] = [];
   const visibleEvents: ProceduralEvent[] = [];
+  const allRealmNames = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const chunk of visibleChunks) {
+      for (const realm of chunk.data.realms) {
+        map.set(realm.id, realm.name);
+      }
+    }
+    return map;
+  }, [visibleChunks]);
   for (const chunk of visibleChunks) {
     for (const realm of chunk.data.realms) {
       if (isVisible(realm.x, realm.y, 100)) visibleRealms.push({ ...realm, biome: chunk.data.regionBiome });
