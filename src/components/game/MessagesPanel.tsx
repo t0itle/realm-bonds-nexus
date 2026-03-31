@@ -434,7 +434,7 @@ export default function MessagesPanel({ initialDm, onDmHandled }: MessagesPanelP
       )}
 
       {!activeConvo && !composing && (
-        <div className="space-y-2">
+        <div className="flex-1 overflow-y-auto space-y-2 min-h-0">
           {convoList.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-8">No messages yet. Send one from the Map!</p>
           )}
