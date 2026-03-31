@@ -1212,14 +1212,17 @@ export default function WorldMap() {
                 <line x1={startSx} y1={startSy} x2={endSx} y2={endSy}
                   stroke="hsl(var(--primary) / 0.4)" strokeWidth={2} strokeDasharray="6 4" />
               </svg>
-              {/* Moving troop sprite */}
+              {/* Moving soldier sprite */}
               <div className="absolute z-40 flex flex-col items-center pointer-events-none"
                 style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', transition: 'left 0.4s linear, top 0.4s linear' }}>
-                <img src={mapPlayer} alt="March" className="drop-shadow-lg animate-bounce"
-                  style={{ width: marchSize, height: marchSize, objectFit: 'contain' }} />
-                <div className="bg-background/90 rounded px-1 py-0.5 text-center mt-0.5 border border-primary/30">
-                  <p className="text-primary font-display whitespace-nowrap" style={{ fontSize: Math.max(7, marchSize / 4) }}>
-                    🗡️ {march.targetName}
+                <img src={mapSoldier} alt="Army" className="drop-shadow-lg"
+                  style={{ width: marchSize, height: marchSize, objectFit: 'contain', transform: march.targetX < march.startX ? 'scaleX(-1)' : undefined }} loading="lazy" />
+                <div className="bg-background/90 rounded px-1.5 py-0.5 text-center mt-0.5 border border-primary/30 shadow-md">
+                  <p className="text-foreground font-display whitespace-nowrap font-bold" style={{ fontSize: Math.max(7, marchSize / 4) }}>
+                    {displayName}
+                  </p>
+                  <p className="text-primary font-display whitespace-nowrap" style={{ fontSize: Math.max(6, marchSize / 5) }}>
+                    ⚔️ Army → {march.targetName}
                   </p>
                   <p className="text-muted-foreground" style={{ fontSize: Math.max(6, marchSize / 5) }}>
                     {remainingSec}s
