@@ -1014,9 +1014,9 @@ export default function WorldMap() {
   }, [tradeContracts, addResources]);
 
   const power = totalArmyPower();
-  const iconSize = Math.max(24, Math.min(64, camera.ppu * 8000));
-  const fontSize = Math.max(9, Math.min(14, camera.ppu * 3000));
-  const eventSize = Math.max(20, Math.min(48, camera.ppu * 6000));
+  const iconSize = Math.max(28, Math.min(56, camera.ppu * 12000));
+  const fontSize = Math.max(9, Math.min(13, camera.ppu * 4000));
+  const eventSize = Math.max(22, Math.min(44, camera.ppu * 9000));
 
   // Collect all visible realms and events from chunks
   const visibleRealms: (ProceduralRealm & { biome: string })[] = [];
