@@ -12,8 +12,11 @@ const RESOURCE_CONFIG = [
 export default function ResourceBar() {
   const { resources, totalProduction, steel, steelProduction, population } = useGame();
 
+  const foodCritical = totalProduction.food < 0;
+  const foodLow = resources.food < 50 && foodCritical;
+
   return (
-    <div className="game-panel px-2 py-1.5 mx-2 mt-2 border-glow space-y-1">
+    <div className={`game-panel px-2 py-1.5 mx-2 mt-2 border-glow space-y-1 ${foodLow ? 'border-destructive/60' : ''}`}>
       <div className="flex items-center justify-between gap-1">
         {RESOURCE_CONFIG.map(({ key, color }) => (
           <motion.div
@@ -26,13 +29,18 @@ export default function ResourceBar() {
               <span className={`text-xs font-semibold tabular-nums ${color} truncate`}>
                 {Math.floor(resources[key]).toLocaleString()}
               </span>
-              <span className="text-[9px] text-muted-foreground">
-                +{totalProduction[key]}/min
+              <span className={`text-[9px] ${key === 'food' && foodCritical ? 'text-destructive font-bold animate-pulse' : 'text-muted-foreground'}`}>
+                {totalProduction[key] >= 0 ? '+' : ''}{totalProduction[key]}/min
               </span>
             </div>
           </motion.div>
         ))}
       </div>
+      {foodLow && (
+        <div className="text-[9px] text-destructive font-bold text-center animate-pulse">
+          ⚠️ Famine! Troops will desert if food reaches 0!
+        </div>
+      )}
       <div className="flex items-center justify-between text-[9px] border-t border-border/50 pt-1">
         <span className="text-muted-foreground flex items-center gap-0.5">
           <ResourceIcon type="steel" size={10} /> Steel: <strong className="text-foreground">{steel}</strong>{steelProduction > 0 && <span className="text-primary"> +{steelProduction}/min</span>}
