@@ -1540,8 +1540,13 @@ export default function WorldMap() {
                 onClose={() => setSelected(null)}
                 onAttack={(r) => handleAttackNPC(r)}
                 onEnvoy={(r) => handleEnvoy(r)}
-                npcRelations={npcRelations}
-                setNpcRelations={setNpcRelations}
+                playerRelation={npcState.playerRelations.get(selected.data.id) || null}
+                townState={npcState.townStates.get(selected.data.id) || null}
+                townRelations={npcState.townRelations}
+                allRealmNames={allRealmNames}
+                onUpdateSentiment={npcState.updateSentiment}
+                onSetRelationStatus={npcState.setRelationStatus}
+                onHireMercenaries={npcState.hireMercenaries}
                 isInRange={isInRange(selected.data.x, selected.data.y)}
                 travelTime={calcTravelTime(selected.data.x, selected.data.y)}
                 hasActiveTrade={tradeContracts.some(c => c.realmId === selected.data.id)}
