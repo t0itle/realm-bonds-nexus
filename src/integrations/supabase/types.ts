@@ -59,6 +59,48 @@ export type Database = {
         }
         Relationships: []
       }
+      active_spy_missions: {
+        Row: {
+          arrival_time: string
+          created_at: string
+          depart_time: string
+          id: string
+          mission: string
+          spies_count: number
+          target_id: string
+          target_name: string
+          target_x: number
+          target_y: number
+          user_id: string
+        }
+        Insert: {
+          arrival_time: string
+          created_at?: string
+          depart_time: string
+          id?: string
+          mission: string
+          spies_count?: number
+          target_id: string
+          target_name: string
+          target_x?: number
+          target_y?: number
+          user_id: string
+        }
+        Update: {
+          arrival_time?: string
+          created_at?: string
+          depart_time?: string
+          id?: string
+          mission?: string
+          spies_count?: number
+          target_id?: string
+          target_name?: string
+          target_x?: number
+          target_y?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       alliance_contracts: {
         Row: {
           alliance_id: string
@@ -322,6 +364,36 @@ export type Database = {
         }
         Relationships: []
       }
+      build_queue: {
+        Row: {
+          building_id: string
+          building_type: string
+          created_at: string
+          finish_time: string
+          id: string
+          target_level: number
+          user_id: string
+        }
+        Insert: {
+          building_id: string
+          building_type: string
+          created_at?: string
+          finish_time: string
+          id?: string
+          target_level: number
+          user_id: string
+        }
+        Update: {
+          building_id?: string
+          building_type?: string
+          created_at?: string
+          finish_time?: string
+          id?: string
+          target_level?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       buildings: {
         Row: {
           created_at: string
@@ -516,6 +588,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      intel_reports: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          mission: string
+          spies_lost: number
+          success: boolean
+          target_name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          mission: string
+          spies_lost?: number
+          success?: boolean
+          target_name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          mission?: string
+          spies_lost?: number
+          success?: boolean
+          target_name?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       npc_mercenary_contracts: {
         Row: {
@@ -781,6 +886,57 @@ export type Database = {
         }
         Relationships: []
       }
+      spy_training_queue: {
+        Row: {
+          count: number
+          created_at: string
+          finish_time: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          count: number
+          created_at?: string
+          finish_time: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          count?: number
+          created_at?: string
+          finish_time?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      training_queue: {
+        Row: {
+          count: number
+          created_at: string
+          finish_time: string
+          id: string
+          troop_type: string
+          user_id: string
+        }
+        Insert: {
+          count: number
+          created_at?: string
+          finish_time: string
+          id?: string
+          troop_type: string
+          user_id: string
+        }
+        Update: {
+          count?: number
+          created_at?: string
+          finish_time?: string
+          id?: string
+          troop_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       vassalages: {
         Row: {
           created_at: string
@@ -830,16 +986,24 @@ export type Database = {
           gold: number
           happiness: number
           id: string
+          injured_archer: number
+          injured_cavalry: number
+          injured_knight: number
+          injured_militia: number
+          injured_scout: number
+          injured_siege: number
           last_resource_tick: string
           level: number
           map_x: number
           map_y: number
           max_population: number
           name: string
+          poisons: number
           pop_tax_rate: number
           population: number
           rations: string
           settlement_type: string
+          spies: number
           steel: number
           stone: number
           storage_capacity: number
@@ -859,16 +1023,24 @@ export type Database = {
           gold?: number
           happiness?: number
           id?: string
+          injured_archer?: number
+          injured_cavalry?: number
+          injured_knight?: number
+          injured_militia?: number
+          injured_scout?: number
+          injured_siege?: number
           last_resource_tick?: string
           level?: number
           map_x?: number
           map_y?: number
           max_population?: number
           name?: string
+          poisons?: number
           pop_tax_rate?: number
           population?: number
           rations?: string
           settlement_type?: string
+          spies?: number
           steel?: number
           stone?: number
           storage_capacity?: number
@@ -888,16 +1060,24 @@ export type Database = {
           gold?: number
           happiness?: number
           id?: string
+          injured_archer?: number
+          injured_cavalry?: number
+          injured_knight?: number
+          injured_militia?: number
+          injured_scout?: number
+          injured_siege?: number
           last_resource_tick?: string
           level?: number
           map_x?: number
           map_y?: number
           max_population?: number
           name?: string
+          poisons?: number
           pop_tax_rate?: number
           population?: number
           rations?: string
           settlement_type?: string
+          spies?: number
           steel?: number
           stone?: number
           storage_capacity?: number
