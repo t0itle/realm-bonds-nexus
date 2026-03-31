@@ -32,10 +32,10 @@ export default function ResourceBar() {
             className="w-full game-panel px-2.5 py-1.5 border-glow rounded-xl flex items-center justify-between active:scale-[0.98] transition-transform"
           >
             <span className="font-display text-[11px] text-foreground flex items-center gap-1.5">
-              🏘️ {villageName}
+              {myVillages.find(v => v.id === villageId)?.settlement_type === 'city' ? '🏙️' : myVillages.find(v => v.id === villageId)?.settlement_type === 'town' ? '🏘️' : '🏠'} {villageName}
             </span>
             <span className="text-[9px] text-muted-foreground">
-              {myVillages.length} settlements ▾
+              {myVillages.length} settlements • Lv.{myVillages.length} ▾
             </span>
           </button>
           <AnimatePresence>
