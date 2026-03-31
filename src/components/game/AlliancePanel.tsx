@@ -39,8 +39,11 @@ export default function AlliancePanel() {
 
   useEffect(() => {
     loadAlliances();
-    if (myAlliance) loadMembers(myAlliance);
   }, [user]);
+
+  useEffect(() => {
+    if (myAlliance) loadMembers(myAlliance);
+  }, [myAlliance]);
 
   const loadMembers = async (allianceId: string) => {
     const { data: mems } = await supabase
