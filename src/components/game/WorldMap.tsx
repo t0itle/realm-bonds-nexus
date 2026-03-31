@@ -1049,7 +1049,8 @@ export default function WorldMap() {
   }, [getDistance, army]);
 
   const isInRange = useCallback((targetX: number, targetY: number) => {
-    const maxRange = getMaxRange(army);
+    const wtLevel = getWatchtowerLevel();
+    const maxRange = getMaxRange(army, wtLevel);
     // Check range from home village
     const dist = getDistance(targetX, targetY);
     if (dist <= maxRange) return true;
@@ -1060,7 +1061,7 @@ export default function WorldMap() {
       if (opDist <= maxRange) return true;
     }
     return false;
-  }, [getDistance, army, outposts, user?.id]);
+  }, [getDistance, army, outposts, user?.id, getWatchtowerLevel]);
 
   const handleInvestigate = useCallback((event: ProceduralEvent) => {
     if (claimedEvents.has(event.id)) return;
