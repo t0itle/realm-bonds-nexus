@@ -1757,6 +1757,7 @@ export default function WorldMap() {
           const opSize = Math.max(18, Math.min(36, camera.ppu * 6000));
           const hitSize = Math.max(44, opSize * 1.9);
           const isOwn = outpost.user_id === user?.id;
+          const isSettlement = outpost.outpost_type === 'settlement';
           return (
             <button
               key={outpost.id}
