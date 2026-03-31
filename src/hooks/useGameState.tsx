@@ -396,6 +396,7 @@ interface GameContextType {
   healTroops: (type: TroopType, count: number) => boolean;
   craftPoison: (count: number) => boolean;
   getApothecaryLevel: () => number;
+  storageCapacity: number;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
