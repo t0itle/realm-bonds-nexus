@@ -978,13 +978,26 @@ export default function WorldMap() {
   }, [getMyPos]);
 
   const visionSources = useMemo(() => {
-    const myPos = getMyPos();
     const scoutCount = army.scout || 0;
     const baseVisionWorld = 55000 + scoutCount * 10000;
     const outpostBaseVision = 40000;
 
+    // Add vision from ALL player settlements
+    const settlementVision = allVillages
+      .filter(v => v.village.user_id === user?.id)
+      .map(v => {
+        const pos = getPlayerPos(v.village.id);
+        return { x: pos.x, y: pos.y, radius: baseVisionWorld };
+      });
+
+    // Fallback if no villages found
+    if (settlementVision.length === 0) {
+      const myPos = getMyPos();
+      settlementVision.push({ x: myPos.x, y: myPos.y, radius: baseVisionWorld });
+    }
+
     return [
-      { x: myPos.x, y: myPos.y, radius: baseVisionWorld },
+      ...settlementVision,
       ...outposts
         .filter(outpost => outpost.user_id === user?.id)
         .map(outpost => ({
@@ -993,7 +1006,7 @@ export default function WorldMap() {
           radius: outpostBaseVision + (outpost.level || 1) * 5000,
         })),
     ];
-  }, [army.scout, getMyPos, outposts, user?.id]);
+  }, [army.scout, getMyPos, allVillages, outposts, user?.id]);
 
   const isWithinVision = useCallback((wx: number, wy: number, padding = 0) => {
     return visionSources.some(source => Math.hypot(wx - source.x, wy - source.y) <= source.radius + padding);
