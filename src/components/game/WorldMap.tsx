@@ -2030,8 +2030,11 @@ export default function WorldMap() {
                               gold: 100, wood: 100, stone: 50, food: 50,
                             });
                             if (error) { toast.error('Failed to found settlement'); return; }
-                            // Also add as vision source
-                            setOutposts(prev => [...prev, { id: `settle-${Date.now()}`, x: targetData.x, y: targetData.y, name: settleName }]);
+                            // Also persist as vision source
+                            const { data: opData } = await supabase.from('outposts').insert({
+                              user_id: user!.id, x: targetData.x, y: targetData.y, name: settleName, outpost_type: 'settlement',
+                            }).select().single();
+                            if (opData) setOutposts(prev => [...prev, { id: opData.id, x: opData.x, y: opData.y, name: opData.name }]);
                             toast.success(`🏘️ ${settleName} founded! New territory claimed.`);
                           }
                         });
