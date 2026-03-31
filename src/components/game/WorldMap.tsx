@@ -1417,31 +1417,35 @@ export default function WorldMap() {
           });
         })()}
 
-        {/* ── Animated March Sprites ── */}
+        {/* ── Animated March Sprites with waypoint paths ── */}
         {marches.map(march => {
           const now = Date.now();
           const totalDuration = march.arrivalTime - march.startTime;
           const elapsed = now - march.startTime;
           const progress = Math.min(1, Math.max(0, elapsed / totalDuration));
-          const currentX = march.startX + (march.targetX - march.startX) * progress;
-          const currentY = march.startY + (march.targetY - march.startY) * progress;
-          const { sx, sy } = worldToScreen(currentX, currentY);
-          const { sx: startSx, sy: startSy } = worldToScreen(march.startX, march.startY);
-          const { sx: endSx, sy: endSy } = worldToScreen(march.targetX, march.targetY);
+          const wp = march.waypoints;
+          const currentPos = interpolateAlongPath(wp, progress);
+          const { sx, sy } = worldToScreen(currentPos.x, currentPos.y);
+          // Determine facing direction from next waypoint
+          const aheadPos = interpolateAlongPath(wp, Math.min(1, progress + 0.05));
+          const facingLeft = aheadPos.x < currentPos.x;
           const marchSize = Math.max(16, Math.min(36, camera.ppu * 5000));
           const remainingSec = Math.max(0, Math.ceil((march.arrivalTime - now) / 1000));
+          // Build polyline path from waypoints
+          const screenWaypoints = wp.map(p => worldToScreen(p.x, p.y));
+          const polylinePoints = screenWaypoints.map(p => `${p.sx},${p.sy}`).join(' ');
           return (
             <div key={march.id}>
-              {/* Dotted march path line */}
+              {/* Dotted march path polyline */}
               <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible', zIndex: 35 }}>
-                <line x1={startSx} y1={startSy} x2={endSx} y2={endSy}
-                  stroke="hsl(var(--primary) / 0.4)" strokeWidth={2} strokeDasharray="6 4" />
+                <polyline points={polylinePoints}
+                  fill="none" stroke="hsl(var(--primary) / 0.4)" strokeWidth={2} strokeDasharray="6 4" />
               </svg>
               {/* Moving soldier sprite */}
               <div className="absolute z-40 flex flex-col items-center pointer-events-none"
                 style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', transition: 'left 0.4s linear, top 0.4s linear' }}>
                 <img src={mapSoldier} alt="Army" className="drop-shadow-lg"
-                  style={{ width: marchSize, height: marchSize, objectFit: 'contain', transform: march.targetX < march.startX ? 'scaleX(-1)' : undefined }} loading="lazy" />
+                  style={{ width: marchSize, height: marchSize, objectFit: 'contain', transform: facingLeft ? 'scaleX(-1)' : undefined }} loading="lazy" />
                 <div className="bg-background/90 rounded px-1.5 py-0.5 text-center mt-0.5 border border-primary/30 shadow-md">
                   <p className="text-foreground font-display whitespace-nowrap font-bold" style={{ fontSize: Math.max(7, marchSize / 4) }}>
                     {displayName}
