@@ -706,6 +706,16 @@ export default function WorldMap() {
     return () => clearInterval(interval);
   }, [capturedMines, addSteel]);
 
+  // Load outposts from database on mount
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('outposts').select('*').eq('user_id', user.id).then(({ data }) => {
+      if (data && data.length > 0) {
+        setOutposts(data.map(o => ({ id: o.id, x: o.x, y: o.y, name: o.name })));
+      }
+    });
+  }, [user]);
+
   // NPC vassal tribute income (from persistent state)
   useEffect(() => {
     const vassalNPCs = Array.from(npcState.playerRelations.values()).filter(r => r.status === 'vassal');
