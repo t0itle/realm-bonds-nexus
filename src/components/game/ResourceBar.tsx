@@ -49,19 +49,40 @@ export default function ResourceBar() {
               >
                 <div className="game-panel rounded-b-xl border-t-0 px-1.5 py-1 space-y-0.5">
                   {myVillages.map(v => (
-                    <button
-                      key={v.id}
-                      onClick={() => { switchVillage(v.id); setShowVillageSwitcher(false); }}
-                      className={`w-full text-left px-2 py-1.5 rounded-lg text-[10px] flex items-center gap-1.5 transition-colors ${
-                        v.id === villageId
-                          ? 'bg-primary/20 text-primary font-bold'
-                          : 'text-muted-foreground hover:bg-muted/50'
-                      }`}
-                    >
-                      <span>{v.settlement_type === 'city' ? '🏙️' : v.settlement_type === 'town' ? '🏘️' : '🏠'}</span>
-                      <span className="truncate">{v.name}</span>
-                      {v.id === villageId && <span className="ml-auto text-[8px]">● Active</span>}
-                    </button>
+                    <div key={v.id} className="flex items-center gap-0.5">
+                      <button
+                        onClick={() => { switchVillage(v.id); setShowVillageSwitcher(false); }}
+                        className={`flex-1 text-left px-2 py-1.5 rounded-lg text-[10px] flex items-center gap-1.5 transition-colors ${
+                          v.id === villageId
+                            ? 'bg-primary/20 text-primary font-bold'
+                            : 'text-muted-foreground hover:bg-muted/50'
+                        }`}
+                      >
+                        <span>{v.settlement_type === 'city' ? '🏙️' : v.settlement_type === 'town' ? '🏘️' : '🏠'}</span>
+                        <span className="truncate">{v.name}</span>
+                        {v.id === villageId && <span className="ml-auto text-[8px]">● Active</span>}
+                      </button>
+                      {myVillages.length > 1 && v.id !== villageId && (
+                        confirmAbandon === v.id ? (
+                          <div className="flex gap-0.5">
+                            <button
+                              onClick={async () => { await abandonSettlement(v.id); setConfirmAbandon(null); }}
+                              className="text-[8px] px-1.5 py-0.5 rounded bg-destructive text-destructive-foreground font-bold"
+                            >Yes</button>
+                            <button
+                              onClick={() => setConfirmAbandon(null)}
+                              className="text-[8px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+                            >No</button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmAbandon(v.id)}
+                            className="text-[8px] px-1 py-0.5 rounded text-destructive hover:bg-destructive/10"
+                            title="Abandon settlement"
+                          >🗑️</button>
+                        )
+                      )}
+                    </div>
                   ))}
                 </div>
               </motion.div>
