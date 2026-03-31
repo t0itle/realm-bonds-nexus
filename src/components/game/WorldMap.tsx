@@ -632,6 +632,12 @@ export default function WorldMap() {
   const [legendOpen, setLegendOpen] = useState(false);
   const [, forceRender] = useState(0);
   const [npcRelations, setNpcRelations] = useState<Map<string, { realmId: string; status: 'neutral' | 'friendly' | 'vassal' | 'allied'; tributeRate: number; friendshipLevel: number }>>(new Map());
+  const [attackConfig, setAttackConfig] = useState<{
+    targetName: string; targetPower?: number; targetId?: string;
+    targetX: number; targetY: number; travelTime: number;
+    onAttack: (sentArmy: Partial<import('@/hooks/useGameState').Army>) => void;
+    showEspionage: boolean;
+  } | null>(null);
 
   // Get TH level for dynamic sprite
   const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
