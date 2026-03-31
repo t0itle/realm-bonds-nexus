@@ -1784,18 +1784,31 @@ export function GameProvider({ children }: { children: ReactNode }) {
             }
 
             // Return surviving spies (caught = lost)
+            const spiesLost = caught ? m.spiesCount : 0;
             if (!caught) {
-              setSpies(p => p + m.spiesCount);
+              setSpies(p => {
+                const newVal = p + m.spiesCount;
+                if (villageId) supabase.from('villages').update({ spies: newVal } as any).eq('id', villageId).then();
+                return newVal;
+              });
             }
 
             setIntelReports(prev => [report, ...prev].slice(0, 30));
+            // Persist intel report and clean up mission from DB
+            if (user) {
+              supabase.from('intel_reports').insert({
+                user_id: user.id, target_name: m.targetName, mission: m.mission,
+                success: report.result === 'success', data: report.data || {}, spies_lost: spiesLost,
+              } as any).then();
+              supabase.from('active_spy_missions').delete().eq('id', m.id).then();
+            }
           });
         }
         return updated;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [activeSpyMissions.length, getWatchtowerLevel]);
+  }, [activeSpyMissions.length, getWatchtowerLevel, villageId, user]);
 
   return (
     <GameContext.Provider value={{
