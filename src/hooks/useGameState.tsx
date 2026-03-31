@@ -361,8 +361,8 @@ interface GameContextType {
   totalArmyPower: () => { attack: number; defense: number };
   addResources: (r: Partial<Resources>) => void;
   addSteel: (amount: number) => void;
-  attackTarget: (targetName: string, targetPower: number) => BattleLog;
-  attackPlayer: (targetUserId: string, targetName: string, targetVillageId: string) => Promise<BattleLog | null>;
+  attackTarget: (targetName: string, targetPower: number, sentArmy?: Partial<Army>) => BattleLog;
+  attackPlayer: (targetUserId: string, targetName: string, targetVillageId: string, sentArmy?: Partial<Army>) => Promise<BattleLog | null>;
   vassalages: Vassalage[];
   payRansom: (vassalageId: string) => Promise<boolean>;
   attemptRebellion: (vassalageId: string) => Promise<boolean>;
