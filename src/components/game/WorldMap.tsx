@@ -622,7 +622,7 @@ type SelectedItem =
   | null;
 
 export default function WorldMap() {
-  const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName } = useGame();
+  const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, resources } = useGame();
   const { user } = useAuth();
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
