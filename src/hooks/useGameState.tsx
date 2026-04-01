@@ -14,6 +14,7 @@ import { useApothecary } from './useApothecary';
 import { useVassalage } from './useVassalage';
 import { useCombat } from './useCombat';
 import { useQueueProcessing } from './useQueueProcessing';
+import { useGameTick } from './useGameTick';
 
 // Re-export all types from gameTypes
 export type {
@@ -189,10 +190,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
   rationsRef.current = rations;
   const popTaxRateRef = useRef(popTaxRate);
   popTaxRateRef.current = popTaxRate;
-  const allianceTaxRateRef = useRef(allianceTaxRate);
-  allianceTaxRateRef.current = allianceTaxRate;
-  const allianceIdRef = useRef(allianceId);
-  allianceIdRef.current = allianceId;
 
   // Wrap setRations and setPopTaxRate to immediately persist to DB
   const setRations = useCallback((r: RationsLevel) => {
@@ -715,117 +712,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     grossProduction, buildingSteelProduction, mineSteelPerTick,
     steelProduction, totalProduction, armyUpkeep, storageCapacity,
   } = useProduction({ buildings, workerAssignments, army, allianceId, allianceTaxRate, ownedMineIds, popFoodCost, popTaxIncome });
-  const storageCapRef = useRef(storageCapacity);
-  storageCapRef.current = storageCapacity;
-
-  const totalProductionRef = useRef(totalProduction);
-  totalProductionRef.current = totalProduction;
-  const buildingSteelProductionRef = useRef(buildingSteelProduction);
-  buildingSteelProductionRef.current = buildingSteelProduction;
-  const mineSteelPerTickRef = useRef(mineSteelPerTick);
-  mineSteelPerTickRef.current = mineSteelPerTick;
-  const armyRef = useRef(army);
-  armyRef.current = army;
 
   const { persistArmyToVillage, deployTroops, disbandTroops, returnTroops } = useTroopManagement({
     villageId, user, army, setArmy, populationBase, setPopulationBase,
   });
-
-  useEffect(() => {
-    if (!villageId || !user) return;
-
-    // Call server-side resource tick on load to sync DB
-    const tickUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resource-tick`;
-    fetch(tickUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-      body: JSON.stringify({ user_id: user.id }),
-    }).catch(() => {});
-
-    // Interpolate resources locally every 2 seconds for visible trickle
-    // Cap at storage capacity
-    let lastDesertionTime = 0;
-    const tickInterval = setInterval(() => {
-      const prod = totalProductionRef.current;
-      const steelProd = buildingSteelProductionRef.current;
-      const fraction = 2 / 60;
-      const cap = storageCapRef.current;
-      
-      setResources(prev => {
-        const newFood = Math.min(cap, Math.max(0, prev.food + prod.food * fraction));
-        
-        const now = Date.now();
-        if (newFood <= 0 && prod.food < 0 && now - lastDesertionTime > 30000) {
-          const currentArmy = armyRef.current;
-          const desertOrder: TroopType[] = ['siege', 'cavalry', 'knight', 'archer', 'militia', 'scout'];
-          for (const t of desertOrder) {
-            if (currentArmy[t] > 0) {
-              const nextArmy = { ...currentArmy, [t]: currentArmy[t] - 1 };
-              setArmy(nextArmy);
-              persistArmyToVillage(nextArmy);
-              setPopulationBase(p => Math.max(1, p - TROOP_INFO[t].popCost));
-              toast.error(`⚠️ A ${TROOP_INFO[t].name} deserted due to starvation!`);
-              lastDesertionTime = now;
-              break;
-            }
-          }
-        }
-        
-        return {
-          gold: Math.min(cap, Math.max(0, prev.gold + prod.gold * fraction)),
-          wood: Math.min(cap, Math.max(0, prev.wood + prod.wood * fraction)),
-          stone: Math.min(cap, Math.max(0, prev.stone + prod.stone * fraction)),
-          food: newFood,
-        };
-      });
-      if (steelProd > 0) {
-        setSteel(prev => Math.max(0, prev + steelProd * fraction));
-      }
-    }, 2000);
-
-    // Alliance tax rate refresh
-    // Periodically sync with server every 2 minutes
-    const serverSync = setInterval(() => {
-      fetch(tickUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-        body: JSON.stringify({ user_id: user.id }),
-      }).catch(() => {});
-    }, 120000);
-
-    const taxRefresh = setInterval(async () => {
-      const aid = allianceIdRef.current;
-      if (!aid) return;
-      const { data } = await supabase.from('alliances').select('tax_rate').eq('id', aid).single();
-      if (data) setAllianceTaxRate(data.tax_rate);
-    }, 60000);
-
-    return () => { clearInterval(tickInterval); clearInterval(serverSync); clearInterval(taxRefresh); };
-  }, [villageId, user]);
-
-  // Persist injured troops with debounce to avoid spamming DB
-  const injuredInitRef = useRef(false);
-  const injuredTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    if (!villageId || !injuredInitRef.current) { injuredInitRef.current = true; return; }
-    if (injuredTimerRef.current) clearTimeout(injuredTimerRef.current);
-    injuredTimerRef.current = setTimeout(() => {
-      supabase.from('villages').update({
-        injured_militia: injuredTroops.militia, injured_archer: injuredTroops.archer,
-        injured_knight: injuredTroops.knight, injured_cavalry: injuredTroops.cavalry,
-        injured_siege: injuredTroops.siege, injured_scout: injuredTroops.scout,
-      } as any).eq('id', villageId).then();
-    }, 2000);
-    return () => { if (injuredTimerRef.current) clearTimeout(injuredTimerRef.current); };
-  }, [injuredTroops, villageId]);
-
-  // Persist poisons whenever they change
-  const poisonsInitRef = useRef(false);
-  useEffect(() => {
-    if (!villageId || !poisonsInitRef.current) { poisonsInitRef.current = true; return; }
-    supabase.from('villages').update({ poisons } as any).eq('id', villageId).then();
-  }, [poisons, villageId]);
-
 
   useQueueProcessing({
     trainingQueue, setTrainingQueue, buildQueue, setBuildQueue,
@@ -844,16 +734,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
     villageId, user, canAfford, canAffordSteel, getBarracksLevel, totalSoldiers, armyCap, population,
   });
 
-  useEffect(() => {
-    if (!user || !villageId || mineSteelPerTick <= 0) return;
-
-    const interval = setInterval(() => {
-      const steelPerTick = mineSteelPerTickRef.current;
-      if (steelPerTick > 0) addSteel(steelPerTick);
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [user, villageId, mineSteelPerTick, addSteel]);
+  useGameTick({
+    villageId, user, totalProduction, buildingSteelProduction, mineSteelPerTick,
+    storageCapacity, setResources, setSteel, army, setArmy, setPopulationBase,
+    persistArmyToVillage, allianceId, setAllianceTaxRate, addSteel,
+  });
 
   const { getMaxWorkers, assignWorker, unassignWorker } = useWorkerManagement({
     buildings, workerAssignments, setWorkerAssignments, population, villageId,
