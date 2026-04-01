@@ -237,7 +237,7 @@ export default function ResourceBar() {
             </Tooltip>
             <button
               onClick={() => setShowCaravan(prev => !prev)}
-              className={`flex items-center gap-0.5 active:scale-95 transition-transform ${storageNearFull ? 'text-destructive font-bold' : 'text-muted-foreground'}`}
+              className={`flex items-center gap-0.5 active:scale-95 transition-transform ${storageNearFull ? 'text-destructive font-bold' : 'text-foreground/80'}`}
             >
               🏪 {Math.floor(storagePct)}%
             </button>
