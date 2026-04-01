@@ -76,8 +76,8 @@ export default function BuildModal({ position, onClose }: { position: number; on
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleBuild(type)}
                   disabled={!affordable && !needsSteel}
-                  className={`game-panel p-3 rounded-xl text-left transition-all ${
-                    affordable ? 'border-glow hover:glow-gold-sm' : 'opacity-50'
+                  className={`bg-white/30 border border-amber-800/20 p-3 rounded-xl text-left transition-all ${
+                    affordable ? 'hover:bg-white/40 glow-gold-sm' : 'opacity-50'
                   }`}
                 >
                   <div className="flex items-center gap-3 mb-1">
