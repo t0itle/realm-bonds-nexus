@@ -1261,6 +1261,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     fetch(tickUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+      body: JSON.stringify({ user_id: user.id }),
     }).catch(() => {});
 
     // Interpolate resources locally every 2 seconds for visible trickle
@@ -1310,6 +1311,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       fetch(tickUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        body: JSON.stringify({ user_id: user.id }),
       }).catch(() => {});
     }, 120000);
 

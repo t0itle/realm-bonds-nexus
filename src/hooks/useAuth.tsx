@@ -42,6 +42,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const initTimeout = window.setTimeout(() => {
       console.error('Auth bootstrap timed out; falling back to signed-out state.');
+      // Clear potentially corrupt stored session so we don't retry forever
+      try { localStorage.removeItem('sb-axomurdwnszgulrfvnsb-auth-token'); } catch {}
       resolveInitialState(null);
     }, 4000);
 
@@ -61,6 +63,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch((error) => {
         console.error('Failed to initialize auth session.', error);
         window.clearTimeout(initTimeout);
+        // Clear stale tokens so we stop retrying on a dead backend
+        try { localStorage.removeItem('sb-axomurdwnszgulrfvnsb-auth-token'); } catch {}
         resolveInitialState(null);
       });
 
