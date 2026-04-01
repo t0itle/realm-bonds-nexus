@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import NPCInteractionPanel from './NPCInteractionPanel';
 import { useTroopSkins } from '@/hooks/useTroopSkins';
 import AttackConfigPanel from './AttackConfigPanel';
+import TroopTransferPanel from './TroopTransferPanel';
 import { FACTION_MAP_SPRITES, FACTION_SOLDIER_SPRITES } from './factionMapSprites';
 import { getMineSteelPerTickForChunk } from '@/lib/mineProduction';
 
@@ -875,7 +876,7 @@ type SelectedItem =
   | { kind: 'event'; data: ProceduralEvent; chunkKey: string; index: number }
   | { kind: 'player'; data: any }
   | { kind: 'mine'; data: SteelMine }
-  | { kind: 'outpost'; data: { id: string; x: number; y: number; name: string; user_id: string; level: number; garrison_power: number; has_wall: boolean; wall_level: number; territory_radius: number; outpost_type: string } }
+  | { kind: 'outpost'; data: { id: string; x: number; y: number; name: string; user_id: string; level: number; garrison_power: number; garrison_troops: Partial<Record<string, number>>; has_wall: boolean; wall_level: number; territory_radius: number; outpost_type: string } }
   | { kind: 'empty'; data: { x: number; y: number } }
   | null;
 
@@ -887,7 +888,7 @@ export default function WorldMap() {
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
   const [capturedMines, setCapturedMines] = useState<Set<string>>(new Set());
-  const [outposts, setOutposts] = useState<{ id: string; x: number; y: number; name: string; user_id: string; level: number; garrison_power: number; has_wall: boolean; wall_level: number; territory_radius: number; outpost_type: string }[]>([]);
+  const [outposts, setOutposts] = useState<{ id: string; x: number; y: number; name: string; user_id: string; level: number; garrison_power: number; garrison_troops: Partial<Record<string, number>>; has_wall: boolean; wall_level: number; territory_radius: number; outpost_type: string }[]>([]);
   const [wallSegments, setWallSegments] = useState<{ id: string; user_id: string; outpost_a_id: string; outpost_b_id: string; wall_level: number; health: number; max_health: number }[]>([]);
   const [outpostBuildQueue, setOutpostBuildQueue] = useState<{ outpostId: string; action: 'upgrade' | 'wall'; finishTime: number; targetLevel: number; newGarrison: number; newRadius?: number; targetOutpostId?: string }[]>([]);
   const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; startTime: number; startX: number; startY: number; targetX: number; targetY: number; waypoints: { x: number; y: number }[]; action: () => void; sentArmy?: Partial<Record<string, number>> }[]>([]);
@@ -1002,7 +1003,7 @@ export default function WorldMap() {
     if (!user) return;
     supabase.from('outposts').select('*').then(({ data }) => {
       if (data && data.length > 0) {
-        setOutposts(data.map((o: any) => ({ id: o.id, x: o.x, y: o.y, name: o.name, user_id: o.user_id, level: o.level || 1, garrison_power: o.garrison_power || 0, has_wall: o.has_wall || false, wall_level: o.wall_level || 0, territory_radius: o.territory_radius || 15000, outpost_type: o.outpost_type || 'outpost' })));
+        setOutposts(data.map((o: any) => ({ id: o.id, x: o.x, y: o.y, name: o.name, user_id: o.user_id, level: o.level || 1, garrison_power: o.garrison_power || 0, garrison_troops: o.garrison_troops || {}, has_wall: o.has_wall || false, wall_level: o.wall_level || 0, territory_radius: o.territory_radius || 15000, outpost_type: o.outpost_type || 'outpost' })));
         // Initialize captured mines from outposts with type 'mine'
         const mineOutposts = data.filter((o: any) => o.outpost_type === 'mine' && o.user_id === user.id);
         if (mineOutposts.length > 0) {
@@ -2774,7 +2775,7 @@ export default function WorldMap() {
                                     user_id: user.id, x: mineData.x, y: mineData.y, name: mineData.id, outpost_type: 'mine',
                                   }).select().single();
                                   if (opData) {
-                                    setOutposts(prev => [...prev, { id: opData.id, x: mineData.x, y: mineData.y, name: mineData.id, user_id: user.id, level: 1, garrison_power: 0, has_wall: false, wall_level: 0, territory_radius: 5000, outpost_type: 'mine' }]);
+                                    setOutposts(prev => [...prev, { id: opData.id, x: mineData.x, y: mineData.y, name: mineData.id, user_id: user.id, level: 1, garrison_power: 0, garrison_troops: {}, has_wall: false, wall_level: 0, territory_radius: 5000, outpost_type: 'mine' }]);
                                     void refreshMineOutposts();
                                   }
                                 }
@@ -3123,6 +3124,23 @@ export default function WorldMap() {
                           </motion.button>
                         </div>
                       )}
+                      {/* Troop Transfer (forts and settlements only) */}
+                      {(op.outpost_type === 'fort' || isSettlement) && (
+                        <TroopTransferPanel
+                          outpost={op as any}
+                          allOutposts={outposts as any}
+                          myVillagePos={getMyPos()}
+                          onTransferComplete={() => {
+                            // Refresh outposts
+                            supabase.from('outposts').select('*').then(({ data }) => {
+                              if (data) {
+                                setOutposts(data.map((o: any) => ({ id: o.id, x: o.x, y: o.y, name: o.name, user_id: o.user_id, level: o.level || 1, garrison_power: o.garrison_power || 0, garrison_troops: o.garrison_troops || {}, has_wall: o.has_wall || false, wall_level: o.wall_level || 0, territory_radius: o.territory_radius || 15000, outpost_type: o.outpost_type || 'outpost' })));
+                              }
+                            });
+                          }}
+                          createMarch={createMarch}
+                        />
+                      )}
                       {/* Delete Outpost (only for non-settlement outposts) */}
                       {!isSettlement && (
                         <div className="bg-destructive/10 rounded-lg p-2 space-y-1">
@@ -3257,7 +3275,7 @@ export default function WorldMap() {
                             user_id: user!.id, x: targetData.x, y: targetData.y, name: opName, outpost_type: 'outpost',
                           }).select().single();
                           if (error) { toast.error('Failed to build outpost'); return; }
-                          setOutposts(prev => [...prev, { id: data.id, x: data.x, y: data.y, name: data.name, user_id: user!.id, level: 1, garrison_power: 0, has_wall: false, wall_level: 0, territory_radius: 15000, outpost_type: 'outpost' }]);
+                          setOutposts(prev => [...prev, { id: data.id, x: data.x, y: data.y, name: data.name, user_id: user!.id, level: 1, garrison_power: 0, garrison_troops: {}, has_wall: false, wall_level: 0, territory_radius: 15000, outpost_type: 'outpost' }]);
                           toast.success(`🏕️ ${opName} established! Fog lifted in this area.`);
                         });
                         setSelected(null);
