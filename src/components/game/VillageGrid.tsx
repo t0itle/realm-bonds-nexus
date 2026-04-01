@@ -377,7 +377,7 @@ export default function VillageGrid() {
             <MilitaryPanel />
           </Suspense>
         </CollapsibleSection>
-        <CollapsibleSection icon="📊" title="Stats" defaultOpen={false}>
+        <CollapsibleSection icon="📊" title="Stats" defaultOpen={true}>
           <Suspense fallback={<div className="text-center text-muted-foreground text-xs py-4">Loading...</div>}>
             <StatSheet />
           </Suspense>
