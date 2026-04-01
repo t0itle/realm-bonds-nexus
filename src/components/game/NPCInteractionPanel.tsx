@@ -303,6 +303,14 @@ export default function NPCInteractionPanel({
         {/* TRADE TAB */}
         {tab === 'trade' && (
           <motion.div key="trade" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-2">
+            {isHostileAndUnfriendly && (
+              <div className="bg-destructive/15 border border-destructive/30 rounded-lg p-2 space-y-1">
+                <p className="text-[10px] text-destructive font-bold">⚠️ Hostile Territory — Trade Refused</p>
+                <p className="text-[9px] text-destructive/80">
+                  {realm.ruler} refuses all trade with you. Improve relations through diplomacy (Talk tab) or envoys before they'll consider commerce. Current sentiment: {sentiment}/100 (need 20+).
+                </p>
+              </div>
+            )}
             <div className="text-[9px] text-muted-foreground flex items-center gap-1">
               <span>🌍 {biome} market</span>
               <span>·</span>
