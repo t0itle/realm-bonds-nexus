@@ -367,7 +367,7 @@ export default function NPCInteractionPanel({
                         ×{trade.rate}
                       </span>
                     </div>
-                    <p className="text-[9px] text-muted-foreground">{tradeAmount} → {receiveAmt}</p>
+                    <p className="text-[9px] text-muted-foreground">{tradeAmount} → {receiveAmt}{isScouted && npcStock !== Infinity ? ` (stock: ${npcStock})` : ''}</p>
                   </motion.button>
                 );
               })}

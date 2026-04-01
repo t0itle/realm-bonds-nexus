@@ -155,7 +155,36 @@ async function simulateNPCAutonomy(supabase: ReturnType<typeof createClient>) {
 
   // Simulate each NPC town action (random chance per tick)
   for (const state of states) {
-    if (Math.random() > 0.15) continue; // 15% chance per tick to act
+    // ── Passive resource regeneration ──
+    const regenPerTick: Record<string, number> = {
+      stock_gold: 5 + Math.floor((state.current_power as number) * 0.05),
+      stock_wood: 4 + Math.floor((state.current_power as number) * 0.04),
+      stock_stone: 3 + Math.floor((state.current_power as number) * 0.03),
+      stock_food: 5 + Math.floor((state.current_power as number) * 0.05),
+      stock_steel: 1 + Math.floor((state.current_power as number) * 0.005),
+    };
+    const maxStock: Record<string, number> = {
+      stock_gold: (state.current_power as number) * 15,
+      stock_wood: (state.current_power as number) * 12,
+      stock_stone: (state.current_power as number) * 10,
+      stock_food: (state.current_power as number) * 14,
+      stock_steel: Math.max(20, (state.current_power as number)),
+    };
+    const regenUpdate: Record<string, number> = {};
+    for (const [key, rate] of Object.entries(regenPerTick)) {
+      const current = (state as any)[key] ?? 0;
+      regenUpdate[key] = Math.min(maxStock[key], current + rate);
+    }
+
+    if (Math.random() > 0.15) {
+      // No action this tick, just regen resources
+      await supabase.from("npc_town_state").update({
+        ...regenUpdate,
+        last_regen_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }).eq("npc_town_id", state.npc_town_id);
+      continue;
+    }
 
     const action = NPC_ACTIONS[Math.floor(Math.random() * NPC_ACTIONS.length)];
     let powerDelta = 0;
@@ -194,6 +223,9 @@ async function simulateNPCAutonomy(supabase: ReturnType<typeof createClient>) {
         break;
       case 'Discovered new resources':
         powerDelta = 10;
+        // Bonus resource discovery
+        regenUpdate.stock_gold = (regenUpdate.stock_gold || 0) + 200;
+        regenUpdate.stock_steel = (regenUpdate.stock_steel || 0) + 20;
         break;
       default:
         powerDelta = Math.floor(Math.random() * 10) - 3;
@@ -207,6 +239,8 @@ async function simulateNPCAutonomy(supabase: ReturnType<typeof createClient>) {
       last_action: action,
       last_action_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      ...regenUpdate,
+      last_regen_at: new Date().toISOString(),
     }).eq("npc_town_id", state.npc_town_id);
   }
 
