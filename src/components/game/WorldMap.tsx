@@ -1904,9 +1904,9 @@ export default function WorldMap() {
                 {/* Walled outpost nodes (fortification dots) */}
                 {walledOps.map((c, i) => (
                   <g key={`wall-node-${i}`}>
-                    <circle cx={c.cx - minSx} cy={c.cy - minSy} r={Math.max(5, thickness => 6)}
+                    <circle cx={c.cx - minSx} cy={c.cy - minSy} r={6}
                       fill={borderColor} opacity={0.5} />
-                    <circle cx={c.cx - minSx} cy={c.cy - minSy} r={Math.max(3, 4)}
+                    <circle cx={c.cx - minSx} cy={c.cy - minSy} r={4}
                       fill={fillColor} stroke={borderColor} strokeWidth={1.5} opacity={0.8} />
                   </g>
                 ))}
