@@ -200,8 +200,8 @@ export default function VillageGrid() {
 
   return (
     <>
-      <div className="flex-1 flex flex-col items-center justify-center px-1 py-1">
-        <div className={`grid gap-1.5 w-full`} style={{ gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))` }}>
+      <div className="flex-1 flex flex-col items-center justify-center px-2 py-2">
+        <div className={`grid gap-1.5 w-full`} style={{ gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`, maxWidth: `min(100%, ${gridCols * 6}rem)` }}>
           {grid.map((building, i) => {
             const type = building?.type as Exclude<BuildingType, 'empty'> | undefined;
             const sprite = type ? getBuildingSprite(type) : null;
