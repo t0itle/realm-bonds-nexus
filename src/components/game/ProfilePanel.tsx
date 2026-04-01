@@ -1,9 +1,11 @@
 import { useState, useRef } from 'react';
 import { useGame, BUILDING_INFO, BuildingType, TROOP_INFO, TroopType } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
+import { useTroopSkins, FACTION_SKINS } from '@/hooks/useTroopSkins';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
+import { BUILDING_SPRITES } from './sprites';
 import crownOverlay from '@/assets/sprites/crown-overlay.png';
 import ResourceIcon from './ResourceIcon';
 
@@ -30,8 +32,10 @@ function CrownAvatar({ avatarUrl, emoji, size = 64 }: { avatarUrl?: string | nul
 }
 
 export default function ProfilePanel() {
-  const { villageName, playerLevel, buildings, totalProduction, steelProduction, displayName, avatarUrl, army, totalArmyPower, setDisplayName, setVillageName, setAvatarUrl } = useGame();
+  const { villageName, playerLevel, buildings, totalProduction, steelProduction, displayName, avatarUrl, army, totalArmyPower, setDisplayName, setVillageName, setAvatarUrl, resources } = useGame();
   const { signOut, user } = useAuth();
+  const { activeSkin, ownedSkins, purchaseSkin, setActiveSkin, getTroopDisplay, getSpriteFilter } = useTroopSkins();
+  const spriteFilter = getSpriteFilter();
   const { isSupported, isSubscribed, subscribe, unsubscribe, permission } = usePushNotifications();
   const totalBuildingLevels = buildings.reduce((sum, b) => sum + b.level, 0);
   const power = totalArmyPower();
@@ -182,10 +186,10 @@ export default function ProfilePanel() {
           </div>
           <div className="space-y-1">
             {Object.entries(army).filter(([, v]) => v > 0).map(([type, count]) => {
-              const info = TROOP_INFO[type as TroopType];
+              const skinDisplay = getTroopDisplay(type as TroopType);
               return (
                 <div key={type} className="flex items-center justify-between text-xs">
-                  <span className="text-foreground">{info.emoji} {info.name}</span>
+                  <span className="text-foreground">{skinDisplay.emoji} {skinDisplay.name}</span>
                   <span className="text-primary font-bold">x{count}</span>
                 </div>
               );
@@ -210,7 +214,89 @@ export default function ProfilePanel() {
         </div>
       </div>
 
-      {/* Push Notifications */}
+      {/* ===== FACTION SKINS SHOP ===== */}
+      <div className="game-panel border-glow rounded-xl p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-display text-sm text-foreground">🎨 Faction Skins</h3>
+          <span className="text-[9px] text-muted-foreground px-2 py-0.5 rounded-full bg-muted">
+            Active: {activeSkin.icon} {activeSkin.name}
+          </span>
+        </div>
+        <p className="text-[10px] text-muted-foreground">
+          Change the look of your buildings, troops, and map sprites. Each faction reskins everything.
+        </p>
+
+        {/* Sprite preview of active skin */}
+        <div className="flex items-center justify-center gap-2 py-2">
+          {(['townhall', 'barracks', 'farm'] as const).map(bType => (
+            <div key={bType} className="flex flex-col items-center">
+              <img src={BUILDING_SPRITES[bType]} alt={bType} className="w-10 h-10 object-contain" style={{ filter: spriteFilter }} />
+              <span className="text-[7px] text-muted-foreground mt-0.5">{BUILDING_INFO[bType].name}</span>
+            </div>
+          ))}
+          <div className="flex flex-col items-center">
+            <span className="text-2xl">{getTroopDisplay('knight').emoji}</span>
+            <span className="text-[7px] text-muted-foreground mt-0.5">{getTroopDisplay('knight').name}</span>
+          </div>
+        </div>
+
+        {/* Skin cards */}
+        <div className="space-y-2">
+          {FACTION_SKINS.map(skin => {
+            const owned = ownedSkins.includes(skin.id);
+            const isActive = activeSkin.id === skin.id;
+            const canAffordSkin = resources.gold >= skin.cost;
+
+            return (
+              <div key={skin.id} className={`rounded-xl p-3 border transition-all ${isActive ? 'border-primary/60 bg-primary/5' : 'border-border/40 bg-muted/20'}`}>
+                <div className="flex items-center gap-3">
+                  {/* Sprite preview with this skin's filter */}
+                  <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-background/50 flex items-center justify-center overflow-hidden">
+                    <img src={BUILDING_SPRITES.townhall} alt={skin.name} className="w-10 h-10 object-contain" style={{ filter: skin.spriteFilter }} />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm">{skin.icon}</span>
+                      <span className="font-display text-xs text-foreground">{skin.name}</span>
+                      {isActive && <span className="text-[7px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-bold">ACTIVE</span>}
+                      {owned && !isActive && <span className="text-[7px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">OWNED</span>}
+                    </div>
+                    <p className="text-[9px] text-muted-foreground truncate">{skin.description}</p>
+                    {/* Troop preview */}
+                    <div className="flex gap-1.5 mt-1">
+                      {(['militia', 'archer', 'knight', 'cavalry'] as TroopType[]).map(t => (
+                        <span key={t} className="text-[8px] text-muted-foreground">{skin.troops[t].emoji}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Action */}
+                  <div className="flex-shrink-0">
+                    {!owned && skin.cost > 0 && (
+                      <motion.button whileTap={{ scale: 0.95 }}
+                        onClick={() => purchaseSkin(skin.id)}
+                        disabled={!canAffordSkin}
+                        className={`font-display text-[9px] py-1.5 px-3 rounded-lg whitespace-nowrap ${canAffordSkin ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
+                        🪙 {skin.cost.toLocaleString()}
+                      </motion.button>
+                    )}
+                    {owned && !isActive && (
+                      <motion.button whileTap={{ scale: 0.95 }}
+                        onClick={() => setActiveSkin(skin.id)}
+                        className="font-display text-[9px] py-1.5 px-3 rounded-lg bg-secondary text-foreground whitespace-nowrap">
+                        Equip
+                      </motion.button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+
       {isSupported && (
         <div className="game-panel border-glow rounded-xl p-4 space-y-2">
           <h3 className="font-display text-sm text-foreground">🔔 Push Notifications</h3>

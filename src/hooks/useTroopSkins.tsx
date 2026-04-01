@@ -8,7 +8,12 @@ export interface FactionSkin {
   id: string;
   name: string;
   description: string;
-  cost: number; // gold cost
+  icon: string;
+  cost: number;
+  /** CSS filter applied to building & troop sprites */
+  spriteFilter: string;
+  /** Optional accent color for UI tinting */
+  accentHue: number;
   troops: Record<TroopType, { name: string; emoji: string }>;
 }
 
@@ -16,8 +21,11 @@ export const FACTION_SKINS: FactionSkin[] = [
   {
     id: 'default',
     name: 'Kingdom',
-    description: 'Standard kingdom troops.',
+    description: 'Standard kingdom troops and buildings.',
+    icon: '🏰',
     cost: 0,
+    spriteFilter: 'none',
+    accentHue: 0,
     troops: {
       militia: { name: 'Militia', emoji: '🗡️' },
       archer: { name: 'Archer', emoji: '🏹' },
@@ -30,8 +38,11 @@ export const FACTION_SKINS: FactionSkin[] = [
   {
     id: 'viking',
     name: 'Viking Horde',
-    description: 'Norse raiders from the frozen north.',
+    description: 'Cold northern aesthetic. Buildings gain a frosty blue-steel tint.',
+    icon: '🪓',
     cost: 2000,
+    spriteFilter: 'hue-rotate(190deg) saturate(1.3) brightness(0.95)',
+    accentHue: 190,
     troops: {
       militia: { name: 'Berserker', emoji: '🪓' },
       archer: { name: 'Bowman', emoji: '🎯' },
@@ -44,8 +55,11 @@ export const FACTION_SKINS: FactionSkin[] = [
   {
     id: 'samurai',
     name: 'Shogunate',
-    description: 'Disciplined warriors of the east.',
+    description: 'Elegant eastern design. Cherry-blossom pink tint on all structures.',
+    icon: '⛩️',
     cost: 3000,
+    spriteFilter: 'hue-rotate(320deg) saturate(1.2) brightness(1.05)',
+    accentHue: 320,
     troops: {
       militia: { name: 'Ashigaru', emoji: '🥷' },
       archer: { name: 'Yumi Archer', emoji: '🏹' },
@@ -58,8 +72,11 @@ export const FACTION_SKINS: FactionSkin[] = [
   {
     id: 'undead',
     name: 'Undead Legion',
-    description: 'Risen warriors from beyond the grave.',
+    description: 'Dark necromantic palette. Eerie green glow on all sprites.',
+    icon: '💀',
     cost: 4000,
+    spriteFilter: 'hue-rotate(100deg) saturate(0.6) brightness(0.75) contrast(1.3)',
+    accentHue: 100,
     troops: {
       militia: { name: 'Skeleton', emoji: '💀' },
       archer: { name: 'Bone Archer', emoji: '☠️' },
@@ -72,8 +89,11 @@ export const FACTION_SKINS: FactionSkin[] = [
   {
     id: 'roman',
     name: 'Imperial Legion',
-    description: 'The might of Rome marches forth.',
+    description: 'Warm golden Roman architecture. Gilded warmth across all buildings.',
+    icon: '🦅',
     cost: 2500,
+    spriteFilter: 'sepia(0.4) saturate(1.4) brightness(1.05)',
+    accentHue: 40,
     troops: {
       militia: { name: 'Legionary', emoji: '🏛️' },
       archer: { name: 'Velite', emoji: '🎯' },
@@ -91,6 +111,7 @@ interface TroopSkinContextType {
   purchaseSkin: (skinId: string) => Promise<boolean>;
   setActiveSkin: (skinId: string) => Promise<void>;
   getTroopDisplay: (type: TroopType) => { name: string; emoji: string };
+  getSpriteFilter: () => string;
   loading: boolean;
 }
 
@@ -122,7 +143,6 @@ export function TroopSkinProvider({ children }: { children: ReactNode }) {
     const skin = FACTION_SKINS.find(s => s.id === skinId);
     if (!skin) return false;
 
-    // Check gold via village
     const { data: village } = await supabase
       .from('villages')
       .select('gold')
@@ -134,10 +154,8 @@ export function TroopSkinProvider({ children }: { children: ReactNode }) {
       return false;
     }
 
-    // Deduct gold
     await supabase.from('villages').update({ gold: village.gold - skin.cost } as any).eq('user_id', user.id).limit(1);
 
-    // Insert skin
     const { error } = await supabase.from('player_skins').insert({
       user_id: user.id, skin_id: skinId, is_active: false,
     } as any);
@@ -152,7 +170,6 @@ export function TroopSkinProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     if (!ownedSkins.includes(skinId)) return;
 
-    // Deactivate all, then activate chosen
     await supabase.from('player_skins').update({ is_active: false } as any).eq('user_id', user.id);
     if (skinId !== 'default') {
       await supabase.from('player_skins').update({ is_active: true } as any).eq('user_id', user.id).eq('skin_id', skinId);
@@ -166,8 +183,12 @@ export function TroopSkinProvider({ children }: { children: ReactNode }) {
     return activeSkin.troops[type];
   }, [activeSkin]);
 
+  const getSpriteFilter = useCallback(() => {
+    return activeSkin.spriteFilter;
+  }, [activeSkin]);
+
   return (
-    <TroopSkinContext.Provider value={{ activeSkin, ownedSkins, purchaseSkin, setActiveSkin: setActiveSkinFn, getTroopDisplay, loading }}>
+    <TroopSkinContext.Provider value={{ activeSkin, ownedSkins, purchaseSkin, setActiveSkin: setActiveSkinFn, getTroopDisplay, getSpriteFilter, loading }}>
       {children}
     </TroopSkinContext.Provider>
   );

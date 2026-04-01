@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useGame, TROOP_INFO, TroopType, SPY_MISSION_INFO, SpyMission } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
-import { useTroopSkins, FACTION_SKINS } from '@/hooks/useTroopSkins';
+import { useTroopSkins } from '@/hooks/useTroopSkins';
 import { supabase } from '@/integrations/supabase/client';
 import ResourceIcon, { getResourceType } from './ResourceIcon';
 import VassalPanel from './VassalPanel';
@@ -25,7 +25,7 @@ export default function MilitaryPanel() {
   } = useGame();
   const [trainCount, setTrainCount] = useState<Record<TroopType, number>>({ militia: 1, archer: 1, knight: 1, cavalry: 1, siege: 1, scout: 1 });
   const [spyTrainCount, setSpyTrainCount] = useState(1);
-  const [tab, setTab] = useState<'troops' | 'espionage' | 'apothecary' | 'warlog' | 'skins'>('troops');
+  const [tab, setTab] = useState<'troops' | 'espionage' | 'apothecary' | 'warlog'>('troops');
   const { getTroopDisplay } = useTroopSkins();
   const apothecaryLevel = getApothecaryLevel();
   const totalInjured = Object.values(injuredTroops).reduce((s, v) => s + v, 0);
@@ -114,10 +114,6 @@ export default function MilitaryPanel() {
         <button onClick={() => setTab('warlog')}
           className={`flex-1 font-display text-[10px] py-1.5 rounded-lg transition-colors ${tab === 'warlog' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
           📜 War Log
-        </button>
-        <button onClick={() => setTab('skins')}
-          className={`flex-1 font-display text-[10px] py-1.5 rounded-lg transition-colors ${tab === 'skins' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-          🎨 Skins
         </button>
       </div>
 
@@ -315,8 +311,6 @@ export default function MilitaryPanel() {
       {/* ===== WAR LOG TAB ===== */}
       {tab === 'warlog' && <WarLogPanel />}
 
-      {/* ===== SKINS TAB ===== */}
-      {tab === 'skins' && <SkinsShopPanel />}
     </div>
   );
 }
@@ -881,83 +875,3 @@ function ApothecaryPanel({ apothecaryLevel, injuredTroops, poisons, healTroops, 
   );
 }
 
-function SkinsShopPanel() {
-  const { activeSkin, ownedSkins, purchaseSkin, setActiveSkin, getTroopDisplay } = useTroopSkins();
-  const { resources } = useGame();
-  const TROOP_TYPES: TroopType[] = ['militia', 'archer', 'knight', 'cavalry', 'siege', 'scout'];
-
-  return (
-    <div className="space-y-3">
-      <p className="text-[10px] text-muted-foreground">Change how your troops look with faction skin packs. Purely cosmetic.</p>
-
-      {/* Active skin */}
-      <div className="game-panel border-glow rounded-xl p-3">
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <p className="text-[10px] text-muted-foreground font-display">Active Skin</p>
-            <p className="font-display text-sm text-foreground">{activeSkin.name}</p>
-          </div>
-          <span className="text-2xl">{getTroopDisplay('knight').emoji}</span>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {TROOP_TYPES.map(type => {
-            const d = getTroopDisplay(type);
-            return (
-              <span key={type} className="bg-muted/50 rounded-lg px-2 py-1 text-[9px] text-foreground">
-                {d.emoji} {d.name}
-              </span>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Available skins */}
-      {FACTION_SKINS.map(skin => {
-        const owned = ownedSkins.includes(skin.id);
-        const isActive = activeSkin.id === skin.id;
-        const canAffordSkin = resources.gold >= skin.cost;
-
-        return (
-          <div key={skin.id} className={`game-panel rounded-xl p-3 border ${isActive ? 'border-primary/50' : 'border-border/30'}`}>
-            <div className="flex items-center justify-between mb-1.5">
-              <div>
-                <p className="font-display text-xs text-foreground flex items-center gap-1.5">
-                  {skin.troops.knight.emoji} {skin.name}
-                  {isActive && <span className="text-[8px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-bold">ACTIVE</span>}
-                  {owned && !isActive && <span className="text-[8px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">OWNED</span>}
-                </p>
-                <p className="text-[9px] text-muted-foreground">{skin.description}</p>
-              </div>
-            </div>
-
-            {/* Preview troops */}
-            <div className="flex flex-wrap gap-1 mb-2">
-              {TROOP_TYPES.map(type => (
-                <span key={type} className="text-[9px] text-muted-foreground">
-                  {skin.troops[type].emoji} {skin.troops[type].name}
-                </span>
-              ))}
-            </div>
-
-            {/* Action button */}
-            {!owned && (
-              <motion.button whileTap={{ scale: 0.95 }}
-                onClick={() => purchaseSkin(skin.id)}
-                disabled={!canAffordSkin || skin.cost === 0}
-                className={`w-full font-display text-[10px] py-1.5 rounded-lg transition-colors ${canAffordSkin ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
-                🪙 {skin.cost.toLocaleString()} Gold
-              </motion.button>
-            )}
-            {owned && !isActive && (
-              <motion.button whileTap={{ scale: 0.95 }}
-                onClick={() => setActiveSkin(skin.id)}
-                className="w-full font-display text-[10px] py-1.5 rounded-lg bg-secondary text-foreground">
-                ⚔️ Equip
-              </motion.button>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}

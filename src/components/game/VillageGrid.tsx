@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useGame, BUILDING_INFO, getUpgradeCost, getProduction, getSteelProduction, BuildingType, Building } from '@/hooks/useGameState';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BUILDING_SPRITES, WORKERS_SPRITE, WORKER_FOR_BUILDING } from './sprites';
+import { useTroopSkins } from '@/hooks/useTroopSkins';
 import BuildModal from './BuildModal';
 import ResourceIcon, { getResourceType } from './ResourceIcon';
 import { Send, Scroll } from 'lucide-react';
@@ -180,6 +181,8 @@ function CollapsibleSection({ icon, title, defaultOpen, children }: {
 
 export default function VillageGrid() {
   const { buildings, upgradeBuilding, demolishBuilding, canAfford, canAffordSteel, isBuildingUpgrading, getBuildTime, resources, steel } = useGame();
+  const { getSpriteFilter } = useTroopSkins();
+  const spriteFilter = getSpriteFilter();
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [buildPosition, setBuildPosition] = useState<number | null>(null);
   const [, forceUpdate] = useState(0);
@@ -230,6 +233,7 @@ export default function VillageGrid() {
                       src={sprite}
                       alt={BUILDING_INFO[type!].name}
                       className={`w-16 h-16 object-contain drop-shadow-lg ${(upgrading || isUnderConstruction) ? 'opacity-50 grayscale' : ''}`}
+                      style={{ filter: (!upgrading && !isUnderConstruction) ? spriteFilter : undefined }}
                       loading="lazy"
                     />
                     {/* Build/upgrade timer overlay */}
@@ -366,6 +370,8 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
 }) {
   const [confirmDemolish, setConfirmDemolish] = useState(false);
   const [steelPopup, setSteelPopup] = useState(false);
+  const { getSpriteFilter } = useTroopSkins();
+  const spriteFilter = getSpriteFilter();
   const type = building.type as Exclude<BuildingType, 'empty'>;
   const info = BUILDING_INFO[type];
   const sprite = BUILDING_SPRITES[type];
@@ -389,7 +395,7 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
-        <img src={sprite} alt={info.name} className="w-16 h-16 object-contain" />
+        <img src={sprite} alt={info.name} className="w-16 h-16 object-contain" style={{ filter: spriteFilter }} />
         <div>
           <h3 className="font-display text-lg text-foreground">
             {type === 'townhall' && building.level >= 7 ? '🏰 Castle' : info.name}
