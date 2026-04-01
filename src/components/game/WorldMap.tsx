@@ -1172,7 +1172,7 @@ export default function WorldMap() {
       });
     }
     setSelected(null);
-  }, [army, attackTarget, addResources, claimedEvents, calcTravelTime, isInRange, createMarch]);
+  }, [army, attackTarget, addResources, claimedEvents, calcTravelTime, isInRange, createMarch, deployTroops]);
 
   const handleAttackNPC = useCallback((realm: ProceduralRealm) => {
     const hasTroops = Object.values(army).some(v => v > 0);
