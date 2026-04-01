@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import NPCInteractionPanel from './NPCInteractionPanel';
 import { useTroopSkins } from '@/hooks/useTroopSkins';
 import AttackConfigPanel from './AttackConfigPanel';
+import TroopTransferPanel from './TroopTransferPanel';
 import { FACTION_MAP_SPRITES, FACTION_SOLDIER_SPRITES } from './factionMapSprites';
 import { getMineSteelPerTickForChunk } from '@/lib/mineProduction';
 
