@@ -2214,16 +2214,10 @@ export default function WorldMap() {
               const isOwn = op.user_id === user?.id;
               const isSettlement = op.outpost_type === 'settlement';
               const upgradeCost = { gold: 150 * op.level, wood: 100 * op.level, stone: 80 * op.level, food: 50 * op.level };
-              const wallCost = op.has_wall
-                ? { gold: 200 * (op.wall_level + 1), wood: 150 * (op.wall_level + 1), stone: 200 * (op.wall_level + 1), food: 0 }
-                : { gold: 300, wood: 200, stone: 250, food: 50 };
               const canAffordUpgrade = resources.gold >= upgradeCost.gold && resources.wood >= upgradeCost.wood && resources.stone >= upgradeCost.stone && resources.food >= upgradeCost.food;
-              const canAffordWall = resources.gold >= wallCost.gold && resources.wood >= wallCost.wood && resources.stone >= wallCost.stone && resources.food >= wallCost.food;
 
               const isUpgrading = outpostBuildQueue.find(q => q.outpostId === op.id && q.action === 'upgrade');
-              const isBuildingWall = outpostBuildQueue.find(q => q.outpostId === op.id && q.action === 'wall');
               const upgradeTimeSec = 30 + op.level * 30;
-              const wallTimeSec = 45 + op.wall_level * 30;
 
               const handleUpgrade = async () => {
                 if (!canAffordUpgrade) { toast.error('Not enough resources!'); return; }
