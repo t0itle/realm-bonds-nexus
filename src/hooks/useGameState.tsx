@@ -1553,22 +1553,24 @@ export function GameProvider({ children }: { children: ReactNode }) {
     
     const result = resolveCombat(attackingArmy, defArmy, getWallLevel(), defWallLevel);
     
-    // Apply attacker losses (with injury system) — only sent troops can be lost
-    const newArmy = { ...army };
+    // Troops were already deployed when march started — calculate survivors and return them
+    const survivors: Partial<Army> = {};
     let pvpPopLost = 0;
     const pvpApothLvl = getApothecaryLevel();
     const pvpInjuryRate = pvpApothLvl > 0 ? Math.min(0.6, 0.2 + pvpApothLvl * 0.08) : 0;
     const pvpInjured: Partial<Army> = {};
-    for (const [type, lost] of Object.entries(result.attackerLosses) as [TroopType, number][]) {
-      const actualLost = Math.min(lost, attackingArmy[type] || 0);
-      const injured = Math.floor(actualLost * pvpInjuryRate);
-      const dead = actualLost - injured;
-      newArmy[type] = Math.max(0, (newArmy[type] || 0) - actualLost);
+    for (const type of Object.keys(attackingArmy) as TroopType[]) {
+      const sent = attackingArmy[type] || 0;
+      const lost = Math.min(result.attackerLosses[type] || 0, sent);
+      const injured = Math.floor(lost * pvpInjuryRate);
+      const dead = lost - injured;
+      const surviving = sent - lost;
+      if (surviving > 0) survivors[type] = surviving;
       if (injured > 0) pvpInjured[type] = injured;
       pvpPopLost += TROOP_INFO[type].popCost * dead;
     }
-    setArmy(newArmy);
-    persistArmyToVillage(newArmy);
+    // Return surviving troops to village
+    if (Object.values(survivors).some(v => v && v > 0)) returnTroops(survivors);
     if (Object.keys(pvpInjured).length > 0) setInjuredTroops(prev => {
       const u = { ...prev };
       for (const [t, c] of Object.entries(pvpInjured) as [TroopType, number][]) u[t] += c;
