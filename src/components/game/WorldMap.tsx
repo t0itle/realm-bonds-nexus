@@ -109,7 +109,7 @@ interface PathNode {
   parent: PathNode | null;
 }
 
-function findPath(startX: number, startY: number, endX: number, endY: number, terrainFeatures: TerrainFeature[]): { x: number; y: number }[] {
+function findPath(startX: number, startY: number, endX: number, endY: number, terrainFeatures: TerrainFeature[], bridgeOutpostPositions?: { x: number; y: number }[]): { x: number; y: number }[] {
   const cell = PATH_GRID_CELL;
   const toGrid = (v: number) => Math.round(v / cell);
   const fromGrid = (g: number) => g * cell;
