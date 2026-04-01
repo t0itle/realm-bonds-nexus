@@ -141,6 +141,14 @@ export default function GameLayout() {
     return () => window.removeEventListener('open-dm', handler);
   }, []);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      setActiveTab((e as CustomEvent).detail as Tab);
+    };
+    window.addEventListener('switch-tab', handler);
+    return () => window.removeEventListener('switch-tab', handler);
+  }, []);
+
   if (loading) {
     return (
       <div className="fixed inset-0 bg-background flex flex-col items-center justify-center gap-3">
