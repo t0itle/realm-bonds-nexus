@@ -1129,7 +1129,7 @@ export default function WorldMap() {
   const [wallSegments, setWallSegments] = useState<{ id: string; user_id: string; outpost_a_id: string; outpost_b_id: string; wall_level: number; health: number; max_health: number }[]>([]);
   const [outpostBuildQueue, setOutpostBuildQueue] = useState<{ outpostId: string; action: 'upgrade' | 'wall'; finishTime: number; targetLevel: number; newGarrison: number; newRadius?: number; targetOutpostId?: string }[]>([]);
   const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; startTime: number; startX: number; startY: number; targetX: number; targetY: number; waypoints: { x: number; y: number }[]; action: () => void; sentArmy?: Partial<Record<string, number>> }[]>([]);
-  const [otherMarches, setOtherMarches] = useState<{ id: string; user_id: string; player_name: string; start_x: number; start_y: number; target_x: number; target_y: number; target_name: string; started_at: string; arrives_at: string; march_type: string }[]>([]);
+  const [otherMarches, setOtherMarches] = useState<{ id: string; user_id: string; player_name: string; start_x: number; start_y: number; target_x: number; target_y: number; target_name: string; started_at: string; arrives_at: string; march_type: string; target_user_id?: string | null }[]>([]);
   const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
   const [legendOpen, setLegendOpen] = useState(false);
   const [, forceRender] = useState(0);
@@ -1356,7 +1356,15 @@ export default function WorldMap() {
     return () => clearInterval(interval);
   }, [otherMarches.length]);
 
-  // Get TH level for dynamic sprite
+  // Tick every second for boss march countdown display
+  const [bossTick, setBossTick] = useState(0);
+  const hasBossMarches = otherMarches.some(m => m.user_id === '00000000-0000-0000-0000-000000000000' && m.target_user_id === user?.id);
+  useEffect(() => {
+    if (!hasBossMarches) return;
+    const interval = setInterval(() => setBossTick(t => t + 1), 1000);
+    return () => clearInterval(interval);
+  }, [hasBossMarches]);
+
   const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
 
   const SETTLEMENT_TIER_SPRITES: Record<string, string> = {
@@ -2956,7 +2964,37 @@ export default function WorldMap() {
             className="w-9 h-9 bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-xs active:scale-90 transition-all hover:bg-background/95 shadow-sm mt-0.5">⌂</button>
         </div>
 
-        {/* Legend — collapsible on mobile */}
+        {/* ── Boss March Countdown Timer ── */}
+        {(() => {
+          void bossTick; // trigger re-render every second
+          const BOSS_UUID = '00000000-0000-0000-0000-000000000000';
+          const bossMarches = otherMarches.filter(m => m.user_id === BOSS_UUID && m.target_user_id === user?.id);
+          if (bossMarches.length === 0) return null;
+          return (
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-1.5">
+              {bossMarches.map(bm => {
+                const endT = new Date(bm.arrives_at).getTime();
+                const remaining = Math.max(0, Math.ceil((endT - Date.now()) / 1000));
+                if (remaining <= 0) return null;
+                const mins = Math.floor(remaining / 60);
+                const secs = remaining % 60;
+                const timeStr = mins > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : `${secs}s`;
+                const urgency = remaining < 60 ? 'animate-pulse' : '';
+                const bossName = bm.player_name || 'World Boss';
+                return (
+                  <div key={bm.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg border border-destructive/60 bg-destructive/20 backdrop-blur-md shadow-lg ${urgency}`}>
+                    <span className="text-base">{bossName.split(' ')[0]}</span>
+                    <div className="flex flex-col">
+                      <span className="text-xs text-destructive font-display uppercase tracking-wider">Incoming Raid</span>
+                      <span className="text-lg font-bold font-display text-destructive tabular-nums">{timeStr}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+
         <div className="absolute bottom-3 left-3 z-50">
           <button
             onClick={() => setLegendOpen(prev => !prev)}
