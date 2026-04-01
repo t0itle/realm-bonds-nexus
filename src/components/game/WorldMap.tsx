@@ -2966,6 +2966,7 @@ export default function WorldMap() {
 
         {/* ── Boss March Countdown Timer ── */}
         {(() => {
+          void bossTick; // trigger re-render every second
           const BOSS_UUID = '00000000-0000-0000-0000-000000000000';
           const bossMarches = otherMarches.filter(m => m.user_id === BOSS_UUID && m.target_user_id === user?.id);
           if (bossMarches.length === 0) return null;
