@@ -1073,6 +1073,11 @@ export default function WorldMap() {
     return terrain;
   }, [visibleChunks]);
 
+  // Bridge outpost positions for pathfinding — outposts with type 'bridge' allow crossing rivers
+  const bridgeOutpostPositions = useMemo(() => {
+    return outposts.filter(o => o.outpost_type === 'bridge').map(o => ({ x: o.x, y: o.y }));
+  }, [outposts]);
+
   // Helper to create a march with pathfinding around obstacles
   // Check if a line segment from (ax,ay)->(bx,by) crosses any enemy wall segment
   const findBlockingWall = useCallback((ax: number, ay: number, bx: number, by: number): typeof wallSegments[0] | null => {
@@ -1094,7 +1099,7 @@ export default function WorldMap() {
   const createMarch = useCallback((id: string, targetName: string, targetX: number, targetY: number, _travelSec: number, action: () => void) => {
     const myPos = getMyPos();
     const now = Date.now();
-    const waypoints = findPath(myPos.x, myPos.y, targetX, targetY, allTerrain);
+    const waypoints = findPath(myPos.x, myPos.y, targetX, targetY, allTerrain, bridgeOutpostPositions);
 
     // Check if march path crosses any enemy wall
     let pathBlocked = false;
