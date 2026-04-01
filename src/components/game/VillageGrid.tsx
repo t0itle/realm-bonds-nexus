@@ -229,7 +229,7 @@ export default function VillageGrid() {
                     <img
                       src={sprite}
                       alt={BUILDING_INFO[type!].name}
-                      className={`w-16 h-16 object-contain drop-shadow-lg ${(upgrading || isUnderConstruction) ? 'opacity-50 grayscale' : ''}`}
+                      className={`w-3/4 h-3/4 object-contain drop-shadow-lg ${(upgrading || isUnderConstruction) ? 'opacity-50 grayscale' : ''}`}
                       loading="lazy"
                     />
                     {/* Build/upgrade timer overlay */}
