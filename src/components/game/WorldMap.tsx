@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import NPCInteractionPanel from './NPCInteractionPanel';
 import { useTroopSkins } from '@/hooks/useTroopSkins';
 import AttackConfigPanel from './AttackConfigPanel';
-import { FACTION_MAP_SPRITES } from './factionMapSprites';
+import { FACTION_MAP_SPRITES, FACTION_SOLDIER_SPRITES } from './factionMapSprites';
 import { getMineSteelPerTickForChunk } from '@/lib/mineProduction';
 
 // Map sprites
@@ -1686,8 +1686,8 @@ export default function WorldMap() {
               {/* Moving soldier sprite */}
               <div className="absolute z-40 flex flex-col items-center pointer-events-none"
                 style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
-                <img src={mapSoldier} alt="Army" className="drop-shadow-lg"
-                  style={{ width: marchSize, height: marchSize, objectFit: 'contain', transform: facingLeft ? 'scaleX(-1)' : undefined, filter: getSpriteFilter() }} loading="lazy" />
+                <img src={FACTION_SOLDIER_SPRITES[activeSkin.id] || FACTION_SOLDIER_SPRITES.default || mapSoldier} alt="Army" className="drop-shadow-lg"
+                  style={{ width: marchSize, height: marchSize, objectFit: 'contain', transform: facingLeft ? 'scaleX(-1)' : undefined }} loading="lazy" />
                 <div className="bg-background/90 rounded px-1.5 py-0.5 text-center mt-0.5 border border-primary/30 shadow-md">
                   <p className="text-foreground font-display whitespace-nowrap font-bold" style={{ fontSize: Math.max(7, marchSize / 4) }}>
                     {displayName}
@@ -1735,6 +1735,7 @@ export default function WorldMap() {
                 style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
                 <img src={mapSoldier} alt="Troops" className="drop-shadow-md opacity-70"
                   style={{ width: marchSize, height: marchSize, objectFit: 'contain', transform: facingLeft ? 'scaleX(-1)' : undefined }} loading="lazy" />
+                {/* Other players' marches use generic soldier - could be extended to show their faction */}
                 {marchSize > 16 && (
                   <div className="bg-background/70 backdrop-blur-sm rounded px-1 py-0.5 text-center mt-0.5 border border-border/30">
                     <p className="text-foreground/70 font-display whitespace-nowrap" style={{ fontSize: Math.max(6, marchSize / 4) }}>
