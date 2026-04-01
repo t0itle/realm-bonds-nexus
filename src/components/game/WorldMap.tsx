@@ -10,6 +10,7 @@ import { useTroopSkins } from '@/hooks/useTroopSkins';
 import AttackConfigPanel from './AttackConfigPanel';
 import { FACTION_MAP_SPRITES, FACTION_SOLDIER_SPRITES } from './factionMapSprites';
 import { getMineSteelPerTickForChunk } from '@/lib/mineProduction';
+import { CONTINENTS, OCEAN_ISLANDS, WORLD_SIZE, getWorldRegion, isPointOnContinentRiver, isPointInMountainRange, CONTINENT_SUB_BIOMES, type ContinentRiver, type MountainRange } from './worldData';
 
 // Map sprites
 import mapCastleHostile from '@/assets/sprites/map-castle-hostile.png';
