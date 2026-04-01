@@ -1,56 +1,59 @@
 
-# World Boss Events
 
-## Overview
-Add three rare, powerful "world boss" events to the map that persist for one week, have tiered armies, gain resources and troops over time, and attack nearby powerful players daily.
+# Polish: Replace Troop Emojis with Pixel Art Sprites
 
-## The Three Bosses
+The uploaded sprites (Wooden Armor, Leather set, Iron set, Wizard Hat) map naturally to existing troop tiers as visual upgrades — no new mechanics, just replacing emojis with pixel art icons.
 
-| Boss | Emoji | Weak | Average | Elite |
-|------|-------|------|---------|-------|
-| Necromancer's Tower | 🏚️ | Skeletons | Zombies | Death Knights |
-| Demonic Portal | 🌀 | Imps | Succubi | Demon Warriors |
-| Dreadkeep | 🧛 | Thralls | Blood Knights | Nosferatus |
+## Sprite-to-Troop Mapping
 
-Each boss starts with a base army and resource stockpile that **grow each day** the boss is alive. Power scales ~15% per day. Only ONE boss exists on the entire map at a time, rotating weekly.
+```text
+Militia    → Wooden_Armor.png   (basic gear)
+Archer     → Leather_Armor.png  (light armor)
+Scout      → Leather_Boot.png   (speed-focused)
+Knight     → Iron_Armor.png     (heavy armor)
+Cavalry    → Iron_Helmet.png    (mounted warrior)
+Siege      → Iron_Boot.png      (heavy unit)
+Special    → Wizard_Hat.png     (spies / spy guild icon)
+```
 
-## Implementation
+## Changes
 
-### 1. Database: `world_boss_defeats` table
-Tracks which players beat the current week's boss (prevents repeat farming):
-- `id`, `user_id`, `boss_week_seed`, `boss_type`, `defeated_at`
-- RLS: users can insert/select own records
+**1. Add sprites to project**
+- Copy all 8 PNGs into `src/assets/sprites/troops/`
 
-### 2. World boss definitions and spawning (WorldMap.tsx)
-- Add `WORLD_BOSS_BASES` array with 3 bosses, each defining troop tiers (name, attack, defense, count), base power, growth rate, and reward multiplier
-- Use a **weekly time seed** to deterministically pick which boss spawns and where (all players see the same thing)
-- Calculate `daysAlive` within the week for power/troop scaling
-- Add `ProceduralWorldBoss` interface with extra fields: `bossType`, `troops`, `daysAlive`
+**2. Create troop sprite map** (`src/components/game/troopSprites.ts`)
+- Import all 8 sprites, export a `TROOP_SPRITES: Record<TroopType, string>` lookup
 
-### 3. Map rendering
-- World bosses render at 1.5x normal event size with a pulsing red/purple glow
-- Selection tooltip shows troop tier breakdown and scaled power
-- Uses existing event sprite system with `danger` type styling
+**3. Create `TroopIcon` component** (`src/components/game/TroopIcon.tsx`)
+- Similar to existing `ResourceIcon` — takes a `TroopType`, renders the sprite at a given size
+- Falls back to emoji if sprite missing
 
-### 4. Combat interaction
-- Attacking uses existing `handleInvestigate` flow with higher power
-- Victory awards 5-10x normal event rewards plus bonus steel
-- Defeating marks it as claimed via `world_boss_defeats` table
-- Boss remains for other players until weekly rotation
+**4. Update `useTroopSkins.tsx`**
+- Add a `sprite` field alongside existing `emoji` in `getTroopDisplay()` return
+- Faction skins keep their own emoji fallbacks; default faction uses the new sprites
 
-### 5. Daily attack raids (client-side)
-- When the world boss chunk loads, deterministic seeding checks if a raid is due today
-- Creates incoming attack march (via `active_marches` table) targeting the highest-power village within range
-- Raid army scales with boss's current troop count
-- Uses existing `IncomingAttackAlert` system for player notification
+**5. Replace emoji usage in existing panels**
+- `MilitaryPanel.tsx` — troop list, army overview, training UI
+- `VillageGrid.tsx` — army section troop counts
+- `StatSheet.tsx` — upkeep display
+- `AttackConfigPanel.tsx` — troop selection
+- `AllyDefenseModal.tsx` — troop commitment
+- `IncomingAttackAlert.tsx` — threat display
+- Use `Wizard_Hat.png` for the spy guild building icon and spy-related UI in `MilitaryPanel`
 
-### Files
-- **New migration**: `world_boss_defeats` table
-- **Modified**: `src/components/game/WorldMap.tsx` — boss definitions, spawning, rendering, combat, raid logic
+**6. Use `Leather_Helmet.png` as worker badge icon**
+- Replace the `👷` emoji in the worker count badge on `VillageGrid.tsx` tiles
 
-### Technical Details
-- Weekly seed: `Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7))`
-- Power: `basePower * (1 + 0.15 * daysAlive)`
-- Troops per tier: `baseCount * (1 + 0.1 * daysAlive)`
-- Rewards: gold 2000-5000, wood/stone/food 1000-3000, steel 50-150 (all scaled by difficulty multiplier)
-- Boss spawns within chunks 2-8 from origin (near player activity)
+### Files Changed
+| File | Action |
+|------|--------|
+| `src/assets/sprites/troops/*.png` | Add 8 sprites |
+| `src/components/game/troopSprites.ts` | New — sprite map |
+| `src/components/game/TroopIcon.tsx` | New — reusable icon component |
+| `src/hooks/useTroopSkins.tsx` | Edit — add sprite path to display |
+| `src/components/game/MilitaryPanel.tsx` | Edit — use TroopIcon |
+| `src/components/game/VillageGrid.tsx` | Edit — use TroopIcon + worker badge |
+| `src/components/game/StatSheet.tsx` | Edit — use TroopIcon |
+| `src/components/game/AttackConfigPanel.tsx` | Edit — use TroopIcon |
+| `src/components/game/AllyDefenseModal.tsx` | Edit — use TroopIcon |
+
