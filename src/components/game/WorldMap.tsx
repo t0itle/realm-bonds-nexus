@@ -689,7 +689,6 @@ export default function WorldMap() {
 
   // Get TH level for dynamic sprite
   const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
-  const factionTownhall = getBuildingSprite('townhall');
 
   const SETTLEMENT_TIER_SPRITES: Record<string, string> = {
     village: mapVillageTier,
@@ -698,8 +697,13 @@ export default function WorldMap() {
   };
 
   const getSettlementSprite = (settlementTier: string, isMe: boolean) => {
-    // If the current player has a faction skin, use the faction townhall sprite
-    if (isMe && activeSkin.id !== 'default') return factionTownhall;
+    // If the current player has a faction skin, use faction-specific tier sprites
+    if (isMe && activeSkin.id !== 'default') {
+      const factionTierSprites = FACTION_MAP_SPRITES[activeSkin.id];
+      if (factionTierSprites) {
+        return factionTierSprites[settlementTier as keyof typeof factionTierSprites] || factionTierSprites.village;
+      }
+    }
     return SETTLEMENT_TIER_SPRITES[settlementTier] || mapVillageTier;
   };
 
