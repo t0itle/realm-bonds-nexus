@@ -747,8 +747,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
           spiesCount: m.spies_count,
           departTime: new Date(m.depart_time).getTime(),
           arrivalTime: new Date(m.arrival_time).getTime(),
-          returnTime: new Date(m.arrival_time).getTime() + 15000, // reconstruct return time
+          returnTime: new Date(m.arrival_time).getTime() + 15000,
           phase: new Date(m.arrival_time).getTime() <= now ? 'operating' : 'traveling',
+          targetX: m.target_x || 0,
+          targetY: m.target_y || 0,
         })));
       }
 
