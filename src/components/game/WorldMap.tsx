@@ -2034,6 +2034,7 @@ export default function WorldMap() {
                         const hasTroops = Object.values(army).some(v => v > 0);
                         if (!hasTroops) { toast.error('You need troops to clear the garrison!'); return; }
                         if (!canAffordOutpost) { toast.error('Not enough resources to build a mining outpost!'); return; }
+                        if (!isInRange(selected.data.x, selected.data.y)) { toast.error('Out of range! Train scouts to extend reach.'); return; }
                         const travelSec = calcTravelTime(selected.data.x, selected.data.y);
                         const mineData = selected.data;
                         setAttackConfig({
@@ -2042,12 +2043,33 @@ export default function WorldMap() {
                           showEspionage: false,
                           onAttack: (sentArmy) => {
                             toast(`⚔️ Troops marching to ${mineData.name}... ETA ${travelSec}s`);
-                            createMarch(`mine-${Date.now()}`, mineData.name, mineData.x, mineData.y, travelSec, () => {
+                            createMarch(`atk-mine-${Date.now()}`, mineData.name, mineData.x, mineData.y, travelSec, async () => {
                               const log = attackTarget(mineData.name, mineData.power, sentArmy);
+                              // Save battle report to DB
+                              if (user) {
+                                supabase.from('battle_reports').insert({
+                                  attacker_id: user.id,
+                                  defender_id: user.id,
+                                  attacker_name: displayName,
+                                  defender_name: mineData.name,
+                                  result: log.result,
+                                  attacker_troops_lost: log.troopsLost as any,
+                                  defender_troops_lost: log.defenderTroopsLost as any || {},
+                                  resources_raided: log.resourcesGained as any || {},
+                                } as any).then();
+                              }
                               if (log.result === 'victory') {
-                                // Deduct outpost building costs
                                 addResources({ gold: -outpostCost.gold, wood: -outpostCost.wood, stone: -outpostCost.stone, food: -outpostCost.food });
                                 setCapturedMines(prev => new Set([...prev, mineData.id]));
+                                // Persist captured mine as outpost in DB
+                                if (user) {
+                                  const { data: opData } = await supabase.from('outposts').insert({
+                                    user_id: user.id, x: mineData.x, y: mineData.y, name: mineData.id, outpost_type: 'mine',
+                                  }).select().single();
+                                  if (opData) {
+                                    setOutposts(prev => [...prev, { id: opData.id, x: mineData.x, y: mineData.y, name: mineData.id, user_id: user.id, level: 1, garrison_power: 0, has_wall: false, wall_level: 0, territory_radius: 5000, outpost_type: 'mine' }]);
+                                  }
+                                }
                                 toast.success(`⛏️ Mining outpost built at ${mineData.name}! Producing steel.`);
                               } else {
                                 toast.error('Defeat! The garrison held.');
@@ -2058,8 +2080,9 @@ export default function WorldMap() {
                           },
                         });
                       }}
-                      className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2.5 rounded-lg glow-gold-sm active:scale-95 transition-transform">
-                      ⚔️ Clear Garrison & Build Outpost (⚔️{selected.data.power})
+                      disabled={!isInRange(selected.data.x, selected.data.y)}
+                      className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2.5 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
+                      {!isInRange(selected.data.x, selected.data.y) ? '⚠️ Out of Range' : `⚔️ Clear Garrison & Build Outpost (⚔️${selected.data.power})`}
                     </motion.button>
                   </div>
                 )}
