@@ -295,8 +295,8 @@ export default function GameLayout() {
         </AnimatePresence>
       </div>
 
-      <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 safe-bottom">
-        <div className="relative flex items-center justify-around px-3 py-2 rounded-2xl border border-white/15 backdrop-blur-xl"
+      <nav className="fixed bottom-0 left-0 right-0 z-50 px-3 pb-3 safe-bottom">
+        <div className="relative flex items-center rounded-full border border-white/15 backdrop-blur-xl overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, hsl(var(--card) / 0.65) 0%, hsl(var(--card) / 0.45) 100%)',
             boxShadow: '0 8px 32px hsl(0 0% 0% / 0.4), inset 0 1px 0 hsl(0 0% 100% / 0.08), inset 0 -1px 0 hsl(0 0% 0% / 0.15)',
@@ -304,16 +304,16 @@ export default function GameLayout() {
         >
           {/* Bouncing glass lens */}
           <motion.div
-            className="absolute top-1.5 bottom-1.5 rounded-xl pointer-events-none"
+            className="absolute top-1 bottom-1 rounded-full pointer-events-none"
             style={{
-              width: `${100 / TABS.length - 4}%`,
+              width: `calc(${100 / TABS.length}% - 8px)`,
               background: 'linear-gradient(135deg, hsl(var(--primary) / 0.2) 0%, hsl(var(--primary) / 0.08) 100%)',
               border: '1px solid hsl(var(--primary) / 0.3)',
               boxShadow: '0 0 20px hsl(var(--primary) / 0.15), inset 0 1px 0 hsl(0 0% 100% / 0.1)',
               backdropFilter: 'blur(8px)',
             }}
             animate={{
-              left: `${TABS.findIndex(t => t.id === activeTab) * (100 / TABS.length) + 2}%`,
+              left: `calc(${TABS.findIndex(t => t.id === activeTab) * (100 / TABS.length)}% + 4px)`,
             }}
             transition={{ type: 'spring', stiffness: 350, damping: 25 }}
           />
@@ -323,7 +323,7 @@ export default function GameLayout() {
               key={tab.id}
               whileTap={{ scale: 0.9 }}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center gap-0.5 px-4 py-1 rounded-xl transition-colors relative z-10 ${
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 transition-colors relative z-10 ${
                 activeTab === tab.id ? 'text-primary' : 'text-muted-foreground'
               }`}
             >
