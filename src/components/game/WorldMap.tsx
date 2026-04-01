@@ -2132,8 +2132,10 @@ export default function WorldMap() {
                     {isOwn
                       ? (isSettlement
                         ? 'Your settlement. Switch to it from the resource bar to manage buildings and resources independently.'
-                        : 'Your outpost. Upgrade to increase vision, territory, and garrison. Build walls to repel invaders.')
-                      : `Enemy ${isSettlement ? 'settlement' : 'outpost'}. Garrison strength: ⚔️${op.garrison_power}${op.has_wall ? ` with Lv.${op.wall_level} walls` : ''}`}
+                        : op.outpost_type === 'fort'
+                          ? 'Your fort. Can garrison armies. Upgrade to Lv.10 to convert into a full settlement.'
+                          : 'Your outpost. Upgrade to Lv.5 to convert into a fort, then Lv.10 for a settlement.')
+                      : `Enemy ${isSettlement ? 'settlement' : op.outpost_type === 'fort' ? 'fort' : 'outpost'}. Garrison strength: ⚔️${op.garrison_power}${op.has_wall ? ` with Lv.${op.wall_level} walls` : ''}`}
                   </p>
                   {isOwn && (
                     <div className="space-y-2">
