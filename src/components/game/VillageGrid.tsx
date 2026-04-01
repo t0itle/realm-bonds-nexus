@@ -206,7 +206,7 @@ export default function VillageGrid() {
         <div className={`grid gap-2.5 w-full max-w-xs`} style={{ gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))` }}>
           {grid.map((building, i) => {
             const type = building?.type as Exclude<BuildingType, 'empty'> | undefined;
-            const sprite = type ? BUILDING_SPRITES[type] : null;
+            const sprite = type ? getBuildingSprite(type) : null;
             const worker = type ? WORKER_FOR_BUILDING[type] : null;
             const upgrading = building ? isBuildingUpgrading(building.id) : undefined;
             const isUnderConstruction = building && building.level === 0;
