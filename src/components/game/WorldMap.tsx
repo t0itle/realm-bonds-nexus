@@ -1660,7 +1660,37 @@ export default function WorldMap() {
           );
         })}
 
-        {/* ── Terrain Features ── */}
+        {/* ── Exotic biome chunk overlays ── */}
+        {visibleChunks.filter(c => {
+          const ec = getExoticContinent(c.cx, c.cy);
+          return ec !== null;
+        }).map(chunk => {
+          const { sx, sy } = worldToScreen(chunk.cx * CHUNK_SIZE, chunk.cy * CHUNK_SIZE);
+          const size = CHUNK_SIZE * camera.ppu;
+          if (size < 4) return null;
+          const ec = getExoticContinent(chunk.cx, chunk.cy)!;
+          const biomeOverlays: Record<string, string> = {
+            'Desert': 'radial-gradient(ellipse at center, hsl(40 60% 40% / 0.4), hsl(35 55% 30% / 0.5) 60%, hsl(30 50% 22% / 0.55))',
+            'Oasis': 'radial-gradient(ellipse at center, hsl(45 55% 45% / 0.35), hsl(130 40% 30% / 0.3) 70%, hsl(40 50% 25% / 0.45))',
+            'Jungle': 'radial-gradient(ellipse at center, hsl(140 50% 20% / 0.5), hsl(130 55% 15% / 0.55) 60%, hsl(120 60% 10% / 0.6))',
+            'DeepJungle': 'radial-gradient(ellipse at center, hsl(150 55% 15% / 0.55), hsl(140 60% 10% / 0.6) 60%, hsl(130 65% 8% / 0.65))',
+            'Lava': 'radial-gradient(ellipse at center, hsl(15 80% 30% / 0.5), hsl(5 70% 20% / 0.55) 60%, hsl(0 60% 15% / 0.6))',
+            'VolcanicIslands': 'radial-gradient(ellipse at center, hsl(10 70% 25% / 0.45), hsl(210 60% 20% / 0.35) 60%, hsl(0 50% 18% / 0.5))',
+            'Islands': 'radial-gradient(ellipse at center, hsl(190 70% 40% / 0.35), hsl(200 65% 30% / 0.4) 60%, hsl(210 70% 22% / 0.5))',
+          };
+          return (
+            <div key={`exotic-${chunk.cx}-${chunk.cy}`}
+              className="absolute pointer-events-none"
+              style={{
+                left: sx, top: sy,
+                width: size, height: size,
+                background: biomeOverlays[ec.biome] || biomeOverlays['Desert'],
+              }}
+            />
+          );
+        })}
+
+
         {visibleChunks.map(chunk => chunk.data.terrain.map((t, ti) => {
           if (t.type === 'lake') {
             const { sx, sy } = worldToScreen(t.x, t.y);
