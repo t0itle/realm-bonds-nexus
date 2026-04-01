@@ -366,7 +366,7 @@ function generateRegionName(rng: () => number): string {
 
 const REGION_EMOJIS: Record<string, string> = {
   Plains: '🌾', Highlands: '⛰️', Marsh: '🐸', Desert: '🏜️', Tundra: '🧊',
-  Forest: '🌲', Steppe: '🌿', Badlands: '🌋', Coast: '⚓', Jungle: '🌴',
+  Forest: '🌲', Steppe: '🌿', Badlands: '🌋', Coast: '⚓', Jungle: '🌴', Ocean: '🌊',
 };
 // ── Event variety system ──
 const EVENT_BASES = [
