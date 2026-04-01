@@ -714,6 +714,11 @@ export default function WorldMap() {
     supabase.from('outposts').select('*').then(({ data }) => {
       if (data && data.length > 0) {
         setOutposts(data.map((o: any) => ({ id: o.id, x: o.x, y: o.y, name: o.name, user_id: o.user_id, level: o.level || 1, garrison_power: o.garrison_power || 0, has_wall: o.has_wall || false, wall_level: o.wall_level || 0, territory_radius: o.territory_radius || 15000, outpost_type: o.outpost_type || 'outpost' })));
+        // Initialize captured mines from outposts with type 'mine'
+        const mineOutposts = data.filter((o: any) => o.outpost_type === 'mine');
+        if (mineOutposts.length > 0) {
+          setCapturedMines(new Set(mineOutposts.map((o: any) => o.name)));
+        }
       }
     });
     // Load persisted outpost build queue entries
