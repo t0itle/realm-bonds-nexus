@@ -967,7 +967,7 @@ export default function WorldMap() {
   // goHome moved below getMyPos
 
   const getMyPos = useCallback(() => {
-    if (!user) return { x: 420000, y: 470000 };
+    if (!user) return { x: 42_000_000, y: 47_000_000 };
     const myVillage = allVillages.find(v => v.village.user_id === user.id);
     return getPlayerPos(myVillage?.village.id || 'me');
   }, [user, allVillages]);
