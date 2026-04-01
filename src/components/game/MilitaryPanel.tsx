@@ -20,7 +20,7 @@ function formatTime(seconds: number) {
 export default function MilitaryPanel() {
   const {
     army, trainingQueue, battleLogs, trainTroops, getBarracksLevel, canAfford, canAffordSteel,
-    totalArmyPower, armyUpkeep, population, steel,
+    totalArmyPower, armyUpkeep, population, steel, disbandTroops,
     spies, trainSpies, sendSpyMission, activeSpyMissions, spyTrainingQueue, intelReports, allVillages, getWatchtowerLevel, getSpyGuildLevel,
     injuredTroops, poisons, healTroops, craftPoison, getApothecaryLevel, resources,
   } = useGame();
