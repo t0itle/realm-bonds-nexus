@@ -77,7 +77,7 @@ function isPointNearBridge(px: number, py: number, bridges: { x: number; y: numb
   return bridges.some(b => Math.hypot(px - b.x, py - b.y) < radius);
 }
 
-function isCellBlocked(wx: number, wy: number, terrainFeatures: TerrainFeature[]): boolean {
+function isCellBlocked(wx: number, wy: number, terrainFeatures: TerrainFeature[], bridgeOutpostPositions?: { x: number; y: number }[]): boolean {
   const pad = PATH_GRID_CELL * 0.5;
   for (const t of terrainFeatures) {
     if (t.type === 'mountain') {
@@ -88,10 +88,13 @@ function isCellBlocked(wx: number, wy: number, terrainFeatures: TerrainFeature[]
     }
     if (t.type === 'river' && t.points && t.points.length > 1) {
       const riverW = (t.width || 1000) + pad;
-      // Check if near river but NOT near a bridge
+      // Check if near river but NOT near a bridge (auto or player-built)
       for (let i = 0; i < t.points.length - 1; i++) {
         if (isPointNearRiverSegment(wx, wy, t.points[i], t.points[i + 1], riverW)) {
-          if (t.bridgeAt && isPointNearBridge(wx, wy, t.bridgeAt, riverW * 2)) return false; // bridge crossing OK
+          // Check auto-bridges (legacy, should be empty now)
+          if (t.bridgeAt && isPointNearBridge(wx, wy, t.bridgeAt, riverW * 2)) return false;
+          // Check player-built bridge outposts
+          if (bridgeOutpostPositions && isPointNearBridge(wx, wy, bridgeOutpostPositions, riverW * 2)) return false;
           return true;
         }
       }
