@@ -330,6 +330,26 @@ export default function GameLayout() {
 
       <PatchNotesModal />
 
+      {/* Ally Defense Modal */}
+      <AllyDefenseModal
+        open={!!allyDefenseData}
+        onClose={() => setAllyDefenseData(null)}
+        attackerName={allyDefenseData?.attackerName || ''}
+        allyName={allyDefenseData?.allyName || ''}
+        allyVillageId={allyDefenseData?.allyVillageId}
+        targetX={allyDefenseData?.targetX || 0}
+        targetY={allyDefenseData?.targetY || 0}
+        attackEta={allyDefenseData?.attackEta || new Date().toISOString()}
+      />
+
+      {/* Gratitude Modal */}
+      <GratitudeModal
+        open={!!gratitudeData}
+        onClose={() => setGratitudeData(null)}
+        allyUserId={gratitudeData?.allyUserId || ''}
+        allyName={gratitudeData?.allyName || ''}
+      />
+
       {/* Vassalized info popup */}
       <AnimatePresence>
         {vassalPopup && myVassalage && (
