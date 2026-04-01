@@ -1,81 +1,135 @@
 
 
-# Plan: Fix Worker Production Bug + Map System Overhaul
+# World Map Redesign: Continental Map System
 
-## Bug Fix: Workers Only Increase Food
+## Overview
+Replace the current infinite procedural chunk system with a fixed, bounded world containing 5 named continents separated by ocean, with islands scattered between them. Rivers become major strategic barriers requiring bridges, and mountains form large impassable ranges.
 
-**Root cause**: When a worker is assigned to ANY building, it reduces the `civilians` count, which reduces `popFoodCost` (civilian food consumption). This food savings (~1 food/min per worker reassigned) is much more visible than the small 15% production bonus per worker on the building's actual resource. The production logic itself is correct — the issue is that the food savings side-effect dominates.
+## World Layout
 
-**Fix**: Increase the worker production bonus from 15% to 30-40% per worker so the target resource boost is more noticeable than the food savings. Also display per-building production rates in the worker assignment UI so players can see the actual impact.
-
----
-
-## Map System Overhaul
-
-### 1. Visible Army Movement on Map
-Currently marches are just timers with toast notifications. We'll render animated troop sprites moving across the map grid in real-time.
-
-- Add a `March` interface with `startPos`, `endPos`, `startTime`, `arrivalTime`, `troopComposition`, `purpose` (attack/scout/collect/settle)
-- Render an animated sprite on the map that interpolates position between start and end based on elapsed time
-- Use the existing `mapPlayer` sprite for army movement, show troop count badge
-- Draw a dotted line from origin to destination showing the march path
-
-### 2. Scouts Must Physically Travel to Locations
-Currently events can be claimed instantly if in range. Change so that:
-- Scouts must physically march to locations (already partially implemented via `marches` state)
-- Scouting reveals fog-of-war — areas near your village and where scouts have traveled are visible, rest is dimmed
-- Scout speed determines travel time (already in TROOP_INFO: speed 25)
-
-### 3. Settlement Expansion System
-Allow players to found new settlements when Town Hall reaches certain levels.
-
-- **Database**: Add `settlement_type` column to `villages` table (`village` | `town` | `castle` | `outpost`)
-- **Founding outposts**: Town Hall Lv.5+ can send settlers (costs resources + population) to a map location to establish an outpost
-- Outposts have a limited building grid (6 slots) and serve as forward bases
-- Player can switch between settlements in the UI
-
-### 4. Town Hall → Castle Upgrade
-When Town Hall reaches level 7+, it visually becomes a Castle.
-
-- Add a `castle` sprite (or reuse existing castle sprites)
-- Change the building name display from "Town Hall" to "Castle" at Lv.7+
-- Update the player's map sprite to reflect: village (Lv.1-4), town (Lv.5-6), castle (Lv.7+)
-- The `settlement_type` in the DB tracks this progression
-
-### 5. Dynamic Player Map Sprite
-Currently all players use `mapVillage` sprite. Change to use different sprites based on Town Hall level:
-
-- Lv.1-4: Small village sprite (current `mapVillage`)
-- Lv.5-6: Larger town sprite (use `mapCastleNeutral` or new asset)
-- Lv.7+: Castle sprite (use `mapCastleFriendly` or new asset)
-- Player's own settlement gets the golden glow treatment (already exists)
-
----
-
-## Technical Details
-
-### Files to modify:
-1. **`src/hooks/useGameState.tsx`** — Increase worker bonus from 0.15 to 0.35; add settlement type tracking; add `foundOutpost` action
-2. **`supabase/functions/resource-tick/index.ts`** — Mirror the worker bonus increase server-side
-3. **`src/components/game/WorldMap.tsx`** — Render animated march sprites on map; change player sprite based on TH level; add settlement founding UI; add fog-of-war overlay
-4. **`src/components/game/VillageGrid.tsx`** — Show "Castle" name when TH ≥ 7
-5. **`src/components/game/StatSheet.tsx`** — Show per-building production with worker impact
-6. **Database migration** — Add `settlement_type` column to `villages` table
-
-### March rendering approach:
 ```text
-Player Village ----→ [🗡️ 15 troops] ----→ Target
-  (startPos)      (interpolated pos)     (endPos)
-                  dotted line path
+┌─────────────────────────────────────────────────────┐
+│              OCEAN                                   │
+│    ┌──────┐          ┌─────────┐                    │
+│    │NORTH │   🏝️    │ DESERT  │     ┌──────┐       │
+│    │LANDS │         │CONTINENT│     │EASTERN│       │
+│    └──────┘          └─────────┘     │ REALM │       │
+│         🏝️     🏝️                  └──────┘       │
+│              ┌──────────┐       🏝️                  │
+│              │ CENTRAL  │                            │
+│    🏝️       │CONTINENT │         🏝️                │
+│              └──────────┘                            │
+│                    🏝️        ┌─────────┐            │
+│                              │SOUTHERN │            │
+│         🏝️                  │ WILDS   │            │
+│                              └─────────┘            │
+│              OCEAN                                   │
+└─────────────────────────────────────────────────────┘
 ```
 
-The march sprite position is calculated each frame as:
-`pos = lerp(startPos, endPos, (now - startTime) / (arrivalTime - startTime))`
+## Key Changes
 
-### Settlement founding flow:
-1. Player opens map, clicks empty area
-2. "Found Outpost" button appears (requires TH Lv.5+, 500g/300w/200s/100f + 5 population)
-3. Settlers march to location (visible on map)
-4. On arrival, new village row created in DB at that position
-5. Player can switch between settlements via a dropdown
+### 1. Fixed World with Continent Definitions
+- Replace `generateChunk` with a **continent-aware** chunk generator
+- Define 5 continents as large polygonal regions in world space (~300k–500k units each)
+- One continent is flagged as desert biome (always generates desert terrain)
+- Chunks that fall in ocean render as water with occasional islands
+- World bounded to roughly 1,000,000 × 1,000,000 units total (camera clamped)
+
+### 2. Ocean & Islands
+- Chunks outside continent polygons render as deep ocean (blue fill, wave texture)
+- Ocean is impassable without future naval mechanics (troops cannot march across)
+- 30-50 procedural islands scattered in ocean zones, varying sizes
+- Islands can host events, mines, or be settleable
+
+### 3. Massive Rivers with Bridges
+- Rivers span entire continents (multi-chunk), width increased 3-5× (from ~1500 to ~5000-8000 units)
+- Each continent gets 1-3 major rivers defined at the continent level, not per-chunk
+- Bridges are rare (1-2 per river) — players can also build bridges at outpost locations near rivers
+- Bridges are destructible strategic points (tied to existing wall/siege mechanics)
+- `isCellBlocked` already handles river blocking + bridge exceptions — just needs wider rivers
+
+### 4. Expansive Mountain Ranges
+- Mountains become ranges (chains of connected ellipses) rather than isolated peaks
+- Each continent gets 1-2 mountain ranges spanning 100k-200k units
+- Ranges are impassable — troops must path around them (A* already handles this)
+- Players can build outposts in mountain passes for defensive advantage
+- Mountain-adjacent outposts get a defense bonus
+
+### 5. Desert Continent
+- One continent always uses Desert biome for all its chunks
+- Minimal trees, lots of rocks, sand-colored terrain
+- Unique events and harsher resource penalties
+- Special oasis terrain features (small lakes with bonus food)
+
+## Technical Approach
+
+### Files to Modify
+
+1. **`src/components/game/WorldMap.tsx`** — Major changes:
+   - Add continent definitions (center, radius/polygon, biome, name, rivers, mountain ranges)
+   - New `getChunkBiome(cx, cy)` that checks which continent a chunk belongs to (or ocean)
+   - Modify `generateChunk` to use continent biome instead of random biome; ocean chunks get water fill + possible islands
+   - Define continent-level rivers and mountain ranges that persist across chunks
+   - Render ocean as blue background for non-continent chunks
+   - Clamp camera to world bounds
+   - Render continent labels at zoomed-out views
+   - Increase river width from `800 + rng() * 1500` to `4000 + rng() * 4000`
+   - Generate mountain ranges as chains of overlapping ellipses along a spine
+
+2. **`src/components/game/WorldMap.tsx`** (rendering section):
+   - Add ocean tile rendering (blue gradient with subtle wave pattern)
+   - Continent coastline rendering (beach/shore gradient at land-ocean boundary)
+   - Mountain range rendering as connected ridgelines instead of isolated peaks
+   - Bridge interaction UI — click bridge to see health, option to destroy with siege
+
+### New Data Structures
+
+```typescript
+interface Continent {
+  name: string;
+  centerX: number;
+  centerY: number;
+  radiusX: number;
+  radiusY: number;
+  biome: string; // forced biome for all chunks
+  rivers: ContinentRiver[];
+  mountainRanges: MountainRange[];
+}
+
+interface ContinentRiver {
+  name: string;
+  points: { x: number; y: number }[];
+  width: number; // 4000-8000
+  bridges: { x: number; y: number; health: number; maxHealth: number }[];
+}
+
+interface MountainRange {
+  name: string;
+  spine: { x: number; y: number }[]; // center line
+  width: number; // how wide the range is
+}
+```
+
+### Continent Placement (approximate world coordinates)
+- **Nordheim** (North): center (200k, 150k), forest/tundra
+- **Ashara** (Desert): center (550k, 180k), desert — always desert biome
+- **Heartlands** (Central): center (400k, 450k), plains/forest — largest continent
+- **Jade Reaches** (East): center (750k, 300k), jungle/coast
+- **Grimwild** (South): center (500k, 750k), marsh/badlands
+
+### How Chunks Map to Continents
+Each chunk checks if its center falls within any continent's ellipse. If yes, it uses that continent's forced biome. If no, it's ocean. This replaces the random `regionBiome` selection.
+
+### Bridge Mechanics
+- Bridges on continent rivers are defined at world generation (static positions)
+- Player-built bridges require an outpost adjacent to a river + resources + build time
+- Bridges have HP and can be destroyed by siege weapons or sabotage
+- Destroyed bridges block crossing until rebuilt
+
+### Performance
+- Same chunk caching system — just the generation logic changes
+- Continent membership check is a simple ellipse test (fast)
+- Mountain ranges reuse existing ellipse-based blocking
+- No new database tables needed for the map itself (bridges could use `wall_segments` table pattern if persisted)
 
