@@ -11,6 +11,8 @@ interface IncomingMarch {
   player_name: string;
   target_user_id: string;
   target_name: string;
+  target_x: number;
+  target_y: number;
   arrives_at: string;
   started_at: string;
   sent_army: Record<string, number>;
