@@ -2439,6 +2439,7 @@ export default function WorldMap() {
                         {existingWalls.length > 0 && <span className="text-accent-foreground bg-accent/20 px-1.5 rounded-full">🧱 {existingWalls.length} wall{existingWalls.length !== 1 ? 's' : ''}</span>}
                         {isSettlement && <span className="text-primary bg-primary/10 px-1.5 rounded-full">Settlement</span>}
                         {op.outpost_type === 'fort' && <span className="text-accent-foreground bg-accent/20 px-1.5 rounded-full">🏰 Fort</span>}
+                        {op.outpost_type === 'bridge' && <span className="text-sky-300 bg-sky-500/20 px-1.5 rounded-full">🌉 Bridge</span>}
                       </div>
                     </div>
                   </div>
