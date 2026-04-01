@@ -352,7 +352,8 @@ export default function NPCInteractionPanel({
             <div className="grid grid-cols-2 gap-1.5">
               {availableTrades.map((trade, i) => {
                 const receiveAmt = Math.floor(tradeAmount * trade.rate);
-                const canDo = resources[trade.give] >= tradeAmount && isInRange;
+                const npcStock = townState ? ((townState[`stock_${trade.receive}` as keyof NPCTownState] as number) || 0) : Infinity;
+                const canDo = resources[trade.give] >= tradeAmount && isInRange && receiveAmt <= npcStock;
                 return (
                   <motion.button key={i} whileTap={{ scale: 0.95 }}
                     disabled={!canDo}
