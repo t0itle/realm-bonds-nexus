@@ -215,6 +215,24 @@ export default function GameLayout() {
 
       <ResourceBar />
 
+      {/* Incoming attack warnings */}
+      <IncomingAttackAlert
+        onAllyAttacked={(march, allyName) => {
+          // Find ally's village to get coordinates
+          supabase.from('villages').select('id').eq('user_id', march.target_user_id).single()
+            .then(({ data }) => {
+              setAllyDefenseData({
+                attackerName: march.player_name,
+                allyName,
+                allyVillageId: data?.id,
+                targetX: march.target_x as any,
+                targetY: march.target_y as any,
+                attackEta: march.arrives_at,
+              });
+            });
+        }}
+      />
+
       {/* Active marches banner */}
       {activeMarches.length > 0 && (
         <div className="px-3 py-1.5 max-h-24 overflow-y-auto scrollbar-thin">
