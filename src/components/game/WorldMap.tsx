@@ -3596,7 +3596,7 @@ export default function WorldMap() {
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">📍</span>
                     <div>
-                      <h3 className="font-display text-sm text-foreground">Unexplored Territory</h3>
+                      <h3 className="font-display text-sm text-foreground">Open Territory</h3>
                       <p className="text-[9px] text-muted-foreground font-mono">{coordLabel}</p>
                     </div>
                   </div>
