@@ -430,6 +430,7 @@ interface GameContextType {
   upgradeSettlement: () => Promise<boolean>;
   isSettlementUpgrading: boolean;
   settlementUpgradeFinishTime: number | null;
+  disbandTroops: (type: TroopType, count: number) => boolean;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -1255,6 +1256,25 @@ export function GameProvider({ children }: { children: ReactNode }) {
       return next;
     });
   }, [persistArmyToVillage]);
+
+  // Disband troops: convert soldiers back to civilians
+  const disbandTroops = useCallback((type: TroopType, count: number): boolean => {
+    const current = armyRef.current[type] || 0;
+    if (count <= 0 || count > current) return false;
+    const popToReturn = TROOP_INFO[type].popCost * count;
+    setArmy(prev => {
+      const next = { ...prev, [type]: prev[type] - count };
+      persistArmyToVillage(next);
+      return next;
+    });
+    setPopulationBase(prev => {
+      const newPop = prev + popToReturn;
+      if (villageId) supabase.from('villages').update({ population: newPop } as any).eq('id', villageId).then();
+      return newPop;
+    });
+    toast.success(`Disbanded ${count} ${TROOP_INFO[type].name}${count > 1 ? 's' : ''} → +${popToReturn} civilians`);
+    return true;
+  }, [persistArmyToVillage, villageId]);
 
   // Return troops: add surviving troops back to village after march completes
   const returnTroops = useCallback((survivors: Partial<Army>) => {
@@ -2208,7 +2228,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       resources, steel, buildings, villageName, villageId, playerLevel, displayName, avatarUrl,
       setDisplayName, setVillageName, setAvatarUrl,
       demolishBuilding, buildAt, upgradeBuilding, canAfford, canAffordSteel, totalProduction, steelProduction, allVillages, loading,
-      army, trainingQueue, buildQueue, battleLogs, trainTroops, getBarracksLevel, totalArmyPower, addResources, addSteel, attackTarget, armyUpkeep, deployTroops, returnTroops,
+      army, trainingQueue, buildQueue, battleLogs, trainTroops, getBarracksLevel, totalArmyPower, addResources, addSteel, attackTarget, armyUpkeep, deployTroops, returnTroops, disbandTroops,
       population, workerAssignments, assignWorker, unassignWorker, getMaxWorkers,
       rations, setRations, popTaxRate, setPopTaxRate, popFoodCost, popTaxIncome,
       isBuildingUpgrading, getBuildTime,
