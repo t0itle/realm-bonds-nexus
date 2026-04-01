@@ -1,5 +1,5 @@
 // Patch notes configuration — update this when pushing new versions
-export const CURRENT_VERSION = '0.5.0';
+export const CURRENT_VERSION = '0.6.0';
 
 export interface PatchNote {
   version: string;
