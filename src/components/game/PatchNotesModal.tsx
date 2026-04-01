@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CURRENT_VERSION, PATCH_NOTES } from '@/config/patchNotes';
-import { parchmentStyle } from './uiSprites';
+
 
 const SEEN_VERSION_KEY = 'patch_notes_seen_version';
 
