@@ -2050,11 +2050,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return true;
   }, [buildings, villageId, user, buildQueue, resources]);
 
-  // Watchtower level (for espionage defense)
-  const getWatchtowerLevel = useCallback(() => {
-    const wt = buildings.find(b => b.type === 'watchtower');
-    return wt?.level || 0;
-  }, [buildings]);
+  // getWatchtowerLevel is now provided by useSpyMissions
 
   // Apothecary level
   const getApothecaryLevel = useCallback(() => {
