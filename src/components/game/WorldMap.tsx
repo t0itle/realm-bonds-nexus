@@ -1069,11 +1069,12 @@ const RiverRenderer = React.memo(function RiverRenderer({
 });
 
 const MarchPathRenderer = React.memo(function MarchPathRenderer({
-  march, worldToScreen, cameraPpu, displayName, soldierSprite,
+  march, worldToScreen, cameraPpu, displayName, soldierSprite, containerSize,
 }: {
   march: { id: string; waypoints: { x: number; y: number }[]; arrivalTime: number; startTime: number; targetName: string; };
   worldToScreen: (wx: number, wy: number) => { sx: number; sy: number };
   cameraPpu: number; displayName: string; soldierSprite: string;
+  containerSize: { w: number; h: number };
 }) {
   const now = Date.now();
   const totalDuration = march.arrivalTime - march.startTime;
