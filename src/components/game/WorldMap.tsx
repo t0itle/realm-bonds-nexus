@@ -2771,7 +2771,7 @@ export default function WorldMap() {
                               } else {
                                 toast.error('Defeat! The garrison held.');
                               }
-                            });
+                            }, sentArmy);
                             setAttackConfig(null);
                             setSelected(null);
                           },
