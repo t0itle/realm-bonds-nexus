@@ -1209,21 +1209,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return log;
   }, [army, user, villageId, addResources, displayName, getWallLevel, vassalages, returnTroops]);
 
-  const { payRansom, attemptRebellion, setVassalTributeRate, releaseVassal } = useVassalage({
-    vassalages, setVassalages, army, setArmy, resources, setResources, user, villageId,
-    displayName, persistArmyToVillage, setInjuredTroops, setPopulationBase, getApothecaryLevel,
-  });
-
   const { getMaxWorkers, assignWorker, unassignWorker } = useWorkerManagement({
     buildings, workerAssignments, setWorkerAssignments, population, villageId,
   });
 
-
-
-
   const { getApothecaryLevel, healTroops, craftPoison } = useApothecary({
     buildings, injuredTroops, setInjuredTroops, army, setArmy, resources, setResources,
     poisons, setPoisons, setTrainingQueue, villageId, user, canAfford,
+  });
+
+  const { payRansom, attemptRebellion, setVassalTributeRate, releaseVassal } = useVassalage({
+    vassalages, setVassalages, army, setArmy, resources, setResources, user, villageId,
+    displayName, persistArmyToVillage, setInjuredTroops, setPopulationBase, getApothecaryLevel,
   });
 
   // Spy Guild level, trainSpies, sendSpyMission, and spy mission processing
