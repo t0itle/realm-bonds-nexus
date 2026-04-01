@@ -273,7 +273,7 @@ export function resolveCombat(
     }
     // Wall bonus for defender
     if (isDefender) {
-      totalDef += wallLevel * 20;
+      totalDef += wallLevel * 8;
     }
     return { attack: totalAtk, defense: totalDef };
   };
