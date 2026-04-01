@@ -736,12 +736,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [settlementUpgradeFinishTime, setSettlementUpgradeFinishTime] = useState<number | null>(null);
   const isSettlementUpgrading = settlementUpgradeFinishTime !== null && settlementUpgradeFinishTime > Date.now();
 
-  // Settlement upgrade costs & requirements
-  const SETTLEMENT_UPGRADES = {
-    village: { next: 'town' as const, label: 'Town', thRequired: 10, cost: { gold: 15000, wood: 12000, stone: 10000, food: 8000 }, steelCost: 50, buildTimeSec: 7200 }, // 2 hours
-    town: { next: 'city' as const, label: 'City', thRequired: 10, cost: { gold: 80000, wood: 75000, stone: 70000, food: 60000 }, steelCost: 200, buildTimeSec: 86400 }, // 24 hours
-    city: null, // max
-  };
+  // SETTLEMENT_UPGRADES imported from @/lib/gameConstants
 
   // Process settlement upgrade timer
   useEffect(() => {
