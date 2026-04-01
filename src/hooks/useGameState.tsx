@@ -9,6 +9,7 @@ import { useProduction } from './useProduction';
 import { useWorkerManagement } from './useWorkerManagement';
 import { useTroopManagement } from './useTroopManagement';
 import { useBuildingManagement } from './useBuildingManagement';
+import { useTroopTraining } from './useTroopTraining';
 
 // Re-export all types from gameTypes
 export type {
