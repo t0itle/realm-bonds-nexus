@@ -359,7 +359,7 @@ export default function VillageGrid() {
 
       {/* Inline Army & Stats */}
       <div className="px-3 pb-2 space-y-2">
-        <CollapsibleSection icon="⚔️" title="Army" defaultOpen={Object.values(army).reduce((s, v) => s + v, 0) > 0}>
+        <CollapsibleSection icon="⚔️" title="Army" defaultOpen={(Object.values(army) as number[]).reduce((s, v) => s + v, 0) > 0}>
           <Suspense fallback={<div className="text-center text-muted-foreground text-xs py-4">Loading...</div>}>
             <MilitaryPanel />
           </Suspense>
