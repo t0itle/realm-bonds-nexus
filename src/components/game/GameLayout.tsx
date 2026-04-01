@@ -85,14 +85,7 @@ export default function GameLayout() {
     supabase.from('profiles').select('display_name').eq('user_id', myVassalage.lord_id).single()
       .then(({ data }) => setLordName(data?.display_name || 'Unknown Lord'));
   }, [myVassalage?.lord_id]);
-  const [, forceRender] = useState(0);
-
-  // Re-render every second for march countdowns
-  useEffect(() => {
-    if (activeMarches.length === 0) return;
-    const interval = setInterval(() => forceRender(v => v + 1), 1000);
-    return () => clearInterval(interval);
-  }, [activeMarches.length]);
+  const tick = useGameTicker();
 
   // Fetch unread message count
   useEffect(() => {

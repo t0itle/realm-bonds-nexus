@@ -186,13 +186,7 @@ export default function VillageGrid() {
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [buildPosition, setBuildPosition] = useState<number | null>(null);
   const [workerBuilding, setWorkerBuilding] = useState<Building | null>(null);
-  const [, forceUpdate] = useState(0);
-
-  // Force re-render every second for countdown timers
-  useEffect(() => {
-    const interval = setInterval(() => forceUpdate(v => v + 1), 1000);
-    return () => clearInterval(interval);
-  }, []);
+  const tick = useGameTicker();
 
   const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
   const gridSize = getGridSize(settlementType);

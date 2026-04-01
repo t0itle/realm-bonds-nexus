@@ -504,13 +504,7 @@ function EspionagePanel({
 }: any) {
   const [selectedTarget, setSelectedTarget] = useState<string>('');
   const [selectedMission, setSelectedMission] = useState<SpyMission>('scout');
-  const [, forceUpdate] = useState(0);
-
-  useEffect(() => {
-    if (activeSpyMissions.length === 0) return;
-    const t = setInterval(() => forceUpdate(x => x + 1), 1000);
-    return () => clearInterval(t);
-  }, [activeSpyMissions.length]);
+  const tick = useGameTicker();
 
   const canTrainSpy = barracksLevel >= 1 && resources.gold >= 40 * spyTrainCount && resources.food >= 20 * spyTrainCount && population.civilians >= spyTrainCount;
   const missionInfo = SPY_MISSION_INFO[selectedMission];
