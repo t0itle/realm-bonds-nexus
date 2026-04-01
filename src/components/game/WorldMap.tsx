@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import NPCInteractionPanel from './NPCInteractionPanel';
 import { useTroopSkins } from '@/hooks/useTroopSkins';
 import AttackConfigPanel from './AttackConfigPanel';
+import { FACTION_MAP_SPRITES } from './factionMapSprites';
 
 // Map sprites
 import mapCastleHostile from '@/assets/sprites/map-castle-hostile.png';
@@ -688,7 +689,6 @@ export default function WorldMap() {
 
   // Get TH level for dynamic sprite
   const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
-  const factionTownhall = getBuildingSprite('townhall');
 
   const SETTLEMENT_TIER_SPRITES: Record<string, string> = {
     village: mapVillageTier,
@@ -697,8 +697,13 @@ export default function WorldMap() {
   };
 
   const getSettlementSprite = (settlementTier: string, isMe: boolean) => {
-    // If the current player has a faction skin, use the faction townhall sprite
-    if (isMe && activeSkin.id !== 'default') return factionTownhall;
+    // If the current player has a faction skin, use faction-specific tier sprites
+    if (isMe && activeSkin.id !== 'default') {
+      const factionTierSprites = FACTION_MAP_SPRITES[activeSkin.id];
+      if (factionTierSprites) {
+        return factionTierSprites[settlementTier as keyof typeof factionTierSprites] || factionTierSprites.village;
+      }
+    }
     return SETTLEMENT_TIER_SPRITES[settlementTier] || mapVillageTier;
   };
 
@@ -1835,7 +1840,7 @@ export default function WorldMap() {
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'outpost', data: outpost }); }}
             >
               <div className="relative">
-                <img src={isOwn && activeSkin.id !== 'default' ? factionTownhall : mapVillage} alt={outpost.name} loading="lazy"
+                <img src={isOwn ? getSettlementSprite('village', true) : mapVillage} alt={outpost.name} loading="lazy"
                   className={`drop-shadow-md ${isOwn ? 'brightness-90' : 'brightness-75 hue-rotate-180'}`}
                   style={{ width: opSize, height: opSize, objectFit: 'contain', filter: isOwn ? getSpriteFilter() : undefined }} />
                 <div className="absolute -inset-1 rounded-full pointer-events-none"
