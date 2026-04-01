@@ -180,10 +180,11 @@ function CollapsibleSection({ icon, title, defaultOpen, children }: {
 }
 
 export default function VillageGrid() {
-  const { buildings, upgradeBuilding, demolishBuilding, canAfford, canAffordSteel, isBuildingUpgrading, getBuildTime, resources, steel, settlementType, upgradeSettlement, isSettlementUpgrading, settlementUpgradeFinishTime } = useGame();
+  const { buildings, upgradeBuilding, demolishBuilding, canAfford, canAffordSteel, isBuildingUpgrading, getBuildTime, resources, steel, settlementType, upgradeSettlement, isSettlementUpgrading, settlementUpgradeFinishTime, workerAssignments, assignWorker, unassignWorker, getMaxWorkers, population } = useGame();
   const { getBuildingSprite } = useTroopSkins();
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [buildPosition, setBuildPosition] = useState<number | null>(null);
+  const [workerBuilding, setWorkerBuilding] = useState<Building | null>(null);
   const [, forceUpdate] = useState(0);
 
   // Force re-render every second for countdown timers
@@ -273,6 +274,27 @@ export default function VillageGrid() {
                         </span>
                       </div>
                     )}
+                    {/* Worker count badge */}
+                    {!upgrading && !isUnderConstruction && type && (() => {
+                      const maxW = getMaxWorkers(building!);
+                      if (maxW <= 0) return null;
+                      const assigned = workerAssignments[building!.id] || 0;
+                      return (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setWorkerBuilding(building);
+                          }}
+                          className={`absolute top-0.5 left-0.5 flex items-center gap-px px-1 py-px rounded-md text-[8px] font-bold transition-colors ${
+                            assigned > 0
+                              ? 'bg-primary/90 text-primary-foreground shadow-sm'
+                              : 'bg-muted/80 text-muted-foreground hover:bg-muted'
+                          }`}
+                        >
+                          👷{assigned}
+                        </button>
+                      );
+                    })()}
                     {/* Max level star badge */}
                     {isMaxLevel && !upgrading && !isUnderConstruction && (
                       <div className="absolute top-0.5 right-0.5 text-amber-400 text-[10px] drop-shadow-[0_0_4px_rgba(251,191,36,0.7)]">⭐</div>
@@ -409,6 +431,71 @@ export default function VillageGrid() {
             onClose={() => setBuildPosition(null)}
           />
         )}
+      </AnimatePresence>
+
+      {/* Worker assignment popup */}
+      <AnimatePresence>
+        {workerBuilding && workerBuilding.type !== 'empty' && (() => {
+          const wType = workerBuilding.type as Exclude<BuildingType, 'empty'>;
+          const wInfo = BUILDING_INFO[wType];
+          const maxW = getMaxWorkers(workerBuilding);
+          const assigned = workerAssignments[workerBuilding.id] || 0;
+          return (
+            <motion.div
+              key="worker-popup"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-6"
+              onClick={() => setWorkerBuilding(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.85, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.85, opacity: 0 }}
+                onClick={e => e.stopPropagation()}
+                className="game-panel border border-primary/30 rounded-2xl p-4 max-w-xs w-full space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <h4 className="font-display text-sm text-foreground">👷 Workers — {wInfo.name}</h4>
+                  <button onClick={() => setWorkerBuilding(null)} className="text-muted-foreground text-xs hover:text-foreground">✕</button>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Each worker boosts production by 35%. Max {maxW} workers at Lv.{workerBuilding.level}.
+                </p>
+                <div className="flex items-center justify-center gap-4">
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      if (unassignWorker(workerBuilding.id)) forceUpdate(v => v + 1);
+                    }}
+                    disabled={assigned <= 0}
+                    className={`w-10 h-10 rounded-xl font-display text-lg flex items-center justify-center ${
+                      assigned > 0 ? 'bg-destructive/20 text-destructive hover:bg-destructive/30' : 'bg-muted text-muted-foreground'
+                    }`}
+                  >−</motion.button>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-foreground">{assigned}</p>
+                    <p className="text-[9px] text-muted-foreground">/ {maxW}</p>
+                  </div>
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      if (assignWorker(workerBuilding.id)) forceUpdate(v => v + 1);
+                    }}
+                    disabled={assigned >= maxW || population.civilians <= 0}
+                    className={`w-10 h-10 rounded-xl font-display text-lg flex items-center justify-center ${
+                      assigned < maxW && population.civilians > 0 ? 'bg-primary/20 text-primary hover:bg-primary/30' : 'bg-muted text-muted-foreground'
+                    }`}
+                  >+</motion.button>
+                </div>
+                <p className="text-[9px] text-center text-muted-foreground">
+                  {population.civilians} civilians available
+                </p>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
       </AnimatePresence>
     </>
   );
