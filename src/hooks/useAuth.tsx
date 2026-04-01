@@ -77,22 +77,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (displayName: string, password: string, email?: string) => {
     const finalEmail = email && email.trim() ? email.trim() : usernameToEmail(displayName);
-    const { error } = await supabase.auth.signUp({
-      email: finalEmail,
-      password,
-      options: {
-        data: { display_name: displayName },
-        emailRedirectTo: window.location.origin,
-      },
-    });
-    return { error };
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: finalEmail,
+        password,
+        options: {
+          data: { display_name: displayName },
+          emailRedirectTo: window.location.origin,
+        },
+      });
+      return { error };
+    } catch (err: any) {
+      return { error: { message: 'Server unreachable — please try again in a minute.' } };
+    }
   };
 
   const signIn = async (identifier: string, password: string) => {
     // If identifier looks like an email, use it directly; otherwise convert username to email
     const email = identifier.includes('@') ? identifier : usernameToEmail(identifier);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error };
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      return { error };
+    } catch (err: any) {
+      return { error: { message: 'Server unreachable — please try again in a minute.' } };
+    }
   };
 
   const signOut = async () => {
