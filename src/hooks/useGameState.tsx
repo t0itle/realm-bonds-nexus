@@ -1307,15 +1307,20 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return () => { clearInterval(tickInterval); clearInterval(serverSync); clearInterval(taxRefresh); };
   }, [villageId, user]);
 
-  // Persist injured troops whenever they change
+  // Persist injured troops with debounce to avoid spamming DB
   const injuredInitRef = useRef(false);
+  const injuredTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!villageId || !injuredInitRef.current) { injuredInitRef.current = true; return; }
-    supabase.from('villages').update({
-      injured_militia: injuredTroops.militia, injured_archer: injuredTroops.archer,
-      injured_knight: injuredTroops.knight, injured_cavalry: injuredTroops.cavalry,
-      injured_siege: injuredTroops.siege, injured_scout: injuredTroops.scout,
-    } as any).eq('id', villageId).then();
+    if (injuredTimerRef.current) clearTimeout(injuredTimerRef.current);
+    injuredTimerRef.current = setTimeout(() => {
+      supabase.from('villages').update({
+        injured_militia: injuredTroops.militia, injured_archer: injuredTroops.archer,
+        injured_knight: injuredTroops.knight, injured_cavalry: injuredTroops.cavalry,
+        injured_siege: injuredTroops.siege, injured_scout: injuredTroops.scout,
+      } as any).eq('id', villageId).then();
+    }, 2000);
+    return () => { if (injuredTimerRef.current) clearTimeout(injuredTimerRef.current); };
   }, [injuredTroops, villageId]);
 
   // Persist poisons whenever they change
