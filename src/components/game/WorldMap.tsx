@@ -796,22 +796,22 @@ export default function WorldMap() {
     if (marches.length === 0) return;
     const interval = setInterval(() => {
       const now = Date.now();
-      setMarches(prev => {
-        const arrived = prev.filter(m => m.arrivalTime <= now);
-        const remaining = prev.filter(m => m.arrivalTime > now);
-        arrived.forEach(m => {
-          toast.success(`Troops arrived at ${m.targetName}!`);
-          m.action();
-        });
-        // Clean up arrived marches from DB
-        if (arrived.length > 0 && user) {
-          supabase.from('active_marches').delete().eq('user_id', user.id).lte('arrives_at', new Date().toISOString()).then(() => {});
-        }
-        return remaining;
+      const arrived = marches.filter(m => m.arrivalTime <= now);
+      if (arrived.length === 0) return;
+      const remaining = marches.filter(m => m.arrivalTime > now);
+      setMarches(remaining);
+      // Execute actions OUTSIDE the state updater to avoid swallowed side effects
+      arrived.forEach(m => {
+        toast.success(`Troops arrived at ${m.targetName}!`);
+        m.action();
       });
+      // Clean up arrived marches from DB
+      if (user) {
+        supabase.from('active_marches').delete().eq('user_id', user.id).lte('arrives_at', new Date().toISOString()).then(() => {});
+      }
     }, 1000);
     return () => clearInterval(interval);
-  }, [marches.length, user]);
+  }, [marches, user]);
 
   // createMarch is defined below after getMyPos
 
