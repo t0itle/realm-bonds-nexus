@@ -186,8 +186,15 @@
     border: 1px solid hsl(35 30% 55%);
   }
   .parchment-panel .text-foreground { color: hsl(25 40% 18%); }
-  .parchment-panel .text-muted-foreground { color: hsl(25 25% 38%); }
-  .parchment-panel .text-primary { color: hsl(25 60% 30%); }
+  .parchment-panel .text-muted-foreground { color: hsl(25 25% 42%); }
+  .parchment-panel .text-primary { color: hsl(30 65% 32%); }
+  .parchment-panel .text-destructive { color: hsl(0 65% 40%); }
+  .parchment-panel .text-food,
+  .parchment-panel .text-accent-foreground { color: hsl(130 45% 28%); }
+  .parchment-panel .bg-secondary\/30,
+  .parchment-panel .bg-secondary\/50 { background-color: hsl(35 30% 70% / 0.35); }
+  .parchment-panel .border-border\/50,
+  .parchment-panel .border-border { border-color: hsl(35 25% 60% / 0.5); }
 
   .wood-btn {
     background: url('/ui/wood-btn-dark.png') center / 100% 100% no-repeat;
