@@ -373,6 +373,8 @@ interface GameContextType {
   setVassalTributeRate: (vassalageId: string, rate: number) => Promise<boolean>;
   releaseVassal: (vassalageId: string) => Promise<boolean>;
   getWallLevel: () => number;
+  deployTroops: (sentArmy: Partial<Army>) => void;
+  returnTroops: (survivors: Partial<Army>) => void;
   armyUpkeep: () => { food: number; gold: number };
   population: PopulationStats;
   workerAssignments: WorkerAssignments;
@@ -1184,6 +1186,30 @@ export function GameProvider({ children }: { children: ReactNode }) {
     } as any).eq('id', villageId).then();
   }, [villageId]);
 
+  // Deploy troops: subtract sent troops from village immediately when march begins
+  const deployTroops = useCallback((sentArmy: Partial<Army>) => {
+    setArmy(prev => {
+      const next = { ...prev };
+      for (const [type, count] of Object.entries(sentArmy) as [TroopType, number][]) {
+        if (count > 0) next[type] = Math.max(0, (next[type] || 0) - count);
+      }
+      persistArmyToVillage(next);
+      return next;
+    });
+  }, [persistArmyToVillage]);
+
+  // Return troops: add surviving troops back to village after march completes
+  const returnTroops = useCallback((survivors: Partial<Army>) => {
+    setArmy(prev => {
+      const next = { ...prev };
+      for (const [type, count] of Object.entries(survivors) as [TroopType, number][]) {
+        if (count > 0) next[type] = (next[type] || 0) + count;
+      }
+      persistArmyToVillage(next);
+      return next;
+    });
+  }, [persistArmyToVillage]);
+
   useEffect(() => {
     if (!villageId || !user) return;
 
@@ -1437,7 +1463,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [buildings]);
 
   const attackTarget = useCallback((targetName: string, targetPower: number, sentArmy?: Partial<Army>) => {
-    // Use sent army or full army
+    // Troops were already deployed (subtracted) when the march started.
+    // sentArmy represents the troops that marched — resolve combat with them.
     const attackingArmy: Army = sentArmy ? {
       militia: sentArmy.militia ?? 0, archer: sentArmy.archer ?? 0, knight: sentArmy.knight ?? 0,
       cavalry: sentArmy.cavalry ?? 0, siege: sentArmy.siege ?? 0, scout: sentArmy.scout ?? 0,
@@ -1452,22 +1479,24 @@ export function GameProvider({ children }: { children: ReactNode }) {
     };
     const result = resolveCombat(attackingArmy, fakeDefenderArmy, 0, Math.floor(targetPower / 50));
     
-    // Subtract losses from the FULL army (only sent troops can be lost)
-    const newArmy = { ...army };
+    // Calculate survivors from the sent army and return them to village
+    const survivors: Partial<Army> = {};
     let popLost = 0;
     const apothLvl = getApothecaryLevel();
     const injuryRate = apothLvl > 0 ? Math.min(0.6, 0.2 + apothLvl * 0.08) : 0;
     const newInjured: Partial<Army> = {};
-    for (const [type, lost] of Object.entries(result.attackerLosses) as [TroopType, number][]) {
-      const actualLost = Math.min(lost, attackingArmy[type] || 0);
-      const injured = Math.floor(actualLost * injuryRate);
-      const dead = actualLost - injured;
-      newArmy[type] = Math.max(0, (newArmy[type] || 0) - actualLost);
+    for (const type of Object.keys(attackingArmy) as TroopType[]) {
+      const sent = attackingArmy[type] || 0;
+      const lost = Math.min(result.attackerLosses[type] || 0, sent);
+      const injured = Math.floor(lost * injuryRate);
+      const dead = lost - injured;
+      const surviving = sent - lost;
+      if (surviving > 0) survivors[type] = surviving;
       if (injured > 0) newInjured[type] = injured;
       popLost += TROOP_INFO[type].popCost * dead;
     }
-    setArmy(newArmy);
-    persistArmyToVillage(newArmy);
+    // Return surviving troops to village
+    if (Object.values(survivors).some(v => v && v > 0)) returnTroops(survivors);
     if (Object.keys(newInjured).length > 0) setInjuredTroops(prev => {
       const u = { ...prev };
       for (const [t, c] of Object.entries(newInjured) as [TroopType, number][]) u[t] += c;
@@ -1490,7 +1519,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     };
     setBattleLogs(prev => [log, ...prev].slice(0, 20));
     return log;
-  }, [army, addResources, persistArmyToVillage]);
+  }, [army, addResources, returnTroops]);
 
   // PvP attack against another player
   const attackPlayer = useCallback(async (targetUserId: string, targetName: string, targetVillageId: string, sentArmy?: Partial<Army>): Promise<BattleLog | null> => {
@@ -1526,22 +1555,24 @@ export function GameProvider({ children }: { children: ReactNode }) {
     
     const result = resolveCombat(attackingArmy, defArmy, getWallLevel(), defWallLevel);
     
-    // Apply attacker losses (with injury system) — only sent troops can be lost
-    const newArmy = { ...army };
+    // Troops were already deployed when march started — calculate survivors and return them
+    const survivors: Partial<Army> = {};
     let pvpPopLost = 0;
     const pvpApothLvl = getApothecaryLevel();
     const pvpInjuryRate = pvpApothLvl > 0 ? Math.min(0.6, 0.2 + pvpApothLvl * 0.08) : 0;
     const pvpInjured: Partial<Army> = {};
-    for (const [type, lost] of Object.entries(result.attackerLosses) as [TroopType, number][]) {
-      const actualLost = Math.min(lost, attackingArmy[type] || 0);
-      const injured = Math.floor(actualLost * pvpInjuryRate);
-      const dead = actualLost - injured;
-      newArmy[type] = Math.max(0, (newArmy[type] || 0) - actualLost);
+    for (const type of Object.keys(attackingArmy) as TroopType[]) {
+      const sent = attackingArmy[type] || 0;
+      const lost = Math.min(result.attackerLosses[type] || 0, sent);
+      const injured = Math.floor(lost * pvpInjuryRate);
+      const dead = lost - injured;
+      const surviving = sent - lost;
+      if (surviving > 0) survivors[type] = surviving;
       if (injured > 0) pvpInjured[type] = injured;
       pvpPopLost += TROOP_INFO[type].popCost * dead;
     }
-    setArmy(newArmy);
-    persistArmyToVillage(newArmy);
+    // Return surviving troops to village
+    if (Object.values(survivors).some(v => v && v > 0)) returnTroops(survivors);
     if (Object.keys(pvpInjured).length > 0) setInjuredTroops(prev => {
       const u = { ...prev };
       for (const [t, c] of Object.entries(pvpInjured) as [TroopType, number][]) u[t] += c;
@@ -1657,7 +1688,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       attacker_name: displayName,
       defender_name: targetName,
       result: log.result,
-      attacker_troops_sent: army,
+      attacker_troops_sent: attackingArmy,
       attacker_troops_lost: result.attackerLosses,
       defender_troops_lost: result.defenderLosses,
       resources_raided: resourcesRaided || {},
@@ -1667,7 +1698,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     } as any);
     
     return log;
-  }, [army, user, villageId, addResources, displayName, getWallLevel, vassalages, persistArmyToVillage]);
+  }, [army, user, villageId, addResources, displayName, getWallLevel, vassalages, returnTroops]);
 
   // Vassal: pay ransom to break free
   const payRansom = useCallback(async (vassalageId: string): Promise<boolean> => {
@@ -2093,7 +2124,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       resources, steel, buildings, villageName, villageId, playerLevel, displayName, avatarUrl,
       setDisplayName, setVillageName, setAvatarUrl,
       demolishBuilding, buildAt, upgradeBuilding, canAfford, canAffordSteel, totalProduction, steelProduction, allVillages, loading,
-      army, trainingQueue, buildQueue, battleLogs, trainTroops, getBarracksLevel, totalArmyPower, addResources, addSteel, attackTarget, armyUpkeep,
+      army, trainingQueue, buildQueue, battleLogs, trainTroops, getBarracksLevel, totalArmyPower, addResources, addSteel, attackTarget, armyUpkeep, deployTroops, returnTroops,
       population, workerAssignments, assignWorker, unassignWorker, getMaxWorkers,
       rations, setRations, popTaxRate, setPopTaxRate, popFoodCost, popTaxIncome,
       isBuildingUpgrading, getBuildTime,

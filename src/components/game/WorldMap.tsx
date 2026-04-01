@@ -630,7 +630,7 @@ type SelectedItem =
   | null;
 
 export default function WorldMap() {
-  const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, resources, getWatchtowerLevel, getSpyGuildLevel, refreshVillages, myVillages, settlementType } = useGame();
+  const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, resources, getWatchtowerLevel, getSpyGuildLevel, refreshVillages, myVillages, settlementType, deployTroops, returnTroops } = useGame();
   const { user } = useAuth();
   const npcState = useNPCState();
   const { activeSkin, getBuildingSprite, getSpriteFilter } = useTroopSkins();
@@ -1147,6 +1147,7 @@ export default function WorldMap() {
         showEspionage: false,
         onAttack: (sentArmy) => {
           toast(`⚔️ Troops marching to ${eventData.name}... ETA ${travelSec}s`);
+          deployTroops(sentArmy);
           createMarch(`evt-${Date.now()}`, eventData.name, eventData.x, eventData.y, travelSec, () => {
             const log = attackTarget(eventData.name, eventData.power, sentArmy);
             if (log.result === 'victory') {
@@ -1171,7 +1172,7 @@ export default function WorldMap() {
       });
     }
     setSelected(null);
-  }, [army, attackTarget, addResources, claimedEvents, calcTravelTime, isInRange, createMarch]);
+  }, [army, attackTarget, addResources, claimedEvents, calcTravelTime, isInRange, createMarch, deployTroops]);
 
   const handleAttackNPC = useCallback((realm: ProceduralRealm) => {
     const hasTroops = Object.values(army).some(v => v > 0);
@@ -1184,6 +1185,7 @@ export default function WorldMap() {
       showEspionage: getSpyGuildLevel() >= 1, targetId: realm.id,
       onAttack: (sentArmy) => {
         toast(`⚔️ Troops marching to ${realm.name}... ETA ${travelSec}s`);
+        deployTroops(sentArmy);
         createMarch(`atk-${Date.now()}`, realm.name, realm.x, realm.y, travelSec, () => {
           const log = attackTarget(realm.name, realm.power, sentArmy);
           if (log.result === 'victory') {
@@ -1197,7 +1199,7 @@ export default function WorldMap() {
         setSelected(null);
       },
     });
-  }, [army, attackTarget, calcTravelTime, createMarch, isInRange]);
+  }, [army, attackTarget, calcTravelTime, createMarch, isInRange, deployTroops]);
 
   const handleEnvoy = useCallback((realm: ProceduralRealm) => {
     if (tradeContracts.some(c => c.realmId === realm.id)) {
@@ -1993,6 +1995,7 @@ export default function WorldMap() {
                               targetId: targetData.village.user_id,
                               onAttack: (sentArmy) => {
                                 toast(`⚔️ Troops marching... ETA ${travelSec}s`);
+                                deployTroops(sentArmy);
                                 createMarch(`pvp-${Date.now()}`, targetData.village.name, targetPos.x, targetPos.y, travelSec, async () => {
                                   const log = await attackPlayer(targetData.village.user_id, targetData.profile.display_name, targetData.village.id, sentArmy);
                                   if (!log) { toast.error('Attack failed — they may be your vassal!'); return; }
@@ -2068,6 +2071,7 @@ export default function WorldMap() {
                           showEspionage: false,
                           onAttack: (sentArmy) => {
                             toast(`⚔️ Troops marching to ${mineData.name}... ETA ${travelSec}s`);
+                            deployTroops(sentArmy);
                             createMarch(`atk-mine-${Date.now()}`, mineData.name, mineData.x, mineData.y, travelSec, async () => {
                               const log = attackTarget(mineData.name, mineData.power, sentArmy);
                               // Save battle report to DB
@@ -2351,6 +2355,7 @@ export default function WorldMap() {
                             travelTime: travelSec, showEspionage: false,
                             onAttack: (sentArmy) => {
                               toast(`⚔️ Troops marching to ${outpostData.name}... ETA ${travelSec}s`);
+                              deployTroops(sentArmy);
                               createMarch(`atk-op-${Date.now()}`, outpostData.name, outpostData.x, outpostData.y, travelSec, async () => {
                                 const log = attackTarget(outpostData.name, totalDefense, sentArmy);
                                 // Save outpost battle report to DB
