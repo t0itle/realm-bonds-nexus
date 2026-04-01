@@ -1221,6 +1221,30 @@ export type Database = {
           },
         ]
       }
+      world_boss_defeats: {
+        Row: {
+          boss_type: string
+          boss_week_seed: number
+          defeated_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          boss_type: string
+          boss_week_seed: number
+          defeated_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          boss_type?: string
+          boss_week_seed?: number
+          defeated_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       world_events: {
         Row: {
           created_at: string

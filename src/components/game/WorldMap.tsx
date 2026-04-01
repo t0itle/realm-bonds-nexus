@@ -406,6 +406,132 @@ const EVENT_BASES = [
   { names: ['Floating Island', 'Sky Ruin', 'Levitating Sanctuary', 'Cloud Fortress', 'Aerial Temple'], descs: ['drifts silently overhead', 'defies all known laws of nature', 'casts a vast shadow below', 'is accessible only by magic or flight', 'holds treasures from the Age of Wonders'], emoji: '🏝️', type: 'mystery' as const, basePower: 85 },
 ];
 
+// ── World Boss definitions ──
+interface WorldBossTroop {
+  name: string;
+  tier: 'weak' | 'average' | 'elite';
+  attack: number;
+  defense: number;
+  baseCount: number;
+}
+
+interface WorldBossBase {
+  name: string;
+  emoji: string;
+  description: string;
+  lore: string;
+  troops: WorldBossTroop[];
+  basePower: number;
+  growthRate: number; // power multiplier per day
+  rewardMultiplier: number;
+}
+
+const WORLD_BOSS_BASES: WorldBossBase[] = [
+  {
+    name: "Necromancer's Tower",
+    emoji: '🏚️',
+    description: 'A dark spire crackling with necrotic energy, surrounded by shambling hordes of the undead.',
+    lore: 'The Necromancer within has been raising armies for centuries, and now turns their gaze upon the living.',
+    troops: [
+      { name: 'Skeletons', tier: 'weak', attack: 3, defense: 2, baseCount: 80 },
+      { name: 'Zombies', tier: 'average', attack: 6, defense: 8, baseCount: 40 },
+      { name: 'Death Knights', tier: 'elite', attack: 18, defense: 15, baseCount: 10 },
+    ],
+    basePower: 600,
+    growthRate: 0.15,
+    rewardMultiplier: 6,
+  },
+  {
+    name: 'Demonic Portal',
+    emoji: '🌀',
+    description: 'A tear through reality into a hellish dimension of fire and brimstone. Demons pour through endlessly.',
+    lore: 'An ancient seal has been broken. The barrier between worlds grows thinner by the day.',
+    troops: [
+      { name: 'Imps', tier: 'weak', attack: 4, defense: 1, baseCount: 100 },
+      { name: 'Succubi', tier: 'average', attack: 8, defense: 5, baseCount: 35 },
+      { name: 'Demon Warriors', tier: 'elite', attack: 20, defense: 18, baseCount: 8 },
+    ],
+    basePower: 700,
+    growthRate: 0.15,
+    rewardMultiplier: 7,
+  },
+  {
+    name: 'Dreadkeep',
+    emoji: '🧛',
+    description: "A Vampire Lord's fortress, shrouded in eternal twilight. Blood-crazed thralls patrol the grounds.",
+    lore: 'Lord Nosferatu has awakened from his millennia-long slumber, and the land withers in his shadow.',
+    troops: [
+      { name: 'Thralls', tier: 'weak', attack: 3, defense: 3, baseCount: 70 },
+      { name: 'Blood Knights', tier: 'average', attack: 10, defense: 9, baseCount: 30 },
+      { name: 'Nosferatus', tier: 'elite', attack: 22, defense: 20, baseCount: 6 },
+    ],
+    basePower: 800,
+    growthRate: 0.15,
+    rewardMultiplier: 8,
+  },
+];
+
+interface ProceduralWorldBoss extends ProceduralEvent {
+  bossType: number; // index into WORLD_BOSS_BASES
+  troops: { name: string; tier: string; count: number; attack: number; defense: number }[];
+  daysAlive: number;
+  scaledPower: number;
+  weekSeed: number;
+}
+
+function getWorldBoss(): ProceduralWorldBoss {
+  const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+  const weekSeed = Math.floor(Date.now() / WEEK_MS);
+  const daysAlive = Math.floor((Date.now() % WEEK_MS) / (24 * 60 * 60 * 1000));
+  const rng = seededRandom(weekSeed * 9973);
+
+  const bossIdx = Math.floor(rng() * WORLD_BOSS_BASES.length);
+  const boss = WORLD_BOSS_BASES[bossIdx];
+
+  // Deterministic position: spawn in chunks 2-8 from origin
+  const chunkDist = 2 + Math.floor(rng() * 7);
+  const angle = rng() * Math.PI * 2;
+  const spawnCX = Math.round(Math.cos(angle) * chunkDist);
+  const spawnCY = Math.round(Math.sin(angle) * chunkDist);
+  const bossX = spawnCX * CHUNK_SIZE + CHUNK_SIZE * 0.3 + rng() * CHUNK_SIZE * 0.4;
+  const bossY = spawnCY * CHUNK_SIZE + CHUNK_SIZE * 0.3 + rng() * CHUNK_SIZE * 0.4;
+
+  const powerScale = 1 + boss.growthRate * daysAlive;
+  const scaledPower = Math.floor(boss.basePower * powerScale);
+
+  const troops = boss.troops.map(t => ({
+    name: t.name,
+    tier: t.tier,
+    count: Math.floor(t.baseCount * (1 + 0.1 * daysAlive)),
+    attack: t.attack,
+    defense: t.defense,
+  }));
+
+  const rewardBase = boss.rewardMultiplier * powerScale;
+
+  return {
+    id: `worldboss-${weekSeed}`,
+    name: boss.name,
+    description: boss.description,
+    emoji: boss.emoji,
+    x: bossX,
+    y: bossY,
+    type: 'danger',
+    power: scaledPower,
+    reward: {
+      gold: Math.floor(2000 + rng() * 3000 * rewardBase / 6),
+      wood: Math.floor(1000 + rng() * 2000 * rewardBase / 6),
+      stone: Math.floor(1000 + rng() * 2000 * rewardBase / 6),
+      food: Math.floor(1000 + rng() * 2000 * rewardBase / 6),
+    },
+    bossType: bossIdx,
+    troops,
+    daysAlive,
+    scaledPower,
+    weekSeed,
+  };
+}
+
 // Adjective modifiers for extra name variety
 const EVENT_ADJECTIVES = ['Ancient', 'Fearsome', 'Legendary', 'Mysterious', 'Forgotten', 'Cursed', 'Hidden', 'Burning', 'Frozen', 'Savage', 'Haunted', 'Sacred', 'Dire', 'Grand', 'Lesser', 'Greater', 'Elder', 'Young', 'Spectral', 'Corrupted'];
 const EVENT_LOCATIONS = ['of the Northern Pass', 'by the River Crossing', 'near the Old Road', 'in the Deep Valley', 'at the Mountain\'s Base', 'beyond the Treeline', 'along the Coast', 'beneath the Cliffs', 'on the High Plains', 'within the Mist', 'beside the Ancient Oak', 'atop the Hill', 'under the Crags', 'past the Ruins', 'outside the Swamp'];
@@ -876,6 +1002,7 @@ const EVENT_COLORS = { danger: 'border-destructive/60 bg-destructive/20', opport
 type SelectedItem =
   | { kind: 'npc'; data: ProceduralRealm; biome: string }
   | { kind: 'event'; data: ProceduralEvent; chunkKey: string; index: number }
+  | { kind: 'worldboss'; data: ProceduralWorldBoss }
   | { kind: 'player'; data: any }
   | { kind: 'mine'; data: SteelMine }
   | { kind: 'outpost'; data: { id: string; x: number; y: number; name: string; user_id: string; level: number; garrison_power: number; garrison_troops: Partial<Record<string, number>>; has_wall: boolean; wall_level: number; territory_radius: number; outpost_type: string } }
@@ -904,8 +1031,75 @@ export default function WorldMap() {
     onAttack: (sentArmy: Partial<import('@/hooks/useGameState').Army>) => void;
     showEspionage: boolean;
   } | null>(null);
+  const [worldBossDefeated, setWorldBossDefeated] = useState(false);
 
-  // ── Subscribe to other players' marches in realtime ──
+  // ── World Boss (one per week, deterministic) ──
+  const worldBoss = useMemo(() => getWorldBoss(), []);
+
+  // Check if player already defeated this week's boss
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('world_boss_defeats' as any)
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('boss_week_seed', worldBoss.weekSeed)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setWorldBossDefeated(true);
+      });
+  }, [user, worldBoss.weekSeed]);
+
+  // ── World Boss daily raid logic ──
+  useEffect(() => {
+    if (!user || worldBossDefeated) return;
+    const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const daySeed = Math.floor(Date.now() / DAY_MS);
+    const raidKey = `worldboss-raid-${daySeed}`;
+    // Only fire once per day per session
+    if (sessionStorage.getItem(raidKey)) return;
+
+    // Find most powerful player village nearby (within 5 chunks)
+    const bossRange = CHUNK_SIZE * 5;
+    const nearbyVillages = allVillages.filter(v => {
+      const dx = v.village.map_x - worldBoss.x;
+      const dy = v.village.map_y - worldBoss.y;
+      return Math.sqrt(dx * dx + dy * dy) <= bossRange && v.village.user_id === user.id;
+    });
+
+    if (nearbyVillages.length === 0) return;
+
+    // Pick the strongest village
+    const target = nearbyVillages.sort((a, b) => b.village.level - a.village.level)[0];
+    const raidRng = seededRandom(daySeed * 7919 + worldBoss.weekSeed);
+    // Only raid with ~50% chance per day to keep it unpredictable
+    if (raidRng() > 0.5) { sessionStorage.setItem(raidKey, '1'); return; }
+
+    const totalRaidTroops = worldBoss.troops.reduce((s, t) => s + Math.floor(t.count * 0.3), 0);
+    const raidArmy: Record<string, number> = {};
+    worldBoss.troops.forEach(t => { raidArmy[t.name] = Math.floor(t.count * 0.3); });
+
+    const arrivalSec = 120 + Math.floor(raidRng() * 180); // 2-5 min arrival
+    const arrivesAt = new Date(Date.now() + arrivalSec * 1000).toISOString();
+
+    supabase.from('active_marches').insert({
+      user_id: '00000000-0000-0000-0000-000000000000', // NPC marker
+      player_name: `${worldBoss.emoji} ${worldBoss.name}`,
+      start_x: worldBoss.x,
+      start_y: worldBoss.y,
+      target_x: target.village.map_x,
+      target_y: target.village.map_y,
+      target_name: target.village.name,
+      target_user_id: user.id,
+      arrives_at: arrivesAt,
+      march_type: 'attack',
+      sent_army: raidArmy,
+    } as any).then(() => {
+      sessionStorage.setItem(raidKey, '1');
+    });
+  }, [user, worldBoss, worldBossDefeated, allVillages]);
+
+
   useEffect(() => {
     if (!user) return;
     // Load existing active marches
@@ -1992,6 +2186,49 @@ export default function WorldMap() {
           );
         })}
 
+        {/* ── World Boss ── */}
+        {!worldBossDefeated && (() => {
+          if (!isVisible(worldBoss.x, worldBoss.y, 120)) return null;
+          const { sx, sy } = worldToScreen(worldBoss.x, worldBoss.y);
+          const bossSize = eventSize * 1.5;
+          const tierColors: Record<string, string> = { weak: 'text-muted-foreground', average: 'text-amber-400', elite: 'text-destructive' };
+          return (
+            <button key={worldBoss.id} data-map-item
+              onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'worldboss', data: worldBoss }); }}
+              className="absolute z-30 group transition-transform hover:scale-110"
+              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
+              {/* Pulsing glow ring */}
+              <div className="absolute inset-0 rounded-full animate-pulse pointer-events-none"
+                style={{
+                  width: bossSize * 2, height: bossSize * 2,
+                  left: '50%', top: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  background: 'radial-gradient(circle, hsl(0 80% 50% / 0.25), hsl(280 70% 40% / 0.15) 50%, transparent 70%)',
+                  boxShadow: '0 0 30px 10px hsl(0 80% 50% / 0.2)',
+                }} />
+              <img
+                src={mapEventDanger}
+                alt={worldBoss.name}
+                loading="lazy"
+                className="drop-shadow-lg transition-all group-hover:drop-shadow-xl relative z-10"
+                style={{ width: bossSize, height: bossSize, imageRendering: 'auto', objectFit: 'contain', filter: 'hue-rotate(280deg) saturate(1.5) brightness(1.2)' }}
+              />
+              {bossSize > 30 && (
+                <div className="absolute left-1/2 -translate-x-1/2 text-center z-10" style={{ top: bossSize + 4 }}>
+                  <div className="bg-destructive/90 backdrop-blur-sm rounded-md px-2 py-0.5 border border-destructive/60 shadow-lg">
+                    <p className="font-display text-destructive-foreground whitespace-nowrap leading-tight" style={{ fontSize: Math.max(8, bossSize / 5) }}>
+                      {worldBoss.emoji} {worldBoss.name}
+                    </p>
+                    <p className="text-destructive-foreground/70 whitespace-nowrap" style={{ fontSize: Math.max(6, bossSize / 7) }}>
+                      ⚔️ {worldBoss.scaledPower} • Day {worldBoss.daysAlive + 1}/7
+                    </p>
+                  </div>
+                </div>
+              )}
+            </button>
+          );
+        })()}
+
         {/* Steel Mines */}
         {visibleChunks.map(chunk => chunk.data.steelMines.map(mine => {
           if (!isWithinVision(mine.x, mine.y, 4000)) return null;
@@ -2525,6 +2762,7 @@ export default function WorldMap() {
             <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: 'hsl(100 35% 40% / 0.6)' }} /><span className="text-foreground">Island</span></div>
             <div className="flex items-center gap-1.5"><div className="w-2.5 h-1" style={{ background: 'hsl(205 75% 45% / 0.6)', borderRadius: 2 }} /><span className="text-foreground">River</span></div>
             <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded border border-muted-foreground/40 bg-muted/60 flex items-center justify-center text-[6px]">⚙️</div><span className="text-foreground">Steel Mine</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-destructive animate-pulse" /><span className="text-foreground">World Boss</span></div>
           </div>
         </div>
       </div>
@@ -2586,6 +2824,102 @@ export default function WorldMap() {
                 </div>
               </div>
             )}
+
+            {selected.kind === 'worldboss' && (() => {
+              const boss = selected.data;
+              const bossBase = WORLD_BOSS_BASES[boss.bossType];
+              const steelReward = Math.floor(50 + boss.daysAlive * 15 * bossBase.rewardMultiplier / 6);
+              return (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-3xl">{boss.emoji}</span>
+                    <div className="flex-1">
+                      <h3 className="font-display text-sm text-foreground">{boss.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-destructive/20 text-destructive">
+                          WORLD BOSS ⚔️{boss.scaledPower}
+                        </span>
+                        <span className="text-[9px] text-muted-foreground">Day {boss.daysAlive + 1}/7</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">{boss.description}</p>
+                  <p className="text-[9px] text-muted-foreground/70 italic">{bossBase.lore}</p>
+
+                  {/* Troop Tiers */}
+                  <div className="bg-muted/30 rounded-lg p-2 space-y-1">
+                    <p className="text-[10px] font-semibold text-foreground">🪖 Army Composition</p>
+                    {boss.troops.map(t => (
+                      <div key={t.name} className="flex items-center justify-between text-[9px]">
+                        <span className={`font-display ${t.tier === 'elite' ? 'text-destructive' : t.tier === 'average' ? 'text-primary' : 'text-muted-foreground'}`}>
+                          {t.tier === 'elite' ? '💀' : t.tier === 'average' ? '⚔️' : '🦴'} {t.name}
+                          <span className="text-muted-foreground/60 ml-1">({t.tier})</span>
+                        </span>
+                        <span className="text-foreground font-mono">
+                          ×{t.count} <span className="text-muted-foreground/60">atk:{t.attack} def:{t.defense}</span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Rewards */}
+                  <div className="flex items-center gap-1.5 text-[10px] text-primary font-bold flex-wrap">
+                    {Object.entries(boss.reward).filter(([, v]) => v && v > 0).map(([k, v]) => (
+                      <span key={k}>+{v} {k}</span>
+                    ))}
+                    <span>+{steelReward} steel</span>
+                  </div>
+
+                  <motion.button whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      if (!isInRange(boss.x, boss.y)) { toast.error('Too far! Train scouts to extend your range.'); return; }
+                      const hasTroops = Object.values(army).some(v => v > 0);
+                      if (!hasTroops) { toast.error('You need troops to fight the world boss!'); return; }
+                      const travelSec = calcTravelTime(boss.x, boss.y);
+                      setAttackConfig({
+                        targetName: boss.name, targetPower: boss.scaledPower,
+                        targetX: boss.x, targetY: boss.y, travelTime: travelSec,
+                        showEspionage: false,
+                        onAttack: (sentArmy) => {
+                          toast(`⚔️ Troops marching to ${boss.name}... ETA ${travelSec}s`);
+                          deployTroops(sentArmy);
+                          createMarch(`worldboss-${Date.now()}`, boss.name, boss.x, boss.y, travelSec, async () => {
+                            const log = attackTarget(boss.name, boss.scaledPower, sentArmy);
+                            if (log.result === 'victory') {
+                              addResources({ ...boss.reward });
+                              addResources({ gold: 0, wood: 0, stone: 0, food: 0 } as any); // steel added via village update
+                              // Record defeat
+                              if (user) {
+                                await supabase.from('world_boss_defeats' as any).insert({
+                                  user_id: user.id,
+                                  boss_week_seed: boss.weekSeed,
+                                  boss_type: boss.name,
+                                });
+                                // Add steel reward to village
+                                const myVillage = allVillages.find(v => v.village.user_id === user.id);
+                                if (myVillage) {
+                                  await supabase.from('villages').update({
+                                    steel: (myVillage.village as any).steel + steelReward
+                                  } as any).eq('id', myVillage.village.id);
+                                }
+                              }
+                              setWorldBossDefeated(true);
+                              toast.success(`🏆 WORLD BOSS DEFEATED! ${boss.name} has been vanquished! Massive rewards claimed!`);
+                            } else {
+                              toast.error(`💀 Defeated by ${boss.name}! The world boss grows stronger...`);
+                            }
+                          }, sentArmy);
+                          setAttackConfig(null);
+                          setSelected(null);
+                        },
+                      });
+                    }}
+                    className="w-full bg-destructive text-destructive-foreground font-display text-[11px] py-2.5 rounded-lg active:scale-95 transition-transform">
+                    ⚔️ Challenge World Boss (⚔️{boss.scaledPower})
+                  </motion.button>
+                </div>
+              );
+            })()}
 
             {selected.kind === 'player' && (
               <div className="space-y-2">
