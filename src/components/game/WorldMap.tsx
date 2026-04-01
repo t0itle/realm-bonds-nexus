@@ -2449,8 +2449,10 @@ export default function WorldMap() {
                         ? 'Your settlement. Switch to it from the resource bar to manage buildings and resources independently.'
                         : op.outpost_type === 'fort'
                           ? 'Your fort. Can garrison armies. Upgrade to Lv.10 to convert into a full settlement.'
-                          : 'Your outpost. Upgrade to Lv.5 to convert into a fort, then Lv.10 for a settlement.')
-                      : `Enemy ${isSettlement ? 'settlement' : op.outpost_type === 'fort' ? 'fort' : 'outpost'}. Garrison strength: ⚔️${op.garrison_power}`}
+                          : op.outpost_type === 'bridge'
+                            ? 'Your bridge. Troops can cross the river here. Can be destroyed by siege weapons or espionage.'
+                            : 'Your outpost. Upgrade to Lv.5 to convert into a fort, or build a bridge if near a river.')
+                      : `Enemy ${isSettlement ? 'settlement' : op.outpost_type === 'fort' ? 'fort' : op.outpost_type === 'bridge' ? 'bridge' : 'outpost'}. Garrison strength: ⚔️${op.garrison_power}`}
                   </p>
                   {isOwn && (
                     <div className="space-y-2">
