@@ -62,14 +62,14 @@ function TroopList({ troops, label, color }: { troops: any; label: string; color
 function ResourceList({ resources, label, color }: { resources: any; label: string; color: string }) {
   if (!resources) return null;
   const icons: Record<string, string> = { gold: '💰', wood: '🪵', stone: '🪨', food: '🌾', steel: '⚙️' };
-  const entries = Object.entries(resources).filter(([, v]) => v && (v as number) > 0);
+  const entries = Object.entries(resources).filter(([, v]) => Number(v) > 0);
   if (entries.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-x-2 gap-y-0.5">
       <span className={`text-[8px] font-display ${color}`}>{label}</span>
       {entries.map(([type, count]) => (
         <span key={type} className="text-[9px] text-foreground">
-          {icons[type] || ''}{count as number}
+          {icons[type] || ''}{Number(count)}
         </span>
       ))}
     </div>
