@@ -132,7 +132,7 @@ export default function MilitaryPanel() {
                 const skinDisplay = getTroopDisplay(q.type);
                 return (
                   <div key={i} className="flex items-center justify-between text-xs">
-                    <span className="text-foreground">{skinDisplay.emoji} {skinDisplay.name} x{q.count}</span>
+                    <span className="text-foreground flex items-center gap-1"><TroopIcon type={q.type} size={14} /> {skinDisplay.name} x{q.count}</span>
                     <span className="text-primary font-mono">{formatTime(remaining)}</span>
                   </div>
                 );
