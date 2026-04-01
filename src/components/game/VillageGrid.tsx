@@ -179,7 +179,7 @@ function CollapsibleSection({ icon, title, defaultOpen, children }: {
 }
 
 export default function VillageGrid() {
-  const { buildings, upgradeBuilding, demolishBuilding, canAfford, canAffordSteel, isBuildingUpgrading, getBuildTime, resources, steel } = useGame();
+  const { buildings, upgradeBuilding, demolishBuilding, canAfford, canAffordSteel, isBuildingUpgrading, getBuildTime, resources, steel, settlementType, upgradeSettlement, isSettlementUpgrading, settlementUpgradeFinishTime } = useGame();
   const { getBuildingSprite } = useTroopSkins();
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [buildPosition, setBuildPosition] = useState<number | null>(null);
@@ -192,7 +192,7 @@ export default function VillageGrid() {
   }, []);
 
   const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
-  const gridSize = getGridSize(townhallLevel);
+  const gridSize = getGridSize(settlementType);
   const gridCols = getGridCols(gridSize);
 
   const grid = Array.from({ length: gridSize }, (_, i) => {
