@@ -933,7 +933,7 @@ export default function WorldMap() {
     if (e.touches.length === 2 && lastTouchDist.current) {
       const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
       const scale = d / lastTouchDist.current;
-      safeSetCamera(prev => ({ ...prev, ppu: Math.max(0.00005, Math.min(0.05, prev.ppu * scale)) }));
+      safeSetCamera(prev => ({ ...prev, ppu: Math.max(0.0000005, Math.min(0.005, prev.ppu * scale)) }));
       lastTouchDist.current = d;
     }
   }, [safeSetCamera]);
