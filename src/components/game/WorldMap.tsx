@@ -2430,7 +2430,7 @@ export default function WorldMap() {
               return (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-3xl">{isSettlement ? '🏘️' : (op.outpost_type === 'fort' ? '🏰' : (isOwn ? '🏕️' : '⚑'))}</span>
+                    <span className="text-3xl">{isSettlement ? '🏘️' : (op.outpost_type === 'fort' ? '🏰' : (op.outpost_type === 'bridge' ? '🌉' : (isOwn ? '🏕️' : '⚑')))}</span>
                     <div className="flex-1">
                       <h3 className="font-display text-sm text-foreground">{op.name}</h3>
                       <div className="flex items-center gap-2 text-[9px]">
