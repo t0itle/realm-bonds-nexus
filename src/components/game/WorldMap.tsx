@@ -1455,15 +1455,25 @@ export default function WorldMap() {
       targetX, targetY, waypoints, action, sentArmy,
     }]);
     if (user) {
-      supabase.from('active_marches').insert({
+      const marchType = id.startsWith('atk') || id.startsWith('pvp') ? 'attack' : id.startsWith('envoy') ? 'envoy' : id.startsWith('reinforce') ? 'reinforce' : 'march';
+      // For PvP attacks, extract target_user_id from the id pattern or sentArmy context
+      const marchInsert: any = {
         user_id: user.id,
         player_name: displayName,
         start_x: myPos.x, start_y: myPos.y,
         target_x: targetX, target_y: targetY,
         target_name: targetName,
         arrives_at: new Date(arrivalTime).toISOString(),
-        march_type: id.startsWith('atk') || id.startsWith('pvp') ? 'attack' : id.startsWith('envoy') ? 'envoy' : 'march',
-      }).then(() => {});
+        march_type: marchType,
+        sent_army: sentArmy || {},
+      };
+      // target_user_id is set via a custom event dispatched before createMarch
+      const pendingTargetUserId = (window as any).__pendingMarchTargetUserId;
+      if (pendingTargetUserId) {
+        marchInsert.target_user_id = pendingTargetUserId;
+        delete (window as any).__pendingMarchTargetUserId;
+      }
+      supabase.from('active_marches').insert(marchInsert).then(() => {});
     }
     if (pathDist > Math.hypot(targetX - myPos.x, targetY - myPos.y) * 1.1) {
       toast.info(`Route adjusted around obstacles — travel time: ${actualTravelSec}s`);
