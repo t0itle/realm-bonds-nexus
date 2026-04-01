@@ -9,6 +9,7 @@ export default function StatSheet() {
     population, army, armyUpkeep, totalProduction, resources, steel, buildings,
     workerAssignments, assignWorker, unassignWorker, getMaxWorkers,
     rations, setRations, popTaxRate, setPopTaxRate, popFoodCost, popTaxIncome,
+    steelProduction,
   } = useGame();
   const upkeep = armyUpkeep();
   const totalTroops = Object.values(army).reduce((s, v) => s + v, 0);
@@ -155,7 +156,14 @@ export default function StatSheet() {
             <span className="text-muted-foreground font-bold">⚙️ Steel</span>
             <span className="text-foreground font-bold">{steel}</span>
           </div>
-          <p className="text-[9px] text-muted-foreground col-span-2">Steel is obtained by capturing mines on the Map</p>
+          {steelProduction > 0 ? (
+            <div className="flex justify-between col-span-2">
+              <span className="text-muted-foreground">+/min</span>
+              <span className="text-primary font-bold">+{steelProduction}</span>
+            </div>
+          ) : (
+            <p className="text-[9px] text-muted-foreground col-span-2">Capture iron mines on the Map to produce steel</p>
+          )}
         </div>
       </div>
 
