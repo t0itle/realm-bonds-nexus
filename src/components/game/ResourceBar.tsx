@@ -163,7 +163,10 @@ export default function ResourceBar() {
         </div>
       )}
 
-      <div className={`game-panel px-3 py-2.5 mx-2 ${myVillages.length <= 1 ? 'mt-2' : 'mt-1'} border-glow space-y-1 ${foodCritical ? 'border-destructive/60' : foodLow ? 'border-destructive/40' : ''}`}>
+      <div
+        className={`game-panel px-3 py-2.5 mx-2 ${myVillages.length <= 1 ? 'mt-2' : 'mt-1'} border-glow space-y-1 ${foodCritical ? 'border-destructive/60' : foodLow ? 'border-destructive/40' : ''} rounded-xl overflow-hidden`}
+        style={woodPlankStyle}
+      >
         <TooltipProvider delayDuration={200}>
           <div className="flex items-center justify-between gap-2">
             {RESOURCE_CONFIG.map(({ key, label, color }) => {

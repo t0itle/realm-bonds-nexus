@@ -40,6 +40,7 @@ export default function PatchNotesModal() {
             transition={{ type: 'spring', damping: 25, stiffness: 350 }}
             onClick={e => e.stopPropagation()}
             className="game-panel border border-primary/40 rounded-2xl p-5 max-w-sm w-full space-y-3 max-h-[80vh] overflow-y-auto"
+            style={parchmentStyle}
           >
             <div className="text-center space-y-1">
               <span className="text-2xl">📜</span>

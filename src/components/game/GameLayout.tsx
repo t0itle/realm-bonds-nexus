@@ -296,8 +296,8 @@ export default function GameLayout() {
         </AnimatePresence>
       </div>
 
-      <nav className="game-panel border-t border-glow safe-bottom">
-        <div className="flex items-center justify-around py-2.5">
+      <nav className="game-panel border-t border-glow safe-bottom" style={woodPanelStyle}>
+        <div className="flex items-center justify-around py-2.5 bg-background/30">
           {TABS.map(tab => (
             <motion.button
               key={tab.id}
