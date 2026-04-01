@@ -25,7 +25,8 @@ export default function MilitaryPanel() {
   } = useGame();
   const [trainCount, setTrainCount] = useState<Record<TroopType, number>>({ militia: 1, archer: 1, knight: 1, cavalry: 1, siege: 1, scout: 1 });
   const [spyTrainCount, setSpyTrainCount] = useState(1);
-  const [tab, setTab] = useState<'troops' | 'espionage' | 'apothecary' | 'warlog'>('troops');
+  const [tab, setTab] = useState<'troops' | 'espionage' | 'apothecary' | 'warlog' | 'skins'>('troops');
+  const { getTroopDisplay } = useTroopSkins();
   const apothecaryLevel = getApothecaryLevel();
   const totalInjured = Object.values(injuredTroops).reduce((s, v) => s + v, 0);
   const [, forceUpdate] = useState(0);
