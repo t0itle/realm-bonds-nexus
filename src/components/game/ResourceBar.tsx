@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import happinessSprite from '@/assets/sprites/happiness.png';
 import { useGame } from '@/hooks/useGameState';
 import { motion, AnimatePresence } from 'framer-motion';
 import ResourceIcon from './ResourceIcon';
