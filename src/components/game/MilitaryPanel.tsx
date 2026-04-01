@@ -63,7 +63,7 @@ export default function MilitaryPanel() {
             <div className="flex gap-2 mt-1">
               {TROOP_TYPES.map(type => army[type] > 0 && (
                 <span key={type} className="text-xs text-foreground">
-                  {TROOP_INFO[type].emoji}{army[type]}
+                  {getTroopDisplay(type).emoji}{army[type]}
                 </span>
               ))}
               {Object.values(army).every(v => v === 0) && (
