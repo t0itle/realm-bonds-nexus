@@ -53,6 +53,15 @@ function isPointInEllipse(px: number, py: number, cx: number, cy: number, rw: nu
   return dx * dx + dy * dy <= 1;
 }
 
+// Line segment intersection test (for wall blocking)
+function segmentsIntersect(ax: number, ay: number, bx: number, by: number, cx: number, cy: number, dx: number, dy: number): boolean {
+  const det = (bx - ax) * (dy - cy) - (by - ay) * (dx - cx);
+  if (Math.abs(det) < 1e-10) return false;
+  const t = ((cx - ax) * (dy - cy) - (cy - ay) * (dx - cx)) / det;
+  const u = ((cx - ax) * (by - ay) - (cy - ay) * (bx - ax)) / det;
+  return t > 0.01 && t < 0.99 && u > 0.01 && u < 0.99;
+}
+
 function isPointNearRiverSegment(px: number, py: number, p1: { x: number; y: number }, p2: { x: number; y: number }, riverWidth: number): boolean {
   const dx = p2.x - p1.x;
   const dy = p2.y - p1.y;
@@ -639,7 +648,8 @@ export default function WorldMap() {
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
   const [capturedMines, setCapturedMines] = useState<Set<string>>(new Set());
   const [outposts, setOutposts] = useState<{ id: string; x: number; y: number; name: string; user_id: string; level: number; garrison_power: number; has_wall: boolean; wall_level: number; territory_radius: number; outpost_type: string }[]>([]);
-  const [outpostBuildQueue, setOutpostBuildQueue] = useState<{ outpostId: string; action: 'upgrade' | 'wall'; finishTime: number; targetLevel: number; newGarrison: number; newRadius?: number }[]>([]);
+  const [wallSegments, setWallSegments] = useState<{ id: string; user_id: string; outpost_a_id: string; outpost_b_id: string; wall_level: number; health: number; max_health: number }[]>([]);
+  const [outpostBuildQueue, setOutpostBuildQueue] = useState<{ outpostId: string; action: 'upgrade' | 'wall'; finishTime: number; targetLevel: number; newGarrison: number; newRadius?: number; targetOutpostId?: string }[]>([]);
   const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; startTime: number; startX: number; startY: number; targetX: number; targetY: number; waypoints: { x: number; y: number }[]; action: () => void }[]>([]);
   const [otherMarches, setOtherMarches] = useState<{ id: string; user_id: string; player_name: string; start_x: number; start_y: number; target_x: number; target_y: number; target_name: string; started_at: string; arrives_at: string; march_type: string }[]>([]);
   const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
@@ -725,6 +735,12 @@ export default function WorldMap() {
         if (mineOutposts.length > 0) {
           setCapturedMines(new Set(mineOutposts.map((o: any) => o.name)));
         }
+      }
+    });
+    // Load wall segments
+    supabase.from('wall_segments').select('*').then(({ data }) => {
+      if (data) {
+        setWallSegments(data.map((w: any) => ({ id: w.id, user_id: w.user_id, outpost_a_id: w.outpost_a_id, outpost_b_id: w.outpost_b_id, wall_level: w.wall_level, health: w.health, max_health: w.max_health })));
       }
     });
     // Load persisted outpost build queue entries
@@ -1061,10 +1077,56 @@ export default function WorldMap() {
   }, [visibleChunks]);
 
   // Helper to create a march with pathfinding around obstacles
+  // Check if a line segment from (ax,ay)->(bx,by) crosses any enemy wall segment
+  const findBlockingWall = useCallback((ax: number, ay: number, bx: number, by: number): typeof wallSegments[0] | null => {
+    if (!user) return null;
+    for (const ws of wallSegments) {
+      if (ws.user_id === user.id) continue; // own walls don't block
+      if (ws.health <= 0) continue; // destroyed walls don't block
+      const opA = outposts.find(o => o.id === ws.outpost_a_id);
+      const opB = outposts.find(o => o.id === ws.outpost_b_id);
+      if (!opA || !opB) continue;
+      // Line segment intersection test
+      if (segmentsIntersect(ax, ay, bx, by, opA.x, opA.y, opB.x, opB.y)) {
+        return ws;
+      }
+    }
+    return null;
+  }, [user, wallSegments, outposts]);
+
   const createMarch = useCallback((id: string, targetName: string, targetX: number, targetY: number, _travelSec: number, action: () => void) => {
     const myPos = getMyPos();
     const now = Date.now();
     const waypoints = findPath(myPos.x, myPos.y, targetX, targetY, allTerrain);
+
+    // Check if march path crosses any enemy wall
+    let pathBlocked = false;
+    for (let i = 0; i < waypoints.length - 1; i++) {
+      const blockingWall = findBlockingWall(waypoints[i].x, waypoints[i].y, waypoints[i + 1].x, waypoints[i + 1].y);
+      if (blockingWall) {
+        // If we have siege weapons, damage the wall instead of being blocked
+        if (army.siege > 0) {
+          const damage = army.siege * 15;
+          const newHealth = Math.max(0, blockingWall.health - damage);
+          supabase.from('wall_segments').update({ health: newHealth } as any).eq('id', blockingWall.id).then();
+          setWallSegments(prev => prev.map(ws => ws.id === blockingWall.id ? { ...ws, health: newHealth } : ws));
+          if (newHealth <= 0) {
+            toast.success(`🏗️ Siege weapons destroyed enemy wall! Path cleared.`);
+          } else {
+            toast(`🏗️ Siege weapons damaged wall (${newHealth}/${blockingWall.max_health} HP remaining). Path still blocked!`);
+            pathBlocked = true;
+          }
+        } else {
+          const opA = outposts.find(o => o.id === blockingWall.outpost_a_id);
+          const opB = outposts.find(o => o.id === blockingWall.outpost_b_id);
+          toast.error(`🧱 Path blocked by enemy wall between ${opA?.name || '?'} and ${opB?.name || '?'}! Use siege weapons or espionage to destroy it.`);
+          pathBlocked = true;
+        }
+        break;
+      }
+    }
+    if (pathBlocked) return;
+
     const pathDist = getPathLength(waypoints);
     const actualTravelSec = Math.max(5, Math.floor(pathDist / (getSlowestTroopSpeed(army) * 200)));
     const arrivalTime = now + actualTravelSec * 1000;
@@ -1073,7 +1135,6 @@ export default function WorldMap() {
       startTime: now, startX: myPos.x, startY: myPos.y,
       targetX, targetY, waypoints, action,
     }]);
-    // Persist to DB for live visibility by other players
     if (user) {
       supabase.from('active_marches').insert({
         user_id: user.id,
@@ -1088,7 +1149,7 @@ export default function WorldMap() {
     if (pathDist > Math.hypot(targetX - myPos.x, targetY - myPos.y) * 1.1) {
       toast.info(`Route adjusted around obstacles — travel time: ${actualTravelSec}s`);
     }
-  }, [getMyPos, allTerrain, army, user, displayName]);
+  }, [getMyPos, allTerrain, army, user, displayName, findBlockingWall]);
 
   const getDistance = useCallback((targetX: number, targetY: number) => {
     const myPos = getMyPos();
@@ -1777,9 +1838,8 @@ export default function WorldMap() {
           <rect width="100%" height="100%" fill="hsl(220 15% 18% / 0.4)" mask="url(#fog-mask)" filter="url(#fog-clouds)" />
         </svg>
 
-        {/* ── Unified Territory borders (merged per owner) + Wall segments ── */}
+        {/* ── Unified Territory borders + Explicit Wall segments ── */}
         {(() => {
-          const WALL_CONNECT_DIST = 50000; // max world-unit distance for wall segments
           // Group outposts by owner
           const ownerGroups = new Map<string, typeof outposts>();
           for (const op of outposts) {
@@ -1795,14 +1855,13 @@ export default function WorldMap() {
             const borderColor = isOwn ? 'hsl(var(--primary))' : 'hsl(var(--destructive))';
             const fillColor = isOwn ? 'hsl(var(--primary) / 0.06)' : 'hsl(var(--destructive) / 0.04)';
 
-            // Calculate bounding box
             let minSx = Infinity, minSy = Infinity, maxSx = -Infinity, maxSy = -Infinity;
-            const screenData: { cx: number; cy: number; r: number; hasWall: boolean; op: typeof ops[0] }[] = [];
+            const screenData: { cx: number; cy: number; r: number; op: typeof ops[0] }[] = [];
             for (const op of ops) {
               const { sx, sy } = worldToScreen(op.x, op.y);
               const r = op.territory_radius * camera.ppu;
               if (r < 10) continue;
-              screenData.push({ cx: sx, cy: sy, r, hasWall: op.has_wall, op });
+              screenData.push({ cx: sx, cy: sy, r, op });
               minSx = Math.min(minSx, sx - r - 10);
               minSy = Math.min(minSy, sy - r - 10);
               maxSx = Math.max(maxSx, sx + r + 10);
@@ -1814,20 +1873,19 @@ export default function WorldMap() {
             const svgH = maxSy - minSy;
             if (svgW <= 0 || svgH <= 0) return;
 
-            // Find wall segments: pairs of walled outposts within connection distance
-            const wallSegments: { x1: number; y1: number; x2: number; y2: number; avgLevel: number }[] = [];
-            const walledOps = screenData.filter(d => d.hasWall);
-            for (let i = 0; i < walledOps.length; i++) {
-              for (let j = i + 1; j < walledOps.length; j++) {
-                const a = walledOps[i], b = walledOps[j];
-                const worldDist = Math.hypot(a.op.x - b.op.x, a.op.y - b.op.y);
-                if (worldDist <= WALL_CONNECT_DIST) {
-                  wallSegments.push({
-                    x1: a.cx - minSx, y1: a.cy - minSy,
-                    x2: b.cx - minSx, y2: b.cy - minSy,
-                    avgLevel: Math.floor((a.op.wall_level + b.op.wall_level) / 2),
-                  });
-                }
+            // Get explicit wall segments for this owner from DB
+            const ownerWallSegs = wallSegments.filter(ws => ws.user_id === ownerId);
+            const opMap = new Map(screenData.map(d => [d.op.id, d]));
+            const renderedSegments: { x1: number; y1: number; x2: number; y2: number; level: number; health: number; maxHealth: number; id: string }[] = [];
+            for (const ws of ownerWallSegs) {
+              const a = opMap.get(ws.outpost_a_id);
+              const b = opMap.get(ws.outpost_b_id);
+              if (a && b) {
+                renderedSegments.push({
+                  x1: a.cx - minSx, y1: a.cy - minSy,
+                  x2: b.cx - minSx, y2: b.cy - minSy,
+                  level: ws.wall_level, health: ws.health, maxHealth: ws.max_health, id: ws.id,
+                });
               }
             }
 
@@ -1843,73 +1901,64 @@ export default function WorldMap() {
                     ))}
                   </clipPath>
                 </defs>
-                {/* Filled unified territory */}
                 <rect x="0" y="0" width={svgW} height={svgH}
-                  clipPath={`url(#clip-territory-${ownerId})`}
-                  fill={fillColor} />
-                {/* Territory border circles (always dashed, light) */}
+                  clipPath={`url(#clip-territory-${ownerId})`} fill={fillColor} />
                 {screenData.map((c, i) => (
-                  <circle key={`border-${i}`}
-                    cx={c.cx - minSx} cy={c.cy - minSy} r={c.r}
-                    fill="none"
-                    stroke={borderColor}
-                    strokeWidth={1}
-                    strokeDasharray="6 4"
-                    opacity={0.3}
-                  />
+                  <circle key={`border-${i}`} cx={c.cx - minSx} cy={c.cy - minSy} r={c.r}
+                    fill="none" stroke={borderColor} strokeWidth={1}
+                    strokeDasharray="6 4" opacity={0.3} />
                 ))}
-                {/* Wall segments connecting walled outposts */}
-                {wallSegments.map((seg, i) => {
-                  const thickness = Math.max(2.5, Math.min(6, seg.avgLevel * 1.5 + 2));
+                {/* Explicit wall segments */}
+                {renderedSegments.map((seg) => {
+                  const thickness = Math.max(2.5, Math.min(6, seg.level * 1.5 + 2));
+                  const healthPct = seg.health / seg.maxHealth;
+                  const wallOpacity = healthPct > 0.5 ? 0.7 : healthPct > 0.2 ? 0.45 : 0.25;
+                  const damaged = healthPct < 1;
                   return (
-                    <g key={`wall-seg-${i}`}>
-                      {/* Outer wall line (stone color) */}
+                    <g key={`wall-seg-${seg.id}`}>
                       <line x1={seg.x1} y1={seg.y1} x2={seg.x2} y2={seg.y2}
-                        stroke={borderColor} strokeWidth={thickness + 2} opacity={0.25}
-                        strokeLinecap="round" />
-                      {/* Main wall line */}
+                        stroke={borderColor} strokeWidth={thickness + 2} opacity={0.15} strokeLinecap="round" />
                       <line x1={seg.x1} y1={seg.y1} x2={seg.x2} y2={seg.y2}
-                        stroke={borderColor} strokeWidth={thickness} opacity={0.7}
-                        strokeLinecap="round" />
-                      {/* Crenellation pattern (small rectangles along wall) */}
+                        stroke={borderColor} strokeWidth={thickness} opacity={wallOpacity}
+                        strokeLinecap="round" strokeDasharray={damaged ? '8 3' : 'none'} />
                       {(() => {
-                        const dx = seg.x2 - seg.x1;
-                        const dy = seg.y2 - seg.y1;
+                        const dx = seg.x2 - seg.x1, dy = seg.y2 - seg.y1;
                         const len = Math.hypot(dx, dy);
                         if (len < 20) return null;
                         const count = Math.floor(len / 12);
-                        const nx = -dy / len; // normal
-                        const ny = dx / len;
+                        const nx = -dy / len, ny = dx / len;
                         const dots: React.ReactNode[] = [];
-                        for (let t = 0; t < count; t++) {
+                        for (let t = 0; t < count; t += 2) {
                           const frac = (t + 0.5) / count;
-                          const px = seg.x1 + dx * frac;
-                          const py = seg.y1 + dy * frac;
-                          if (t % 2 === 0) {
-                            dots.push(
-                              <rect key={t}
-                                x={px + nx * (thickness * 0.5) - 1.5}
-                                y={py + ny * (thickness * 0.5) - 1.5}
-                                width={3} height={3}
-                                fill={borderColor} opacity={0.5}
-                              />
-                            );
-                          }
+                          dots.push(<rect key={t}
+                            x={seg.x1 + dx * frac + nx * (thickness * 0.5) - 1.5}
+                            y={seg.y1 + dy * frac + ny * (thickness * 0.5) - 1.5}
+                            width={3} height={3} fill={borderColor} opacity={wallOpacity * 0.7} />);
                         }
                         return dots;
+                      })()}
+                      {damaged && (() => {
+                        const mx = (seg.x1 + seg.x2) / 2, my = (seg.y1 + seg.y2) / 2, barW = 20;
+                        return (<g>
+                          <rect x={mx - barW / 2} y={my - 6} width={barW} height={3} fill="hsl(var(--muted))" rx={1} opacity={0.8} />
+                          <rect x={mx - barW / 2} y={my - 6} width={barW * healthPct} height={3}
+                            fill={healthPct > 0.5 ? 'hsl(var(--primary))' : 'hsl(var(--destructive))'} rx={1} opacity={0.9} />
+                        </g>);
                       })()}
                     </g>
                   );
                 })}
-                {/* Walled outpost nodes (fortification dots) */}
-                {walledOps.map((c, i) => (
-                  <g key={`wall-node-${i}`}>
-                    <circle cx={c.cx - minSx} cy={c.cy - minSy} r={6}
-                      fill={borderColor} opacity={0.5} />
-                    <circle cx={c.cx - minSx} cy={c.cy - minSy} r={4}
-                      fill={fillColor} stroke={borderColor} strokeWidth={1.5} opacity={0.8} />
-                  </g>
-                ))}
+                {/* Wall node markers */}
+                {(() => {
+                  const connectedIds = new Set<string>();
+                  for (const ws of ownerWallSegs) { connectedIds.add(ws.outpost_a_id); connectedIds.add(ws.outpost_b_id); }
+                  return screenData.filter(d => connectedIds.has(d.op.id)).map((c, i) => (
+                    <g key={`wall-node-${i}`}>
+                      <circle cx={c.cx - minSx} cy={c.cy - minSy} r={6} fill={borderColor} opacity={0.5} />
+                      <circle cx={c.cx - minSx} cy={c.cy - minSy} r={4} fill={fillColor} stroke={borderColor} strokeWidth={1.5} opacity={0.8} />
+                    </g>
+                  ));
+                })()}
               </svg>
             );
           });
@@ -2219,16 +2268,10 @@ export default function WorldMap() {
               const isOwn = op.user_id === user?.id;
               const isSettlement = op.outpost_type === 'settlement';
               const upgradeCost = { gold: 150 * op.level, wood: 100 * op.level, stone: 80 * op.level, food: 50 * op.level };
-              const wallCost = op.has_wall
-                ? { gold: 200 * (op.wall_level + 1), wood: 150 * (op.wall_level + 1), stone: 200 * (op.wall_level + 1), food: 0 }
-                : { gold: 300, wood: 200, stone: 250, food: 50 };
               const canAffordUpgrade = resources.gold >= upgradeCost.gold && resources.wood >= upgradeCost.wood && resources.stone >= upgradeCost.stone && resources.food >= upgradeCost.food;
-              const canAffordWall = resources.gold >= wallCost.gold && resources.wood >= wallCost.wood && resources.stone >= wallCost.stone && resources.food >= wallCost.food;
 
               const isUpgrading = outpostBuildQueue.find(q => q.outpostId === op.id && q.action === 'upgrade');
-              const isBuildingWall = outpostBuildQueue.find(q => q.outpostId === op.id && q.action === 'wall');
               const upgradeTimeSec = 30 + op.level * 30;
-              const wallTimeSec = 45 + op.wall_level * 30;
 
               const handleUpgrade = async () => {
                 if (!canAffordUpgrade) { toast.error('Not enough resources!'); return; }
@@ -2246,38 +2289,63 @@ export default function WorldMap() {
                 toast(`${isSettlement ? '🏘️' : '🏕️'} Upgrading ${op.name} to Lv.${newLevel}... (${Math.floor(upgradeTimeSec / 60)}:${(upgradeTimeSec % 60).toString().padStart(2, '0')})`);
               };
 
-              // Find nearby outposts that could connect via wall
+              // Find nearby outposts eligible for wall connections
               const WALL_CONNECT_DIST = 50000;
               const nearbyOwnOutposts = outposts.filter(other =>
                 other.id !== op.id && other.user_id === user?.id && other.outpost_type !== 'mine' &&
                 Math.hypot(other.x - op.x, other.y - op.y) <= WALL_CONNECT_DIST
               );
-              const wallConnections = nearbyOwnOutposts.filter(n => n.has_wall);
-              const potentialConnections = nearbyOwnOutposts.filter(n => !n.has_wall);
+              // Existing wall segments from/to this outpost
+              const existingWalls = wallSegments.filter(ws =>
+                ws.outpost_a_id === op.id || ws.outpost_b_id === op.id
+              );
+              const connectedIds = new Set(existingWalls.map(ws =>
+                ws.outpost_a_id === op.id ? ws.outpost_b_id : ws.outpost_a_id
+              ));
+              // Available to connect (nearby, not already connected)
+              const availableToConnect = nearbyOwnOutposts.filter(n => !connectedIds.has(n.id));
 
-              const handleWall = async () => {
-                if (!canAffordWall) { toast.error('Not enough resources!'); return; }
-                if (isBuildingWall) { toast.error('Already building wall!'); return; }
-                if (!op.has_wall && nearbyOwnOutposts.length === 0) {
-                  toast.error('No nearby outposts to connect! Build outposts within range first.');
-                  return;
-                }
-                addResources({ gold: -wallCost.gold, wood: -wallCost.wood, stone: -wallCost.stone, food: -wallCost.food });
-                const newWallLevel = op.wall_level + 1;
-                const newGarrison = op.garrison_power + 30;
+              const wallCostPerSegment = { gold: 300, wood: 200, stone: 250, food: 50 };
+              const canAffordWallSeg = resources.gold >= wallCostPerSegment.gold && resources.wood >= wallCostPerSegment.wood && resources.stone >= wallCostPerSegment.stone && resources.food >= wallCostPerSegment.food;
+
+              const handleBuildWallTo = async (targetOutpost: typeof op) => {
+                if (!canAffordWallSeg) { toast.error('Not enough resources!'); return; }
+                if (!user) return;
+                // Check not already connected
+                const alreadyExists = wallSegments.find(ws =>
+                  (ws.outpost_a_id === op.id && ws.outpost_b_id === targetOutpost.id) ||
+                  (ws.outpost_a_id === targetOutpost.id && ws.outpost_b_id === op.id)
+                );
+                if (alreadyExists) { toast.error('Wall already exists between these outposts!'); return; }
+
+                addResources({ gold: -wallCostPerSegment.gold, wood: -wallCostPerSegment.wood, stone: -wallCostPerSegment.stone, food: -wallCostPerSegment.food });
+
+                const wallTimeSec = 60;
                 const finishTime = Date.now() + wallTimeSec * 1000;
-                setOutpostBuildQueue(prev => [...prev, { outpostId: op.id, action: 'wall', finishTime, targetLevel: newWallLevel, newGarrison }]);
-                if (user) {
-                  supabase.from('build_queue').insert({ user_id: user.id, building_id: op.id, building_type: 'outpost_wall', target_level: newWallLevel, finish_time: new Date(finishTime).toISOString() } as any).then();
-                }
-                const connectMsg = wallConnections.length > 0
-                  ? ` Connecting to ${wallConnections.map(c => c.name).join(', ')}!`
-                  : potentialConnections.length > 0
-                    ? ` Wall nearby outposts to complete the border.`
-                    : '';
-                toast(`🧱 ${op.has_wall ? 'Reinforcing' : 'Building'} wall at ${op.name}...${connectMsg} (${Math.floor(wallTimeSec / 60)}:${(wallTimeSec % 60).toString().padStart(2, '0')})`);
-              };
+                setOutpostBuildQueue(prev => [...prev, { outpostId: op.id, action: 'wall', finishTime, targetLevel: 1, newGarrison: 30, targetOutpostId: targetOutpost.id }]);
 
+                toast(`🧱 Building wall from ${op.name} to ${targetOutpost.name}... (1:00)`);
+
+                // After build time, create the wall segment
+                setTimeout(async () => {
+                  const [idA, idB] = [op.id, targetOutpost.id].sort();
+                  const { data, error } = await supabase.from('wall_segments').insert({
+                    user_id: user.id,
+                    outpost_a_id: idA,
+                    outpost_b_id: idB,
+                    wall_level: 1,
+                    health: 100,
+                    max_health: 100,
+                  } as any).select().single();
+                  if (!error && data) {
+                    setWallSegments(prev => [...prev, { id: data.id, user_id: user.id, outpost_a_id: idA, outpost_b_id: idB, wall_level: 1, health: 100, max_health: 100 }]);
+                    toast.success(`🧱 Wall built between ${op.name} and ${targetOutpost.name}!`);
+                  } else {
+                    toast.error('Failed to build wall segment');
+                  }
+                  setOutpostBuildQueue(prev => prev.filter(q => !(q.outpostId === op.id && q.targetOutpostId === targetOutpost.id)));
+                }, wallTimeSec * 1000);
+              };
 
               return (
                 <div className="space-y-2">
@@ -2288,7 +2356,7 @@ export default function WorldMap() {
                       <div className="flex items-center gap-2 text-[9px]">
                         <span className="text-primary font-semibold">Lv.{op.level}</span>
                         <span className="text-muted-foreground">⚔️{op.garrison_power} defense</span>
-                        {op.has_wall && <span className="text-accent-foreground bg-accent/20 px-1.5 rounded-full">🧱 Wall Lv.{op.wall_level}</span>}
+                        {existingWalls.length > 0 && <span className="text-accent-foreground bg-accent/20 px-1.5 rounded-full">🧱 {existingWalls.length} wall{existingWalls.length !== 1 ? 's' : ''}</span>}
                         {isSettlement && <span className="text-primary bg-primary/10 px-1.5 rounded-full">Settlement</span>}
                         {op.outpost_type === 'fort' && <span className="text-accent-foreground bg-accent/20 px-1.5 rounded-full">🏰 Fort</span>}
                       </div>
@@ -2301,7 +2369,7 @@ export default function WorldMap() {
                         : op.outpost_type === 'fort'
                           ? 'Your fort. Can garrison armies. Upgrade to Lv.10 to convert into a full settlement.'
                           : 'Your outpost. Upgrade to Lv.5 to convert into a fort, then Lv.10 for a settlement.')
-                      : `Enemy ${isSettlement ? 'settlement' : op.outpost_type === 'fort' ? 'fort' : 'outpost'}. Garrison strength: ⚔️${op.garrison_power}${op.has_wall ? ` with Lv.${op.wall_level} walls` : ''}`}
+                      : `Enemy ${isSettlement ? 'settlement' : op.outpost_type === 'fort' ? 'fort' : 'outpost'}. Garrison strength: ⚔️${op.garrison_power}`}
                   </p>
                   {isOwn && (
                     <div className="space-y-2">
@@ -2330,44 +2398,77 @@ export default function WorldMap() {
                           </motion.button>
                         )}
                       </div>
-                      {/* Border Wall */}
-                      <div className="bg-muted/30 rounded-lg p-2 space-y-1">
-                        <p className="text-[10px] font-semibold text-foreground">🧱 {op.has_wall ? `Reinforce Wall to Lv.${op.wall_level + 1}` : 'Build Wall Segment'}</p>
+
+                      {/* ── Build Wall Segments ── */}
+                      <div className="bg-muted/30 rounded-lg p-2 space-y-1.5">
+                        <p className="text-[10px] font-semibold text-foreground">🧱 Wall Connections</p>
                         <p className="text-[8px] text-muted-foreground">
-                          {op.has_wall
-                            ? `+30 garrison. Connected to ${wallConnections.length} walled outpost${wallConnections.length !== 1 ? 's' : ''}.`
-                            : nearbyOwnOutposts.length > 0
-                              ? `Walls connect to nearby outposts (within 50k). ${wallConnections.length > 0 ? `Will link to: ${wallConnections.map(c => c.name).join(', ')}` : `Build walls on nearby outposts to form a border.`}`
-                              : 'No nearby outposts to connect. Build outposts closer together first.'}
+                          Build walls between outposts to block enemy troops. Walls can be destroyed by siege weapons or espionage.
                         </p>
-                        {nearbyOwnOutposts.length > 0 && !op.has_wall && (
-                          <div className="flex flex-wrap gap-1">
-                            {nearbyOwnOutposts.slice(0, 4).map(n => (
-                              <span key={n.id} className={`text-[8px] px-1.5 py-0.5 rounded-full ${n.has_wall ? 'bg-accent/30 text-accent-foreground' : 'bg-muted text-muted-foreground'}`}>
-                                {n.has_wall ? '🧱' : '○'} {n.name}
-                              </span>
-                            ))}
+
+                        {/* Existing walls from this outpost */}
+                        {existingWalls.length > 0 && (
+                          <div className="space-y-1">
+                            <p className="text-[8px] text-muted-foreground font-semibold">Connected walls:</p>
+                            {existingWalls.map(ws => {
+                              const otherId = ws.outpost_a_id === op.id ? ws.outpost_b_id : ws.outpost_a_id;
+                              const otherOp = outposts.find(o => o.id === otherId);
+                              const healthPct = ws.health / ws.max_health;
+                              return (
+                                <div key={ws.id} className="flex items-center gap-1.5 bg-accent/10 rounded p-1.5">
+                                  <span className="text-[9px] text-foreground flex-1">🧱 → {otherOp?.name || 'Unknown'}</span>
+                                  <span className="text-[8px] text-muted-foreground">Lv.{ws.wall_level}</span>
+                                  <div className="w-10 h-1.5 bg-muted rounded-full overflow-hidden">
+                                    <div className="h-full rounded-full transition-all" style={{
+                                      width: `${healthPct * 100}%`,
+                                      backgroundColor: healthPct > 0.5 ? 'hsl(var(--primary))' : 'hsl(var(--destructive))',
+                                    }} />
+                                  </div>
+                                  <span className="text-[7px] text-muted-foreground">{ws.health}/{ws.max_health}</span>
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
-                        <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
-                          <span className={resources.gold >= wallCost.gold ? '' : 'text-destructive'}>🪙{wallCost.gold}</span>
-                          <span className={resources.wood >= wallCost.wood ? '' : 'text-destructive'}>🪵{wallCost.wood}</span>
-                          <span className={resources.stone >= wallCost.stone ? '' : 'text-destructive'}>🪨{wallCost.stone}</span>
-                          {wallCost.food > 0 && <span className={resources.food >= wallCost.food ? '' : 'text-destructive'}>🌾{wallCost.food}</span>}
-                        </div>
-                        {isBuildingWall ? (
-                          <div className="w-full bg-muted rounded-lg py-2 text-center space-y-1">
-                            <p className="font-display text-[11px] text-accent-foreground">⏳ Building wall...</p>
-                            <div className="bg-background rounded-full h-1.5 mx-2 overflow-hidden">
-                              <div className="h-full bg-accent rounded-full transition-all" style={{ width: `${Math.max(0, 100 - ((isBuildingWall.finishTime - Date.now()) / (wallTimeSec * 1000)) * 100)}%` }} />
+
+                        {/* Available connections */}
+                        {availableToConnect.length > 0 && (
+                          <div className="space-y-1">
+                            <p className="text-[8px] text-muted-foreground font-semibold">Build wall to:</p>
+                            <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground mb-1">
+                              <span className={resources.gold >= wallCostPerSegment.gold ? '' : 'text-destructive'}>🪙{wallCostPerSegment.gold}</span>
+                              <span className={resources.wood >= wallCostPerSegment.wood ? '' : 'text-destructive'}>🪵{wallCostPerSegment.wood}</span>
+                              <span className={resources.stone >= wallCostPerSegment.stone ? '' : 'text-destructive'}>🪨{wallCostPerSegment.stone}</span>
+                              <span className={resources.food >= wallCostPerSegment.food ? '' : 'text-destructive'}>🌾{wallCostPerSegment.food}</span>
+                              <span className="text-muted-foreground/60">per segment</span>
                             </div>
-                            <p className="text-[9px] text-muted-foreground">{Math.max(0, Math.ceil((isBuildingWall.finishTime - Date.now()) / 1000))}s remaining</p>
+                            {availableToConnect.slice(0, 5).map(target => {
+                              const dist = Math.hypot(target.x - op.x, target.y - op.y);
+                              const isBuilding = outpostBuildQueue.find(q => q.outpostId === op.id && q.targetOutpostId === target.id);
+                              return (
+                                <div key={target.id} className="flex items-center gap-1.5">
+                                  {isBuilding ? (
+                                    <div className="flex-1 bg-muted rounded py-1.5 px-2 text-center">
+                                      <p className="font-display text-[9px] text-accent-foreground">⏳ Building...</p>
+                                      <p className="text-[8px] text-muted-foreground">{Math.max(0, Math.ceil((isBuilding.finishTime - Date.now()) / 1000))}s</p>
+                                    </div>
+                                  ) : (
+                                    <motion.button whileTap={{ scale: 0.95 }}
+                                      onClick={() => handleBuildWallTo(target)}
+                                      disabled={!canAffordWallSeg}
+                                      className="flex-1 flex items-center justify-between bg-accent/20 hover:bg-accent/30 text-accent-foreground font-display text-[10px] py-1.5 px-2 rounded disabled:opacity-40 active:scale-95 transition-all">
+                                      <span>🧱 → {target.name}</span>
+                                      <span className="text-[8px] text-muted-foreground">{Math.round(dist / 1000)}k</span>
+                                    </motion.button>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
-                        ) : (
-                          <motion.button whileTap={{ scale: 0.95 }} onClick={handleWall} disabled={!canAffordWall || (!op.has_wall && nearbyOwnOutposts.length === 0)}
-                            className="w-full bg-accent text-accent-foreground font-display text-[11px] py-2 rounded-lg disabled:opacity-40 active:scale-95 transition-transform">
-                            🧱 {op.has_wall ? 'Reinforce Wall' : 'Build Wall'} ({Math.floor(wallTimeSec / 60)}:{(wallTimeSec % 60).toString().padStart(2, '0')})
-                          </motion.button>
+                        )}
+
+                        {availableToConnect.length === 0 && existingWalls.length === 0 && (
+                          <p className="text-[8px] text-muted-foreground italic">No nearby outposts within range. Build outposts closer together to connect walls.</p>
                         )}
                       </div>
                       {/* Convert to Fort at Lv.5+ */}

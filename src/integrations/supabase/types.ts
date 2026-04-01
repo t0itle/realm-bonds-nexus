@@ -1111,6 +1111,54 @@ export type Database = {
         }
         Relationships: []
       }
+      wall_segments: {
+        Row: {
+          created_at: string
+          health: number
+          id: string
+          max_health: number
+          outpost_a_id: string
+          outpost_b_id: string
+          user_id: string
+          wall_level: number
+        }
+        Insert: {
+          created_at?: string
+          health?: number
+          id?: string
+          max_health?: number
+          outpost_a_id: string
+          outpost_b_id: string
+          user_id: string
+          wall_level?: number
+        }
+        Update: {
+          created_at?: string
+          health?: number
+          id?: string
+          max_health?: number
+          outpost_a_id?: string
+          outpost_b_id?: string
+          user_id?: string
+          wall_level?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wall_segments_outpost_a_id_fkey"
+            columns: ["outpost_a_id"]
+            isOneToOne: false
+            referencedRelation: "outposts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wall_segments_outpost_b_id_fkey"
+            columns: ["outpost_b_id"]
+            isOneToOne: false
+            referencedRelation: "outposts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       world_events: {
         Row: {
           created_at: string
