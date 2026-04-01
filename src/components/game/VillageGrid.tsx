@@ -274,6 +274,27 @@ export default function VillageGrid() {
                         </span>
                       </div>
                     )}
+                    {/* Worker count badge */}
+                    {!upgrading && !isUnderConstruction && type && (() => {
+                      const maxW = getMaxWorkers(building!);
+                      if (maxW <= 0) return null;
+                      const assigned = workerAssignments[building!.id] || 0;
+                      return (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setWorkerBuilding(building);
+                          }}
+                          className={`absolute top-0.5 left-0.5 flex items-center gap-px px-1 py-px rounded-md text-[8px] font-bold transition-colors ${
+                            assigned > 0
+                              ? 'bg-primary/90 text-primary-foreground shadow-sm'
+                              : 'bg-muted/80 text-muted-foreground hover:bg-muted'
+                          }`}
+                        >
+                          👷{assigned}
+                        </button>
+                      );
+                    })()}
                     {/* Max level star badge */}
                     {isMaxLevel && !upgrading && !isUnderConstruction && (
                       <div className="absolute top-0.5 right-0.5 text-amber-400 text-[10px] drop-shadow-[0_0_4px_rgba(251,191,36,0.7)]">⭐</div>
