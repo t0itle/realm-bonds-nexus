@@ -2122,7 +2122,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       resources, steel, buildings, villageName, villageId, playerLevel, displayName, avatarUrl,
       setDisplayName, setVillageName, setAvatarUrl,
       demolishBuilding, buildAt, upgradeBuilding, canAfford, canAffordSteel, totalProduction, steelProduction, allVillages, loading,
-      army, trainingQueue, buildQueue, battleLogs, trainTroops, getBarracksLevel, totalArmyPower, addResources, addSteel, attackTarget, armyUpkeep,
+      army, trainingQueue, buildQueue, battleLogs, trainTroops, getBarracksLevel, totalArmyPower, addResources, addSteel, attackTarget, armyUpkeep, deployTroops, returnTroops,
       population, workerAssignments, assignWorker, unassignWorker, getMaxWorkers,
       rations, setRations, popTaxRate, setPopTaxRate, popFoodCost, popTaxIncome,
       isBuildingUpgrading, getBuildTime,
