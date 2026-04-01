@@ -131,9 +131,10 @@ export default function MilitaryPanel() {
               {trainingQueue.map((q, i) => {
                 const remaining = Math.max(0, Math.ceil((q.finishTime - Date.now()) / 1000));
                 const info = TROOP_INFO[q.type];
+                const skinDisplay = getTroopDisplay(q.type);
                 return (
                   <div key={i} className="flex items-center justify-between text-xs">
-                    <span className="text-foreground">{info.emoji} {info.name} x{q.count}</span>
+                    <span className="text-foreground">{skinDisplay.emoji} {skinDisplay.name} x{q.count}</span>
                     <span className="text-primary font-mono">{formatTime(remaining)}</span>
                   </div>
                 );
