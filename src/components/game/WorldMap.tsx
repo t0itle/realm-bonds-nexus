@@ -2583,7 +2583,7 @@ export default function WorldMap() {
                       {op.outpost_type === 'outpost' && (() => {
                         // Check if this outpost is near any river
                         const BRIDGE_RIVER_DIST = 8000;
-                        const nearRiver = allTerrain.some(t => {
+                        const nearRiver = visibleTerrain.some(t => {
                           if (t.type !== 'river' || !t.points) return false;
                           for (let i = 0; i < t.points.length - 1; i++) {
                             if (isPointNearRiverSegment(op.x, op.y, t.points[i], t.points[i + 1], (t.width || 3000) + BRIDGE_RIVER_DIST)) return true;
