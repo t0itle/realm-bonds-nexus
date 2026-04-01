@@ -9,6 +9,7 @@ import NPCInteractionPanel from './NPCInteractionPanel';
 import { useTroopSkins } from '@/hooks/useTroopSkins';
 import AttackConfigPanel from './AttackConfigPanel';
 import { FACTION_MAP_SPRITES } from './factionMapSprites';
+import { getMineSteelPerTickForChunk } from '@/lib/mineProduction';
 
 // Map sprites
 import mapCastleHostile from '@/assets/sprites/map-castle-hostile.png';
@@ -565,7 +566,7 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
       name: MINE_NAMES[Math.floor(rng() * MINE_NAMES.length)],
       x: worldBaseX + 15000 + rng() * (CHUNK_SIZE - 30000),
       y: worldBaseY + 15000 + rng() * (CHUNK_SIZE - 30000),
-      steelPerTick: 1 + Math.floor(rng() * 3 * difficultyMult),
+      steelPerTick: getMineSteelPerTickForChunk(chunkX, chunkY),
       power: Math.floor((30 + rng() * 80) * difficultyMult),
     });
   }
@@ -630,7 +631,7 @@ type SelectedItem =
   | null;
 
 export default function WorldMap() {
-  const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, resources, getWatchtowerLevel, getSpyGuildLevel, refreshVillages, myVillages, settlementType, deployTroops, returnTroops } = useGame();
+  const { allVillages, addResources, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, resources, getWatchtowerLevel, getSpyGuildLevel, refreshVillages, refreshMineOutposts, myVillages, settlementType, deployTroops, returnTroops } = useGame();
   const { user } = useAuth();
   const npcState = useNPCState();
   const { activeSkin, getBuildingSprite, getSpriteFilter } = useTroopSkins();
@@ -713,25 +714,6 @@ export default function WorldMap() {
     city: '🏰 City',
   };
 
-  // Steel production from captured mines
-  useEffect(() => {
-    if (capturedMines.size === 0) return;
-    const interval = setInterval(() => {
-      let totalSteel = 0;
-      // Find all captured mines across visible chunks and sum steel
-      for (const mineId of capturedMines) {
-        // Parse chunk coords from mine id
-        const parts = mineId.split('-');
-        const cx = parseInt(parts[1]), cy = parseInt(parts[2]);
-        const chunk = getChunk(cx, cy);
-        const mine = chunk.steelMines.find(m => m.id === mineId);
-        if (mine) totalSteel += mine.steelPerTick;
-      }
-      if (totalSteel > 0) addSteel(totalSteel);
-    }, 10000); // every 10s
-    return () => clearInterval(interval);
-  }, [capturedMines, addSteel]);
-
   // Load outposts and outpost build queue from database on mount
   useEffect(() => {
     if (!user) return;
@@ -739,7 +721,7 @@ export default function WorldMap() {
       if (data && data.length > 0) {
         setOutposts(data.map((o: any) => ({ id: o.id, x: o.x, y: o.y, name: o.name, user_id: o.user_id, level: o.level || 1, garrison_power: o.garrison_power || 0, has_wall: o.has_wall || false, wall_level: o.wall_level || 0, territory_radius: o.territory_radius || 15000, outpost_type: o.outpost_type || 'outpost' })));
         // Initialize captured mines from outposts with type 'mine'
-        const mineOutposts = data.filter((o: any) => o.outpost_type === 'mine');
+        const mineOutposts = data.filter((o: any) => o.outpost_type === 'mine' && o.user_id === user.id);
         if (mineOutposts.length > 0) {
           setCapturedMines(new Set(mineOutposts.map((o: any) => o.name)));
         }
@@ -2097,6 +2079,7 @@ export default function WorldMap() {
                                   }).select().single();
                                   if (opData) {
                                     setOutposts(prev => [...prev, { id: opData.id, x: mineData.x, y: mineData.y, name: mineData.id, user_id: user.id, level: 1, garrison_power: 0, has_wall: false, wall_level: 0, territory_radius: 5000, outpost_type: 'mine' }]);
+                                    void refreshMineOutposts();
                                   }
                                 }
                                 toast.success(`⛏️ Mining outpost built at ${mineData.name}! Producing steel.`);
