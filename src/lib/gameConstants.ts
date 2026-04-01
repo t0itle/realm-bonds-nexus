@@ -190,7 +190,8 @@ export function getMaxRange(army: Army, watchtowerLevel: number = 0): number {
   return MAX_MARCH_RANGE + scoutCount * SCOUT_RANGE_BONUS + watchtowerLevel * WATCHTOWER_RANGE_BONUS;
 }
 
-export const SETTLEMENT_UPGRADES = {
-  village: { next: 'town' as const, label: 'Town', thRequired: 10, cost: { gold: 15000, wood: 12000, stone: 10000, food: 8000 }, steelCost: 50, buildTimeSec: 7200 },
-  town: { next: 'city' as const, label: 'City', thRequired: 10, cost: { gold: 80000, wood: 75000, stone: 70000, food: 60000 }, steelCost: 200, buildTimeSec: 86400 },
-} as const;
+export const SETTLEMENT_UPGRADES: Record<string, { next: string; label: string; thRequired: number; cost: Resources; steelCost: number; buildTimeSec: number } | null> = {
+  village: { next: 'town', label: 'Town', thRequired: 10, cost: { gold: 15000, wood: 12000, stone: 10000, food: 8000 }, steelCost: 50, buildTimeSec: 7200 },
+  town: { next: 'city', label: 'City', thRequired: 10, cost: { gold: 80000, wood: 75000, stone: 70000, food: 60000 }, steelCost: 200, buildTimeSec: 86400 },
+  city: null, // max
+};
