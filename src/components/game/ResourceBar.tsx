@@ -107,7 +107,7 @@ export default function ResourceBar() {
             <span className="font-display text-[11px] text-foreground flex items-center gap-2.5">
               {myVillages.find(v => v.id === villageId)?.settlement_type === 'city' ? '🏙️' : myVillages.find(v => v.id === villageId)?.settlement_type === 'town' ? '🏘️' : '🏠'} {villageName}
             </span>
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-foreground/70">
               {myVillages.length} settlements • Lv.{myVillages.length} ▾
             </span>
           </button>
