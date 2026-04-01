@@ -90,11 +90,11 @@ export default function MilitaryPanel() {
       {/* Tab switcher */}
       <div className="flex gap-2">
         <button onClick={() => setTab('troops')}
-          className={`flex-1 font-display text-sm py-2.5 rounded-lg transition-colors ${tab === 'troops' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+          className={`flex-1 font-display text-sm py-2.5 rounded-lg transition-colors ${tab === 'troops' ? 'wood-btn-primary' : 'bg-muted text-muted-foreground'}`}>
           ⚔️ Troops
         </button>
         <button onClick={() => setTab('espionage')}
-          className={`flex-1 font-display text-sm py-2.5 rounded-lg transition-colors relative ${tab === 'espionage' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+          className={`flex-1 font-display text-sm py-2.5 rounded-lg transition-colors relative ${tab === 'espionage' ? 'wood-btn-primary' : 'bg-muted text-muted-foreground'}`}>
           🕵️ Espionage
           {activeSpyMissions.length > 0 && (
             <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-sm font-bold rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5">
@@ -104,7 +104,7 @@ export default function MilitaryPanel() {
         </button>
         {apothecaryLevel > 0 && (
           <button onClick={() => setTab('apothecary')}
-            className={`flex-1 font-display text-sm py-2.5 rounded-lg transition-colors relative ${tab === 'apothecary' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+            className={`flex-1 font-display text-sm py-2.5 rounded-lg transition-colors relative ${tab === 'apothecary' ? 'wood-btn-primary' : 'bg-muted text-muted-foreground'}`}>
             ⚗️ Apothecary
             {totalInjured > 0 && (
               <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-sm font-bold rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5">
@@ -114,7 +114,7 @@ export default function MilitaryPanel() {
           </button>
         )}
         <button onClick={() => setTab('warlog')}
-          className={`flex-1 font-display text-sm py-2.5 rounded-lg transition-colors ${tab === 'warlog' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+          className={`flex-1 font-display text-sm py-2.5 rounded-lg transition-colors ${tab === 'warlog' ? 'wood-btn-primary' : 'bg-muted text-muted-foreground'}`}>
           📜 War Log
         </button>
       </div>
@@ -204,7 +204,7 @@ export default function MilitaryPanel() {
                           onClick={() => { if (trainTroops(type, count)) setTrainCount(p => ({ ...p, [type]: 1 })); }}
                           disabled={!affordable}
                           className={`font-display text-sm py-2 px-4 rounded-lg whitespace-nowrap ${
-                            affordable ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'
+                            affordable ? 'wood-btn-primary glow-gold-sm' : 'bg-muted text-muted-foreground'
                           }`}>
                           Train
                         </motion.button>
@@ -550,7 +550,7 @@ function EspionagePanel({
           <motion.button whileTap={{ scale: 0.95 }}
             onClick={() => { if (trainSpies(spyTrainCount)) setSpyTrainCount(1); }}
             disabled={!canTrainSpy}
-            className={`font-display text-sm py-2 px-4 rounded-lg ${canTrainSpy ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
+            className={`font-display text-sm py-2 px-4 rounded-lg ${canTrainSpy ? 'wood-btn-primary glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
             Recruit
           </motion.button>
         </div>
@@ -675,7 +675,7 @@ function EspionagePanel({
               setSelectedTarget('');
             }}
             className={`w-full font-display text-[11px] py-3 rounded-lg ${
-              canSend ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'
+              canSend ? 'wood-btn-primary glow-gold-sm' : 'bg-muted text-muted-foreground'
             }`}>
             {missionInfo.emoji} Send {missionInfo.name} Mission (<ResourceIcon type="gold" size={10} />{missionInfo.goldCost})
           </motion.button>
@@ -818,7 +818,7 @@ function ApothecaryPanel({ apothecaryLevel, injuredTroops, poisons, healTroops, 
                   });
                 }}
                 disabled={!allAffordable}
-                className={`font-display text-sm py-2 px-3 rounded-lg flex items-center gap-2 ${allAffordable ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
+                className={`font-display text-sm py-2 px-3 rounded-lg flex items-center gap-2 ${allAffordable ? 'wood-btn-primary glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
                 Heal All ({totalInjured}) · <ResourceIcon type="gold" size={9} />{totalGold} <ResourceIcon type="food" size={9} />{totalFood}
               </motion.button>
             );
@@ -862,7 +862,7 @@ function ApothecaryPanel({ apothecaryLevel, injuredTroops, poisons, healTroops, 
                     <motion.button whileTap={{ scale: 0.95 }}
                       onClick={() => { if (healTroops(type, count)) setHealCounts(p => ({ ...p, [type]: 1 })); }}
                       disabled={!affordable}
-                      className={`font-display text-sm py-2 px-3 rounded-lg ${affordable ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
+                      className={`font-display text-sm py-2 px-3 rounded-lg ${affordable ? 'wood-btn-primary glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
                       Heal
                     </motion.button>
                   </div>
@@ -900,7 +900,7 @@ function ApothecaryPanel({ apothecaryLevel, injuredTroops, poisons, healTroops, 
             <motion.button whileTap={{ scale: 0.95 }}
               onClick={() => { if (craftPoison(poisonCount)) setPoisonCount(1); }}
               disabled={!canAfford({ gold: 60 * poisonCount, wood: 0, stone: 0, food: 30 * poisonCount })}
-              className={`font-display text-sm py-2 px-3 rounded-lg ${canAfford({ gold: 60 * poisonCount, wood: 0, stone: 0, food: 30 * poisonCount }) ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
+              className={`font-display text-sm py-2 px-3 rounded-lg ${canAfford({ gold: 60 * poisonCount, wood: 0, stone: 0, food: 30 * poisonCount }) ? 'wood-btn-primary glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
               Craft
             </motion.button>
           </div>

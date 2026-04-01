@@ -390,7 +390,7 @@ export default function GameLayout() {
                 A portion of your resources goes to your lord. Pay the ransom or attempt a rebellion from the Military → Troops tab to break free.
               </p>
               <button onClick={() => setVassalPopup(false)}
-                className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-display text-sm">
+                className="w-full py-2.5 rounded-lg wood-btn-primary font-display text-sm">
                 Close
               </button>
             </motion.div>
