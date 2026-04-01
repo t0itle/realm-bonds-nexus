@@ -1069,11 +1069,12 @@ const RiverRenderer = React.memo(function RiverRenderer({
 });
 
 const MarchPathRenderer = React.memo(function MarchPathRenderer({
-  march, worldToScreen, cameraPpu, displayName, soldierSprite,
+  march, worldToScreen, cameraPpu, displayName, soldierSprite, containerSize,
 }: {
   march: { id: string; waypoints: { x: number; y: number }[]; arrivalTime: number; startTime: number; targetName: string; };
   worldToScreen: (wx: number, wy: number) => { sx: number; sy: number };
   cameraPpu: number; displayName: string; soldierSprite: string;
+  containerSize: { w: number; h: number };
 }) {
   const now = Date.now();
   const totalDuration = march.arrivalTime - march.startTime;
@@ -1081,13 +1082,15 @@ const MarchPathRenderer = React.memo(function MarchPathRenderer({
   const progress = Math.min(1, Math.max(0, elapsed / totalDuration));
   const wp = march.waypoints;
   const currentPos = interpolateAlongPath(wp, progress);
+  const screenWaypoints = useMemo(() => wp.map(p => worldToScreen(p.x, p.y)), [wp, worldToScreen]);
+  const polylinePoints = useMemo(() => screenWaypoints.map(p => `${p.sx},${p.sy}`).join(' '), [screenWaypoints]);
   const { sx, sy } = worldToScreen(currentPos.x, currentPos.y);
+  // Skip rendering if the current march position is off-screen
+  if (sx < -200 || sx > containerSize.w + 200 || sy < -200 || sy > containerSize.h + 200) return null;
   const aheadPos = interpolateAlongPath(wp, Math.min(1, progress + 0.05));
   const facingLeft = aheadPos.x < currentPos.x;
   const marchSize = Math.max(16, Math.min(36, cameraPpu * 5000));
   const remainingSec = Math.max(0, Math.ceil((march.arrivalTime - now) / 1000));
-  const screenWaypoints = useMemo(() => wp.map(p => worldToScreen(p.x, p.y)), [wp, worldToScreen]);
-  const polylinePoints = useMemo(() => screenWaypoints.map(p => `${p.sx},${p.sy}`).join(' '), [screenWaypoints]);
   return (
     <div key={march.id}>
       <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible', zIndex: 35 }}>
@@ -2511,6 +2514,7 @@ export default function WorldMap() {
             cameraPpu={camera.ppu}
             displayName={displayName}
             soldierSprite={FACTION_SOLDIER_SPRITES[activeSkin.id] || FACTION_SOLDIER_SPRITES.default || mapSoldier}
+            containerSize={containerSize}
           />
         ))}
 
