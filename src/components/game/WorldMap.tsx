@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/hooks/useGameState';
 import { calcMarchTime, getMaxRange, BUILDING_INFO, getSlowestTroopSpeed, WATCHTOWER_RANGE_BONUS } from '@/lib/gameConstants';
@@ -1009,6 +1009,111 @@ type SelectedItem =
   | { kind: 'empty'; data: { x: number; y: number } }
   | null;
 
+// ── Memoized sub-components to avoid rebuilding SVG strings every frame ──
+
+const RiverRenderer = React.memo(function RiverRenderer({
+  t, chunkKey, ti, worldToScreen, containerSize, cameraPpu,
+}: {
+  t: TerrainFeature; chunkKey: string; ti: number;
+  worldToScreen: (wx: number, wy: number) => { sx: number; sy: number };
+  containerSize: { w: number; h: number }; cameraPpu: number;
+}) {
+  if (!t.points || t.points.length < 2) return null;
+  const screenPoints = t.points.map(p => worldToScreen(p.x, p.y));
+  const anyVisible = screenPoints.some(p => p.sx > -200 && p.sx < containerSize.w + 200 && p.sy > -200 && p.sy < containerSize.h + 200);
+  if (!anyVisible) return null;
+  const strokeW = Math.max(2, t.width * cameraPpu);
+  let d = `M ${screenPoints[0].sx} ${screenPoints[0].sy}`;
+  for (let i = 1; i < screenPoints.length; i++) {
+    const prev = screenPoints[i - 1];
+    const cur = screenPoints[i];
+    const cpx = (prev.sx + cur.sx) / 2 + (i % 2 === 0 ? 10 : -10);
+    const cpy = (prev.sy + cur.sy) / 2;
+    d += ` Q ${cpx} ${cpy} ${cur.sx} ${cur.sy}`;
+  }
+  const labelSize = Math.max(8, Math.min(12, strokeW * 2));
+  const midIdx = Math.floor(screenPoints.length / 2);
+  const midPt = screenPoints[midIdx];
+  return (
+    <div key={`river-${chunkKey}-${ti}`} className="absolute inset-0 pointer-events-none" style={{ overflow: 'visible' }}>
+      <svg className="absolute inset-0 w-full h-full" style={{ overflow: 'visible' }}>
+        <path d={d} fill="none" stroke="hsl(200 70% 50% / 0.15)" strokeWidth={strokeW * 3} strokeLinecap="round" strokeLinejoin="round" />
+        <path d={d} fill="none" stroke="hsl(205 75% 45% / 0.45)" strokeWidth={strokeW} strokeLinecap="round" strokeLinejoin="round" />
+        <path d={d} fill="none" stroke="hsl(195 80% 65% / 0.2)" strokeWidth={strokeW * 0.4} strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      {strokeW > 3 && (
+        <span className="absolute font-display text-sky-300/40 whitespace-nowrap" style={{ left: midPt.sx, top: midPt.sy - strokeW - 4, fontSize: labelSize, transform: 'translateX(-50%)' }}>
+          {t.name}
+        </span>
+      )}
+      {t.bridgeAt?.map((bp, bi) => {
+        const { sx: bsx, sy: bsy } = worldToScreen(bp.x, bp.y);
+        const bridgeW = Math.max(12, strokeW * 2.5);
+        if (bridgeW < 8) return null;
+        return (
+          <div key={`bridge-${bi}`} className="absolute flex flex-col items-center" style={{ left: bsx, top: bsy, transform: 'translate(-50%, -50%)', zIndex: 5 }}>
+            <div style={{
+              width: bridgeW,
+              height: bridgeW * 0.5,
+              background: 'linear-gradient(180deg, hsl(30 40% 50% / 0.7), hsl(25 35% 35% / 0.6))',
+              borderRadius: `${bridgeW * 0.5}px ${bridgeW * 0.5}px 2px 2px`,
+              border: '1px solid hsl(30 30% 60% / 0.4)',
+              boxShadow: '0 2px 6px hsl(0 0% 0% / 0.3)',
+            }} />
+            {bridgeW > 15 && <span style={{ fontSize: 7 }} className="text-amber-200/50 mt-0.5">🌉</span>}
+          </div>
+        );
+      })}
+    </div>
+  );
+});
+
+const MarchPathRenderer = React.memo(function MarchPathRenderer({
+  march, worldToScreen, cameraPpu, displayName, soldierSprite,
+}: {
+  march: { id: string; waypoints: { x: number; y: number }[]; arrivalTime: number; startTime: number; targetName: string; };
+  worldToScreen: (wx: number, wy: number) => { sx: number; sy: number };
+  cameraPpu: number; displayName: string; soldierSprite: string;
+}) {
+  const now = Date.now();
+  const totalDuration = march.arrivalTime - march.startTime;
+  const elapsed = now - march.startTime;
+  const progress = Math.min(1, Math.max(0, elapsed / totalDuration));
+  const wp = march.waypoints;
+  const currentPos = interpolateAlongPath(wp, progress);
+  const { sx, sy } = worldToScreen(currentPos.x, currentPos.y);
+  const aheadPos = interpolateAlongPath(wp, Math.min(1, progress + 0.05));
+  const facingLeft = aheadPos.x < currentPos.x;
+  const marchSize = Math.max(16, Math.min(36, cameraPpu * 5000));
+  const remainingSec = Math.max(0, Math.ceil((march.arrivalTime - now) / 1000));
+  const screenWaypoints = useMemo(() => wp.map(p => worldToScreen(p.x, p.y)), [wp, worldToScreen]);
+  const polylinePoints = useMemo(() => screenWaypoints.map(p => `${p.sx},${p.sy}`).join(' '), [screenWaypoints]);
+  return (
+    <div key={march.id}>
+      <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible', zIndex: 35 }}>
+        <polyline points={polylinePoints}
+          fill="none" stroke="hsl(var(--primary) / 0.4)" strokeWidth={2} strokeDasharray="6 4" />
+      </svg>
+      <div className="absolute z-40 flex flex-col items-center pointer-events-none"
+        style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
+        <img src={soldierSprite} alt="Army" className="drop-shadow-lg"
+          style={{ width: marchSize, height: marchSize, objectFit: 'contain', transform: facingLeft ? 'scaleX(-1)' : undefined }} loading="lazy" />
+        <div className="bg-background/90 rounded px-1.5 py-0.5 text-center mt-0.5 border border-primary/30 shadow-md">
+          <p className="text-foreground font-display whitespace-nowrap font-bold" style={{ fontSize: Math.max(7, marchSize / 4) }}>
+            {displayName}
+          </p>
+          <p className="text-primary font-display whitespace-nowrap" style={{ fontSize: Math.max(6, marchSize / 5) }}>
+            ⚔️ Army → {march.targetName}
+          </p>
+          <p className="text-muted-foreground" style={{ fontSize: Math.max(6, marchSize / 5) }}>
+            {remainingSec}s
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+});
+
 export default function WorldMap() {
   const { allVillages, addResources, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, activeSpyMissions, resources, getWatchtowerLevel, getSpyGuildLevel, refreshVillages, refreshMineOutposts, myVillages, settlementType, deployTroops, returnTroops } = useGame();
   const { user } = useAuth();
@@ -1865,13 +1970,11 @@ export default function WorldMap() {
   }, [tradeContracts, addResources]);
 
   const power = totalArmyPower();
-  const iconSize = Math.max(28, Math.min(56, camera.ppu * 12000));
-  const fontSize = Math.max(9, Math.min(13, camera.ppu * 4000));
-  const eventSize = Math.max(22, Math.min(44, camera.ppu * 9000));
+  const iconSize = useMemo(() => Math.max(28, Math.min(56, camera.ppu * 12000)), [camera.ppu]);
+  const fontSize = useMemo(() => Math.max(9, Math.min(13, camera.ppu * 4000)), [camera.ppu]);
+  const eventSize = useMemo(() => Math.max(22, Math.min(44, camera.ppu * 9000)), [camera.ppu]);
 
   // Collect all visible realms and events from chunks
-  const visibleRealms: (ProceduralRealm & { biome: string })[] = [];
-  const visibleEvents: ProceduralEvent[] = [];
   const allRealmNames = useMemo(() => {
     const map = new Map<string, string>();
     for (const chunk of visibleChunks) {
@@ -1881,19 +1984,25 @@ export default function WorldMap() {
     }
     return map;
   }, [visibleChunks]);
-  for (const chunk of visibleChunks) {
-    for (const realm of chunk.data.realms) {
-      if (isVisible(realm.x, realm.y, 100)) visibleRealms.push({ ...realm, biome: chunk.data.regionBiome });
+
+  const { visibleRealms, visibleEvents } = useMemo(() => {
+    const realms: (ProceduralRealm & { biome: string })[] = [];
+    const events: ProceduralEvent[] = [];
+    for (const chunk of visibleChunks) {
+      for (const realm of chunk.data.realms) {
+        if (isVisible(realm.x, realm.y, 100)) realms.push({ ...realm, biome: chunk.data.regionBiome });
+      }
+      for (const event of chunk.data.events) {
+        if (!claimedEvents.has(event.id) && isVisible(event.x, event.y, 60)) events.push(event);
+      }
     }
-    for (const event of chunk.data.events) {
-      if (!claimedEvents.has(event.id) && isVisible(event.x, event.y, 60)) visibleEvents.push(event);
-    }
-  }
+    return { visibleRealms: realms, visibleEvents: events };
+  }, [visibleChunks, isVisible, claimedEvents]);
 
   // Cap rendered items when very zoomed out
   const maxItems = 30;
-  const renderRealms = visibleRealms.slice(0, maxItems);
-  const renderEvents = visibleEvents.slice(0, maxItems);
+  const renderRealms = useMemo(() => visibleRealms.slice(0, maxItems), [visibleRealms]);
+  const renderEvents = useMemo(() => visibleEvents.slice(0, maxItems), [visibleEvents]);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -2062,59 +2171,16 @@ export default function WorldMap() {
             );
           }
           if (t.type === 'river' && t.points && t.points.length > 1) {
-            const screenPoints = t.points.map(p => worldToScreen(p.x, p.y));
-            // Check if any point is visible
-            const anyVisible = screenPoints.some(p => p.sx > -200 && p.sx < containerSize.w + 200 && p.sy > -200 && p.sy < containerSize.h + 200);
-            if (!anyVisible) return null;
-            const strokeW = Math.max(2, t.width * camera.ppu);
-            // Build SVG path
-            let d = `M ${screenPoints[0].sx} ${screenPoints[0].sy}`;
-            for (let i = 1; i < screenPoints.length; i++) {
-              const prev = screenPoints[i - 1];
-              const cur = screenPoints[i];
-              const cpx = (prev.sx + cur.sx) / 2 + (i % 2 === 0 ? 10 : -10);
-              const cpy = (prev.sy + cur.sy) / 2;
-              d += ` Q ${cpx} ${cpy} ${cur.sx} ${cur.sy}`;
-            }
-            const labelSize = Math.max(8, Math.min(12, strokeW * 2));
-            const midIdx = Math.floor(screenPoints.length / 2);
-            const midPt = screenPoints[midIdx];
             return (
-              <div key={`river-${chunk.cx}-${chunk.cy}-${ti}`} className="absolute inset-0 pointer-events-none" style={{ overflow: 'visible' }}>
-                <svg className="absolute inset-0 w-full h-full" style={{ overflow: 'visible' }}>
-                  {/* River glow */}
-                  <path d={d} fill="none" stroke="hsl(200 70% 50% / 0.15)" strokeWidth={strokeW * 3} strokeLinecap="round" strokeLinejoin="round" />
-                  {/* River body */}
-                  <path d={d} fill="none" stroke="hsl(205 75% 45% / 0.45)" strokeWidth={strokeW} strokeLinecap="round" strokeLinejoin="round" />
-                  {/* River highlight */}
-                  <path d={d} fill="none" stroke="hsl(195 80% 65% / 0.2)" strokeWidth={strokeW * 0.4} strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                {/* River name */}
-                {strokeW > 3 && (
-                  <span className="absolute font-display text-sky-300/40 whitespace-nowrap" style={{ left: midPt.sx, top: midPt.sy - strokeW - 4, fontSize: labelSize, transform: 'translateX(-50%)' }}>
-                    {t.name}
-                  </span>
-                )}
-                {/* Bridges */}
-                {t.bridgeAt?.map((bp, bi) => {
-                  const { sx: bsx, sy: bsy } = worldToScreen(bp.x, bp.y);
-                  const bridgeW = Math.max(12, strokeW * 2.5);
-                  if (bridgeW < 8) return null;
-                  return (
-                    <div key={`bridge-${bi}`} className="absolute flex flex-col items-center" style={{ left: bsx, top: bsy, transform: 'translate(-50%, -50%)', zIndex: 5 }}>
-                      <div style={{
-                        width: bridgeW,
-                        height: bridgeW * 0.5,
-                        background: 'linear-gradient(180deg, hsl(30 40% 50% / 0.7), hsl(25 35% 35% / 0.6))',
-                        borderRadius: `${bridgeW * 0.5}px ${bridgeW * 0.5}px 2px 2px`,
-                        border: '1px solid hsl(30 30% 60% / 0.4)',
-                        boxShadow: '0 2px 6px hsl(0 0% 0% / 0.3)',
-                      }} />
-                      {bridgeW > 15 && <span style={{ fontSize: 7 }} className="text-amber-200/50 mt-0.5">🌉</span>}
-                    </div>
-                  );
-                })}
-              </div>
+              <RiverRenderer
+                key={`river-${chunk.cx}-${chunk.cy}-${ti}`}
+                t={t}
+                chunkKey={`${chunk.cx}-${chunk.cy}`}
+                ti={ti}
+                worldToScreen={worldToScreen}
+                containerSize={containerSize}
+                cameraPpu={camera.ppu}
+              />
             );
           }
           return null;
@@ -2392,49 +2458,16 @@ export default function WorldMap() {
         })()}
 
         {/* ── Animated March Sprites with waypoint paths ── */}
-        {marches.map(march => {
-          const now = Date.now();
-          const totalDuration = march.arrivalTime - march.startTime;
-          const elapsed = now - march.startTime;
-          const progress = Math.min(1, Math.max(0, elapsed / totalDuration));
-          const wp = march.waypoints;
-          const currentPos = interpolateAlongPath(wp, progress);
-          const { sx, sy } = worldToScreen(currentPos.x, currentPos.y);
-          // Determine facing direction from next waypoint
-          const aheadPos = interpolateAlongPath(wp, Math.min(1, progress + 0.05));
-          const facingLeft = aheadPos.x < currentPos.x;
-          const marchSize = Math.max(16, Math.min(36, camera.ppu * 5000));
-          const remainingSec = Math.max(0, Math.ceil((march.arrivalTime - now) / 1000));
-          // Build polyline path from waypoints
-          const screenWaypoints = wp.map(p => worldToScreen(p.x, p.y));
-          const polylinePoints = screenWaypoints.map(p => `${p.sx},${p.sy}`).join(' ');
-          return (
-            <div key={march.id}>
-              {/* Dotted march path polyline */}
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible', zIndex: 35 }}>
-                <polyline points={polylinePoints}
-                  fill="none" stroke="hsl(var(--primary) / 0.4)" strokeWidth={2} strokeDasharray="6 4" />
-              </svg>
-              {/* Moving soldier sprite */}
-              <div className="absolute z-40 flex flex-col items-center pointer-events-none"
-                style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
-                <img src={FACTION_SOLDIER_SPRITES[activeSkin.id] || FACTION_SOLDIER_SPRITES.default || mapSoldier} alt="Army" className="drop-shadow-lg"
-                  style={{ width: marchSize, height: marchSize, objectFit: 'contain', transform: facingLeft ? 'scaleX(-1)' : undefined }} loading="lazy" />
-                <div className="bg-background/90 rounded px-1.5 py-0.5 text-center mt-0.5 border border-primary/30 shadow-md">
-                  <p className="text-foreground font-display whitespace-nowrap font-bold" style={{ fontSize: Math.max(7, marchSize / 4) }}>
-                    {displayName}
-                  </p>
-                  <p className="text-primary font-display whitespace-nowrap" style={{ fontSize: Math.max(6, marchSize / 5) }}>
-                    ⚔️ Army → {march.targetName}
-                  </p>
-                  <p className="text-muted-foreground" style={{ fontSize: Math.max(6, marchSize / 5) }}>
-                    {remainingSec}s
-                  </p>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        {marches.map(march => (
+          <MarchPathRenderer
+            key={march.id}
+            march={march}
+            worldToScreen={worldToScreen}
+            cameraPpu={camera.ppu}
+            displayName={displayName}
+            soldierSprite={FACTION_SOLDIER_SPRITES[activeSkin.id] || FACTION_SOLDIER_SPRITES.default || mapSoldier}
+          />
+        ))}
 
         {/* ── Other Players' Marches (live from DB) ── */}
         {otherMarches.map(march => {
