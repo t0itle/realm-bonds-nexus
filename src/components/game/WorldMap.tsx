@@ -1294,6 +1294,16 @@ export default function WorldMap() {
           const m = payload.new as any;
           if (m.user_id !== user.id) {
             setOtherMarches(prev => [...prev, m]);
+            // Boss march warning for targeted player
+            if (m.user_id === '00000000-0000-0000-0000-000000000000' && m.target_user_id === user.id) {
+              const bossWarnings: Record<string, string> = {
+                "🏚️ Necromancer's Tower": "☠️ An army of the dead has been seen marching your way...",
+                "🌀 Demonic Portal": "🌀 A horde of otherworldly horrors has been spotted stampeding in your direction...",
+                "🧛 Dreadkeep": "🧛 A pale host has been seen parading under the moonlight toward your city...",
+              };
+              const warning = bossWarnings[m.player_name] || `⚠️ ${m.player_name} is sending an army toward ${m.target_name}!`;
+              toast.warning(warning, { duration: 15000 });
+            }
           }
         } else if (payload.eventType === 'DELETE') {
           setOtherMarches(prev => prev.filter(m => m.id !== (payload.old as any).id));
