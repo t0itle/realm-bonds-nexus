@@ -1,59 +1,63 @@
 
 
-# Polish: Replace Troop Emojis with Pixel Art Sprites
+# Resource Budget Tooltips (EU4-style breakdown)
 
-The uploaded sprites (Wooden Armor, Leather set, Iron set, Wizard Hat) map naturally to existing troop tiers as visual upgrades — no new mechanics, just replacing emojis with pixel art icons.
+## What we're building
+Each resource in the ResourceBar gets a tooltip showing a line-by-line breakdown of income sources and costs, so the player knows exactly why they're losing 12 food/min.
 
-## Sprite-to-Troop Mapping
-
+Example tooltip for Food:
 ```text
-Militia    → Wooden_Armor.png   (basic gear)
-Archer     → Leather_Armor.png  (light armor)
-Scout      → Leather_Boot.png   (speed-focused)
-Knight     → Iron_Armor.png     (heavy armor)
-Cavalry    → Iron_Helmet.png    (mounted warrior)
-Siege      → Iron_Boot.png      (heavy unit)
-Special    → Wizard_Hat.png     (spies / spy guild icon)
+Food Budget
+──────────────
+🌾 Farms:        +14/min
+🏛️ Alliance Tax: -1/min
+⚔️ Army Upkeep:  -8/min
+🍞 Pop Rations:  -17/min
+──────────────
+Net:             -12/min
 ```
 
-## Changes
+## Data needed
+The breakdown components already exist in `useProduction` but aren't exposed individually. We need:
+- **Building production** per resource type (from `grossProduction`)
+- **Alliance tax** deduction (fraction of gross)
+- **Army food/gold upkeep** (from `armyUpkeep()`)
+- **Population food cost** (`popFoodCost`) — already exposed
+- **Population tax income** (`popTaxIncome`) — already exposed
 
-**1. Add sprites to project**
-- Copy all 8 PNGs into `src/assets/sprites/troops/`
+## Implementation
 
-**2. Create troop sprite map** (`src/components/game/troopSprites.ts`)
-- Import all 8 sprites, export a `TROOP_SPRITES: Record<TroopType, string>` lookup
+### 1. Expose `grossProduction` from game context
+- **`src/hooks/useGameState.tsx`**: Add `grossProduction: Resources` to `GameContextType` interface and include it in the Provider value (it's already computed, just not passed through)
 
-**3. Create `TroopIcon` component** (`src/components/game/TroopIcon.tsx`)
-- Similar to existing `ResourceIcon` — takes a `TroopType`, renders the sprite at a given size
-- Falls back to emoji if sprite missing
+### 2. Compute per-resource breakdown in ResourceBar
+- **`src/components/game/ResourceBar.tsx`**: Pull `grossProduction`, `armyUpkeep`, `popFoodCost`, `popTaxIncome`, `rations`, `army` from `useGame()`
+- Import `RATIONS_INFO` and `TROOP_INFO` from gameConstants
+- For each resource, build a breakdown array of `{ label, icon, value }` entries:
+  - **Gold**: Building production, alliance tax, army gold upkeep, pop tax income
+  - **Wood**: Building production, alliance tax
+  - **Stone**: Building production, alliance tax
+  - **Food**: Building production, alliance tax, army food upkeep, population rations cost
+- Only show non-zero line items
 
-**4. Update `useTroopSkins.tsx`**
-- Add a `sprite` field alongside existing `emoji` in `getTroopDisplay()` return
-- Faction skins keep their own emoji fallbacks; default faction uses the new sprites
+### 3. Wrap each resource item in a Tooltip
+- **`src/components/game/ResourceBar.tsx`**: Wrap each resource's `motion.div` in a `Tooltip` component
+- Tooltip content renders the breakdown as a compact table with:
+  - Resource name as header
+  - Each source/drain on its own line: icon + label + signed value
+  - Green for positive, red for negative values
+  - Separator line, then bold **Net** total
+- Use `text-[10px]` for compact display, `tabular-nums` for alignment
 
-**5. Replace emoji usage in existing panels**
-- `MilitaryPanel.tsx` — troop list, army overview, training UI
-- `VillageGrid.tsx` — army section troop counts
-- `StatSheet.tsx` — upkeep display
-- `AttackConfigPanel.tsx` — troop selection
-- `AllyDefenseModal.tsx` — troop commitment
-- `IncomingAttackAlert.tsx` — threat display
-- Use `Wizard_Hat.png` for the spy guild building icon and spy-related UI in `MilitaryPanel`
+### 4. Also enhance Steel tooltip
+- Show building steel production + mine steel production as separate lines
 
-**6. Use `Leather_Helmet.png` as worker badge icon**
-- Replace the `👷` emoji in the worker count badge on `VillageGrid.tsx` tiles
+## Technical details
+- `TooltipProvider` with `delayDuration={200}` already wraps the happiness indicator; we'll wrap the entire resource row in one `TooltipProvider`
+- Each tooltip uses `side="bottom"` to avoid clipping at the top of the screen
+- No new hooks or state — all data is already computed, just needs plumbing
 
-### Files Changed
-| File | Action |
-|------|--------|
-| `src/assets/sprites/troops/*.png` | Add 8 sprites |
-| `src/components/game/troopSprites.ts` | New — sprite map |
-| `src/components/game/TroopIcon.tsx` | New — reusable icon component |
-| `src/hooks/useTroopSkins.tsx` | Edit — add sprite path to display |
-| `src/components/game/MilitaryPanel.tsx` | Edit — use TroopIcon |
-| `src/components/game/VillageGrid.tsx` | Edit — use TroopIcon + worker badge |
-| `src/components/game/StatSheet.tsx` | Edit — use TroopIcon |
-| `src/components/game/AttackConfigPanel.tsx` | Edit — use TroopIcon |
-| `src/components/game/AllyDefenseModal.tsx` | Edit — use TroopIcon |
+## Files changed
+1. `src/hooks/useGameState.tsx` — expose `grossProduction` in context type + provider value
+2. `src/components/game/ResourceBar.tsx` — add tooltip with breakdown for each resource + steel
 
