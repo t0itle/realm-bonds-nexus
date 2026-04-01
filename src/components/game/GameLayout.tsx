@@ -10,6 +10,7 @@ import PatchNotesModal from './PatchNotesModal';
 import IncomingAttackAlert from './IncomingAttackAlert';
 import AllyDefenseModal from './AllyDefenseModal';
 import GratitudeModal from './GratitudeModal';
+import { woodPanelStyle, woodPlankStyle } from './uiSprites';
 
 function lazyRetry<T extends { default: React.ComponentType<any> }>(
   fn: () => Promise<T>
