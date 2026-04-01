@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { useGame, TROOP_INFO, TroopType } from '@/hooks/useGameState';
+import { useGame } from '@/hooks/useGameState';
+import { TROOP_INFO } from '@/lib/gameConstants';
+import type { TroopType } from '@/lib/gameTypes';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';

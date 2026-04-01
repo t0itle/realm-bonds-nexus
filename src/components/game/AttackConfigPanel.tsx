@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { useGame, TROOP_INFO, TroopType, Army, SPY_MISSION_INFO, SpyMission } from '@/hooks/useGameState';
+import { useGame } from '@/hooks/useGameState';
+import { TROOP_INFO, SPY_MISSION_INFO } from '@/lib/gameConstants';
+import type { TroopType, Army, SpyMission } from '@/lib/gameTypes';
 
 const TROOP_TYPES: TroopType[] = ['militia', 'archer', 'knight', 'cavalry', 'siege', 'scout'];
 const SPY_MISSIONS: SpyMission[] = ['scout', 'sabotage', 'demoralize'];

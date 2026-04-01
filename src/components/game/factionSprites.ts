@@ -73,7 +73,7 @@ import pirateApothecary from '@/assets/sprites/factions/pirate/apothecary.png';
 import pirateWarehouse from '@/assets/sprites/factions/pirate/warehouse.png';
 import pirateSpyguild from '@/assets/sprites/factions/pirate/spyguild.png';
 
-import type { BuildingType } from '@/hooks/useGameState';
+import type { BuildingType } from '@/lib/gameTypes';
 
 type BuildingSpriteMap = Record<Exclude<BuildingType, 'empty'>, string>;
 

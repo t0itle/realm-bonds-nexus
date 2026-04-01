@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react';
-import { useGame, BUILDING_INFO, BuildingType, TROOP_INFO, TroopType } from '@/hooks/useGameState';
+import { useGame } from '@/hooks/useGameState';
+import { BUILDING_INFO, TROOP_INFO } from '@/lib/gameConstants';
+import type { BuildingType, TroopType } from '@/lib/gameTypes';
 import { useAuth } from '@/hooks/useAuth';
 import { useTroopSkins, FACTION_SKINS } from '@/hooks/useTroopSkins';
 import { usePushNotifications } from '@/hooks/usePushNotifications';

@@ -1,5 +1,7 @@
 import { lazy, Suspense } from 'react';
-import { useGame, TROOP_INFO, TroopType, BUILDING_INFO, BuildingType, RATIONS_INFO, RationsLevel, getProduction, getSteelProduction } from '@/hooks/useGameState';
+import { useGame } from '@/hooks/useGameState';
+import { TROOP_INFO, BUILDING_INFO, RATIONS_INFO, getProduction, getSteelProduction } from '@/lib/gameConstants';
+import type { TroopType, BuildingType, RationsLevel } from '@/lib/gameTypes';
 import ResourceIcon from './ResourceIcon';
 
 const NotificationsPanel = lazy(() => import('./NotificationsPanel'));

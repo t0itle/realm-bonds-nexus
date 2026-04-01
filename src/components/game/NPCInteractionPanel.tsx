@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useGame, Resources } from '@/hooks/useGameState';
+import { useGame } from '@/hooks/useGameState';
+import type { Resources } from '@/lib/gameTypes';
 import { NPCPlayerRelation, NPCTownRelation, NPCTownState } from '@/hooks/useNPCState';
 import { toast } from 'sonner';
 import NPCMercenaryPanel from './NPCMercenaryPanel';

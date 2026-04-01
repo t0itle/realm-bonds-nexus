@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useGame, Resources } from '@/hooks/useGameState';
+import { useGame } from '@/hooks/useGameState';
+import type { Resources } from '@/lib/gameTypes';
 import { toast } from 'sonner';
 
 // Special message types encoded as JSON in content field
