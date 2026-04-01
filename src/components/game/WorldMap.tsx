@@ -890,7 +890,7 @@ export default function WorldMap() {
   const [outposts, setOutposts] = useState<{ id: string; x: number; y: number; name: string; user_id: string; level: number; garrison_power: number; has_wall: boolean; wall_level: number; territory_radius: number; outpost_type: string }[]>([]);
   const [wallSegments, setWallSegments] = useState<{ id: string; user_id: string; outpost_a_id: string; outpost_b_id: string; wall_level: number; health: number; max_health: number }[]>([]);
   const [outpostBuildQueue, setOutpostBuildQueue] = useState<{ outpostId: string; action: 'upgrade' | 'wall'; finishTime: number; targetLevel: number; newGarrison: number; newRadius?: number; targetOutpostId?: string }[]>([]);
-  const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; startTime: number; startX: number; startY: number; targetX: number; targetY: number; waypoints: { x: number; y: number }[]; action: () => void }[]>([]);
+  const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; startTime: number; startX: number; startY: number; targetX: number; targetY: number; waypoints: { x: number; y: number }[]; action: () => void; sentArmy?: Partial<Record<string, number>> }[]>([]);
   const [otherMarches, setOtherMarches] = useState<{ id: string; user_id: string; player_name: string; start_x: number; start_y: number; target_x: number; target_y: number; target_name: string; started_at: string; arrives_at: string; march_type: string }[]>([]);
   const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
   const [legendOpen, setLegendOpen] = useState(false);
@@ -1099,7 +1099,16 @@ export default function WorldMap() {
       // Execute actions OUTSIDE the state updater to avoid swallowed side effects
       arrived.forEach(m => {
         toast.success(`Troops arrived at ${m.targetName}!`);
-        m.action();
+        try {
+          m.action();
+        } catch (err) {
+          console.error('March action failed:', err);
+          toast.error(`⚠️ Battle at ${m.targetName} failed — troops returned home.`);
+          // Return all sent troops on failure
+          if (m.sentArmy) {
+            returnTroops(m.sentArmy as any);
+          }
+        }
       });
       // Clean up arrived marches from DB
       if (user) {
@@ -1107,7 +1116,7 @@ export default function WorldMap() {
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [marches, user]);
+  }, [marches, user, returnTroops]);
 
   // createMarch is defined below after getMyPos
 
@@ -1396,7 +1405,7 @@ export default function WorldMap() {
     return null;
   }, [user, wallSegments, outposts]);
 
-  const createMarch = useCallback((id: string, targetName: string, targetX: number, targetY: number, _travelSec: number, action: () => void) => {
+  const createMarch = useCallback((id: string, targetName: string, targetX: number, targetY: number, _travelSec: number, action: () => void, sentArmy?: Partial<Record<string, number>>) => {
     const myPos = getMyPos();
     const now = Date.now();
     const pathTerrain = getTerrainForPath(myPos.x, myPos.y, targetX, targetY);
@@ -1443,7 +1452,7 @@ export default function WorldMap() {
     setMarches(prev => [...prev, {
       id, targetName, arrivalTime,
       startTime: now, startX: myPos.x, startY: myPos.y,
-      targetX, targetY, waypoints, action,
+      targetX, targetY, waypoints, action, sentArmy,
     }]);
     if (user) {
       supabase.from('active_marches').insert({
@@ -1510,7 +1519,7 @@ export default function WorldMap() {
             } else {
               toast.error(`Defeated at ${eventData.name}!`);
             }
-          });
+          }, sentArmy);
           setAttackConfig(null);
           setSelected(null);
         },
@@ -1547,7 +1556,7 @@ export default function WorldMap() {
           } else {
             toast.error(`Defeated by ${realm.name}!`);
           }
-        });
+        }, sentArmy);
         setAttackConfig(null);
         setSelected(null);
       },
@@ -2649,7 +2658,7 @@ export default function WorldMap() {
                                     } else {
                                       toast.error(`Defeated by ${targetData.profile.display_name}!`);
                                     }
-                                  });
+                                  }, sentArmy);
                                   setAttackConfig(null);
                                   setSelected(null);
                                 },
@@ -2762,7 +2771,7 @@ export default function WorldMap() {
                               } else {
                                 toast.error('Defeat! The garrison held.');
                               }
-                            });
+                            }, sentArmy);
                             setAttackConfig(null);
                             setSelected(null);
                           },
@@ -3166,7 +3175,7 @@ export default function WorldMap() {
                                 } else {
                                   toast.error(`Defeated! ${outpostData.name}'s garrison held.`);
                                 }
-                              });
+                              }, sentArmy);
                               setAttackConfig(null);
                               setSelected(null);
                             },
