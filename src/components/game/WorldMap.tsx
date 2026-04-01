@@ -3607,7 +3607,7 @@ export default function WorldMap() {
                       <p className="font-display text-[11px] text-foreground">🏕️ Found Outpost</p>
                       {!canBuildOutpost && <span className="text-[8px] text-destructive">TH Lv.3+</span>}
                     </div>
-                    <p className="text-[9px] text-muted-foreground">Expand your borders and reveal fog of war in this area.</p>
+                    <p className="text-[9px] text-muted-foreground">Expand your borders by founding an outpost here.</p>
                     <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
                       <span className={resources.gold >= outpostCost.gold ? '' : 'text-destructive'}>🪙{outpostCost.gold}</span>
                       <span className={resources.wood >= outpostCost.wood ? '' : 'text-destructive'}>🪵{outpostCost.wood}</span>
