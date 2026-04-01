@@ -957,10 +957,10 @@ export default function WorldMap() {
     }
     const h2 = ((h * 2654435761) >>> 0);
     const angle = (h % 10000) / 10000 * Math.PI * 2;
-    const radius = 25000 + (h2 % 80000);
+    const radius = 2_500_000 + (h2 % 8_000_000);
     return {
-      x: 420000 + Math.cos(angle) * radius,
-      y: 470000 + Math.sin(angle) * radius,
+      x: 42_000_000 + Math.cos(angle) * radius,
+      y: 47_000_000 + Math.sin(angle) * radius,
     };
   };
 
