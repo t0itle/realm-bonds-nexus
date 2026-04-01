@@ -188,8 +188,20 @@ export function TroopSkinProvider({ children }: { children: ReactNode }) {
     return BUILDING_SPRITES[type];
   }, [activeSkin]);
 
+  const FACTION_FILTERS: Record<string, string> = {
+    viking: 'hue-rotate(190deg) saturate(1.3) brightness(0.95)',
+    samurai: 'hue-rotate(320deg) saturate(1.4) brightness(1.05)',
+    undead: 'hue-rotate(100deg) saturate(1.5) brightness(0.8)',
+    roman: 'hue-rotate(40deg) saturate(1.2) brightness(1.1)',
+  };
+
+  const getSpriteFilter = useCallback((): string | undefined => {
+    if (activeSkin.id === 'default') return undefined;
+    return FACTION_FILTERS[activeSkin.id];
+  }, [activeSkin]);
+
   return (
-    <TroopSkinContext.Provider value={{ activeSkin, ownedSkins, purchaseSkin, setActiveSkin: setActiveSkinFn, getTroopDisplay, getBuildingSprite, loading }}>
+    <TroopSkinContext.Provider value={{ activeSkin, ownedSkins, purchaseSkin, setActiveSkin: setActiveSkinFn, getTroopDisplay, getBuildingSprite, getSpriteFilter, loading }}>
       {children}
     </TroopSkinContext.Provider>
   );
