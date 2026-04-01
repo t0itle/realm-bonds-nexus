@@ -380,8 +380,7 @@ export default function VillageGrid() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-0 z-50 border-t border-glow rounded-t-2xl p-4 pb-20 max-h-[60vh] overflow-y-auto"
-            style={{ background: `linear-gradient(180deg, hsl(38 40% 85% / 0.92) 0%, hsl(38 30% 78% / 0.95) 100%), url('/ui/wood-grain.png')`, backgroundSize: 'cover, cover', imageRendering: 'pixelated' as any }}
+            className="fixed inset-x-0 bottom-0 z-50 parchment-panel border-t border-glow rounded-t-2xl p-4 pb-20 max-h-[60vh] overflow-y-auto"
           >
             <button
               onClick={() => setSelectedBuilding(null)}
