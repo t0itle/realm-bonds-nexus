@@ -6,6 +6,7 @@ import { useNPCState } from '@/hooks/useNPCState';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import NPCInteractionPanel from './NPCInteractionPanel';
+import { useTroopSkins } from '@/hooks/useTroopSkins';
 import AttackConfigPanel from './AttackConfigPanel';
 
 // Map sprites
