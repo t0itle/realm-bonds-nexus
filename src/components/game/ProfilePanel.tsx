@@ -6,6 +6,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BUILDING_SPRITES } from './sprites';
+import { FACTION_BUILDING_SPRITES } from './factionSprites';
 import crownOverlay from '@/assets/sprites/crown-overlay.png';
 import ResourceIcon from './ResourceIcon';
 
