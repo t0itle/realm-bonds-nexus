@@ -1596,9 +1596,9 @@ export default function WorldMap() {
     ];
   }, [army.scout, getMyPos, allVillages, outposts, user?.id, getWatchtowerLevel]);
 
-  const isWithinVision = useCallback((wx: number, wy: number, padding = 0) => {
-    return visionSources.some(source => Math.hypot(wx - source.x, wy - source.y) <= source.radius + padding);
-  }, [visionSources]);
+  const isWithinVision = useCallback((_wx: number, _wy: number, _padding = 0) => {
+    return true; // Full map visibility — no fog of war
+  }, []);
 
   // Collect all terrain for pathfinding — includes visible chunks
   const visibleTerrain = useMemo(() => {
@@ -3596,7 +3596,7 @@ export default function WorldMap() {
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">📍</span>
                     <div>
-                      <h3 className="font-display text-sm text-foreground">Unexplored Territory</h3>
+                      <h3 className="font-display text-sm text-foreground">Open Territory</h3>
                       <p className="text-[9px] text-muted-foreground font-mono">{coordLabel}</p>
                     </div>
                   </div>
@@ -3607,7 +3607,7 @@ export default function WorldMap() {
                       <p className="font-display text-[11px] text-foreground">🏕️ Found Outpost</p>
                       {!canBuildOutpost && <span className="text-[8px] text-destructive">TH Lv.3+</span>}
                     </div>
-                    <p className="text-[9px] text-muted-foreground">Expand your borders and reveal fog of war in this area.</p>
+                    <p className="text-[9px] text-muted-foreground">Expand your borders by founding an outpost here.</p>
                     <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
                       <span className={resources.gold >= outpostCost.gold ? '' : 'text-destructive'}>🪙{outpostCost.gold}</span>
                       <span className={resources.wood >= outpostCost.wood ? '' : 'text-destructive'}>🪵{outpostCost.wood}</span>
@@ -3641,7 +3641,7 @@ export default function WorldMap() {
                           }).select().single();
                           if (error) { toast.error('Failed to build outpost'); return; }
                           setOutposts(prev => [...prev, { id: data.id, x: data.x, y: data.y, name: data.name, user_id: user!.id, level: 1, garrison_power: 0, garrison_troops: {}, has_wall: false, wall_level: 0, territory_radius: 15000, outpost_type: 'outpost' }]);
-                          toast.success(`🏕️ ${opName} established! Fog lifted in this area.`);
+                          toast.success(`🏕️ ${opName} established!`);
                         });
                         setSelected(null);
                       }}
