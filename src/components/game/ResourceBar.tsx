@@ -125,7 +125,7 @@ export default function ResourceBar() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className={`flex items-center gap-0.5 cursor-default ${population.happiness >= 67 ? 'text-emerald-500' : population.happiness >= 33 ? 'text-amber-500' : 'text-destructive'}`}>
-                  {population.happiness >= 67 ? '😊' : population.happiness >= 33 ? '😐' : '😞'}
+                  {population.happiness >= 67 ? '😊' : population.happiness >= 33 ? '😐' : '😞'} {population.happiness}%
                 </span>
               </TooltipTrigger>
               <TooltipContent side="top" className="text-xs">
