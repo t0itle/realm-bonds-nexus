@@ -542,6 +542,118 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
     return { realms: [], events, terrain, steelMines: [], decorations: [], regionName: oceanName, regionBiome: 'Ocean' };
   }
 
+  // ── Exotic continent chunks: unique biomes far from spawn ──
+  const exoticContinent = getExoticContinent(chunkX, chunkY);
+  if (exoticContinent) {
+    const ecBiome = exoticContinent.biome;
+    const ecName = exoticContinent.name;
+    const terrain: TerrainFeature[] = [];
+    const events: ProceduralEvent[] = [];
+
+    // Exotic terrain based on biome type
+    if (ecBiome === 'Lava' || ecBiome === 'VolcanicIslands') {
+      // Lava rivers and volcanic mountains
+      if (rng() < 0.4) {
+        terrain.push({
+          type: 'mountain', x: worldBaseX + rng() * CHUNK_SIZE, y: worldBaseY + rng() * CHUNK_SIZE,
+          width: 12000 + rng() * 20000, height: 10000 + rng() * 15000, rotation: rng() * 360,
+          name: ['Mt. Inferno', 'Ashpeak', 'The Crucible', 'Magma Spire', 'Ember Summit'][Math.floor(rng() * 5)],
+        });
+      }
+      if (rng() < 0.3) {
+        const p1 = { x: worldBaseX + rng() * CHUNK_SIZE * 0.3, y: worldBaseY + rng() * CHUNK_SIZE };
+        const p2 = { x: worldBaseX + CHUNK_SIZE * 0.5 + rng() * CHUNK_SIZE * 0.5, y: worldBaseY + rng() * CHUNK_SIZE };
+        terrain.push({
+          type: 'river', points: [p1, p2], width: 3000 + rng() * 4000, x: p1.x, y: p1.y, height: 0,
+          name: ['Lava Flow', 'Molten Run', 'Magma Stream', 'Fire River'][Math.floor(rng() * 4)],
+        });
+      }
+    } else if (ecBiome === 'Desert' || ecBiome === 'Oasis') {
+      // Sand dunes as mountains, oasis lakes
+      if (rng() < 0.35) {
+        terrain.push({
+          type: 'mountain', x: worldBaseX + rng() * CHUNK_SIZE, y: worldBaseY + rng() * CHUNK_SIZE,
+          width: 15000 + rng() * 25000, height: 8000 + rng() * 12000, rotation: rng() * 360,
+          name: ['The Great Dune', 'Sandspire', 'Dustwall', 'Golden Mesa', 'Sun Anvil'][Math.floor(rng() * 5)],
+        });
+      }
+      if (ecBiome === 'Oasis' && rng() < 0.25) {
+        terrain.push({
+          type: 'lake', x: worldBaseX + CHUNK_SIZE * 0.3 + rng() * CHUNK_SIZE * 0.4,
+          y: worldBaseY + CHUNK_SIZE * 0.3 + rng() * CHUNK_SIZE * 0.4,
+          width: 6000 + rng() * 10000, height: 5000 + rng() * 8000, rotation: rng() * 60,
+          name: ['Crystal Oasis', 'Mirage Pool', 'Palm Spring', 'Hidden Waters'][Math.floor(rng() * 4)],
+        });
+      }
+    } else if (ecBiome === 'Jungle' || ecBiome === 'DeepJungle') {
+      // Dense rivers and thick terrain
+      if (rng() < 0.5) {
+        const pts = [];
+        const numPts = 3 + Math.floor(rng() * 3);
+        for (let p = 0; p < numPts; p++) {
+          pts.push({ x: worldBaseX + (p / numPts) * CHUNK_SIZE, y: worldBaseY + CHUNK_SIZE * 0.3 + rng() * CHUNK_SIZE * 0.4 });
+        }
+        terrain.push({
+          type: 'river', points: pts, width: 4000 + rng() * 6000, x: pts[0].x, y: pts[0].y, height: 0,
+          name: ['Emerald River', 'Serpent Flow', 'Canopy Creek', 'Vine Run', 'Jade Stream'][Math.floor(rng() * 5)],
+        });
+      }
+      if (rng() < 0.25) {
+        terrain.push({
+          type: 'mountain', x: worldBaseX + rng() * CHUNK_SIZE, y: worldBaseY + rng() * CHUNK_SIZE,
+          width: 10000 + rng() * 15000, height: 8000 + rng() * 12000, rotation: rng() * 360,
+          name: ['Canopy Peak', 'Misty Summit', 'Overgrown Crag'][Math.floor(rng() * 3)],
+        });
+      }
+    } else if (ecBiome === 'Islands') {
+      // Scattered islands with water between
+      const islandCount = 1 + Math.floor(rng() * 3);
+      for (let il = 0; il < islandCount; il++) {
+        terrain.push({
+          type: 'island', x: worldBaseX + CHUNK_SIZE * 0.15 + rng() * CHUNK_SIZE * 0.7,
+          y: worldBaseY + CHUNK_SIZE * 0.15 + rng() * CHUNK_SIZE * 0.7,
+          width: 8000 + rng() * 15000, height: 6000 + rng() * 12000, rotation: rng() * 360,
+          name: ['Coral Isle', 'Driftwood Key', 'Palm Atoll', 'Turtle Beach', 'Reef Haven', 'Storm Rock'][Math.floor(rng() * 6)],
+        });
+      }
+    }
+
+    // Exotic events
+    const exoticEventBases: { name: string; desc: string; emoji: string; type: 'danger' | 'mystery' | 'opportunity'; power: number }[] = ecBiome === 'Lava' || ecBiome === 'VolcanicIslands' ? [
+      { name: 'Eruption Warning', desc: 'The ground trembles with volcanic fury.', emoji: '🌋', type: 'danger', power: 200 },
+      { name: 'Obsidian Cache', desc: 'Glassy black stone worth a fortune.', emoji: '💎', type: 'opportunity', power: 50 },
+      { name: 'Fire Elemental', desc: 'A being of pure flame guards this pass.', emoji: '🔥', type: 'danger', power: 180 },
+    ] : ecBiome === 'Desert' || ecBiome === 'Oasis' ? [
+      { name: 'Sandstorm', desc: 'A wall of choking sand approaches.', emoji: '🌪️', type: 'danger', power: 150 },
+      { name: 'Ancient Tomb', desc: 'A buried pharaoh\'s treasure awaits.', emoji: '🏛️', type: 'mystery', power: 100 },
+      { name: 'Nomad Caravan', desc: 'Traders from distant lands offer exotic goods.', emoji: '🐪', type: 'opportunity', power: 30 },
+    ] : ecBiome === 'Jungle' || ecBiome === 'DeepJungle' ? [
+      { name: 'Temple Ruins', desc: 'Ancient carvings hint at hidden treasure.', emoji: '🏯', type: 'mystery', power: 120 },
+      { name: 'Predator Pack', desc: 'Dangerous beasts prowl the undergrowth.', emoji: '🐆', type: 'danger', power: 160 },
+      { name: 'Rare Herbs', desc: 'Medicinal plants grow in abundance.', emoji: '🌿', type: 'opportunity', power: 20 },
+    ] : [
+      { name: 'Shipwreck', desc: 'A vessel run aground on the reef.', emoji: '🚢', type: 'opportunity', power: 40 },
+      { name: 'Sea Monster', desc: 'Something massive lurks in the shallows.', emoji: '🐙', type: 'danger', power: 170 },
+      { name: 'Pirate Hideout', desc: 'Buccaneers have stashed their loot here.', emoji: '☠️', type: 'mystery', power: 90 },
+    ];
+    if (rng() < 0.3) {
+      const ev = exoticEventBases[Math.floor(rng() * exoticEventBases.length)];
+      const timeSeed = Math.floor(Date.now() / (1000 * 60 * 30));
+      events.push({
+        id: `event-${chunkX}-${chunkY}-exotic-${timeSeed}`,
+        name: ev.name, description: `${ev.name}: ${ev.desc}`, emoji: ev.emoji, type: ev.type,
+        power: Math.floor(ev.power * difficultyMult),
+        x: worldBaseX + 15000 + rng() * (CHUNK_SIZE - 30000),
+        y: worldBaseY + 15000 + rng() * (CHUNK_SIZE - 30000),
+        reward: { gold: Math.floor((150 + rng() * 500) * difficultyMult), wood: Math.floor(rng() * 200 * difficultyMult), stone: Math.floor(rng() * 200 * difficultyMult), food: Math.floor(rng() * 150 * difficultyMult) },
+      });
+    }
+
+    // Map biome display name
+    const displayBiome = ecBiome === 'VolcanicIslands' ? 'Lava' : ecBiome === 'DeepJungle' ? 'Jungle' : ecBiome === 'Oasis' ? 'Desert' : ecBiome === 'Islands' ? 'Coast' : ecBiome;
+    return { realms: [], events, terrain, steelMines: [], decorations: [], regionName: ecName, regionBiome: displayBiome };
+  }
+
   // ── Coastal chunks: force Coast biome ──
   const isCoastal = isCoastalChunk(chunkX, chunkY);
 
