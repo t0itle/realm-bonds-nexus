@@ -186,8 +186,8 @@ function findPath(startX: number, startY: number, endX: number, endY: number, te
     }
   }
   
-  // No path found — fall back to straight line
-  return [{ x: startX, y: startY }, { x: endX, y: endY }];
+  // No path found — return empty to signal blocked
+  return [];
 }
 
 function simplifyPath(path: { x: number; y: number }[]): { x: number; y: number }[] {
