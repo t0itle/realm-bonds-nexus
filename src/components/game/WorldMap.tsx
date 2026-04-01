@@ -80,22 +80,25 @@ function isPointNearBridge(px: number, py: number, bridges: { x: number; y: numb
 
 function isCellBlocked(wx: number, wy: number, terrainFeatures: TerrainFeature[]): boolean {
   const pad = PATH_GRID_CELL * 0.5;
+  
+  // Check if in ocean (out of bounds for land units)
+  const region = getWorldRegion(wx, wy);
+  if (region.type === 'ocean') return true;
+  
+  // Check continent-level mountain ranges
+  if (isPointInMountainRange(wx, wy, pad)) return true;
+  
+  // Check continent-level rivers (blocked unless near a bridge)
+  const riverCheck = isPointOnContinentRiver(wx, wy, pad);
+  if (riverCheck && !riverCheck.nearBridge) return true;
+  
+  // Check per-chunk terrain (lakes, local mountains)
   for (const t of terrainFeatures) {
     if (t.type === 'mountain') {
       if (isPointInEllipse(wx, wy, t.x, t.y, t.width / 2 + pad, t.height / 2 + pad)) return true;
     }
     if (t.type === 'lake') {
       if (isPointInEllipse(wx, wy, t.x, t.y, t.width / 2 + pad, t.height / 2 + pad)) return true;
-    }
-    if (t.type === 'river' && t.points && t.points.length > 1) {
-      const riverW = (t.width || 1000) + pad;
-      // Check if near river but NOT near a bridge
-      for (let i = 0; i < t.points.length - 1; i++) {
-        if (isPointNearRiverSegment(wx, wy, t.points[i], t.points[i + 1], riverW)) {
-          if (t.bridgeAt && isPointNearBridge(wx, wy, t.bridgeAt, riverW * 2)) return false; // bridge crossing OK
-          return true;
-        }
-      }
     }
   }
   return false;
