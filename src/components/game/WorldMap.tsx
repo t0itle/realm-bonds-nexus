@@ -2243,7 +2243,8 @@ export default function WorldMap() {
         })}
 
 
-        {visibleChunks.map(chunk => chunk.data.terrain.map((t, ti) => {
+        {/* Terrain features hidden at far zoom */}
+        {lodTier !== 'far' && visibleChunks.map(chunk => chunk.data.terrain.map((t, ti) => {
           if (t.type === 'lake') {
             const { sx, sy } = worldToScreen(t.x, t.y);
             const w = t.width * camera.ppu;
