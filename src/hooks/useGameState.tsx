@@ -2101,6 +2101,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       injuredTroops, poisons, healTroops, craftPoison, getApothecaryLevel,
       storageCapacity,
       myVillages, switchVillage, refreshVillages, abandonSettlement,
+      settlementType, upgradeSettlement, isSettlementUpgrading, settlementUpgradeFinishTime,
     }}>
       {children}
     </GameContext.Provider>
