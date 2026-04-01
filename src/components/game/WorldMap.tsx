@@ -1148,8 +1148,24 @@ export default function WorldMap() {
   } | null>(null);
   const [worldBossDefeated, setWorldBossDefeated] = useState(false);
 
-  // ── World Boss (one per week, deterministic) ──
-  const worldBoss = useMemo(() => getWorldBoss(), []);
+  // ── Compute strongest player army power across all villages ──
+  const strongestPlayerPower = useMemo(() => {
+    let maxPower = 0;
+    for (const v of allVillages) {
+      const vil = v.village as any;
+      const power = (vil.army_militia || 0) * 1
+        + (vil.army_archer || 0) * 2
+        + (vil.army_knight || 0) * 4
+        + (vil.army_cavalry || 0) * 5
+        + (vil.army_siege || 0) * 6
+        + (vil.army_scout || 0) * 1;
+      if (power > maxPower) maxPower = power;
+    }
+    return maxPower;
+  }, [allVillages]);
+
+  // ── World Boss (one per week, scales to strongest player) ──
+  const worldBoss = useMemo(() => getWorldBoss(strongestPlayerPower), [strongestPlayerPower]);
 
   // Check if player already defeated this week's boss
   useEffect(() => {
