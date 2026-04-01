@@ -221,8 +221,8 @@ export default function ResourceBar() {
           <div className="flex items-center justify-between text-sm border-t border-border/50 pt-1">
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="text-muted-foreground flex items-center gap-0.5 cursor-default">
-                  <ResourceIcon type="steel" size={10} /> Steel: <strong className="text-foreground">{steel}</strong>{steelProduction > 0 && <span className="text-primary"> +{steelProduction}/min</span>}
+                <span className="text-foreground/80 flex items-center gap-0.5 cursor-default">
+                   <ResourceIcon type="steel" size={10} /> Steel: <strong className="text-foreground">{steel}</strong>{steelProduction > 0 && <span className="text-primary"> +{steelProduction}/min</span>}
                 </span>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-sm max-w-[200px]">
