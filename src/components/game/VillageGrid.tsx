@@ -462,7 +462,7 @@ export default function VillageGrid() {
                   <motion.button
                     whileTap={{ scale: 0.9 }}
                     onClick={() => {
-                      if (unassignWorker(workerBuilding.id)) forceUpdate(v => v + 1);
+                      unassignWorker(workerBuilding.id);
                     }}
                     disabled={assigned <= 0}
                     className={`w-10 h-10 rounded-xl font-display text-lg flex items-center justify-center ${
