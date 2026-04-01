@@ -43,7 +43,7 @@ function timeAgoStr(dateStr: string): string {
 
 function TroopList({ troops, label, color }: { troops: any; label: string; color: string }) {
   if (!troops) return null;
-  const entries = Object.entries(troops).filter(([, v]) => v && (v as number) > 0);
+  const entries = Object.entries(troops).filter(([, v]) => Number(v) > 0);
   if (entries.length === 0) return null;
   return (
     <div>
@@ -51,7 +51,7 @@ function TroopList({ troops, label, color }: { troops: any; label: string; color
       <div className="flex flex-wrap gap-x-2 gap-y-0.5">
         {entries.map(([type, count]) => (
           <span key={type} className="text-[9px] text-foreground">
-            {TROOP_INFO[type as TroopType]?.emoji || '🗡️'} {TROOP_INFO[type as TroopType]?.name || type}: <span className="font-bold">{count as number}</span>
+            {TROOP_INFO[type as TroopType]?.emoji || '🗡️'} {TROOP_INFO[type as TroopType]?.name || type}: <span className="font-bold">{Number(count)}</span>
           </span>
         ))}
       </div>
