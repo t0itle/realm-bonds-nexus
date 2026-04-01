@@ -2186,6 +2186,49 @@ export default function WorldMap() {
           );
         })}
 
+        {/* ── World Boss ── */}
+        {!worldBossDefeated && (() => {
+          if (!isVisible(worldBoss.x, worldBoss.y, 120)) return null;
+          const { sx, sy } = worldToScreen(worldBoss.x, worldBoss.y);
+          const bossSize = eventSize * 1.5;
+          const tierColors: Record<string, string> = { weak: 'text-muted-foreground', average: 'text-amber-400', elite: 'text-destructive' };
+          return (
+            <button key={worldBoss.id} data-map-item
+              onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'worldboss', data: worldBoss }); }}
+              className="absolute z-30 group transition-transform hover:scale-110"
+              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
+              {/* Pulsing glow ring */}
+              <div className="absolute inset-0 rounded-full animate-pulse pointer-events-none"
+                style={{
+                  width: bossSize * 2, height: bossSize * 2,
+                  left: '50%', top: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  background: 'radial-gradient(circle, hsl(0 80% 50% / 0.25), hsl(280 70% 40% / 0.15) 50%, transparent 70%)',
+                  boxShadow: '0 0 30px 10px hsl(0 80% 50% / 0.2)',
+                }} />
+              <img
+                src={mapEventDanger}
+                alt={worldBoss.name}
+                loading="lazy"
+                className="drop-shadow-lg transition-all group-hover:drop-shadow-xl relative z-10"
+                style={{ width: bossSize, height: bossSize, imageRendering: 'auto', objectFit: 'contain', filter: 'hue-rotate(280deg) saturate(1.5) brightness(1.2)' }}
+              />
+              {bossSize > 30 && (
+                <div className="absolute left-1/2 -translate-x-1/2 text-center z-10" style={{ top: bossSize + 4 }}>
+                  <div className="bg-destructive/90 backdrop-blur-sm rounded-md px-2 py-0.5 border border-destructive/60 shadow-lg">
+                    <p className="font-display text-destructive-foreground whitespace-nowrap leading-tight" style={{ fontSize: Math.max(8, bossSize / 5) }}>
+                      {worldBoss.emoji} {worldBoss.name}
+                    </p>
+                    <p className="text-destructive-foreground/70 whitespace-nowrap" style={{ fontSize: Math.max(6, bossSize / 7) }}>
+                      ⚔️ {worldBoss.scaledPower} • Day {worldBoss.daysAlive + 1}/7
+                    </p>
+                  </div>
+                </div>
+              )}
+            </button>
+          );
+        })()}
+
         {/* Steel Mines */}
         {visibleChunks.map(chunk => chunk.data.steelMines.map(mine => {
           if (!isWithinVision(mine.x, mine.y, 4000)) return null;
