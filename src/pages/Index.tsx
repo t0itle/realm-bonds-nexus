@@ -1,5 +1,6 @@
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import { GameProvider } from '@/hooks/useGameState';
+import { TroopSkinProvider } from '@/hooks/useTroopSkins';
 import GameLayout from '@/components/game/GameLayout';
 import LandingPage from '@/pages/LandingPage';
 
