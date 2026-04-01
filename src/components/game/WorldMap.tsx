@@ -1776,33 +1776,87 @@ export default function WorldMap() {
           <rect width="100%" height="100%" fill="hsl(220 15% 18% / 0.4)" mask="url(#fog-mask)" filter="url(#fog-clouds)" />
         </svg>
 
-        {/* ── Territory borders ── */}
-        {outposts.map(outpost => {
-          if (!isWithinVision(outpost.x, outpost.y, outpost.territory_radius)) return null;
-          if (!isVisible(outpost.x, outpost.y, 200)) return null;
-          const { sx, sy } = worldToScreen(outpost.x, outpost.y);
-          const isOwn = outpost.user_id === user?.id;
-          const tr = outpost.territory_radius * camera.ppu;
-          if (tr < 10) return null;
-          const borderColor = isOwn ? 'hsl(var(--primary))' : 'hsl(var(--destructive))';
-          const fillColor = isOwn ? 'hsl(var(--primary) / 0.04)' : 'hsl(var(--destructive) / 0.03)';
-          return (
-            <div key={`territory-${outpost.id}`} className="absolute pointer-events-none z-[10]"
-              style={{ left: sx - tr, top: sy - tr, width: tr * 2, height: tr * 2 }}>
-              <div className="w-full h-full rounded-full" style={{
-                border: outpost.has_wall ? `2px solid ${borderColor}` : `1px dashed ${borderColor}`,
-                background: fillColor,
-                opacity: outpost.has_wall ? 0.7 : 0.4,
-              }} />
-              {outpost.has_wall && (
-                <div className="absolute inset-1 rounded-full" style={{
-                  border: `1px solid ${borderColor}`,
-                  opacity: 0.3,
-                }} />
-              )}
-            </div>
-          );
-        })}
+        {/* ── Unified Territory borders (merged per owner) ── */}
+        {(() => {
+          // Group outposts by owner
+          const ownerGroups = new Map<string, typeof outposts>();
+          for (const op of outposts) {
+            if (!isWithinVision(op.x, op.y, op.territory_radius + 5000)) continue;
+            const arr = ownerGroups.get(op.user_id) || [];
+            arr.push(op);
+            ownerGroups.set(op.user_id, arr);
+          }
+
+          // For each owner, generate a unified SVG territory path
+          const elements: React.ReactNode[] = [];
+          ownerGroups.forEach((ops, ownerId) => {
+            const isOwn = ownerId === user?.id;
+            const borderColor = isOwn ? 'hsl(var(--primary))' : 'hsl(var(--destructive))';
+            const fillColor = isOwn ? 'hsl(var(--primary) / 0.06)' : 'hsl(var(--destructive) / 0.04)';
+            const hasAnyWall = ops.some(o => o.has_wall);
+
+            // Build SVG circles and use composite to merge
+            // Calculate bounding box in screen coords
+            let minSx = Infinity, minSy = Infinity, maxSx = -Infinity, maxSy = -Infinity;
+            const screenCircles: { cx: number; cy: number; r: number; hasWall: boolean }[] = [];
+            for (const op of ops) {
+              const { sx, sy } = worldToScreen(op.x, op.y);
+              const r = op.territory_radius * camera.ppu;
+              if (r < 10) continue;
+              screenCircles.push({ cx: sx, cy: sy, r, hasWall: op.has_wall });
+              minSx = Math.min(minSx, sx - r - 4);
+              minSy = Math.min(minSy, sy - r - 4);
+              maxSx = Math.max(maxSx, sx + r + 4);
+              maxSy = Math.max(maxSy, sy + r + 4);
+            }
+            if (screenCircles.length === 0) return;
+
+            const svgW = maxSx - minSx;
+            const svgH = maxSy - minSy;
+            if (svgW <= 0 || svgH <= 0) return;
+
+            elements.push(
+              <svg key={`territory-unified-${ownerId}`}
+                className="absolute pointer-events-none z-[10]"
+                style={{ left: minSx, top: minSy, width: svgW, height: svgH, overflow: 'visible' }}
+                viewBox={`0 0 ${svgW} ${svgH}`}>
+                <defs>
+                  <clipPath id={`clip-territory-${ownerId}`}>
+                    {screenCircles.map((c, i) => (
+                      <circle key={i} cx={c.cx - minSx} cy={c.cy - minSy} r={c.r} />
+                    ))}
+                  </clipPath>
+                </defs>
+                {/* Filled unified territory */}
+                <rect x="0" y="0" width={svgW} height={svgH}
+                  clipPath={`url(#clip-territory-${ownerId})`}
+                  fill={fillColor} />
+                {/* Outer border: draw each circle but clip the interior intersections */}
+                {screenCircles.map((c, i) => (
+                  <circle key={`border-${i}`}
+                    cx={c.cx - minSx} cy={c.cy - minSy} r={c.r}
+                    fill="none"
+                    stroke={borderColor}
+                    strokeWidth={c.hasWall ? 2.5 : 1}
+                    strokeDasharray={c.hasWall ? 'none' : '6 4'}
+                    opacity={c.hasWall ? 0.7 : 0.4}
+                  />
+                ))}
+                {/* For walled outposts, add inner ring */}
+                {screenCircles.filter(c => c.hasWall).map((c, i) => (
+                  <circle key={`inner-wall-${i}`}
+                    cx={c.cx - minSx} cy={c.cy - minSy} r={Math.max(c.r - 4, 2)}
+                    fill="none"
+                    stroke={borderColor}
+                    strokeWidth={1}
+                    opacity={0.3}
+                  />
+                ))}
+              </svg>
+            );
+          });
+          return elements;
+        })()}
 
         {/* ── Outpost markers on the map ── */}
         {outposts.map(outpost => {
