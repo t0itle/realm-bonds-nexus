@@ -1416,25 +1416,7 @@ export default function WorldMap() {
                   {river.name}
                 </span>
               )}
-              {/* Bridges */}
-              {river.bridges.map((bp, bi) => {
-                const { sx: bsx, sy: bsy } = worldToScreen(bp.x, bp.y);
-                const bridgeW = Math.max(14, strokeW * 2.5);
-                if (bridgeW < 10) return null;
-                return (
-                  <div key={`bridge-${bi}`} className="absolute flex flex-col items-center" style={{ left: bsx, top: bsy, transform: 'translate(-50%, -50%)', zIndex: 5 }}>
-                    <div style={{
-                      width: bridgeW,
-                      height: bridgeW * 0.5,
-                      background: 'linear-gradient(180deg, hsl(30 40% 50% / 0.8), hsl(25 35% 35% / 0.7))',
-                      borderRadius: `${bridgeW * 0.5}px ${bridgeW * 0.5}px 2px 2px`,
-                      border: '1px solid hsl(30 30% 60% / 0.5)',
-                      boxShadow: '0 2px 8px hsl(0 0% 0% / 0.4)',
-                    }} />
-                    {bridgeW > 18 && <span style={{ fontSize: 9 }} className="mt-0.5" role="img">🌉</span>}
-                  </div>
-                );
-              })}
+              {/* No pre-built bridges — players must build their own */}
             </div>
           );
         }))}
