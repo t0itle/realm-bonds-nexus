@@ -866,9 +866,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const villageChannel = supabase.channel('village-changes')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'villages', filter: `user_id=eq.${user.id}` }, (payload) => {
         const v = payload.new;
-        // Only handle updates for current village
         if (v.id !== villageIdRef.current) return;
-        // Skip resource fields — they're managed locally via client-side production ticks
         setVillageNameLocal(v.name as string);
         setPlayerLevel(v.level as number);
         setSteel((v as any).steel ?? 0);
@@ -887,22 +885,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
         });
         setSpies((v as any).spies ?? 0);
         setPoisons((v as any).poisons ?? 0);
-        setInjuredTroops({
-          militia: (v as any).injured_militia ?? 0,
-          archer: (v as any).injured_archer ?? 0,
-          knight: (v as any).injured_knight ?? 0,
-          cavalry: (v as any).injured_cavalry ?? 0,
-          siege: (v as any).injured_siege ?? 0,
-          scout: (v as any).injured_scout ?? 0,
-        });
+        // Skip injured troops here to prevent write-back loop
       }).subscribe();
 
     const vassalageChannel = supabase.channel(`vassalage-changes-${user.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'vassalages', filter: `lord_id=eq.${user.id}` }, () => {
-        void loadVillageData();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vassalages', filter: `lord_id=eq.${user.id}` }, async () => {
+        const { data } = await supabase.from('vassalages').select('*').or(`lord_id.eq.${user.id},vassal_id.eq.${user.id}`).eq('status', 'active');
+        setVassalages((data || []) as any as Vassalage[]);
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'vassalages', filter: `vassal_id=eq.${user.id}` }, () => {
-        void loadVillageData();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vassalages', filter: `vassal_id=eq.${user.id}` }, async () => {
+        const { data } = await supabase.from('vassalages').select('*').or(`lord_id.eq.${user.id},vassal_id.eq.${user.id}`).eq('status', 'active');
+        setVassalages((data || []) as any as Vassalage[]);
       })
       .subscribe();
 
