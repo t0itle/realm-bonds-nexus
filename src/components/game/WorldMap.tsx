@@ -1717,8 +1717,8 @@ export default function WorldMap() {
                 <line x1={startScreen.sx} y1={startScreen.sy} x2={endScreen.sx} y2={endScreen.sy}
                   stroke={marchColor} strokeWidth={1.5} strokeDasharray="4 3" opacity={0.6} />
               </svg>
-              <div className="absolute z-35 flex flex-col items-center pointer-events-none"
-                style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', transition: 'left 0.8s linear, top 0.8s linear' }}>
+               <div className="absolute z-35 flex flex-col items-center pointer-events-none"
+                style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
                 <img src={mapSoldier} alt="Troops" className="drop-shadow-md opacity-70"
                   style={{ width: marchSize, height: marchSize, objectFit: 'contain', transform: facingLeft ? 'scaleX(-1)' : undefined }} loading="lazy" />
                 {marchSize > 16 && (
