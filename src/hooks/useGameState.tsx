@@ -1114,17 +1114,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
     // Interpolate resources locally every 2 seconds for visible trickle
     // Cap at storage capacity
+    let lastDesertionTime = 0;
     const tickInterval = setInterval(() => {
       const prod = totalProductionRef.current;
       const steelProd = steelProductionRef.current;
-      const fraction = 2 / 60; // 2 seconds worth of per-minute production
+      const fraction = 2 / 60;
       const cap = storageCapRef.current;
       
       setResources(prev => {
         const newFood = Math.min(cap, Math.max(0, prev.food + prod.food * fraction));
         
-        // Army desertion: if food hits 0 and net food production is negative, lose troops
-        if (newFood <= 0 && prod.food < 0) {
+        const now = Date.now();
+        if (newFood <= 0 && prod.food < 0 && now - lastDesertionTime > 30000) {
           const currentArmy = armyRef.current;
           const desertOrder: TroopType[] = ['siege', 'cavalry', 'knight', 'archer', 'militia', 'scout'];
           for (const t of desertOrder) {
@@ -1134,6 +1135,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
               persistArmyToVillage(nextArmy);
               setPopulationBase(p => Math.max(1, p - TROOP_INFO[t].popCost));
               toast.error(`⚠️ A ${TROOP_INFO[t].name} deserted due to starvation!`);
+              lastDesertionTime = now;
               break;
             }
           }
