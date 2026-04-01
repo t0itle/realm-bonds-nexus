@@ -2419,54 +2419,8 @@ export default function WorldMap() {
           );
         }))}
 
-        {/* Player settlements with collision nudging */}
-        {(() => {
-          // Compute positions first, then nudge overlapping ones apart
-          const playerPositions = allVillages.map(pv => {
-            const pos = getPlayerPos(pv.village.id);
-            const { sx, sy } = worldToScreen(pos.x, pos.y);
-            const isMe = pv.village.user_id === user?.id;
-            return { pv, pos, sx, sy, isMe };
-          }).filter(p => {
-            if (!isWithinVision(p.pos.x, p.pos.y, 5000)) return false;
-            const margin = 80;
-            return p.sx > -margin && p.sx < containerSize.w + margin && p.sy > -margin && p.sy < containerSize.h + margin;
-          });
-
-          // Simple collision nudge: push overlapping labels apart
-          const minDist = Math.max(50, iconSize * 1.8);
-          for (let i = 0; i < playerPositions.length; i++) {
-            for (let j = i + 1; j < playerPositions.length; j++) {
-              const a = playerPositions[i];
-              const b = playerPositions[j];
-              const dx = b.sx - a.sx;
-              const dy = b.sy - a.sy;
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              if (dist < minDist && dist > 0) {
-                const overlap = (minDist - dist) / 2;
-                const nx = dx / dist;
-                const ny = dy / dist;
-                // Don't nudge "me" — nudge others
-                if (a.isMe) {
-                  b.sx += nx * overlap * 2;
-                  b.sy += ny * overlap * 2;
-                } else if (b.isMe) {
-                  a.sx -= nx * overlap * 2;
-                  a.sy -= ny * overlap * 2;
-                } else {
-                  a.sx -= nx * overlap;
-                  a.sy -= ny * overlap;
-                  b.sx += nx * overlap;
-                  b.sy += ny * overlap;
-                }
-              }
-            }
-          }
-
-          // Sort so "me" renders on top
-          const sorted = playerPositions.sort((a, b) => (a.isMe ? 1 : 0) - (b.isMe ? 1 : 0));
-
-          return sorted.map(({ pv, sx, sy, isMe }) => {
+        {/* Player settlements with memoized collision nudging */}
+        {nudgedPlayerPositions.map(({ pv, sx, sy, isMe }) => {
             const pvSettlementType = isMe ? settlementType : (pv.village.settlement_type || 'village');
             const sprite = getSettlementSprite(pvSettlementType, isMe);
             const settlementLabel = SETTLEMENT_LABELS[pvSettlementType] || '🏠 Village';
@@ -2502,8 +2456,7 @@ export default function WorldMap() {
                 )}
               </button>
             );
-          });
-        })()}
+        })}
 
         {/* ── Animated March Sprites with waypoint paths ── */}
         {marches.map(march => (
