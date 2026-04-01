@@ -1147,6 +1147,7 @@ export default function WorldMap() {
         showEspionage: false,
         onAttack: (sentArmy) => {
           toast(`⚔️ Troops marching to ${eventData.name}... ETA ${travelSec}s`);
+          deployTroops(sentArmy);
           createMarch(`evt-${Date.now()}`, eventData.name, eventData.x, eventData.y, travelSec, () => {
             const log = attackTarget(eventData.name, eventData.power, sentArmy);
             if (log.result === 'victory') {
