@@ -1,24 +1,23 @@
-import woodenArmor from '@/assets/sprites/troops/wooden_armor.png';
-import leatherArmor from '@/assets/sprites/troops/leather_armor.png';
-import leatherHelmet from '@/assets/sprites/troops/leather_helmet.png';
-import leatherBoot from '@/assets/sprites/troops/leather_boot.png';
-import ironArmor from '@/assets/sprites/troops/iron_armor.png';
-import ironHelmet from '@/assets/sprites/troops/iron_helmet.png';
-import ironBoot from '@/assets/sprites/troops/iron_boot.png';
-import wizardHat from '@/assets/sprites/troops/wizard_hat.png';
+import militia from '@/assets/sprites/troops/militia.png';
+import archer from '@/assets/sprites/troops/archer.png';
+import knight from '@/assets/sprites/troops/knight.png';
+import cavalry from '@/assets/sprites/troops/cavalry.png';
+import siege from '@/assets/sprites/troops/siege.png';
+import scout from '@/assets/sprites/troops/scout.png';
+import spy from '@/assets/sprites/troops/spy.png';
 import type { TroopType } from '@/lib/gameTypes';
 
 export const TROOP_SPRITES: Record<TroopType, string> = {
-  militia: woodenArmor,
-  archer: leatherArmor,
-  scout: leatherBoot,
-  knight: ironArmor,
-  cavalry: ironHelmet,
-  siege: ironBoot,
+  militia,
+  archer,
+  knight,
+  cavalry,
+  siege,
+  scout,
 };
 
-/** Wizard hat used for spy/special unit icons */
-export const SPY_SPRITE = wizardHat;
+/** Spy/assassin sprite */
+export const SPY_SPRITE = spy;
 
-/** Worker badge icon */
-export const WORKER_BADGE_SPRITE = leatherHelmet;
+/** Worker badge icon (reuse militia) */
+export const WORKER_BADGE_SPRITE = militia;
