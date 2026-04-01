@@ -393,7 +393,7 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
-        <img src={sprite} alt={info.name} className="w-16 h-16 object-contain" />
+        <img src={sprite} alt={info.name} className="w-16 h-16 object-contain" style={{ filter: spriteFilter }} />
         <div>
           <h3 className="font-display text-lg text-foreground">
             {type === 'townhall' && building.level >= 7 ? '🏰 Castle' : info.name}
