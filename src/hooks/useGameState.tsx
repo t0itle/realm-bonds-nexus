@@ -312,6 +312,7 @@ export interface Village {
   level: number;
   map_x: number;
   map_y: number;
+  settlement_type: string;
 }
 
 export interface PlayerVillage {
