@@ -78,6 +78,10 @@ function isPointNearBridge(px: number, py: number, bridges: { x: number; y: numb
 }
 
 function isCellBlocked(wx: number, wy: number, terrainFeatures: TerrainFeature[], bridgeOutpostPositions?: { x: number; y: number }[]): boolean {
+  // Block movement into ocean chunks
+  const chunkX = Math.floor(wx / CHUNK_SIZE);
+  const chunkY = Math.floor(wy / CHUNK_SIZE);
+  if (isOceanChunk(chunkX, chunkY)) return true;
   const pad = PATH_GRID_CELL * 0.5;
   for (const t of terrainFeatures) {
     if (t.type === 'mountain') {
