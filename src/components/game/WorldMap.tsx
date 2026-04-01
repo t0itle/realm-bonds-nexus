@@ -1052,43 +1052,34 @@ export default function WorldMap() {
   // ── World Boss daily raid logic ──
   useEffect(() => {
     if (!user || worldBossDefeated) return;
-    const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
     const DAY_MS = 24 * 60 * 60 * 1000;
     const daySeed = Math.floor(Date.now() / DAY_MS);
     const raidKey = `worldboss-raid-${daySeed}`;
-    // Only fire once per day per session
     if (sessionStorage.getItem(raidKey)) return;
 
-    // Find most powerful player village nearby (within 5 chunks)
     const bossRange = CHUNK_SIZE * 5;
     const nearbyVillages = allVillages.filter(v => {
       const dx = v.village.map_x - worldBoss.x;
       const dy = v.village.map_y - worldBoss.y;
       return Math.sqrt(dx * dx + dy * dy) <= bossRange && v.village.user_id === user.id;
     });
-
     if (nearbyVillages.length === 0) return;
 
-    // Pick the strongest village
     const target = nearbyVillages.sort((a, b) => b.village.level - a.village.level)[0];
     const raidRng = seededRandom(daySeed * 7919 + worldBoss.weekSeed);
-    // Only raid with ~50% chance per day to keep it unpredictable
     if (raidRng() > 0.5) { sessionStorage.setItem(raidKey, '1'); return; }
 
-    const totalRaidTroops = worldBoss.troops.reduce((s, t) => s + Math.floor(t.count * 0.3), 0);
     const raidArmy: Record<string, number> = {};
     worldBoss.troops.forEach(t => { raidArmy[t.name] = Math.floor(t.count * 0.3); });
 
-    const arrivalSec = 120 + Math.floor(raidRng() * 180); // 2-5 min arrival
+    const arrivalSec = 120 + Math.floor(raidRng() * 180);
     const arrivesAt = new Date(Date.now() + arrivalSec * 1000).toISOString();
 
     supabase.from('active_marches').insert({
-      user_id: '00000000-0000-0000-0000-000000000000', // NPC marker
+      user_id: '00000000-0000-0000-0000-000000000000',
       player_name: `${worldBoss.emoji} ${worldBoss.name}`,
-      start_x: worldBoss.x,
-      start_y: worldBoss.y,
-      target_x: target.village.map_x,
-      target_y: target.village.map_y,
+      start_x: worldBoss.x, start_y: worldBoss.y,
+      target_x: target.village.map_x, target_y: target.village.map_y,
       target_name: target.village.name,
       target_user_id: user.id,
       arrives_at: arrivesAt,
@@ -1097,7 +1088,57 @@ export default function WorldMap() {
     } as any).then(() => {
       sessionStorage.setItem(raidKey, '1');
     });
-  }, [user, worldBoss, worldBossDefeated, allVillages]);
+
+    // Schedule resource theft on arrival: steal 1 week of production (gold, wood, stone — NOT food)
+    const arrivalMs = arrivalSec * 1000;
+    const raidTimer = setTimeout(async () => {
+      const vid = target.village.id;
+      // Re-fetch village + buildings for accurate production estimate
+      const [{ data: freshVillage }, { data: vBuildings }] = await Promise.all([
+        supabase.from('villages').select('*').eq('id', vid).single(),
+        supabase.from('buildings').select('*').eq('village_id', vid),
+      ]);
+      if (!freshVillage) return;
+
+      // Estimate per-tick production from buildings (simplified — mirrors getProduction logic)
+      let prodGold = 0, prodWood = 0, prodStone = 0;
+      if (vBuildings) {
+        for (const b of vBuildings) {
+          const lvl = b.level || 1;
+          const w = b.workers || 0;
+          const workerBonus = 1 + w * 0.15;
+          if (b.type === 'goldmine') prodGold += Math.floor(5 * lvl * workerBonus);
+          else if (b.type === 'lumbermill') prodWood += Math.floor(4 * lvl * workerBonus);
+          else if (b.type === 'quarry') prodStone += Math.floor(3 * lvl * workerBonus);
+          else if (b.type === 'market') prodGold += Math.floor(3 * lvl * workerBonus);
+        }
+      }
+      // Ticks per minute × 60 min × 24 hr × 7 days = weekly production
+      const ticksPerWeek = 60 * 24 * 7;
+      const weekGold = prodGold * ticksPerWeek;
+      const weekWood = prodWood * ticksPerWeek;
+      const weekStone = prodStone * ticksPerWeek;
+
+      // Cap at what the village actually has
+      const stealGold = Math.min(weekGold, Math.max(0, Number(freshVillage.gold)));
+      const stealWood = Math.min(weekWood, Math.max(0, Number(freshVillage.wood)));
+      const stealStone = Math.min(weekStone, Math.max(0, Number(freshVillage.stone)));
+
+      if (stealGold + stealWood + stealStone <= 0) return;
+
+      await supabase.from('villages').update({
+        gold: Math.max(0, Number(freshVillage.gold) - stealGold),
+        wood: Math.max(0, Number(freshVillage.wood) - stealWood),
+        stone: Math.max(0, Number(freshVillage.stone) - stealStone),
+      } as any).eq('id', vid);
+
+      // Deduct from local state if it's the player's active village
+      addResources({ gold: -stealGold, wood: -stealWood, stone: -stealStone, food: 0 });
+      toast.error(`${worldBoss.emoji} ${worldBoss.name} raided ${target.village.name}! Lost ${stealGold} gold, ${stealWood} wood, ${stealStone} stone!`);
+    }, arrivalMs);
+
+    return () => clearTimeout(raidTimer);
+  }, [user, worldBoss, worldBossDefeated, allVillages, addResources]);
 
 
   useEffect(() => {
