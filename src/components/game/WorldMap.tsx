@@ -2508,6 +2508,17 @@ export default function WorldMap() {
 
         {/* Player settlements with memoized collision nudging */}
         {nudgedPlayerPositions.map(({ pv, sx, sy, isMe }) => {
+            if (lodTier === 'far') {
+              // Simple colored dots at far zoom
+              const dotSize = isMe ? 10 : 6;
+              return (
+                <button key={pv.village.id} data-map-item
+                  onClick={(e) => { e.stopPropagation(); if (isMe) { window.dispatchEvent(new CustomEvent('switch-tab', { detail: 'village' })); } else { setSelected({ kind: 'player', data: pv }); } }}
+                  className={`absolute rounded-full ${isMe ? 'z-40' : 'z-30'} hover:z-50`}
+                  style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', width: dotSize, height: dotSize, background: isMe ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))', border: isMe ? '2px solid hsl(var(--primary-foreground))' : 'none' }}
+                />
+              );
+            }
             const pvSettlementType = isMe ? settlementType : (pv.village.settlement_type || 'village');
             const sprite = getSettlementSprite(pvSettlementType, isMe);
             const settlementLabel = SETTLEMENT_LABELS[pvSettlementType] || '🏠 Village';
