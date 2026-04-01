@@ -63,9 +63,9 @@ export default function MilitaryPanel() {
           <div>
             <p className="text-[10px] text-muted-foreground font-display">Total Army</p>
             <div className="flex gap-2 mt-1">
-              {TROOP_TYPES.map(type => army[type] > 0 && (
-                <span key={type} className="text-xs text-foreground">
-                  {getTroopDisplay(type).emoji}{army[type]}
+            {TROOP_TYPES.map(type => army[type] > 0 && (
+                <span key={type} className="text-xs text-foreground flex items-center gap-0.5">
+                  <TroopIcon type={type} size={14} />{army[type]}
                 </span>
               ))}
               {Object.values(army).every(v => v === 0) && (
