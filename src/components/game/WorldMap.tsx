@@ -685,7 +685,10 @@ export default function WorldMap() {
 
   // Get TH level for dynamic sprite
   const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
+  const factionTownhall = getBuildingSprite('townhall');
   const getSettlementSprite = (thLevel: number, isMe: boolean) => {
+    // If the current player has a faction skin, use the faction townhall sprite
+    if (isMe && activeSkin.id !== 'default') return factionTownhall;
     if (thLevel >= 7) return isMe ? mapCastleFriendly : mapCastleNeutral;
     if (thLevel >= 5) return mapCastleNeutral;
     return mapVillage;
