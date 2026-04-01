@@ -77,10 +77,8 @@ interface GameContextType {
 }
 
 const GameContext = createContext<GameContextType | null>(null);
-
 export function GameProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-
   const {
     resources, steel, buildings, villageId, villageName, playerLevel,
     displayName: displayNameLocal, avatarUrl, allVillages, myVillages, ownedMineIds,
@@ -88,20 +86,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
     populationBase, rations, popTaxRate,
     vassalages, injuredTroops, poisons, allianceTaxRate, allianceId,
     settlementType, settlementUpgradeFinishTime,
-    setResources, setSteel, setBuildings, setVillageNameLocal,
-    setDisplayNameLocal, setAvatarUrlLocal,
-    setMyVillages, setArmy, setTrainingQueue, setBuildQueue,
-    setWorkerAssignments, setPopulationBase,
+    setResources, setSteel, setBuildings, setVillageNameLocal, setDisplayNameLocal, setAvatarUrlLocal,
+    setMyVillages, setArmy, setTrainingQueue, setBuildQueue, setWorkerAssignments, setPopulationBase,
     setRationsLocal, setPopTaxRateLocal, setVassalages, setInjuredTroops,
     setPoisons, setAllianceTaxRate, setAllianceId,
     setSettlementType, setSettlementUpgradeFinishTime,
     hydrateSpyDataRef, setSpiesRef, settlementTypeRef,
     switchVillage, refreshVillages, abandonSettlement, refreshMineOutposts,
   } = useVillageDataLoader(user);
-
   const [battleLogs, setBattleLogs] = useState<BattleLog[]>([]);
   const displayName = displayNameLocal;
-
   const setRations = useCallback((r: RationsLevel) => {
     setRationsLocal(r);
     if (villageId) supabase.from('villages').update({ rations: r } as any).eq('id', villageId).then();
