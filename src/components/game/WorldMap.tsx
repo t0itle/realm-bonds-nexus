@@ -728,6 +728,12 @@ export default function WorldMap() {
         }
       }
     });
+    // Load wall segments
+    supabase.from('wall_segments').select('*').then(({ data }) => {
+      if (data) {
+        setWallSegments(data.map((w: any) => ({ id: w.id, user_id: w.user_id, outpost_a_id: w.outpost_a_id, outpost_b_id: w.outpost_b_id, wall_level: w.wall_level, health: w.health, max_health: w.max_health })));
+      }
+    });
     // Load persisted outpost build queue entries
     supabase.from('build_queue').select('*').eq('user_id', user.id).in('building_type', ['outpost_upgrade', 'outpost_wall']).then(({ data }) => {
       if (data && data.length > 0) {
