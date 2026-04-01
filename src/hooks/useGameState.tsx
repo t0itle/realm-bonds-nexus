@@ -1119,12 +1119,33 @@ export function GameProvider({ children }: { children: ReactNode }) {
       const steelProd = steelProductionRef.current;
       const fraction = 2 / 60; // 2 seconds worth of per-minute production
       const cap = storageCapRef.current;
-      setResources(prev => ({
-        gold: Math.min(cap, Math.max(0, prev.gold + prod.gold * fraction)),
-        wood: Math.min(cap, Math.max(0, prev.wood + prod.wood * fraction)),
-        stone: Math.min(cap, Math.max(0, prev.stone + prod.stone * fraction)),
-        food: Math.min(cap, Math.max(0, prev.food + prod.food * fraction)),
-      }));
+      
+      setResources(prev => {
+        const newFood = Math.min(cap, Math.max(0, prev.food + prod.food * fraction));
+        
+        // Army desertion: if food hits 0 and net food production is negative, lose troops
+        if (newFood <= 0 && prod.food < 0) {
+          const currentArmy = armyRef.current;
+          const desertOrder: TroopType[] = ['siege', 'cavalry', 'knight', 'archer', 'militia', 'scout'];
+          for (const t of desertOrder) {
+            if (currentArmy[t] > 0) {
+              const nextArmy = { ...currentArmy, [t]: currentArmy[t] - 1 };
+              setArmy(nextArmy);
+              persistArmyToVillage(nextArmy);
+              setPopulationBase(p => Math.max(1, p - TROOP_INFO[t].popCost));
+              toast.error(`⚠️ A ${TROOP_INFO[t].name} deserted due to starvation!`);
+              break;
+            }
+          }
+        }
+        
+        return {
+          gold: Math.min(cap, Math.max(0, prev.gold + prod.gold * fraction)),
+          wood: Math.min(cap, Math.max(0, prev.wood + prod.wood * fraction)),
+          stone: Math.min(cap, Math.max(0, prev.stone + prod.stone * fraction)),
+          food: newFood,
+        };
+      });
       if (steelProd > 0) {
         setSteel(prev => Math.max(0, prev + steelProd * fraction));
       }
