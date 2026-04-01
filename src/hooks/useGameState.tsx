@@ -13,6 +13,7 @@ import { useTroopTraining } from './useTroopTraining';
 import { useApothecary } from './useApothecary';
 import { useVassalage } from './useVassalage';
 import { useCombat } from './useCombat';
+import { useQueueProcessing } from './useQueueProcessing';
 
 // Re-export all types from gameTypes
 export type {
@@ -826,64 +827,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [poisons, villageId]);
 
 
-  useEffect(() => {
-    if (trainingQueue.length === 0) return;
-    const interval = setInterval(() => {
-      const now = Date.now();
-      setTrainingQueue(prev => {
-        const completed = prev.filter(q => q.finishTime <= now);
-        const remaining = prev.filter(q => q.finishTime > now);
-        if (completed.length > 0) {
-          const nextArmy = { ...armyRef.current };
-          completed.forEach(q => { nextArmy[q.type] += q.count; });
-          setArmy(nextArmy);
-          persistArmyToVillage(nextArmy);
-          // Clean up completed entries from DB
-          supabase.from('training_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').then();
-          // Push notification
-          const summary = completed.map(q => `${q.count} ${q.type}`).join(', ');
-          supabase.functions.invoke('send-push', {
-            body: { user_id: user?.id, title: '⚔️ Training Complete', body: `${summary} ready for battle!`, tag: 'training-done' },
-          }).catch(() => {});
-        }
-        return remaining;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [trainingQueue.length, persistArmyToVillage, user?.id]);
-
-  // Spy training queue processing is now in useSpyMissions
-
-
-  useEffect(() => {
-    if (buildQueue.length === 0) return;
-    const interval = setInterval(() => {
-      const now = Date.now();
-      setBuildQueue(prev => {
-        const completed = prev.filter(q => q.finishTime <= now);
-        const remaining = prev.filter(q => q.finishTime > now);
-        if (completed.length > 0) {
-          completed.forEach(q => {
-            supabase.from('buildings').update({ level: q.targetLevel }).eq('id', q.buildingId).then();
-            setBuildings(prevB => prevB.map(b => b.id === q.buildingId ? { ...b, level: q.targetLevel } : b));
-          });
-          // Clean up from DB
-          supabase.from('build_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').not('building_type', 'in', '(outpost_upgrade,outpost_wall)').then();
-          // Push notification
-          const names = completed.map(q => {
-            const info = BUILDING_INFO[q.buildingType];
-            return info ? `${info.name} Lv.${q.targetLevel}` : q.buildingType;
-          });
-          supabase.functions.invoke('send-push', {
-            body: { user_id: user?.id, title: '🏗️ Construction Complete', body: `${names.join(', ')} finished!`, tag: 'build-done' },
-          }).catch(() => {});
-        }
-        return remaining;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [buildQueue.length, user?.id]);
-
+  useQueueProcessing({
+    trainingQueue, setTrainingQueue, buildQueue, setBuildQueue,
+    army, setArmy, setBuildings, persistArmyToVillage, user, villageId,
+  });
   const {
     getBuildTime, isBuildingUpgrading, getBarracksLevel,
     buildAt, upgradeBuilding, demolishBuilding, addResources, addSteel,
@@ -896,9 +843,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
     trainingQueue, setTrainingQueue, army, resources, setResources, steel, setSteel,
     villageId, user, canAfford, canAffordSteel, getBarracksLevel, totalSoldiers, armyCap, population,
   });
-
-
-
 
   useEffect(() => {
     if (!user || !villageId || mineSteelPerTick <= 0) return;
