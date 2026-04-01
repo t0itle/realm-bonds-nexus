@@ -2458,49 +2458,16 @@ export default function WorldMap() {
         })()}
 
         {/* ── Animated March Sprites with waypoint paths ── */}
-        {marches.map(march => {
-          const now = Date.now();
-          const totalDuration = march.arrivalTime - march.startTime;
-          const elapsed = now - march.startTime;
-          const progress = Math.min(1, Math.max(0, elapsed / totalDuration));
-          const wp = march.waypoints;
-          const currentPos = interpolateAlongPath(wp, progress);
-          const { sx, sy } = worldToScreen(currentPos.x, currentPos.y);
-          // Determine facing direction from next waypoint
-          const aheadPos = interpolateAlongPath(wp, Math.min(1, progress + 0.05));
-          const facingLeft = aheadPos.x < currentPos.x;
-          const marchSize = Math.max(16, Math.min(36, camera.ppu * 5000));
-          const remainingSec = Math.max(0, Math.ceil((march.arrivalTime - now) / 1000));
-          // Build polyline path from waypoints
-          const screenWaypoints = wp.map(p => worldToScreen(p.x, p.y));
-          const polylinePoints = screenWaypoints.map(p => `${p.sx},${p.sy}`).join(' ');
-          return (
-            <div key={march.id}>
-              {/* Dotted march path polyline */}
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible', zIndex: 35 }}>
-                <polyline points={polylinePoints}
-                  fill="none" stroke="hsl(var(--primary) / 0.4)" strokeWidth={2} strokeDasharray="6 4" />
-              </svg>
-              {/* Moving soldier sprite */}
-              <div className="absolute z-40 flex flex-col items-center pointer-events-none"
-                style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
-                <img src={FACTION_SOLDIER_SPRITES[activeSkin.id] || FACTION_SOLDIER_SPRITES.default || mapSoldier} alt="Army" className="drop-shadow-lg"
-                  style={{ width: marchSize, height: marchSize, objectFit: 'contain', transform: facingLeft ? 'scaleX(-1)' : undefined }} loading="lazy" />
-                <div className="bg-background/90 rounded px-1.5 py-0.5 text-center mt-0.5 border border-primary/30 shadow-md">
-                  <p className="text-foreground font-display whitespace-nowrap font-bold" style={{ fontSize: Math.max(7, marchSize / 4) }}>
-                    {displayName}
-                  </p>
-                  <p className="text-primary font-display whitespace-nowrap" style={{ fontSize: Math.max(6, marchSize / 5) }}>
-                    ⚔️ Army → {march.targetName}
-                  </p>
-                  <p className="text-muted-foreground" style={{ fontSize: Math.max(6, marchSize / 5) }}>
-                    {remainingSec}s
-                  </p>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        {marches.map(march => (
+          <MarchPathRenderer
+            key={march.id}
+            march={march}
+            worldToScreen={worldToScreen}
+            cameraPpu={camera.ppu}
+            displayName={displayName}
+            soldierSprite={FACTION_SOLDIER_SPRITES[activeSkin.id] || FACTION_SOLDIER_SPRITES.default || mapSoldier}
+          />
+        ))}
 
         {/* ── Other Players' Marches (live from DB) ── */}
         {otherMarches.map(march => {
