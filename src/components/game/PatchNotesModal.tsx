@@ -39,13 +39,12 @@ export default function PatchNotesModal() {
             exit={{ scale: 0.85, opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 350 }}
             onClick={e => e.stopPropagation()}
-            className="game-panel border border-primary/40 rounded-2xl p-5 max-w-sm w-full space-y-3 max-h-[80vh] overflow-y-auto"
-            style={parchmentStyle}
+            className="parchment-panel rounded-2xl p-5 max-w-sm w-full space-y-3 max-h-[80vh] overflow-y-auto"
           >
             <div className="text-center space-y-1">
               <span className="text-2xl">📜</span>
-              <h3 className="font-display text-lg text-amber-900 dark:text-foreground">{latest.title}</h3>
-              <p className="text-sm text-amber-800/70 dark:text-muted-foreground">v{latest.version} · {latest.date}</p>
+              <h3 className="font-display text-lg text-amber-900">{latest.title}</h3>
+              <p className="text-sm text-amber-800/70">v{latest.version} · {latest.date}</p>
             </div>
 
             <ul className="space-y-1.5">
