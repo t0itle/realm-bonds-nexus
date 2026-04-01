@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useGame, Resources } from '@/hooks/useGameState';
+import { useGame } from '@/hooks/useGameState';
+import type { Resources } from '@/lib/gameTypes';
 import { NPCPlayerRelation, NPCTownState } from '@/hooks/useNPCState';
 import { toast } from 'sonner';
 

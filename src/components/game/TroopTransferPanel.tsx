@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Slider } from '@/components/ui/slider';
-import { useGame, TROOP_INFO, TroopType, Army, calcMarchTime } from '@/hooks/useGameState';
+import { useGame } from '@/hooks/useGameState';
+import { TROOP_INFO, calcMarchTime } from '@/lib/gameConstants';
+import type { TroopType, Army } from '@/lib/gameTypes';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';

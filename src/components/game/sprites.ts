@@ -12,7 +12,7 @@ import apothecarySprite from '@/assets/sprites/apothecary.png';
 import warehouseSprite from '@/assets/sprites/warehouse.png';
 import spyguildSprite from '@/assets/sprites/spyguild.png';
 import workersSprite from '@/assets/sprites/workers.png';
-import type { BuildingType } from '@/hooks/useGameState';
+import type { BuildingType } from '@/lib/gameTypes';
 
 export const BUILDING_SPRITES: Record<Exclude<BuildingType, 'empty'>, string> = {
   townhall: townhallSprite,

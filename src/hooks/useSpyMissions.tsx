@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { Resources, Building, PopulationStats, SpyMission, ActiveSpyMission, IntelReport } from './useGameState';
-import { SPY_MISSION_INFO } from './useGameState';
+import type { Resources, Building, PopulationStats, SpyMission, ActiveSpyMission, IntelReport } from '@/lib/gameTypes';
+import { SPY_MISSION_INFO } from '@/lib/gameConstants';
 
 export interface UseSpyMissionsParams {
   user: { id: string } | null;

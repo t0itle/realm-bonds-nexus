@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useGame, TroopType, Resources, calcMarchTime, getMaxRange, Building, BUILDING_INFO, getSlowestTroopSpeed, WATCHTOWER_RANGE_BONUS } from '@/hooks/useGameState';
+import { useGame } from '@/hooks/useGameState';
+import { calcMarchTime, getMaxRange, BUILDING_INFO, getSlowestTroopSpeed, WATCHTOWER_RANGE_BONUS } from '@/lib/gameConstants';
+import type { TroopType, Resources, Building } from '@/lib/gameTypes';
 import { useAuth } from '@/hooks/useAuth';
 import { useNPCState } from '@/hooks/useNPCState';
 import { supabase } from '@/integrations/supabase/client';

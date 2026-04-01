@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useGame, BuildingType, BUILDING_INFO, getUpgradeCost } from '@/hooks/useGameState';
+import { useGame } from '@/hooks/useGameState';
+import { BUILDING_INFO, getUpgradeCost } from '@/lib/gameConstants';
+import type { BuildingType } from '@/lib/gameTypes';
 import { useTroopSkins } from '@/hooks/useTroopSkins';
 import ResourceIcon, { getResourceType } from './ResourceIcon';
 

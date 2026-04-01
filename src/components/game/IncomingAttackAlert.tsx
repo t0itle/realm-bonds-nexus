@@ -2,7 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useGame, TROOP_INFO, TroopType } from '@/hooks/useGameState';
+import { useGame } from '@/hooks/useGameState';
+import { TROOP_INFO } from '@/lib/gameConstants';
+import type { TroopType } from '@/lib/gameTypes';
 import { toast } from 'sonner';
 
 interface IncomingMarch {
