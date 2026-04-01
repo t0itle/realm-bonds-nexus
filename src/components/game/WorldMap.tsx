@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/hooks/useGameState';
 import { calcMarchTime, getMaxRange, BUILDING_INFO, getSlowestTroopSpeed, WATCHTOWER_RANGE_BONUS } from '@/lib/gameConstants';
@@ -848,6 +848,21 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
   return { realms, events, terrain, steelMines, decorations, regionName, regionBiome };
 }
 
+// ── Preload sprite images to avoid render-time fetches ──
+const PRELOAD_SPRITES = [
+  mapCastleHostile, mapCastleNeutral, mapCastleFriendly,
+  mapEventDanger, mapEventOpportunity, mapEventMystery,
+  mapMine, mapPlayer, mapTrees, mapGrass, mapRocks,
+  mapVillage, mapVillageTier, mapTownTier, mapCityTier,
+  mapRuins, mapSoldier, mapMountain,
+];
+if (typeof window !== 'undefined') {
+  PRELOAD_SPRITES.forEach(src => {
+    const img = new Image();
+    img.src = src;
+  });
+}
+
 // ── Chunk cache (time-keyed so events rotate) ──
 const chunkCache = new Map<string, ChunkData>();
 let chunkCacheTimeSeed = Math.floor(Date.now() / (1000 * 60 * 30));
@@ -1083,10 +1098,10 @@ export default function WorldMap() {
     return () => clearInterval(interval);
   }, [npcState.playerRelations, addResources]);
 
-  // Animate marches — re-render every 500ms for smooth interpolation
+  // Animate marches — re-render every 1s (reduced from 500ms for perf)
   useEffect(() => {
     if (marches.length === 0) return;
-    const interval = setInterval(() => forceRender(v => v + 1), 500);
+    const interval = setInterval(() => forceRender(v => v + 1), 1000);
     return () => clearInterval(interval);
   }, [marches.length]);
 
@@ -1140,12 +1155,23 @@ export default function WorldMap() {
   const DEFAULT_CAMERA = { cx: 100000, cy: 100000, ppu: 0.003 };
   const initializedCamera = useRef(false);
   const [camera, setCamera] = useState(DEFAULT_CAMERA);
+  const rafRef = useRef<number | null>(null);
+  const pendingCamera = useRef<typeof DEFAULT_CAMERA | null>(null);
   const safeSetCamera = useCallback((updater: (prev: typeof DEFAULT_CAMERA) => typeof DEFAULT_CAMERA) => {
     setCamera(prev => {
       const safe = prev ?? DEFAULT_CAMERA;
       return updater(safe);
     });
   }, []);
+  // RAF-throttled camera setter for drag — only commits once per animation frame
+  const rafSetCamera = useCallback((updater: (prev: typeof DEFAULT_CAMERA) => typeof DEFAULT_CAMERA) => {
+    if (rafRef.current) return; // already scheduled
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      safeSetCamera(updater);
+    });
+  }, [safeSetCamera]);
+  useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); }, []);
   const containerRef = useRef<HTMLDivElement>(null);
   const dragStart = useRef<{ x: number; y: number; cx: number; cy: number } | null>(null);
   const lastTouchDist = useRef<number | null>(null);
@@ -1172,6 +1198,12 @@ export default function WorldMap() {
   }, [worldToScreen, containerSize]);
 
   // ── Determine visible chunks ──
+  // Quantize camera position so chunk list only recalculates when we cross chunk boundaries
+  const quantizedCameraKey = useMemo(() => {
+    const q = CHUNK_SIZE * 0.25; // quarter-chunk quantization
+    return `${Math.floor(camera.cx / q)},${Math.floor(camera.cy / q)},${camera.ppu.toFixed(6)},${containerSize.w},${containerSize.h}`;
+  }, [camera.cx, camera.cy, camera.ppu, containerSize.w, containerSize.h]);
+
   const visibleChunks = useMemo(() => {
     const { w, h } = containerSize;
     if (w === 0 || h === 0) return [];
@@ -1182,11 +1214,9 @@ export default function WorldMap() {
     const minCY = Math.floor((camera.cy - halfH) / CHUNK_SIZE);
     const maxCY = Math.floor((camera.cy + halfH) / CHUNK_SIZE);
 
-    // Cap to max ~30 visible chunks to avoid rendering too many elements
     const rangeX = maxCX - minCX + 1;
     const rangeY = maxCY - minCY + 1;
-    if (rangeX * rangeY > 30) {
-      // Too zoomed out — show only nearby chunks
+    if (rangeX * rangeY > 20) {
       const r = 2;
       const ccx = Math.floor(camera.cx / CHUNK_SIZE);
       const ccy = Math.floor(camera.cy / CHUNK_SIZE);
@@ -1206,7 +1236,8 @@ export default function WorldMap() {
       }
     }
     return chunks;
-  }, [camera.cx, camera.cy, camera.ppu, containerSize]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quantizedCameraKey]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if ((e.target as HTMLElement).closest('[data-map-item]')) return;
@@ -1223,12 +1254,13 @@ export default function WorldMap() {
     const startCx = drag.cx;
     const startCy = drag.cy;
 
-    safeSetCamera(prev => ({
+    // Use RAF-throttled setter during drag for smooth panning
+    rafSetCamera(prev => ({
       ...prev,
       cx: startCx - dx / prev.ppu,
       cy: startCy - dy / prev.ppu,
     }));
-  }, [safeSetCamera]);
+  }, [rafSetCamera]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     const drag = dragStart.current;
@@ -1661,7 +1693,7 @@ export default function WorldMap() {
       <div
         ref={containerRef}
         className="flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing touch-none"
-        style={{ background: 'linear-gradient(135deg, hsl(var(--map-bg-1)), hsl(var(--map-bg-2)), hsl(var(--map-bg-3)))' }}
+        style={{ background: 'linear-gradient(135deg, hsl(var(--map-bg-1)), hsl(var(--map-bg-2)), hsl(var(--map-bg-3)))', contain: 'layout style paint', willChange: 'transform' }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
