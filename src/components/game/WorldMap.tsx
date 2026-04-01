@@ -2956,7 +2956,36 @@ export default function WorldMap() {
             className="w-9 h-9 bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-xs active:scale-90 transition-all hover:bg-background/95 shadow-sm mt-0.5">⌂</button>
         </div>
 
-        {/* Legend — collapsible on mobile */}
+        {/* ── Boss March Countdown Timer ── */}
+        {(() => {
+          const BOSS_UUID = '00000000-0000-0000-0000-000000000000';
+          const bossMarches = otherMarches.filter(m => m.user_id === BOSS_UUID && m.target_user_id === user?.id);
+          if (bossMarches.length === 0) return null;
+          return (
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-1.5">
+              {bossMarches.map(bm => {
+                const endT = new Date(bm.arrives_at).getTime();
+                const remaining = Math.max(0, Math.ceil((endT - Date.now()) / 1000));
+                if (remaining <= 0) return null;
+                const mins = Math.floor(remaining / 60);
+                const secs = remaining % 60;
+                const timeStr = mins > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : `${secs}s`;
+                const urgency = remaining < 60 ? 'animate-pulse' : '';
+                const bossName = bm.player_name || 'World Boss';
+                return (
+                  <div key={bm.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg border border-destructive/60 bg-destructive/20 backdrop-blur-md shadow-lg ${urgency}`}>
+                    <span className="text-base">{bossName.split(' ')[0]}</span>
+                    <div className="flex flex-col">
+                      <span className="text-xs text-destructive font-display uppercase tracking-wider">Incoming Raid</span>
+                      <span className="text-lg font-bold font-display text-destructive tabular-nums">{timeStr}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+
         <div className="absolute bottom-3 left-3 z-50">
           <button
             onClick={() => setLegendOpen(prev => !prev)}
