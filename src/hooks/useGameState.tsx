@@ -1649,6 +1649,24 @@ export function GameProvider({ children }: { children: ReactNode }) {
       siege: (defVillage as any).army_siege ?? 0,
       scout: (defVillage as any).army_scout ?? 0,
     };
+
+    // Fetch active reinforcements at defender's village
+    const { data: reinforcements } = await supabase
+      .from('active_reinforcements')
+      .select('*')
+      .eq('host_village_id', targetVillageId);
+    
+    // Add reinforcement troops to defense
+    const reinforcementOwners: { ownerId: string; troops: Partial<Army> }[] = [];
+    if (reinforcements && reinforcements.length > 0) {
+      for (const r of reinforcements) {
+        const troops = r.troops as any as Partial<Army>;
+        reinforcementOwners.push({ ownerId: r.owner_id, troops });
+        for (const [type, count] of Object.entries(troops) as [TroopType, number][]) {
+          if (count > 0) defArmy[type] = (defArmy[type] || 0) + count;
+        }
+      }
+    }
     
     // Get defender's wall level
     const { data: defBuildings } = await supabase.from('buildings').select('*').eq('village_id', targetVillageId);
