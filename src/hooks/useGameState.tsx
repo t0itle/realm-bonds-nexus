@@ -1114,17 +1114,40 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
     // Interpolate resources locally every 2 seconds for visible trickle
     // Cap at storage capacity
+    let lastDesertionTime = 0;
     const tickInterval = setInterval(() => {
       const prod = totalProductionRef.current;
       const steelProd = steelProductionRef.current;
-      const fraction = 2 / 60; // 2 seconds worth of per-minute production
+      const fraction = 2 / 60;
       const cap = storageCapRef.current;
-      setResources(prev => ({
-        gold: Math.min(cap, Math.max(0, prev.gold + prod.gold * fraction)),
-        wood: Math.min(cap, Math.max(0, prev.wood + prod.wood * fraction)),
-        stone: Math.min(cap, Math.max(0, prev.stone + prod.stone * fraction)),
-        food: Math.min(cap, Math.max(0, prev.food + prod.food * fraction)),
-      }));
+      
+      setResources(prev => {
+        const newFood = Math.min(cap, Math.max(0, prev.food + prod.food * fraction));
+        
+        const now = Date.now();
+        if (newFood <= 0 && prod.food < 0 && now - lastDesertionTime > 30000) {
+          const currentArmy = armyRef.current;
+          const desertOrder: TroopType[] = ['siege', 'cavalry', 'knight', 'archer', 'militia', 'scout'];
+          for (const t of desertOrder) {
+            if (currentArmy[t] > 0) {
+              const nextArmy = { ...currentArmy, [t]: currentArmy[t] - 1 };
+              setArmy(nextArmy);
+              persistArmyToVillage(nextArmy);
+              setPopulationBase(p => Math.max(1, p - TROOP_INFO[t].popCost));
+              toast.error(`⚠️ A ${TROOP_INFO[t].name} deserted due to starvation!`);
+              lastDesertionTime = now;
+              break;
+            }
+          }
+        }
+        
+        return {
+          gold: Math.min(cap, Math.max(0, prev.gold + prod.gold * fraction)),
+          wood: Math.min(cap, Math.max(0, prev.wood + prod.wood * fraction)),
+          stone: Math.min(cap, Math.max(0, prev.stone + prod.stone * fraction)),
+          food: newFood,
+        };
+      });
       if (steelProd > 0) {
         setSteel(prev => Math.max(0, prev + steelProd * fraction));
       }
@@ -1270,7 +1293,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const trainTroops = useCallback((type: TroopType, count: number) => {
     const info = TROOP_INFO[type];
     const barracksLvl = getBarracksLevel();
-    console.log('[trainTroops]', { type, count, barracksLvl, required: info.requiredBarracksLevel, totalSoldiers, armyCap, civilians: population.civilians, resources, steel });
+    
+    // Count troops currently in the training queue (not yet added to army)
+    const queuedSoldiers = trainingQueue.reduce((sum, q) => sum + TROOP_INFO[q.type].popCost * q.count, 0);
+    
+    console.log('[trainTroops]', { type, count, barracksLvl, required: info.requiredBarracksLevel, totalSoldiers, queuedSoldiers, armyCap, civilians: population.civilians, resources, steel });
     if (barracksLvl < info.requiredBarracksLevel) { console.log('[trainTroops] FAIL: barracks too low'); return false; }
     const totalCost: Resources = {
       gold: info.cost.gold * count, wood: info.cost.wood * count,
@@ -1279,7 +1306,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const totalSteelCost = info.steelCost * count;
     if (!canAfford(totalCost) || !canAffordSteel(totalSteelCost)) { console.log('[trainTroops] FAIL: cant afford', { totalCost, totalSteelCost }); return false; }
     const popNeeded = info.popCost * count;
-    if (totalSoldiers + popNeeded > armyCap) { console.log('[trainTroops] FAIL: over army cap', { totalSoldiers, popNeeded, armyCap }); return false; }
+    // Check army cap INCLUDING troops currently training
+    if (totalSoldiers + queuedSoldiers + popNeeded > armyCap) { console.log('[trainTroops] FAIL: over army cap (including queued)', { totalSoldiers, queuedSoldiers, popNeeded, armyCap }); return false; }
     if (population.civilians < popNeeded) { console.log('[trainTroops] FAIL: not enough civilians', { civilians: population.civilians, popNeeded }); return false; }
 
     const newResources = {
@@ -1298,7 +1326,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     // Persist to training_queue table
     if (user) supabase.from('training_queue').insert({ user_id: user.id, troop_type: type, count, finish_time: new Date(finishTime).toISOString() } as any).then();
     return true;
-  }, [canAfford, canAffordSteel, getBarracksLevel, totalSoldiers, armyCap, population.civilians, resources, steel, villageId, user]);
+  }, [canAfford, canAffordSteel, getBarracksLevel, totalSoldiers, armyCap, population.civilians, resources, steel, villageId, user, trainingQueue]);
 
   const totalArmyPower = useCallback(() => {
     let attack = 0, defense = 0;
@@ -1456,23 +1484,32 @@ export function GameProvider({ children }: { children: ReactNode }) {
     let vassalized = false;
     
     if (result.victory) {
-      // Raid resources: steal 15-30% based on power ratio
+      // Raid resources: steal 15-30% based on power ratio, but NEVER more than what the defender has
       const raidPercent = Math.min(0.3, 0.15 + result.powerRatio * 0.05);
+      const defGold = Math.max(0, Number(defVillage.gold));
+      const defWood = Math.max(0, Number(defVillage.wood));
+      const defStone = Math.max(0, Number(defVillage.stone));
+      const defFood = Math.max(0, Number(defVillage.food));
       resourcesRaided = {
-        gold: Math.floor(Number(defVillage.gold) * raidPercent),
-        wood: Math.floor(Number(defVillage.wood) * raidPercent),
-        stone: Math.floor(Number(defVillage.stone) * raidPercent),
-        food: Math.floor(Number(defVillage.food) * raidPercent),
+        gold: Math.min(Math.floor(defGold * raidPercent), defGold),
+        wood: Math.min(Math.floor(defWood * raidPercent), defWood),
+        stone: Math.min(Math.floor(defStone * raidPercent), defStone),
+        food: Math.min(Math.floor(defFood * raidPercent), defFood),
       };
       
-      // Take resources from defender, give to attacker
-      addResources(resourcesRaided);
-      await supabase.from('villages').update({
-        gold: Math.max(0, Number(defVillage.gold) - (resourcesRaided.gold || 0)),
-        wood: Math.max(0, Number(defVillage.wood) - (resourcesRaided.wood || 0)),
-        stone: Math.max(0, Number(defVillage.stone) - (resourcesRaided.stone || 0)),
-        food: Math.max(0, Number(defVillage.food) - (resourcesRaided.food || 0)),
-      } as any).eq('id', targetVillageId);
+      // Only give attacker what's actually taken — skip if nothing to raid
+      const totalRaided = (resourcesRaided.gold || 0) + (resourcesRaided.wood || 0) + (resourcesRaided.stone || 0) + (resourcesRaided.food || 0);
+      if (totalRaided > 0) {
+        addResources(resourcesRaided);
+        await supabase.from('villages').update({
+          gold: defGold - (resourcesRaided.gold || 0),
+          wood: defWood - (resourcesRaided.wood || 0),
+          stone: defStone - (resourcesRaided.stone || 0),
+          food: defFood - (resourcesRaided.food || 0),
+        } as any).eq('id', targetVillageId);
+      } else {
+        resourcesRaided = undefined; // Nothing to raid
+      }
       
       // Building damage: random building loses 1 level if power ratio > 1.5
       if (result.powerRatio > 1.5 && defBuildings && defBuildings.length > 0) {
