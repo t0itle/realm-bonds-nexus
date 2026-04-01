@@ -6,6 +6,7 @@ import { useSpyMissions } from './useSpyMissions';
 import { useProfile } from './useProfile';
 import { usePopulation } from './usePopulation';
 import { useProduction } from './useProduction';
+import { useWorkerManagement } from './useWorkerManagement';
 
 // Re-export all types from gameTypes
 export type {
