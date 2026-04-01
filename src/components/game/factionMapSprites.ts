@@ -22,6 +22,12 @@ import romanMapTown from '@/assets/sprites/factions/roman/map-town.png';
 import romanMapCity from '@/assets/sprites/factions/roman/map-city.png';
 import romanMapSoldier from '@/assets/sprites/factions/roman/map-soldier.png';
 
+// Pirate faction map sprites
+import pirateMapVillage from '@/assets/sprites/factions/pirate/map-village.png';
+import pirateMapTown from '@/assets/sprites/factions/pirate/map-town.png';
+import pirateMapCity from '@/assets/sprites/factions/pirate/map-city.png';
+import pirateMapSoldier from '@/assets/sprites/factions/pirate/map-soldier.png';
+
 // Default faction soldier
 import defaultMapSoldier from '@/assets/sprites/factions/default/map-soldier.png';
 
