@@ -6,6 +6,9 @@ import { useGame } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import PatchNotesModal from './PatchNotesModal';
+import IncomingAttackAlert from './IncomingAttackAlert';
+import AllyDefenseModal from './AllyDefenseModal';
+import GratitudeModal from './GratitudeModal';
 
 function lazyRetry<T extends { default: React.ComponentType<any> }>(
   fn: () => Promise<T>
