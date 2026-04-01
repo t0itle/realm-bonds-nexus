@@ -74,9 +74,7 @@ function isPointNearRiverSegment(px: number, py: number, p1: { x: number; y: num
   return Math.hypot(px - closestX, py - closestY) < riverWidth;
 }
 
-function isPointNearBridge(px: number, py: number, bridges: { x: number; y: number }[], radius: number): boolean {
-  return bridges.some(b => Math.hypot(px - b.x, py - b.y) < radius);
-}
+// Bridges are player-built only — no pre-placed bridge check needed
 
 function isCellBlocked(wx: number, wy: number, terrainFeatures: TerrainFeature[]): boolean {
   const pad = PATH_GRID_CELL * 0.5;
