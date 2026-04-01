@@ -2774,7 +2774,7 @@ export default function WorldMap() {
                                     user_id: user.id, x: mineData.x, y: mineData.y, name: mineData.id, outpost_type: 'mine',
                                   }).select().single();
                                   if (opData) {
-                                    setOutposts(prev => [...prev, { id: opData.id, x: mineData.x, y: mineData.y, name: mineData.id, user_id: user.id, level: 1, garrison_power: 0, has_wall: false, wall_level: 0, territory_radius: 5000, outpost_type: 'mine' }]);
+                                    setOutposts(prev => [...prev, { id: opData.id, x: mineData.x, y: mineData.y, name: mineData.id, user_id: user.id, level: 1, garrison_power: 0, garrison_troops: {}, has_wall: false, wall_level: 0, territory_radius: 5000, outpost_type: 'mine' }]);
                                     void refreshMineOutposts();
                                   }
                                 }
