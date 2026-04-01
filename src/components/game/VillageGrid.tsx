@@ -343,6 +343,7 @@ export default function VillageGrid() {
             </button>
           );
         })()}
+      </div>
 
       {/* Inline Oracle Widget */}
       <OracleWidget />
