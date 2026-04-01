@@ -571,19 +571,26 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const loadVillageData = useCallback(async (targetVillageId?: string) => {
     if (!user) return;
     const loadData = async () => {
-      const { data: profile } = await supabase.from('profiles').select('*').eq('user_id', user.id).single();
-      if (profile) {
-        setDisplayNameLocal(profile.display_name);
-        setAvatarUrlLocal((profile as any).avatar_url ?? null);
+      // --- Phase 1: parallel fetch of profile, user villages, mine outposts ---
+      const [profileRes, userVillagesRes, mineRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('user_id', user.id).single(),
+        supabase.from('villages').select('id, name, settlement_type').eq('user_id', user.id).order('created_at', { ascending: true }),
+        supabase.from('outposts').select('name').eq('user_id', user.id).eq('outpost_type', 'mine'),
+      ]);
+
+      if (profileRes.data) {
+        setDisplayNameLocal(profileRes.data.display_name);
+        setAvatarUrlLocal((profileRes.data as any).avatar_url ?? null);
       }
 
-      // Load all user's villages for switching
-      const { data: userVillages } = await supabase.from('villages').select('id, name, settlement_type').eq('user_id', user.id).order('created_at', { ascending: true });
+      const userVillages = userVillagesRes.data;
       if (userVillages) setMyVillages(userVillages as any);
 
-      // Pick village: use targetVillageId if given, else current, else first
+      setOwnedMineIds((mineRes.data || []).map((o: any) => o.name).filter(Boolean));
+
+      // --- Phase 2: pick & load village ---
       let village: any = null;
-      const pickId = targetVillageId || villageId;
+      const pickId = targetVillageId || villageIdRef.current;
       if (pickId) {
         const { data } = await supabase.from('villages').select('*').eq('id', pickId).eq('user_id', user.id).maybeSingle();
         village = data;
@@ -624,196 +631,187 @@ export function GameProvider({ children }: { children: ReactNode }) {
           scout: (village as any).army_scout ?? 0,
         });
 
-        const { data: blds } = await supabase.from('buildings').select('*').eq('village_id', village.id);
+        // --- Phase 3: parallel fetch of buildings, queues, missions, villages list, vassalages, alliance ---
+        const [bldRes, bqRes, tqRes, stqRes, asmRes, irRes, villagesRes, profilesRes, vassalRes, memberRes] = await Promise.all([
+          supabase.from('buildings').select('*').eq('village_id', village.id),
+          supabase.from('build_queue').select('*').eq('user_id', user.id),
+          supabase.from('training_queue').select('*').eq('user_id', user.id),
+          supabase.from('spy_training_queue').select('*').eq('user_id', user.id),
+          supabase.from('active_spy_missions').select('*').eq('user_id', user.id),
+          supabase.from('intel_reports').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(30),
+          supabase.from('villages').select('*').limit(50),
+          supabase.from('profiles').select('*'),
+          supabase.from('vassalages').select('*').or(`lord_id.eq.${user.id},vassal_id.eq.${user.id}`).eq('status', 'active'),
+          supabase.from('alliance_members').select('alliance_id').eq('user_id', user.id).limit(1),
+        ]);
+
+        // Process buildings
+        const blds = bldRes.data;
         if (blds) {
-          // Fix stuck buildings: any building at level 0 means it was being built but the page refreshed before completion
           const stuckBuildings = blds.filter(b => b.level === 0);
           if (stuckBuildings.length > 0) {
-            for (const sb of stuckBuildings) {
-              await supabase.from('buildings').update({ level: 1 }).eq('id', sb.id);
-              sb.level = 1;
-            }
+            await Promise.all(stuckBuildings.map(sb => supabase.from('buildings').update({ level: 1 }).eq('id', sb.id)));
+            stuckBuildings.forEach(sb => { sb.level = 1; });
           }
           setBuildings(blds.map(b => ({ id: b.id, type: b.type as BuildingType, level: b.level, position: b.position, village_id: b.village_id })));
-          // Load worker assignments from DB
           const wa: WorkerAssignments = {};
           for (const b of blds) {
             if ((b as any).workers > 0) wa[b.id] = (b as any).workers;
           }
           setWorkerAssignments(wa);
         }
-      }
 
-      // Load persisted queues and catch up on completed items
-      const now = Date.now();
+        const now = Date.now();
 
-      // Build queue
-      const { data: bqData } = await supabase.from('build_queue').select('*').eq('user_id', user.id);
-      if (bqData && bqData.length > 0) {
-        const villageBuilds = bqData.filter((q: any) => q.building_type !== 'outpost_upgrade' && q.building_type !== 'outpost_wall' && q.building_type !== 'settlement_upgrade');
-        // Settlement upgrade
-        const settlementUpgrade = bqData.find((q: any) => q.building_type === 'settlement_upgrade');
-        if (settlementUpgrade) {
-          const ft = new Date(settlementUpgrade.finish_time).getTime();
-          if (ft > now) {
-            setSettlementUpgradeFinishTime(ft);
-          } else {
-            // Complete it now
-            const newType = settlementUpgrade.target_level === 2 ? 'town' : 'city';
-            setSettlementType(newType as any);
-            settlementTypeRef.current = newType as any;
-            if (village) await supabase.from('villages').update({ settlement_type: newType } as any).eq('id', village.id);
-            await supabase.from('build_queue').delete().eq('id', settlementUpgrade.id);
+        // Process build queue
+        const bqData = bqRes.data;
+        if (bqData && bqData.length > 0) {
+          const villageBuilds = bqData.filter((q: any) => q.building_type !== 'outpost_upgrade' && q.building_type !== 'outpost_wall' && q.building_type !== 'settlement_upgrade');
+          const settlementUpgrade = bqData.find((q: any) => q.building_type === 'settlement_upgrade');
+          if (settlementUpgrade) {
+            const ft = new Date(settlementUpgrade.finish_time).getTime();
+            if (ft > now) {
+              setSettlementUpgradeFinishTime(ft);
+            } else {
+              const newType = settlementUpgrade.target_level === 2 ? 'town' : 'city';
+              setSettlementType(newType as any);
+              settlementTypeRef.current = newType as any;
+              if (village) await supabase.from('villages').update({ settlement_type: newType } as any).eq('id', village.id);
+              await supabase.from('build_queue').delete().eq('id', settlementUpgrade.id);
+            }
           }
+          const completed = villageBuilds.filter((q: any) => new Date(q.finish_time).getTime() <= now);
+          const active = villageBuilds.filter((q: any) => new Date(q.finish_time).getTime() > now);
+          if (completed.length > 0) {
+            await Promise.all(completed.map(q =>
+              Promise.all([
+                supabase.from('buildings').update({ level: q.target_level }).eq('id', q.building_id),
+                supabase.from('build_queue').delete().eq('id', q.id),
+              ])
+            ));
+            setBuildings(prev => {
+              let next = [...prev];
+              for (const q of completed) {
+                next = next.map(b => b.id === q.building_id ? { ...b, level: q.target_level } : b);
+              }
+              return next;
+            });
+          }
+          setBuildQueue(active.map((q: any) => ({
+            buildingId: q.building_id,
+            buildingType: q.building_type as BuildingType,
+            targetLevel: q.target_level,
+            finishTime: new Date(q.finish_time).getTime(),
+          })));
         }
-        const completed = villageBuilds.filter((q: any) => new Date(q.finish_time).getTime() <= now);
-        const active = villageBuilds.filter((q: any) => new Date(q.finish_time).getTime() > now);
-        // Process completed items
-        for (const q of completed) {
-          await supabase.from('buildings').update({ level: q.target_level }).eq('id', q.building_id);
-          setBuildings(prev => prev.map(b => b.id === q.building_id ? { ...b, level: q.target_level } : b));
-          await supabase.from('build_queue').delete().eq('id', q.id);
-        }
-        setBuildQueue(active.map((q: any) => ({
-          buildingId: q.building_id,
-          buildingType: q.building_type as BuildingType,
-          targetLevel: q.target_level,
-          finishTime: new Date(q.finish_time).getTime(),
-        })));
-      }
 
-      // Training queue
-      const { data: tqData } = await supabase.from('training_queue').select('*').eq('user_id', user.id);
-      if (tqData && tqData.length > 0) {
-        const completed = tqData.filter((q: any) => new Date(q.finish_time).getTime() <= now);
-        const active = tqData.filter((q: any) => new Date(q.finish_time).getTime() > now);
-        if (completed.length > 0) {
-          const nextArmy = { ...EMPTY_ARMY };
-          // Load current army first
-          if (village) {
+        // Process training queue
+        const tqData = tqRes.data;
+        if (tqData && tqData.length > 0) {
+          const completed = tqData.filter((q: any) => new Date(q.finish_time).getTime() <= now);
+          const active = tqData.filter((q: any) => new Date(q.finish_time).getTime() > now);
+          if (completed.length > 0) {
+            const nextArmy = { ...EMPTY_ARMY };
             nextArmy.militia = (village as any).army_militia ?? 0;
             nextArmy.archer = (village as any).army_archer ?? 0;
             nextArmy.knight = (village as any).army_knight ?? 0;
             nextArmy.cavalry = (village as any).army_cavalry ?? 0;
             nextArmy.siege = (village as any).army_siege ?? 0;
             nextArmy.scout = (village as any).army_scout ?? 0;
+            for (const q of completed) {
+              nextArmy[q.troop_type as TroopType] += q.count;
+            }
+            setArmy(nextArmy);
+            await Promise.all([
+              ...completed.map(q => supabase.from('training_queue').delete().eq('id', q.id)),
+              supabase.from('villages').update({
+                army_militia: nextArmy.militia, army_archer: nextArmy.archer,
+                army_knight: nextArmy.knight, army_cavalry: nextArmy.cavalry,
+                army_siege: nextArmy.siege, army_scout: nextArmy.scout,
+              }).eq('id', village!.id),
+            ]);
           }
-          for (const q of completed) {
-            nextArmy[q.troop_type as TroopType] += q.count;
-            await supabase.from('training_queue').delete().eq('id', q.id);
-          }
-          setArmy(nextArmy);
-          await supabase.from('villages').update({
-            army_militia: nextArmy.militia, army_archer: nextArmy.archer,
-            army_knight: nextArmy.knight, army_cavalry: nextArmy.cavalry,
-            army_siege: nextArmy.siege, army_scout: nextArmy.scout,
-          }).eq('id', village!.id);
+          setTrainingQueue(active.map((q: any) => ({
+            type: q.troop_type as TroopType,
+            count: q.count,
+            finishTime: new Date(q.finish_time).getTime(),
+          })));
         }
-        setTrainingQueue(active.map((q: any) => ({
-          type: q.troop_type as TroopType,
-          count: q.count,
-          finishTime: new Date(q.finish_time).getTime(),
-        })));
-      }
 
-      // Spy training queue
-      const { data: stqData } = await supabase.from('spy_training_queue').select('*').eq('user_id', user.id);
-      if (stqData && stqData.length > 0) {
-        const completed = stqData.filter((q: any) => new Date(q.finish_time).getTime() <= now);
-        const active = stqData.filter((q: any) => new Date(q.finish_time).getTime() > now);
-        if (completed.length > 0) {
-          const totalNewSpies = completed.reduce((s: number, q: any) => s + q.count, 0);
-          const currentSpies = (village as any)?.spies ?? 0;
-          setSpies(currentSpies + totalNewSpies);
-          await supabase.from('villages').update({ spies: currentSpies + totalNewSpies } as any).eq('id', village!.id);
-          for (const q of completed) {
-            await supabase.from('spy_training_queue').delete().eq('id', q.id);
+        // Process spy training queue
+        const stqData = stqRes.data;
+        if (stqData && stqData.length > 0) {
+          const completed = stqData.filter((q: any) => new Date(q.finish_time).getTime() <= now);
+          const active = stqData.filter((q: any) => new Date(q.finish_time).getTime() > now);
+          if (completed.length > 0) {
+            const totalNewSpies = completed.reduce((s: number, q: any) => s + q.count, 0);
+            const currentSpies = (village as any)?.spies ?? 0;
+            setSpies(currentSpies + totalNewSpies);
+            await Promise.all([
+              supabase.from('villages').update({ spies: currentSpies + totalNewSpies } as any).eq('id', village!.id),
+              ...completed.map(q => supabase.from('spy_training_queue').delete().eq('id', q.id)),
+            ]);
           }
+          setSpyTrainingQueue(active.map((q: any) => ({
+            count: q.count,
+            finishTime: new Date(q.finish_time).getTime(),
+          })));
         }
-        setSpyTrainingQueue(active.map((q: any) => ({
-          count: q.count,
-          finishTime: new Date(q.finish_time).getTime(),
-        })));
+
+        // Process spy missions
+        const asmData = asmRes.data;
+        if (asmData && asmData.length > 0) {
+          setActiveSpyMissions(asmData.map((m: any) => ({
+            id: m.id, mission: m.mission as SpyMission, targetName: m.target_name,
+            targetId: m.target_id, spiesCount: m.spies_count,
+            departTime: new Date(m.depart_time).getTime(),
+            arrivalTime: new Date(m.arrival_time).getTime(),
+            returnTime: new Date(m.arrival_time).getTime() + 15000,
+            phase: new Date(m.arrival_time).getTime() <= now ? 'operating' : 'traveling',
+            targetX: m.target_x || 0, targetY: m.target_y || 0,
+          })));
+        }
+
+        // Process intel reports
+        const irData = irRes.data;
+        if (irData && irData.length > 0) {
+          setIntelReports(irData.map((r: any) => ({
+            id: r.id, targetName: r.target_name, targetId: '', mission: r.mission as SpyMission,
+            result: r.success ? 'success' : 'failure', timestamp: new Date(r.created_at).getTime(),
+            data: r.data, spiesLost: r.spies_lost,
+          })));
+        }
+
+        // Process all villages for world map
+        const villages = villagesRes.data;
+        if (villages) {
+          const profileMap = new Map((profilesRes.data || []).map(p => [p.user_id, { display_name: p.display_name, avatar_emoji: p.avatar_emoji }]));
+          setAllVillages(villages.map(v => ({
+            village: { id: v.id, user_id: v.user_id, name: v.name, gold: Number(v.gold), wood: Number(v.wood), stone: Number(v.stone), food: Number(v.food), level: v.level, map_x: v.map_x, map_y: v.map_y, settlement_type: (v as any).settlement_type || 'village' },
+            profile: profileMap.get(v.user_id) || { display_name: 'Unknown', avatar_emoji: '🛡️' },
+          })));
+        }
+
+        // Process vassalages
+        setVassalages((vassalRes.data || []) as any as Vassalage[]);
+
+        // Process alliance
+        const membership = memberRes.data;
+        if (membership && membership.length > 0) {
+          const aid = membership[0].alliance_id;
+          setAllianceId(aid);
+          const { data: alliance } = await supabase.from('alliances').select('tax_rate').eq('id', aid).single();
+          if (alliance) setAllianceTaxRate(alliance.tax_rate);
+        } else {
+          setAllianceId(null);
+          setAllianceTaxRate(0);
+        }
       }
-
-      // Active spy missions
-      const { data: asmData } = await supabase.from('active_spy_missions').select('*').eq('user_id', user.id);
-      if (asmData && asmData.length > 0) {
-        setActiveSpyMissions(asmData.map((m: any) => ({
-          id: m.id,
-          mission: m.mission as SpyMission,
-          targetName: m.target_name,
-          targetId: m.target_id,
-          spiesCount: m.spies_count,
-          departTime: new Date(m.depart_time).getTime(),
-          arrivalTime: new Date(m.arrival_time).getTime(),
-          returnTime: new Date(m.arrival_time).getTime() + 15000,
-          phase: new Date(m.arrival_time).getTime() <= now ? 'operating' : 'traveling',
-          targetX: m.target_x || 0,
-          targetY: m.target_y || 0,
-        })));
-      }
-
-      // Intel reports
-      const { data: irData } = await supabase.from('intel_reports').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(30);
-      if (irData && irData.length > 0) {
-        setIntelReports(irData.map((r: any) => ({
-          id: r.id,
-          targetName: r.target_name,
-          targetId: '',
-          mission: r.mission as SpyMission,
-          result: r.success ? 'success' : 'failure',
-          timestamp: new Date(r.created_at).getTime(),
-          data: r.data,
-          spiesLost: r.spies_lost,
-        })));
-      }
-
-      const { data: villages } = await supabase.from('villages').select('*').limit(50);
-      if (villages) {
-        const { data: profiles } = await supabase.from('profiles').select('*');
-        const profileMap = new Map((profiles || []).map(p => [p.user_id, { display_name: p.display_name, avatar_emoji: p.avatar_emoji }]));
-        setAllVillages(villages.map(v => ({
-          village: { id: v.id, user_id: v.user_id, name: v.name, gold: Number(v.gold), wood: Number(v.wood), stone: Number(v.stone), food: Number(v.food), level: v.level, map_x: v.map_x, map_y: v.map_y, settlement_type: (v as any).settlement_type || 'village' },
-          profile: profileMap.get(v.user_id) || { display_name: 'Unknown', avatar_emoji: '🛡️' },
-        })));
-      }
-
-      const loadVassalages = async () => {
-        const { data: vassals } = await supabase.from('vassalages')
-          .select('*')
-          .or(`lord_id.eq.${user.id},vassal_id.eq.${user.id}`)
-          .eq('status', 'active');
-        setVassalages((vassals || []) as any as Vassalage[]);
-      };
-
-      // Load vassalages
-      await loadVassalages();
-
-      // Load alliance membership & tax rate
-      const { data: membership } = await supabase.from('alliance_members')
-        .select('alliance_id')
-        .eq('user_id', user.id)
-        .limit(1);
-      if (membership && membership.length > 0) {
-        const aid = membership[0].alliance_id;
-        setAllianceId(aid);
-        const { data: alliance } = await supabase.from('alliances')
-          .select('tax_rate')
-          .eq('id', aid)
-          .single();
-        if (alliance) setAllianceTaxRate(alliance.tax_rate);
-      } else {
-        setAllianceId(null);
-        setAllianceTaxRate(0);
-      }
-
-      await refreshMineOutposts();
 
       setLoading(false);
     };
     loadData();
-  }, [user, villageId, refreshMineOutposts]);
+  }, [user]);
 
   // Initial load
   useEffect(() => {
@@ -868,9 +866,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const villageChannel = supabase.channel('village-changes')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'villages', filter: `user_id=eq.${user.id}` }, (payload) => {
         const v = payload.new;
-        // Only handle updates for current village
         if (v.id !== villageIdRef.current) return;
-        // Skip resource fields — they're managed locally via client-side production ticks
         setVillageNameLocal(v.name as string);
         setPlayerLevel(v.level as number);
         setSteel((v as any).steel ?? 0);
@@ -889,22 +885,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
         });
         setSpies((v as any).spies ?? 0);
         setPoisons((v as any).poisons ?? 0);
-        setInjuredTroops({
-          militia: (v as any).injured_militia ?? 0,
-          archer: (v as any).injured_archer ?? 0,
-          knight: (v as any).injured_knight ?? 0,
-          cavalry: (v as any).injured_cavalry ?? 0,
-          siege: (v as any).injured_siege ?? 0,
-          scout: (v as any).injured_scout ?? 0,
-        });
+        // Skip injured troops here to prevent write-back loop
       }).subscribe();
 
     const vassalageChannel = supabase.channel(`vassalage-changes-${user.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'vassalages', filter: `lord_id=eq.${user.id}` }, () => {
-        void loadVillageData();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vassalages', filter: `lord_id=eq.${user.id}` }, async () => {
+        const { data } = await supabase.from('vassalages').select('*').or(`lord_id.eq.${user.id},vassal_id.eq.${user.id}`).eq('status', 'active');
+        setVassalages((data || []) as any as Vassalage[]);
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'vassalages', filter: `vassal_id=eq.${user.id}` }, () => {
-        void loadVillageData();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vassalages', filter: `vassal_id=eq.${user.id}` }, async () => {
+        const { data } = await supabase.from('vassalages').select('*').or(`lord_id.eq.${user.id},vassal_id.eq.${user.id}`).eq('status', 'active');
+        setVassalages((data || []) as any as Vassalage[]);
       })
       .subscribe();
 
@@ -1316,15 +1307,20 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return () => { clearInterval(tickInterval); clearInterval(serverSync); clearInterval(taxRefresh); };
   }, [villageId, user]);
 
-  // Persist injured troops whenever they change
+  // Persist injured troops with debounce to avoid spamming DB
   const injuredInitRef = useRef(false);
+  const injuredTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!villageId || !injuredInitRef.current) { injuredInitRef.current = true; return; }
-    supabase.from('villages').update({
-      injured_militia: injuredTroops.militia, injured_archer: injuredTroops.archer,
-      injured_knight: injuredTroops.knight, injured_cavalry: injuredTroops.cavalry,
-      injured_siege: injuredTroops.siege, injured_scout: injuredTroops.scout,
-    } as any).eq('id', villageId).then();
+    if (injuredTimerRef.current) clearTimeout(injuredTimerRef.current);
+    injuredTimerRef.current = setTimeout(() => {
+      supabase.from('villages').update({
+        injured_militia: injuredTroops.militia, injured_archer: injuredTroops.archer,
+        injured_knight: injuredTroops.knight, injured_cavalry: injuredTroops.cavalry,
+        injured_siege: injuredTroops.siege, injured_scout: injuredTroops.scout,
+      } as any).eq('id', villageId).then();
+    }, 2000);
+    return () => { if (injuredTimerRef.current) clearTimeout(injuredTimerRef.current); };
   }, [injuredTroops, villageId]);
 
   // Persist poisons whenever they change
