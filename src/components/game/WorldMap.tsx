@@ -1840,7 +1840,7 @@ export default function WorldMap() {
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'outpost', data: outpost }); }}
             >
               <div className="relative">
-                <img src={isOwn && activeSkin.id !== 'default' ? factionTownhall : mapVillage} alt={outpost.name} loading="lazy"
+                <img src={isOwn ? getSettlementSprite('village', true) : mapVillage} alt={outpost.name} loading="lazy"
                   className={`drop-shadow-md ${isOwn ? 'brightness-90' : 'brightness-75 hue-rotate-180'}`}
                   style={{ width: opSize, height: opSize, objectFit: 'contain', filter: isOwn ? getSpriteFilter() : undefined }} />
                 <div className="absolute -inset-1 rounded-full pointer-events-none"
