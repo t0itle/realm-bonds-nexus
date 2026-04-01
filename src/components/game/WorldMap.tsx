@@ -802,13 +802,19 @@ export default function WorldMap() {
     return () => clearInterval(interval);
   }, [tradeContracts.length]);
 
-  const DEFAULT_CAMERA = { cx: 100000, cy: 100000, ppu: 0.003 };
+  const DEFAULT_CAMERA = { cx: 420_000, cy: 470_000, ppu: 0.003 }; // Heartlands center
   const initializedCamera = useRef(false);
   const [camera, setCamera] = useState(DEFAULT_CAMERA);
   const safeSetCamera = useCallback((updater: (prev: typeof DEFAULT_CAMERA) => typeof DEFAULT_CAMERA) => {
     setCamera(prev => {
       const safe = prev ?? DEFAULT_CAMERA;
-      return updater(safe);
+      const result = updater(safe);
+      // Clamp camera to world bounds
+      return {
+        ...result,
+        cx: Math.max(0, Math.min(WORLD_SIZE, result.cx)),
+        cy: Math.max(0, Math.min(WORLD_SIZE, result.cy)),
+      };
     });
   }, []);
   const containerRef = useRef<HTMLDivElement>(null);
