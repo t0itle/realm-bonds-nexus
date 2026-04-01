@@ -1556,7 +1556,7 @@ export default function WorldMap() {
           } else {
             toast.error(`Defeated by ${realm.name}!`);
           }
-        });
+        }, sentArmy);
         setAttackConfig(null);
         setSelected(null);
       },
