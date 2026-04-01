@@ -880,20 +880,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval);
   }, [buildQueue.length, user?.id]);
 
-  const getBuildTime = useCallback((type: Exclude<BuildingType, 'empty'>, level: number) => {
-    const info = BUILDING_INFO[type];
-    return Math.floor(info.buildTime * 3 * Math.pow(1.3, level)); // 3x base, scales with level
-  }, []);
-
-  const isBuildingUpgrading = useCallback((buildingId: string) => {
-    return buildQueue.find(q => q.buildingId === buildingId);
-  }, [buildQueue]);
-
-  const getBarracksLevel = useCallback(() => {
-    const barracks = buildings.find(b => b.type === 'barracks');
-    return barracks?.level || 0;
-  }, [buildings]);
-
+  const {
+    getBuildTime, isBuildingUpgrading, getBarracksLevel,
+    buildAt, upgradeBuilding, demolishBuilding, addResources, addSteel,
+  } = useBuildingManagement({
+    buildings, setBuildings, buildQueue, setBuildQueue, resources, setResources,
+    steel, setSteel, villageId, user, canAfford, canAffordSteel, storageCapacity,
+    currentHouses, maxHouses, setWorkerAssignments,
+  });
   const trainTroops = useCallback((type: TroopType, count: number) => {
     const info = TROOP_INFO[type];
     const barracksLvl = getBarracksLevel();
