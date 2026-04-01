@@ -16,6 +16,7 @@ function formatTime(s: number) {
 
 export default function BuildModal({ position, onClose }: { position: number; onClose: () => void }) {
   const { buildAt, canAfford, canAffordSteel, resources, steel, getBuildTime } = useGame();
+  const { getBuildingSprite } = useTroopSkins();
   const [steelPopup, setSteelPopup] = useState(false);
 
   const handleBuild = async (type: Exclude<BuildingType, 'empty'>) => {
