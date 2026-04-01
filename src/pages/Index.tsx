@@ -20,7 +20,9 @@ function GameRouter() {
 
   return (
     <GameProvider>
-      <GameLayout />
+      <TroopSkinProvider>
+        <GameLayout />
+      </TroopSkinProvider>
     </GameProvider>
   );
 }
