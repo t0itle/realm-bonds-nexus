@@ -730,7 +730,13 @@ export type Database = {
           id: string
           last_action: string | null
           last_action_at: string | null
+          last_regen_at: string
           npc_town_id: string
+          stock_food: number
+          stock_gold: number
+          stock_steel: number
+          stock_stone: number
+          stock_wood: number
           updated_at: string
         }
         Insert: {
@@ -741,7 +747,13 @@ export type Database = {
           id?: string
           last_action?: string | null
           last_action_at?: string | null
+          last_regen_at?: string
           npc_town_id: string
+          stock_food?: number
+          stock_gold?: number
+          stock_steel?: number
+          stock_stone?: number
+          stock_wood?: number
           updated_at?: string
         }
         Update: {
@@ -752,7 +764,13 @@ export type Database = {
           id?: string
           last_action?: string | null
           last_action_at?: string | null
+          last_regen_at?: string
           npc_town_id?: string
+          stock_food?: number
+          stock_gold?: number
+          stock_steel?: number
+          stock_stone?: number
+          stock_wood?: number
           updated_at?: string
         }
         Relationships: []
