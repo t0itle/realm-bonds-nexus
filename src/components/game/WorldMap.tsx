@@ -2355,6 +2355,7 @@ export default function WorldMap() {
                             travelTime: travelSec, showEspionage: false,
                             onAttack: (sentArmy) => {
                               toast(`⚔️ Troops marching to ${outpostData.name}... ETA ${travelSec}s`);
+                              deployTroops(sentArmy);
                               createMarch(`atk-op-${Date.now()}`, outpostData.name, outpostData.x, outpostData.y, travelSec, async () => {
                                 const log = attackTarget(outpostData.name, totalDefense, sentArmy);
                                 // Save outpost battle report to DB
