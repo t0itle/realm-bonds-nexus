@@ -1735,6 +1735,7 @@ export default function WorldMap() {
                 style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
                 <img src={mapSoldier} alt="Troops" className="drop-shadow-md opacity-70"
                   style={{ width: marchSize, height: marchSize, objectFit: 'contain', transform: facingLeft ? 'scaleX(-1)' : undefined }} loading="lazy" />
+                {/* Other players' marches use generic soldier - could be extended to show their faction */}
                 {marchSize > 16 && (
                   <div className="bg-background/70 backdrop-blur-sm rounded px-1 py-0.5 text-center mt-0.5 border border-border/30">
                     <p className="text-foreground/70 font-display whitespace-nowrap" style={{ fontSize: Math.max(6, marchSize / 4) }}>
