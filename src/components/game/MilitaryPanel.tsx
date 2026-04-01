@@ -184,11 +184,11 @@ export default function MilitaryPanel() {
                         <div className="flex items-center gap-1">
                           <motion.button whileTap={{ scale: 0.9 }}
                             onClick={() => setTrainCount(p => ({ ...p, [type]: Math.max(1, p[type] - 1) }))}
-                            className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">−</motion.button>
-                          <span className="text-xs text-foreground w-6 text-center font-bold">{count}</span>
+                            className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">−</motion.button>
+                          <span className="text-sm text-foreground w-8 text-center font-bold">{count}</span>
                           <motion.button whileTap={{ scale: 0.9 }}
                             onClick={() => setTrainCount(p => ({ ...p, [type]: Math.min(50, p[type] + 1) }))}
-                            className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">+</motion.button>
+                            className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">+</motion.button>
                           <motion.button whileTap={{ scale: 0.9 }}
                             onClick={() => setTrainCount(p => ({ ...p, [type]: 10 }))}
                             className="text-[9px] text-muted-foreground px-1">x10</motion.button>
