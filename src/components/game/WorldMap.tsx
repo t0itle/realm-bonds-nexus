@@ -2071,6 +2071,7 @@ export default function WorldMap() {
                           showEspionage: false,
                           onAttack: (sentArmy) => {
                             toast(`⚔️ Troops marching to ${mineData.name}... ETA ${travelSec}s`);
+                            deployTroops(sentArmy);
                             createMarch(`atk-mine-${Date.now()}`, mineData.name, mineData.x, mineData.y, travelSec, async () => {
                               const log = attackTarget(mineData.name, mineData.power, sentArmy);
                               // Save battle report to DB
