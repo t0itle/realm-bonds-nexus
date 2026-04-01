@@ -1327,7 +1327,188 @@ export default function WorldMap() {
           })()}
         </svg>
 
-        {/* ── Terrain Features ── */}
+        {/* ── Continent Landmasses (rendered as filled shapes over ocean) ── */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible', zIndex: 1 }}>
+          {CONTINENTS.map(cont => {
+            // Generate ellipse boundary points with coast noise
+            const points: string[] = [];
+            const steps = cont.coastNoise.length;
+            for (let i = 0; i < steps; i++) {
+              const angle = (i / steps) * Math.PI * 2 - Math.PI;
+              const r = cont.coastNoise[i];
+              const wx = cont.centerX + Math.cos(angle) * cont.radiusX * r;
+              const wy = cont.centerY + Math.sin(angle) * cont.radiusY * r;
+              const { sx, sy } = worldToScreen(wx, wy);
+              points.push(`${sx},${sy}`);
+            }
+            // Check if any point is on screen
+            const screenPts = points.map(p => p.split(',').map(Number));
+            const anyVisible = screenPts.some(([x, y]) => x > -500 && x < containerSize.w + 500 && y > -500 && y < containerSize.h + 500);
+            if (!anyVisible) return null;
+
+            const biomeColors: Record<string, string> = {
+              Tundra: 'hsl(200 15% 35% / 0.85)',
+              Desert: 'hsl(38 50% 40% / 0.85)',
+              Plains: 'hsl(100 25% 30% / 0.85)',
+              Jungle: 'hsl(140 35% 25% / 0.85)',
+              Marsh: 'hsl(160 20% 28% / 0.85)',
+            };
+            const fillColor = biomeColors[cont.biome] || 'hsl(100 20% 30% / 0.85)';
+            const coastColor = 'hsl(45 40% 55% / 0.3)';
+
+            return (
+              <g key={cont.name}>
+                {/* Coastline glow */}
+                <polygon points={points.join(' ')} fill="none" stroke={coastColor} strokeWidth={3} />
+                {/* Land fill */}
+                <polygon points={points.join(' ')} fill={fillColor} stroke="none" />
+              </g>
+            );
+          })}
+
+          {/* Ocean Islands */}
+          {OCEAN_ISLANDS.map(isle => {
+            const { sx, sy } = worldToScreen(isle.x, isle.y);
+            const rx = isle.radiusX * camera.ppu;
+            const ry = isle.radiusY * camera.ppu;
+            if (rx < 3 && ry < 3) return null;
+            if (sx < -rx - 50 || sx > containerSize.w + rx + 50 || sy < -ry - 50 || sy > containerSize.h + ry + 50) return null;
+            return (
+              <g key={isle.name}>
+                <ellipse cx={sx} cy={sy} rx={rx * 1.3} ry={ry * 1.3} fill="hsl(200 50% 35% / 0.3)" />
+                <ellipse cx={sx} cy={sy} rx={rx} ry={ry} fill="hsl(100 30% 35% / 0.8)" stroke="hsl(45 40% 55% / 0.25)" strokeWidth={1} />
+                {rx > 15 && (
+                  <text x={sx} y={sy + ry + 12} textAnchor="middle" fill="hsl(45 40% 70% / 0.5)" fontSize={Math.max(8, Math.min(12, rx / 2))} fontFamily="var(--font-display)">
+                    🏝️ {isle.name}
+                  </text>
+                )}
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* ── Continent-Level Rivers ── */}
+        {CONTINENTS.map(cont => cont.rivers.map((river, ri) => {
+          const screenPoints = river.points.map(p => worldToScreen(p.x, p.y));
+          const anyVisible = screenPoints.some(p => p.sx > -300 && p.sx < containerSize.w + 300 && p.sy > -300 && p.sy < containerSize.h + 300);
+          if (!anyVisible) return null;
+          const strokeW = Math.max(3, river.width * camera.ppu);
+          let d = `M ${screenPoints[0].sx} ${screenPoints[0].sy}`;
+          for (let i = 1; i < screenPoints.length; i++) {
+            const prev = screenPoints[i - 1];
+            const cur = screenPoints[i];
+            const cpx = (prev.sx + cur.sx) / 2 + (i % 2 === 0 ? 10 : -10);
+            const cpy = (prev.sy + cur.sy) / 2;
+            d += ` Q ${cpx} ${cpy} ${cur.sx} ${cur.sy}`;
+          }
+          const midIdx = Math.floor(screenPoints.length / 2);
+          const midPt = screenPoints[midIdx];
+          const labelSize = Math.max(8, Math.min(14, strokeW * 1.5));
+          return (
+            <div key={`cont-river-${cont.name}-${ri}`} className="absolute inset-0 pointer-events-none" style={{ overflow: 'visible', zIndex: 3 }}>
+              <svg className="absolute inset-0 w-full h-full" style={{ overflow: 'visible' }}>
+                <path d={d} fill="none" stroke="hsl(200 70% 50% / 0.15)" strokeWidth={strokeW * 3} strokeLinecap="round" strokeLinejoin="round" />
+                <path d={d} fill="none" stroke="hsl(205 75% 45% / 0.55)" strokeWidth={strokeW} strokeLinecap="round" strokeLinejoin="round" />
+                <path d={d} fill="none" stroke="hsl(195 80% 65% / 0.25)" strokeWidth={strokeW * 0.4} strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              {strokeW > 4 && (
+                <span className="absolute font-display whitespace-nowrap" style={{ left: midPt.sx, top: midPt.sy - strokeW - 6, fontSize: labelSize, transform: 'translateX(-50%)', color: 'hsl(200 60% 70% / 0.5)' }}>
+                  {river.name}
+                </span>
+              )}
+              {/* Bridges */}
+              {river.bridges.map((bp, bi) => {
+                const { sx: bsx, sy: bsy } = worldToScreen(bp.x, bp.y);
+                const bridgeW = Math.max(14, strokeW * 2.5);
+                if (bridgeW < 10) return null;
+                return (
+                  <div key={`bridge-${bi}`} className="absolute flex flex-col items-center" style={{ left: bsx, top: bsy, transform: 'translate(-50%, -50%)', zIndex: 5 }}>
+                    <div style={{
+                      width: bridgeW,
+                      height: bridgeW * 0.5,
+                      background: 'linear-gradient(180deg, hsl(30 40% 50% / 0.8), hsl(25 35% 35% / 0.7))',
+                      borderRadius: `${bridgeW * 0.5}px ${bridgeW * 0.5}px 2px 2px`,
+                      border: '1px solid hsl(30 30% 60% / 0.5)',
+                      boxShadow: '0 2px 8px hsl(0 0% 0% / 0.4)',
+                    }} />
+                    {bridgeW > 18 && <span style={{ fontSize: 9 }} className="mt-0.5" role="img">🌉</span>}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        }))}
+
+        {/* ── Continent-Level Mountain Ranges ── */}
+        {CONTINENTS.map(cont => cont.mountainRanges.map((range, mi) => {
+          const screenSpine = range.spine.map(p => worldToScreen(p.x, p.y));
+          const anyVisible = screenSpine.some(p => p.sx > -200 && p.sx < containerSize.w + 200 && p.sy > -200 && p.sy < containerSize.h + 200);
+          if (!anyVisible) return null;
+          const rangeW = range.width * camera.ppu;
+          if (rangeW < 8) return null;
+
+          // Render mountain range as a series of overlapping mountain sprites along the spine
+          const elements: React.ReactNode[] = [];
+          for (let i = 0; i < range.spine.length; i++) {
+            const p = range.spine[i];
+            const { sx, sy } = worldToScreen(p.x, p.y);
+            const mtnSize = Math.max(20, rangeW * 0.8);
+            elements.push(
+              <img key={`mtn-${i}`} src={mapMountain} alt="" loading="lazy" className="absolute pointer-events-none"
+                style={{ left: sx, top: sy, width: mtnSize, height: mtnSize * 0.8, transform: 'translate(-50%, -50%)', objectFit: 'contain', opacity: 0.9 }} />
+            );
+            // Fill between spine points with additional mountains
+            if (i < range.spine.length - 1) {
+              const next = range.spine[i + 1];
+              const dist = Math.hypot(next.x - p.x, next.y - p.y);
+              const fillCount = Math.min(5, Math.max(1, Math.floor(dist / (range.width * 0.8))));
+              for (let f = 1; f <= fillCount; f++) {
+                const t = f / (fillCount + 1);
+                const fx = p.x + (next.x - p.x) * t;
+                const fy = p.y + (next.y - p.y) * t;
+                const { sx: fsx, sy: fsy } = worldToScreen(fx, fy);
+                const fillSize = mtnSize * (0.6 + Math.random() * 0.4);
+                elements.push(
+                  <img key={`mtn-fill-${i}-${f}`} src={mapMountain} alt="" loading="lazy" className="absolute pointer-events-none"
+                    style={{ left: fsx, top: fsy, width: fillSize, height: fillSize * 0.8, transform: 'translate(-50%, -50%)', objectFit: 'contain', opacity: 0.75 }} />
+                );
+              }
+            }
+          }
+          // Range label
+          const midSpine = screenSpine[Math.floor(screenSpine.length / 2)];
+          const rangeLabelSize = Math.max(9, Math.min(14, rangeW / 4));
+          return (
+            <div key={`range-${cont.name}-${mi}`} className="absolute inset-0 pointer-events-none" style={{ zIndex: 2 }}>
+              {elements}
+              {rangeW > 30 && (
+                <span className="absolute font-display whitespace-nowrap tracking-widest uppercase" style={{ left: midSpine.sx, top: midSpine.sy + rangeW * 0.5, fontSize: rangeLabelSize, transform: 'translateX(-50%)', color: 'hsl(30 20% 60% / 0.5)' }}>
+                  ⛰️ {range.name}
+                </span>
+              )}
+            </div>
+          );
+        }))}
+
+        {/* ── Continent Labels (visible when zoomed out) ── */}
+        {CONTINENTS.map(cont => {
+          const { sx, sy } = worldToScreen(cont.centerX, cont.centerY);
+          const contScreenW = cont.radiusX * 2 * camera.ppu;
+          if (contScreenW < 80) return null; // Too zoomed out
+          const labelSize = Math.max(12, Math.min(24, contScreenW / 15));
+          return (
+            <div key={`clabel-${cont.name}`} className="absolute pointer-events-none flex flex-col items-center" style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', zIndex: 2, opacity: 0.35 }}>
+              <span className="font-display tracking-[0.3em] uppercase text-foreground/50" style={{ fontSize: labelSize }}>
+                {cont.name}
+              </span>
+              <span className="text-muted-foreground/40" style={{ fontSize: labelSize * 0.6 }}>
+                {cont.biome}
+              </span>
+            </div>
+          );
+        })}
+
+        {/* ── Terrain Features (lakes only — rivers/mountains are continent-level) ── */}
         {visibleChunks.map(chunk => chunk.data.terrain.map((t, ti) => {
           if (t.type === 'lake') {
             const { sx, sy } = worldToScreen(t.x, t.y);
