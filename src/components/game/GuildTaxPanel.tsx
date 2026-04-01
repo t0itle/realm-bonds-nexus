@@ -95,15 +95,15 @@ export default function GuildTaxPanel({ allianceId, isLeader }: TaxPanelProps) {
 
       {/* Tax Rate */}
       <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">Tax Rate</span>
+        <span className="text-xs text-muted-foreground">Tax Rate</span>
         {isLeader ? (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <input type="number" min={0} max={50} value={taxRate}
               onChange={e => setTaxRate(Number(e.target.value))}
-              className="w-14 bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground text-center" />
-            <span className="text-sm text-muted-foreground">%</span>
+              className="w-14 bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground text-center" />
+            <span className="text-xs text-muted-foreground">%</span>
             <motion.button whileTap={{ scale: 0.95 }} onClick={updateTaxRate}
-              className="bg-primary/20 text-primary text-sm px-3 py-2 rounded">Set</motion.button>
+              className="bg-primary/20 text-primary text-[10px] px-2 py-1 rounded">Set</motion.button>
           </div>
         ) : (
           <span className="text-sm font-display text-primary">{treasury.tax_rate}%</span>
@@ -111,17 +111,17 @@ export default function GuildTaxPanel({ allianceId, isLeader }: TaxPanelProps) {
       </div>
 
       {/* Treasury Resources */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2">
         {resources.map(r => (
           <div key={r.key} className="bg-secondary/50 rounded-lg p-2 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-1.5">
               <span className="text-sm">{r.icon}</span>
-              <span className="text-sm text-foreground font-bold">{r.value.toLocaleString()}</span>
+              <span className="text-xs text-foreground font-bold">{r.value.toLocaleString()}</span>
             </div>
             {isLeader && r.value > 0 && (
               <motion.button whileTap={{ scale: 0.9 }}
                 onClick={() => withdrawFromTreasury(r.key, Math.min(100, r.value))}
-                className="text-sm text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                className="text-[8px] text-primary bg-primary/10 px-1.5 py-0.5 rounded">
                 -100
               </motion.button>
             )}
@@ -129,7 +129,7 @@ export default function GuildTaxPanel({ allianceId, isLeader }: TaxPanelProps) {
         ))}
       </div>
 
-      <p className="text-sm text-muted-foreground text-center">
+      <p className="text-[9px] text-muted-foreground text-center">
         {isLeader ? 'Members contribute taxes on resource gains' : `${treasury.tax_rate}% of your gains goes to the guild`}
       </p>
     </div>

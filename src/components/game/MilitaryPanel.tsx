@@ -9,7 +9,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTroopSkins } from '@/hooks/useTroopSkins';
 import { supabase } from '@/integrations/supabase/client';
 import ResourceIcon, { getResourceType } from './ResourceIcon';
-import TroopIcon from './TroopIcon';
 import VassalPanel from './VassalPanel';
 
 const TROOP_TYPES: TroopType[] = ['militia', 'archer', 'knight', 'cavalry', 'siege', 'scout'];
@@ -61,60 +60,60 @@ export default function MilitaryPanel() {
       <div className="game-panel border-glow rounded-xl p-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-muted-foreground font-display">Total Army</p>
-            <div className="flex gap-3 mt-1">
-            {TROOP_TYPES.map(type => army[type] > 0 && (
-                <span key={type} className="text-sm text-foreground flex items-center gap-0.5">
-                  <TroopIcon type={type} size={14} />{army[type]}
+            <p className="text-[10px] text-muted-foreground font-display">Total Army</p>
+            <div className="flex gap-2 mt-1">
+              {TROOP_TYPES.map(type => army[type] > 0 && (
+                <span key={type} className="text-xs text-foreground">
+                  {getTroopDisplay(type).emoji}{army[type]}
                 </span>
               ))}
               {Object.values(army).every(v => v === 0) && (
-                <span className="text-sm text-muted-foreground">No troops</span>
+                <span className="text-xs text-muted-foreground">No troops</span>
               )}
-              {spies > 0 && <span className="text-sm text-foreground flex items-center gap-0.5"><TroopIcon type="spy" size={14} />{spies}</span>}
+              {spies > 0 && <span className="text-xs text-foreground">🕵️{spies}</span>}
             </div>
           </div>
           <div className="text-right">
-            <p className="text-sm text-primary font-bold">⚔️ {power.attack}</p>
-            <p className="text-sm text-foreground">🛡️ {power.defense}</p>
+            <p className="text-xs text-primary font-bold">⚔️ {power.attack}</p>
+            <p className="text-xs text-foreground">🛡️ {power.defense}</p>
           </div>
         </div>
-        <div className="border-t border-border/50 mt-2 pt-2 flex items-center justify-between text-sm">
+        <div className="border-t border-border/50 mt-2 pt-2 flex items-center justify-between text-[9px]">
           <span className="text-muted-foreground">Army: {population.soldiers}/{population.armyCap} cap</span>
           {(upkeep.food > 0 || upkeep.gold > 0) && (
-            <span className="text-destructive flex items-center gap-2">Upkeep: <ResourceIcon type="food" size={10} />{upkeep.food}/min <ResourceIcon type="gold" size={10} />{upkeep.gold}/min</span>
+            <span className="text-destructive flex items-center gap-1">Upkeep: <ResourceIcon type="food" size={10} />{upkeep.food}/min <ResourceIcon type="gold" size={10} />{upkeep.gold}/min</span>
           )}
         </div>
       </div>
 
       {/* Tab switcher */}
-      <div className="flex gap-2">
+      <div className="flex gap-1">
         <button onClick={() => setTab('troops')}
-          className={`flex-1 font-display text-sm py-2.5 rounded-lg transition-colors ${tab === 'troops' ? 'wood-btn-primary' : 'bg-muted text-muted-foreground'}`}>
+          className={`flex-1 font-display text-[10px] py-1.5 rounded-lg transition-colors ${tab === 'troops' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
           ⚔️ Troops
         </button>
         <button onClick={() => setTab('espionage')}
-          className={`flex-1 font-display text-sm py-2.5 rounded-lg transition-colors relative ${tab === 'espionage' ? 'wood-btn-primary' : 'bg-muted text-muted-foreground'}`}>
+          className={`flex-1 font-display text-[10px] py-1.5 rounded-lg transition-colors relative ${tab === 'espionage' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
           🕵️ Espionage
           {activeSpyMissions.length > 0 && (
-            <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-sm font-bold rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5">
+            <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[8px] font-bold rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5">
               {activeSpyMissions.length}
             </span>
           )}
         </button>
         {apothecaryLevel > 0 && (
           <button onClick={() => setTab('apothecary')}
-            className={`flex-1 font-display text-sm py-2.5 rounded-lg transition-colors relative ${tab === 'apothecary' ? 'wood-btn-primary' : 'bg-muted text-muted-foreground'}`}>
+            className={`flex-1 font-display text-[10px] py-1.5 rounded-lg transition-colors relative ${tab === 'apothecary' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
             ⚗️ Apothecary
             {totalInjured > 0 && (
-              <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-sm font-bold rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5">
+              <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[8px] font-bold rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5">
                 {totalInjured}
               </span>
             )}
           </button>
         )}
         <button onClick={() => setTab('warlog')}
-          className={`flex-1 font-display text-sm py-2.5 rounded-lg transition-colors ${tab === 'warlog' ? 'wood-btn-primary' : 'bg-muted text-muted-foreground'}`}>
+          className={`flex-1 font-display text-[10px] py-1.5 rounded-lg transition-colors ${tab === 'warlog' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
           📜 War Log
         </button>
       </div>
@@ -125,14 +124,14 @@ export default function MilitaryPanel() {
           {/* Training queue */}
           {trainingQueue.length > 0 && (
             <div className="game-panel border-glow rounded-xl p-3 space-y-2">
-              <h3 className="font-display text-sm text-foreground">Training Queue</h3>
+              <h3 className="font-display text-xs text-foreground">Training Queue</h3>
               {trainingQueue.map((q, i) => {
                 const remaining = Math.max(0, Math.ceil((q.finishTime - Date.now()) / 1000));
                 const info = TROOP_INFO[q.type];
                 const skinDisplay = getTroopDisplay(q.type);
                 return (
-                  <div key={i} className="flex items-center justify-between text-sm">
-                    <span className="text-foreground flex items-center gap-2"><TroopIcon type={q.type} size={14} /> {skinDisplay.name} x{q.count}</span>
+                  <div key={i} className="flex items-center justify-between text-xs">
+                    <span className="text-foreground">{skinDisplay.emoji} {skinDisplay.name} x{q.count}</span>
                     <span className="text-primary font-mono">{formatTime(remaining)}</span>
                   </div>
                 );
@@ -143,7 +142,7 @@ export default function MilitaryPanel() {
           {/* Recruit */}
           <div className="space-y-2">
             <h3 className="font-display text-sm text-foreground">Recruit Troops</h3>
-            <p className="text-sm text-muted-foreground flex items-center gap-0.5">Barracks Level {barracksLevel} · Civilians: {population.civilians} · <ResourceIcon type="steel" size={10} /> Steel: {steel}</p>
+            <p className="text-[10px] text-muted-foreground flex items-center gap-0.5">Barracks Level {barracksLevel} · Civilians: {population.civilians} · <ResourceIcon type="steel" size={10} /> Steel: {steel}</p>
 
             {TROOP_TYPES.map(type => {
               const info = TROOP_INFO[type];
@@ -159,15 +158,15 @@ export default function MilitaryPanel() {
 
               return (
                 <div key={type} className={`game-panel rounded-xl p-3 ${unlocked ? 'border-glow' : 'opacity-40'}`}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <TroopIcon type={type} size={32} />
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-2xl">{getTroopDisplay(type).emoji}</span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <span className="font-display text-sm text-foreground">{getTroopDisplay(type).name}</span>
-                        {!unlocked && <span className="text-sm text-destructive">Req. Barracks Lv.{info.requiredBarracksLevel}</span>}
+                        <span className="font-display text-xs text-foreground">{getTroopDisplay(type).name}</span>
+                        {!unlocked && <span className="text-[9px] text-destructive">Req. Barracks Lv.{info.requiredBarracksLevel}</span>}
                       </div>
-                      <p className="text-sm text-muted-foreground truncate">{info.description}</p>
-                      <div className="flex gap-3 text-sm text-muted-foreground mt-0.5">
+                      <p className="text-[9px] text-muted-foreground truncate">{info.description}</p>
+                      <div className="flex gap-2 text-[9px] text-muted-foreground mt-0.5">
                         <span>⚔️{info.attack}</span>
                         <span>🛡️{info.defense}</span>
                         <span>💨{info.speed}</span>
@@ -180,20 +179,20 @@ export default function MilitaryPanel() {
 
                   {unlocked && (
                     <div className="space-y-1">
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
                           <motion.button whileTap={{ scale: 0.9 }}
                             onClick={() => setTrainCount(p => ({ ...p, [type]: Math.max(1, p[type] - 1) }))}
-                            className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">−</motion.button>
-                          <span className="text-sm text-foreground w-8 text-center font-bold">{count}</span>
+                            className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">−</motion.button>
+                          <span className="text-xs text-foreground w-6 text-center font-bold">{count}</span>
                           <motion.button whileTap={{ scale: 0.9 }}
                             onClick={() => setTrainCount(p => ({ ...p, [type]: Math.min(50, p[type] + 1) }))}
-                            className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">+</motion.button>
+                            className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">+</motion.button>
                           <motion.button whileTap={{ scale: 0.9 }}
                             onClick={() => setTrainCount(p => ({ ...p, [type]: 10 }))}
-                            className="text-sm text-muted-foreground px-1">x10</motion.button>
+                            className="text-[9px] text-muted-foreground px-1">x10</motion.button>
                         </div>
-                        <div className="flex-1 flex flex-wrap gap-2 text-sm text-muted-foreground">
+                        <div className="flex-1 flex flex-wrap gap-1 text-[9px] text-muted-foreground">
                           {Object.entries(totalCost).filter(([, v]) => v > 0).map(([k, v]) => {
                             const rt = getResourceType(k);
                             return <span key={k} className="flex items-center gap-px">{rt ? <ResourceIcon type={rt} size={9} /> : k}{v}</span>;
@@ -203,8 +202,8 @@ export default function MilitaryPanel() {
                         <motion.button whileTap={{ scale: 0.95 }}
                           onClick={() => { if (trainTroops(type, count)) setTrainCount(p => ({ ...p, [type]: 1 })); }}
                           disabled={!affordable}
-                          className={`font-display text-sm py-2 px-4 rounded-lg whitespace-nowrap ${
-                            affordable ? 'wood-btn-primary glow-gold-sm' : 'bg-muted text-muted-foreground'
+                          className={`font-display text-[10px] py-1 px-3 rounded-lg whitespace-nowrap ${
+                            affordable ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'
                           }`}>
                           Train
                         </motion.button>
@@ -216,7 +215,7 @@ export default function MilitaryPanel() {
                         if (population.civilians < popNeeded) reasons.push(`Need ${popNeeded} civilians (have ${population.civilians})`);
                         if (population.soldiers + popNeeded > population.armyCap) reasons.push(`Army cap reached (${population.soldiers}/${population.armyCap})`);
                         return reasons.length > 0 ? (
-                          <p className="text-sm text-destructive">{reasons.join(' · ')}</p>
+                          <p className="text-[9px] text-destructive">{reasons.join(' · ')}</p>
                         ) : null;
                       })()}
                     </div>
@@ -230,35 +229,35 @@ export default function MilitaryPanel() {
           {Object.values(army).some(v => v > 0) && (
             <div className="space-y-2">
               <h3 className="font-display text-sm text-foreground">Disband Troops</h3>
-              <p className="text-sm text-muted-foreground">Dismiss soldiers back to civilian life. No resources refunded.</p>
+              <p className="text-[10px] text-muted-foreground">Dismiss soldiers back to civilian life. No resources refunded.</p>
               {TROOP_TYPES.filter(type => army[type] > 0).map(type => {
                 const info = TROOP_INFO[type];
                 const count = Math.min(disbandCount[type], army[type]);
                 const popReturn = info.popCost * count;
                 return (
                   <div key={type} className="game-panel rounded-xl p-2.5 border border-destructive/20">
-                    <div className="flex items-center gap-3">
-                      <TroopIcon type={type} size={20} />
-                      <span className="font-display text-sm text-foreground flex-1">{getTroopDisplay(type).name} <span className="text-muted-foreground">({army[type]})</span></span>
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{getTroopDisplay(type).emoji}</span>
+                      <span className="font-display text-xs text-foreground flex-1">{getTroopDisplay(type).name} <span className="text-muted-foreground">({army[type]})</span></span>
+                      <div className="flex items-center gap-1">
                         <motion.button whileTap={{ scale: 0.9 }}
                           onClick={() => setDisbandCount(p => ({ ...p, [type]: Math.max(1, p[type] - 1) }))}
-                          className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">−</motion.button>
-                        <span className="text-sm text-foreground w-8 text-center font-bold">{count}</span>
+                          className="w-5 h-5 rounded bg-muted text-foreground text-[10px] flex items-center justify-center">−</motion.button>
+                        <span className="text-[10px] text-foreground w-5 text-center font-bold">{count}</span>
                         <motion.button whileTap={{ scale: 0.9 }}
                           onClick={() => setDisbandCount(p => ({ ...p, [type]: Math.min(army[type], p[type] + 1) }))}
-                          className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">+</motion.button>
+                          className="w-5 h-5 rounded bg-muted text-foreground text-[10px] flex items-center justify-center">+</motion.button>
                         <motion.button whileTap={{ scale: 0.9 }}
                           onClick={() => setDisbandCount(p => ({ ...p, [type]: army[type] }))}
-                          className="text-sm text-muted-foreground px-1">All</motion.button>
+                          className="text-[8px] text-muted-foreground px-1">All</motion.button>
                       </div>
                       <motion.button whileTap={{ scale: 0.95 }}
                         onClick={() => { if (disbandTroops(type, count)) setDisbandCount(p => ({ ...p, [type]: 1 })); }}
-                        className="font-display text-sm py-2 px-2.5 rounded-lg bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors">
+                        className="font-display text-[10px] py-1 px-2.5 rounded-lg bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors">
                         Disband
                       </motion.button>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">→ +{popReturn} civilian{popReturn !== 1 ? 's' : ''}</p>
+                    <p className="text-[9px] text-muted-foreground mt-1">→ +{popReturn} civilian{popReturn !== 1 ? 's' : ''}</p>
                   </div>
                 );
               })}
@@ -273,31 +272,31 @@ export default function MilitaryPanel() {
             <div className="space-y-2">
               <h3 className="font-display text-sm text-foreground">Battle Reports</h3>
               {battleLogs.slice(0, 5).map(log => (
-                <div key={log.id} className={`parchment-panel rounded-xl p-2.5 ${
+                <div key={log.id} className={`game-panel rounded-xl p-2.5 border ${
                   log.result === 'victory' ? 'border-food/30' : 'border-destructive/30'
                 }`}>
                   <div className="flex items-center justify-between">
-                    <span className="font-display text-sm text-foreground">{log.target}</span>
-                    <span className={`text-sm font-bold ${log.result === 'victory' ? 'text-food' : 'text-destructive'}`}>
+                    <span className="font-display text-xs text-foreground">{log.target}</span>
+                    <span className={`text-[10px] font-bold ${log.result === 'victory' ? 'text-food' : 'text-destructive'}`}>
                       {log.result === 'victory' ? '⚔️ Victory!' : '💀 Defeat'}
                     </span>
                   </div>
-                  <div className="flex gap-3 text-sm text-muted-foreground mt-1">
+                  <div className="flex gap-2 text-[9px] text-muted-foreground mt-1">
                     <span className="text-destructive/70">Your losses:</span>
                     {Object.entries(log.troopsLost).filter(([, v]) => v && v > 0).map(([type, count]) => (
-                      <span key={type} className="flex items-center gap-0.5">-{count} <TroopIcon type={type as TroopType} size={10} /></span>
+                      <span key={type}>-{count} {TROOP_INFO[type as TroopType].emoji}</span>
                     ))}
                   </div>
                   {log.defenderTroopsLost && Object.values(log.defenderTroopsLost).some(v => v && v > 0) && (
-                    <div className="flex gap-3 text-sm text-muted-foreground mt-0.5">
+                    <div className="flex gap-2 text-[9px] text-muted-foreground mt-0.5">
                       <span className="text-food/70">Enemy losses:</span>
                       {Object.entries(log.defenderTroopsLost).filter(([, v]) => v && v > 0).map(([type, count]) => (
-                        <span key={type} className="flex items-center gap-0.5">-{count} <TroopIcon type={type as TroopType} size={10} /></span>
+                        <span key={type}>-{count} {TROOP_INFO[type as TroopType].emoji}</span>
                       ))}
                     </div>
                   )}
                   {log.resourcesGained && (
-                    <div className="flex gap-3 text-sm text-primary mt-0.5">
+                    <div className="flex gap-2 text-[9px] text-primary mt-0.5">
                       <span>Raided:</span>
                       {Object.entries(log.resourcesGained).filter(([, v]) => v && v > 0).map(([k, v]) => (
                         <span key={k}>+{v} {k}</span>
@@ -305,10 +304,10 @@ export default function MilitaryPanel() {
                     </div>
                   )}
                   {log.buildingDamaged && (
-                    <p className="text-sm text-destructive mt-0.5">🏚️ Damaged enemy {log.buildingDamaged} (-{log.buildingDamageLevels} level)</p>
+                    <p className="text-[9px] text-destructive mt-0.5">🏚️ Damaged enemy {log.buildingDamaged} (-{log.buildingDamageLevels} level)</p>
                   )}
                   {log.vassalized && (
-                    <p className="text-sm text-primary font-bold mt-0.5">👑 Enemy vassalized!</p>
+                    <p className="text-[9px] text-primary font-bold mt-0.5">👑 Enemy vassalized!</p>
                   )}
                 </div>
               ))}
@@ -416,16 +415,16 @@ function WarLogPanel() {
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-2">
+      <div className="flex gap-1">
         {(['all', 'sent', 'received'] as const).map(f => (
           <button key={f} onClick={() => setFilter(f)}
-            className={`flex-1 text-sm font-display py-2 rounded-lg transition-colors ${filter === f ? 'bg-secondary text-foreground' : 'text-muted-foreground'}`}>
+            className={`flex-1 text-[10px] font-display py-1 rounded-lg transition-colors ${filter === f ? 'bg-secondary text-foreground' : 'text-muted-foreground'}`}>
             {f === 'all' ? '📜 All' : f === 'sent' ? '⚔️ Sent' : '🛡️ Received'}
           </button>
         ))}
       </div>
 
-      {loading && <p className="text-sm text-muted-foreground text-center py-4">Loading...</p>}
+      {loading && <p className="text-xs text-muted-foreground text-center py-4">Loading...</p>}
 
       {!loading && filtered.length === 0 && (
         <div className="text-center py-6 space-y-2">
@@ -450,38 +449,38 @@ function WarLogPanel() {
         return (
           <div key={r.id} className={`game-panel rounded-xl p-3 border ${won ? 'border-primary/30' : 'border-destructive/30'}`}>
             <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-1.5">
                 <span className="text-sm">{isLocal ? '🧭' : isSent ? '⚔️' : '🛡️'}</span>
-                <span className="font-display text-sm text-foreground">
+                <span className="font-display text-xs text-foreground">
                   {isSent ? `→ ${r.defender_name}` : `← ${r.attacker_name}`}
                 </span>
                 {isLocal && (
-                  <span className="text-sm font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+                  <span className="text-[8px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
                     Local
                   </span>
                 )}
               </div>
               <div className="text-right">
-                <span className={`text-sm font-bold ${won ? 'text-primary' : 'text-destructive'}`}>
+                <span className={`text-[10px] font-bold ${won ? 'text-primary' : 'text-destructive'}`}>
                   {won ? 'Victory' : 'Defeat'}
                 </span>
-                <p className="text-sm text-muted-foreground">{timeAgo(r.created_at)}</p>
+                <p className="text-[8px] text-muted-foreground">{timeAgo(r.created_at)}</p>
               </div>
             </div>
 
             {/* Troop losses */}
-            <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-sm">
+            <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[9px]">
               {isSent && r.attacker_troops_lost && Object.entries(r.attacker_troops_lost).filter(([, v]) => v && (v as number) > 0).map(([type, count]) => (
-                <span key={type} className="text-destructive flex items-center gap-0.5">-{count as number} <TroopIcon type={type as TroopType} size={10} /></span>
+                <span key={type} className="text-destructive">-{count as number} {TROOP_INFO[type as TroopType]?.emoji || type}</span>
               ))}
               {!isSent && r.defender_troops_lost && Object.entries(r.defender_troops_lost).filter(([, v]) => v && (v as number) > 0).map(([type, count]) => (
-                <span key={type} className="text-destructive flex items-center gap-0.5">-{count as number} <TroopIcon type={type as TroopType} size={10} /></span>
+                <span key={type} className="text-destructive">-{count as number} {TROOP_INFO[type as TroopType]?.emoji || type}</span>
               ))}
             </div>
 
             {/* Resources raided */}
             {raidStr && (
-              <p className="text-sm mt-0.5">
+              <p className="text-[9px] mt-0.5">
                 <span className={isSent && r.result === 'victory' ? 'text-primary' : 'text-destructive'}>
                   {isSent && r.result === 'victory' ? '📦 Raided: ' : '📦 Lost: '}{raidStr}
                 </span>
@@ -489,10 +488,10 @@ function WarLogPanel() {
             )}
 
             {r.building_damaged && (
-              <p className="text-sm text-muted-foreground mt-0.5">🏚️ {r.building_damaged} damaged</p>
+              <p className="text-[9px] text-muted-foreground mt-0.5">🏚️ {r.building_damaged} damaged</p>
             )}
             {r.vassalized && (
-              <p className="text-sm text-primary font-bold mt-0.5">👑 {isSent ? 'Enemy vassalized!' : 'You were vassalized!'}</p>
+              <p className="text-[9px] text-primary font-bold mt-0.5">👑 {isSent ? 'Enemy vassalized!' : 'You were vassalized!'}</p>
             )}
           </div>
         );
@@ -529,44 +528,44 @@ function EspionagePanel({
       {/* Spy Roster */}
       <div className="game-panel border-glow rounded-xl p-3 space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="font-display text-sm text-foreground">🕵️ Spy Roster</h3>
-          <span className="text-sm text-primary font-bold">{spies} available</span>
+          <h3 className="font-display text-xs text-foreground">🕵️ Spy Roster</h3>
+          <span className="text-xs text-primary font-bold">{spies} available</span>
         </div>
-        <p className="text-sm text-muted-foreground">Spies gather intel, sabotage enemies, and spread propaganda. Requires Spy Guild.</p>
+        <p className="text-[9px] text-muted-foreground">Spies gather intel, sabotage enemies, and spread propaganda. Requires Spy Guild.</p>
         
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <motion.button whileTap={{ scale: 0.9 }}
               onClick={() => setSpyTrainCount(Math.max(1, spyTrainCount - 1))}
-              className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">−</motion.button>
-            <span className="text-sm text-foreground w-8 text-center font-bold">{spyTrainCount}</span>
+              className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">−</motion.button>
+            <span className="text-xs text-foreground w-6 text-center font-bold">{spyTrainCount}</span>
             <motion.button whileTap={{ scale: 0.9 }}
               onClick={() => setSpyTrainCount(Math.min(10, spyTrainCount + 1))}
-              className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">+</motion.button>
+              className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">+</motion.button>
           </div>
-          <div className="flex-1 text-sm text-muted-foreground">
+          <div className="flex-1 text-[9px] text-muted-foreground">
             <ResourceIcon type="gold" size={10} />{40 * spyTrainCount} <ResourceIcon type="food" size={10} />{20 * spyTrainCount} <ResourceIcon type="population" size={10} />{spyTrainCount} · <ResourceIcon type="timer" size={10} />{20 * spyTrainCount}s
           </div>
           <motion.button whileTap={{ scale: 0.95 }}
             onClick={() => { if (trainSpies(spyTrainCount)) setSpyTrainCount(1); }}
             disabled={!canTrainSpy}
-            className={`font-display text-sm py-2 px-4 rounded-lg ${canTrainSpy ? 'wood-btn-primary glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
+            className={`font-display text-[10px] py-1 px-3 rounded-lg ${canTrainSpy ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
             Recruit
           </motion.button>
         </div>
         {!canTrainSpy && trainReasons.length > 0 && (
-          <p className="text-sm text-destructive">{trainReasons.join(' · ')}</p>
+          <p className="text-[9px] text-destructive">{trainReasons.join(' · ')}</p>
         )}
       </div>
 
       {/* Spy Training Queue */}
       {spyTrainingQueue.length > 0 && (
         <div className="game-panel border-glow rounded-xl p-3 space-y-2">
-          <h3 className="font-display text-sm text-foreground">🕵️ Training Spies</h3>
+          <h3 className="font-display text-xs text-foreground">🕵️ Training Spies</h3>
           {spyTrainingQueue.map((q: any, i: number) => {
             const remaining = Math.max(0, Math.ceil((q.finishTime - Date.now()) / 1000));
             return (
-              <div key={i} className="flex items-center justify-between text-sm">
+              <div key={i} className="flex items-center justify-between text-xs">
                 <span className="text-foreground">🕵️ Spy x{q.count}</span>
                 <span className="text-primary font-mono">{formatTime(remaining)}</span>
               </div>
@@ -578,7 +577,7 @@ function EspionagePanel({
       {/* Active Missions with travel animation */}
       {activeSpyMissions.length > 0 && (
         <div className="game-panel border-glow rounded-xl p-3 space-y-2">
-          <h3 className="font-display text-sm text-foreground">🚶 Active Missions</h3>
+          <h3 className="font-display text-xs text-foreground">🚶 Active Missions</h3>
           {activeSpyMissions.map((m: any) => {
             const now = Date.now();
             const totalDuration = m.returnTime - m.departTime;
@@ -590,7 +589,7 @@ function EspionagePanel({
 
             return (
               <div key={m.id} className="space-y-1">
-                <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center justify-between text-[10px]">
                   <span className="text-foreground">{SPY_MISSION_INFO[m.mission as SpyMission].emoji} {SPY_MISSION_INFO[m.mission as SpyMission].name} → {m.targetName}</span>
                   <span className="text-primary font-mono">{formatTime(remaining)}</span>
                 </div>
@@ -601,7 +600,7 @@ function EspionagePanel({
                     style={{ width: `${progress * 100}%` }}
                     transition={{ duration: 0.5 }}
                   />
-                  <div className="absolute inset-0 flex items-center justify-center text-sm text-foreground font-bold">
+                  <div className="absolute inset-0 flex items-center justify-center text-[8px] text-foreground font-bold">
                     {phaseEmoji} {phaseLabel} ({m.spiesCount} 🕵️)
                   </div>
                 </div>
@@ -614,18 +613,18 @@ function EspionagePanel({
       {/* Send Mission */}
       {spies > 0 && (
         <div className="game-panel border-glow rounded-xl p-3 space-y-3">
-          <h3 className="font-display text-sm text-foreground">📋 Send Mission</h3>
+          <h3 className="font-display text-xs text-foreground">📋 Send Mission</h3>
 
           {/* Mission type selector */}
           <div className="space-y-1">
-            <p className="text-sm text-muted-foreground font-display">Mission Type</p>
-            <div className="flex gap-2">
+            <p className="text-[9px] text-muted-foreground font-display">Mission Type</p>
+            <div className="flex gap-1">
               {SPY_MISSIONS.map(mission => {
                 const info = SPY_MISSION_INFO[mission];
                 return (
                   <button key={mission}
                     onClick={() => setSelectedMission(mission)}
-                    className={`flex-1 text-sm py-3 px-1 rounded-lg border transition-colors ${
+                    className={`flex-1 text-[10px] py-2 px-1 rounded-lg border transition-colors ${
                       selectedMission === mission
                         ? 'border-primary bg-primary/10 text-foreground'
                         : 'border-border bg-muted/50 text-muted-foreground'
@@ -633,23 +632,23 @@ function EspionagePanel({
                     <div className="text-center">
                       <span className="text-lg block">{info.emoji}</span>
                       <span className="font-display block">{info.name}</span>
-                      <span className="text-sm block mt-0.5 flex items-center justify-center gap-0.5"><ResourceIcon type="gold" size={8} />{info.goldCost} · 🕵️{info.spiesRequired}</span>
+                      <span className="text-[8px] block mt-0.5 flex items-center justify-center gap-0.5"><ResourceIcon type="gold" size={8} />{info.goldCost} · 🕵️{info.spiesRequired}</span>
                     </div>
                   </button>
                 );
               })}
             </div>
-            <p className="text-sm text-muted-foreground">{missionInfo.description}</p>
-            <p className="text-sm text-muted-foreground">Base success: <span className="text-primary font-bold">{Math.round(missionInfo.baseSuccessRate * 100)}%</span></p>
+            <p className="text-[9px] text-muted-foreground">{missionInfo.description}</p>
+            <p className="text-[9px] text-muted-foreground">Base success: <span className="text-primary font-bold">{Math.round(missionInfo.baseSuccessRate * 100)}%</span></p>
           </div>
 
           {/* Target selector */}
           <div className="space-y-1">
-            <p className="text-sm text-muted-foreground font-display">Target</p>
+            <p className="text-[9px] text-muted-foreground font-display">Target</p>
             <select
               value={selectedTarget}
               onChange={(e) => setSelectedTarget(e.target.value)}
-              className="w-full text-[11px] py-2.5 px-3 rounded-lg bg-muted border border-border text-foreground"
+              className="w-full text-[11px] py-1.5 px-2 rounded-lg bg-muted border border-border text-foreground"
             >
               <option value="">Select target...</option>
               {allVillages.filter((v: any) => v.village.user_id !== undefined).map((v: any) => (
@@ -674,13 +673,13 @@ function EspionagePanel({
               sendSpyMission(selectedMission, target.profile.display_name, target.village.id, tx, ty, 1);
               setSelectedTarget('');
             }}
-            className={`w-full font-display text-[11px] py-3 rounded-lg ${
-              canSend ? 'wood-btn-primary glow-gold-sm' : 'bg-muted text-muted-foreground'
+            className={`w-full font-display text-[11px] py-2 rounded-lg ${
+              canSend ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'
             }`}>
             {missionInfo.emoji} Send {missionInfo.name} Mission (<ResourceIcon type="gold" size={10} />{missionInfo.goldCost})
           </motion.button>
           {!canSend && sendReasons.length > 0 && (
-            <p className="text-sm text-destructive">{sendReasons.join(' · ')}</p>
+            <p className="text-[9px] text-destructive">{sendReasons.join(' · ')}</p>
           )}
         </div>
       )}
@@ -689,17 +688,17 @@ function EspionagePanel({
       <div className="space-y-2">
         <h3 className="font-display text-sm text-foreground">📜 Intel Reports ({intelReports.length})</h3>
         {intelReports.length === 0 && (
-          <p className="text-sm text-muted-foreground game-panel rounded-xl p-3">No intel yet. Send spies to gather information.</p>
+          <p className="text-[10px] text-muted-foreground game-panel rounded-xl p-3">No intel yet. Send spies to gather information.</p>
         )}
         {intelReports.slice(0, 10).map((report: any) => (
           <div key={report.id} className={`game-panel rounded-xl p-2.5 border ${
             report.result === 'success' ? 'border-food/30' : report.result === 'caught' ? 'border-destructive/30' : 'border-muted-foreground/30'
           }`}>
             <div className="flex items-center justify-between">
-              <span className="font-display text-sm text-foreground">
+              <span className="font-display text-xs text-foreground">
                 {SPY_MISSION_INFO[report.mission as SpyMission].emoji} {SPY_MISSION_INFO[report.mission as SpyMission].name} — {report.targetName}
               </span>
-              <span className={`text-sm font-bold ${
+              <span className={`text-[10px] font-bold ${
                 report.result === 'success' ? 'text-food' : report.result === 'caught' ? 'text-destructive' : 'text-muted-foreground'
               }`}>
                 {report.result === 'success' ? '✅ Success' : report.result === 'caught' ? '🚨 Caught!' : '❌ Failed'}
@@ -710,19 +709,19 @@ function EspionagePanel({
               <div className="mt-1.5 space-y-1">
                 {/* Scout intel */}
                 {report.data.troops && (
-                  <div className="text-sm">
+                  <div className="text-[9px]">
                     <p className="text-muted-foreground font-display">Troops Spotted:</p>
-                    <div className="flex gap-3 text-foreground">
+                    <div className="flex gap-2 text-foreground">
                       {Object.entries(report.data.troops).filter(([, v]) => (v as number) > 0).map(([type, count]) => (
-                        <span key={type} className="flex items-center gap-0.5"><TroopIcon type={type as TroopType} size={10} />{count as number}</span>
+                        <span key={type}>{TROOP_INFO[type as TroopType].emoji}{count as number}</span>
                       ))}
                     </div>
                   </div>
                 )}
                 {report.data.resources && (
-                  <div className="text-sm">
+                  <div className="text-[9px]">
                     <p className="text-muted-foreground font-display">Est. Resources:</p>
-                    <div className="flex gap-3 text-foreground">
+                    <div className="flex gap-2 text-foreground">
                       <span className="flex items-center gap-0.5"><ResourceIcon type="gold" size={10} />{report.data.resources.gold}</span>
                       <span className="flex items-center gap-0.5"><ResourceIcon type="wood" size={10} />{report.data.resources.wood}</span>
                       <span className="flex items-center gap-0.5"><ResourceIcon type="stone" size={10} />{report.data.resources.stone}</span>
@@ -731,13 +730,13 @@ function EspionagePanel({
                   </div>
                 )}
                 {report.data.defenses !== undefined && (
-                  <p className="text-sm text-muted-foreground">🧱 Wall Level: {report.data.defenses}</p>
+                  <p className="text-[9px] text-muted-foreground">🧱 Wall Level: {report.data.defenses}</p>
                 )}
                 {/* Sabotage */}
                 {report.data.resourcesDestroyed && (
-                  <div className="text-sm">
+                  <div className="text-[9px]">
                     <p className="text-muted-foreground font-display">Resources Destroyed:</p>
-                    <div className="flex gap-3 text-destructive">
+                    <div className="flex gap-2 text-destructive">
                       {Object.entries(report.data.resourcesDestroyed).filter(([, v]) => (v as number) > 0).map(([k, v]) => (
                         <span key={k}>-{v as number} {k}</span>
                       ))}
@@ -746,16 +745,16 @@ function EspionagePanel({
                 )}
                 {/* Demoralize */}
                 {report.data.happinessDrop && (
-                  <p className="text-sm text-destructive">😢 Happiness dropped by {report.data.happinessDrop}%</p>
+                  <p className="text-[9px] text-destructive">😢 Happiness dropped by {report.data.happinessDrop}%</p>
                 )}
               </div>
             )}
 
             {report.result === 'caught' && (
-              <p className="text-sm text-destructive mt-1">🕵️ Spy was captured. Agent lost.</p>
+              <p className="text-[9px] text-destructive mt-1">🕵️ Spy was captured. Agent lost.</p>
             )}
 
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-[8px] text-muted-foreground mt-1">
               {new Date(report.timestamp).toLocaleTimeString()}
             </p>
           </div>
@@ -787,10 +786,10 @@ function ApothecaryPanel({ apothecaryLevel, injuredTroops, poisons, healTroops, 
       {/* Overview */}
       <div className="game-panel border-glow rounded-xl p-3 space-y-1">
         <div className="flex items-center justify-between">
-          <h3 className="font-display text-sm text-foreground">⚗️ Apothecary Lv.{apothecaryLevel}</h3>
-          <span className="text-sm text-muted-foreground">Heal rate: {Math.round(Math.min(60, 20 + apothecaryLevel * 8))}% of losses saved</span>
+          <h3 className="font-display text-xs text-foreground">⚗️ Apothecary Lv.{apothecaryLevel}</h3>
+          <span className="text-[9px] text-muted-foreground">Heal rate: {Math.round(Math.min(60, 20 + apothecaryLevel * 8))}% of losses saved</span>
         </div>
-        <div className="flex items-center gap-3 text-sm">
+        <div className="flex items-center gap-3 text-xs">
           <span className="text-destructive">🩹 {totalInjured} injured</span>
           <span className="text-primary">🧪 {poisons} poisons</span>
         </div>
@@ -799,7 +798,7 @@ function ApothecaryPanel({ apothecaryLevel, injuredTroops, poisons, healTroops, 
       {/* Heal Injured Troops */}
       <div className="game-panel border-glow rounded-xl p-3 space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="font-display text-sm text-foreground">🩹 Heal Injured Troops</h3>
+          <h3 className="font-display text-xs text-foreground">🩹 Heal Injured Troops</h3>
           {totalInjured > 0 && (() => {
             let totalGold = 0, totalFood = 0;
             TROOP_TYPES.forEach(type => {
@@ -818,14 +817,14 @@ function ApothecaryPanel({ apothecaryLevel, injuredTroops, poisons, healTroops, 
                   });
                 }}
                 disabled={!allAffordable}
-                className={`font-display text-sm py-2 px-3 rounded-lg flex items-center gap-2 ${allAffordable ? 'wood-btn-primary glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
+                className={`font-display text-[9px] py-1 px-2 rounded-lg flex items-center gap-1 ${allAffordable ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
                 Heal All ({totalInjured}) · <ResourceIcon type="gold" size={9} />{totalGold} <ResourceIcon type="food" size={9} />{totalFood}
               </motion.button>
             );
           })()}
         </div>
         {totalInjured === 0 ? (
-          <p className="text-sm text-muted-foreground">No injured troops. After battle, wounded soldiers will appear here for healing.</p>
+          <p className="text-[10px] text-muted-foreground">No injured troops. After battle, wounded soldiers will appear here for healing.</p>
         ) : (
           <div className="space-y-2">
             {TROOP_TYPES.map(type => {
@@ -841,20 +840,20 @@ function ApothecaryPanel({ apothecaryLevel, injuredTroops, poisons, healTroops, 
               return (
                 <div key={type} className="game-panel rounded-lg p-2 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-foreground flex items-center gap-2"><TroopIcon type={type} size={14} /> {info.name}</span>
-                    <span className="text-sm text-destructive font-bold">{injured} injured</span>
+                    <span className="text-xs text-foreground">{info.emoji} {info.name}</span>
+                    <span className="text-xs text-destructive font-bold">{injured} injured</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                       <motion.button whileTap={{ scale: 0.9 }}
                         onClick={() => setHealCounts(p => ({ ...p, [type]: Math.max(1, p[type] - 1) }))}
-                        className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">−</motion.button>
-                      <span className="text-sm text-foreground w-8 text-center font-bold">{count}</span>
+                        className="w-5 h-5 rounded bg-muted text-foreground text-[10px] flex items-center justify-center">−</motion.button>
+                      <span className="text-[10px] text-foreground w-5 text-center font-bold">{count}</span>
                       <motion.button whileTap={{ scale: 0.9 }}
                         onClick={() => setHealCounts(p => ({ ...p, [type]: Math.min(injured, p[type] + 1) }))}
-                        className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">+</motion.button>
+                        className="w-5 h-5 rounded bg-muted text-foreground text-[10px] flex items-center justify-center">+</motion.button>
                     </div>
-                    <div className="flex-1 text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
+                    <div className="flex-1 text-[9px] text-muted-foreground flex items-center gap-1 flex-wrap">
                       <span className="flex items-center gap-px"><ResourceIcon type="gold" size={9} />{healGold}</span>
                       <span className="flex items-center gap-px"><ResourceIcon type="food" size={9} />{healFood}</span>
                       <span className="flex items-center gap-px"><ResourceIcon type="timer" size={9} />{healTime}s</span>
@@ -862,7 +861,7 @@ function ApothecaryPanel({ apothecaryLevel, injuredTroops, poisons, healTroops, 
                     <motion.button whileTap={{ scale: 0.95 }}
                       onClick={() => { if (healTroops(type, count)) setHealCounts(p => ({ ...p, [type]: 1 })); }}
                       disabled={!affordable}
-                      className={`font-display text-sm py-2 px-3 rounded-lg ${affordable ? 'wood-btn-primary glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
+                      className={`font-display text-[9px] py-1 px-2 rounded-lg ${affordable ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
                       Heal
                     </motion.button>
                   </div>
@@ -875,24 +874,24 @@ function ApothecaryPanel({ apothecaryLevel, injuredTroops, poisons, healTroops, 
 
       {/* Craft Poison */}
       <div className="game-panel border-glow rounded-xl p-3 space-y-2">
-        <h3 className="font-display text-sm text-foreground">🧪 Craft Poison</h3>
-        <p className="text-sm text-muted-foreground">
+        <h3 className="font-display text-xs text-foreground">🧪 Craft Poison</h3>
+        <p className="text-[9px] text-muted-foreground">
           {apothecaryLevel < 2
             ? 'Requires Apothecary Lv.2 to craft poisons.'
             : 'Poisons boost spy sabotage missions, dealing extra damage to enemy resources.'}
         </p>
         {apothecaryLevel >= 2 && (
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <motion.button whileTap={{ scale: 0.9 }}
                 onClick={() => setPoisonCount(Math.max(1, poisonCount - 1))}
-                className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">−</motion.button>
-              <span className="text-sm text-foreground w-8 text-center font-bold">{poisonCount}</span>
+                className="w-5 h-5 rounded bg-muted text-foreground text-[10px] flex items-center justify-center">−</motion.button>
+              <span className="text-[10px] text-foreground w-5 text-center font-bold">{poisonCount}</span>
               <motion.button whileTap={{ scale: 0.9 }}
                 onClick={() => setPoisonCount(Math.min(10, poisonCount + 1))}
-                className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">+</motion.button>
+                className="w-5 h-5 rounded bg-muted text-foreground text-[10px] flex items-center justify-center">+</motion.button>
             </div>
-            <div className="flex-1 text-sm text-muted-foreground flex items-center gap-2">
+            <div className="flex-1 text-[9px] text-muted-foreground flex items-center gap-1">
               <span className="flex items-center gap-px"><ResourceIcon type="gold" size={9} />{60 * poisonCount}</span>
               <span className="flex items-center gap-px"><ResourceIcon type="food" size={9} />{30 * poisonCount}</span>
               <span className="flex items-center gap-px"><ResourceIcon type="timer" size={9} />{15 * poisonCount}s</span>
@@ -900,7 +899,7 @@ function ApothecaryPanel({ apothecaryLevel, injuredTroops, poisons, healTroops, 
             <motion.button whileTap={{ scale: 0.95 }}
               onClick={() => { if (craftPoison(poisonCount)) setPoisonCount(1); }}
               disabled={!canAfford({ gold: 60 * poisonCount, wood: 0, stone: 0, food: 30 * poisonCount })}
-              className={`font-display text-sm py-2 px-3 rounded-lg ${canAfford({ gold: 60 * poisonCount, wood: 0, stone: 0, food: 30 * poisonCount }) ? 'wood-btn-primary glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
+              className={`font-display text-[9px] py-1 px-2 rounded-lg ${canAfford({ gold: 60 * poisonCount, wood: 0, stone: 0, food: 30 * poisonCount }) ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
               Craft
             </motion.button>
           </div>

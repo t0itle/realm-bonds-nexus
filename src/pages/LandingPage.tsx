@@ -44,7 +44,7 @@ function InlineAuth() {
     setLoading(false);
   };
 
-  const inputClass = "w-full bg-background border border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary";
+  const inputClass = "w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary";
 
   const [googleLoading, setGoogleLoading] = useState(false);
 
@@ -85,7 +85,7 @@ function InlineAuth() {
       {/* Divider */}
       <div className="flex items-center gap-3">
         <div className="flex-1 h-px bg-border" />
-        <span className="text-sm text-muted-foreground">or use a username</span>
+        <span className="text-[10px] text-muted-foreground">or use a username</span>
         <div className="flex-1 h-px bg-border" />
       </div>
 
@@ -96,7 +96,7 @@ function InlineAuth() {
           className="w-full flex items-center justify-between px-5 py-4 bg-primary/10 hover:bg-primary/20 transition-colors"
         >
           <span className="font-display text-sm text-primary font-bold">⚔️ Forge Your Kingdom</span>
-          <motion.span animate={{ rotate: expanded === 'signup' ? 180 : 0 }} className="text-primary text-sm">▼</motion.span>
+          <motion.span animate={{ rotate: expanded === 'signup' ? 180 : 0 }} className="text-primary text-xs">▼</motion.span>
         </button>
         <AnimatePresence>
           {expanded === 'signup' && (
@@ -109,24 +109,24 @@ function InlineAuth() {
             >
               <form onSubmit={handleSignUp} className="p-5 space-y-3 game-panel rounded-none border-t-0">
                 <div>
-                  <label className="text-sm font-display text-muted-foreground block mb-1">Ruler Name</label>
+                  <label className="text-xs font-display text-muted-foreground block mb-1">Ruler Name</label>
                   <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Lord Shadowmere" required className={inputClass} />
                 </div>
                 {showEmail ? (
                   <div>
-                    <label className="text-sm font-display text-muted-foreground block mb-1">Email <span className="text-muted-foreground/60">(optional)</span></label>
+                    <label className="text-xs font-display text-muted-foreground block mb-1">Email <span className="text-muted-foreground/60">(optional)</span></label>
                     <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="ruler@realm.com" className={inputClass} />
                   </div>
                 ) : (
-                  <button type="button" onClick={() => setShowEmail(true)} className="text-sm text-primary hover:underline">
+                  <button type="button" onClick={() => setShowEmail(true)} className="text-[10px] text-primary hover:underline">
                     + Add email (optional, for password recovery)
                   </button>
                 )}
                 <div>
-                  <label className="text-sm font-display text-muted-foreground block mb-1">Password</label>
+                  <label className="text-xs font-display text-muted-foreground block mb-1">Password</label>
                   <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" minLength={6} className={inputClass} />
                 </div>
-                {error && <p className="text-sm text-destructive">{error}</p>}
+                {error && <p className="text-xs text-destructive">{error}</p>}
                 <motion.button whileTap={{ scale: 0.95 }} type="submit" disabled={loading}
                   className="w-full bg-primary text-primary-foreground font-display font-bold py-3 rounded-lg glow-gold disabled:opacity-50">
                   {loading ? '...' : 'Begin Your Reign'}
@@ -144,7 +144,7 @@ function InlineAuth() {
           className="w-full flex items-center justify-between px-5 py-4 bg-secondary/50 hover:bg-secondary/80 transition-colors"
         >
           <span className="font-display text-sm text-foreground font-bold">🏰 Return to Your Kingdom</span>
-          <motion.span animate={{ rotate: expanded === 'login' ? 180 : 0 }} className="text-muted-foreground text-sm">▼</motion.span>
+          <motion.span animate={{ rotate: expanded === 'login' ? 180 : 0 }} className="text-muted-foreground text-xs">▼</motion.span>
         </button>
         <AnimatePresence>
           {expanded === 'login' && (
@@ -157,14 +157,14 @@ function InlineAuth() {
             >
               <form onSubmit={handleSignIn} className="p-5 space-y-3 game-panel rounded-none border-t-0">
                 <div>
-                  <label className="text-sm font-display text-muted-foreground block mb-1">Username or Email</label>
+                  <label className="text-xs font-display text-muted-foreground block mb-1">Username or Email</label>
                   <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Username or email" required className={inputClass} />
                 </div>
                 <div>
-                  <label className="text-sm font-display text-muted-foreground block mb-1">Password</label>
+                  <label className="text-xs font-display text-muted-foreground block mb-1">Password</label>
                   <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" minLength={6} className={inputClass} />
                 </div>
-                {error && <p className="text-sm text-destructive">{error}</p>}
+                {error && <p className="text-xs text-destructive">{error}</p>}
                 <motion.button whileTap={{ scale: 0.95 }} type="submit" disabled={loading}
                   className="w-full bg-secondary text-foreground font-display font-bold py-3 rounded-lg border border-border disabled:opacity-50">
                   {loading ? '...' : 'Enter the Realm'}
@@ -254,9 +254,9 @@ export default function LandingPage() {
           </p>
 
           {/* Feature pills */}
-          <div className="flex flex-wrap justify-center gap-3 pt-2">
+          <div className="flex flex-wrap justify-center gap-2 pt-2">
             {FEATURES.map(f => (
-              <span key={f.label} className="inline-flex items-center gap-2.5 bg-secondary/60 border border-border rounded-full px-4 py-2.5 text-[11px] text-foreground">
+              <span key={f.label} className="inline-flex items-center gap-1.5 bg-secondary/60 border border-border rounded-full px-3 py-1.5 text-[11px] text-foreground">
                 <span>{f.icon}</span>{f.label}
               </span>
             ))}
@@ -272,7 +272,7 @@ export default function LandingPage() {
       {/* Divider */}
       <div className="flex items-center gap-4 px-8 pb-8">
         <div className="flex-1 h-px bg-border" />
-        <span className="font-display text-sm text-muted-foreground tracking-widest">THE LORE</span>
+        <span className="font-display text-xs text-muted-foreground tracking-widest">THE LORE</span>
         <div className="flex-1 h-px bg-border" />
       </div>
 
@@ -309,7 +309,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-border px-6 py-8 text-center">
-        <p className="text-sm text-muted-foreground">© 2026 Everbloom Kingdoms. All rights reserved.</p>
+        <p className="text-[10px] text-muted-foreground">© 2026 Everbloom Kingdoms. All rights reserved.</p>
       </footer>
     </div>
   );

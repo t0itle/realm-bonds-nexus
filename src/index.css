@@ -125,7 +125,6 @@
 
   body {
     @apply bg-background text-foreground font-body antialiased;
-    font-size: 14px;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
     user-select: none;
@@ -149,10 +148,6 @@
     text-shadow: 0 0 20px hsl(42 80% 60% / 0.4);
   }
 
-  .text-shadow-wood {
-    text-shadow: 0 1px 3px rgba(0,0,0,0.7), 0 0 8px rgba(0,0,0,0.3);
-  }
-
   .glow-gold {
     box-shadow: 0 0 15px hsl(42 80% 60% / 0.3), inset 0 1px 0 hsl(42 80% 60% / 0.1);
   }
@@ -167,59 +162,8 @@
 
   .game-panel {
     @apply bg-card border border-border rounded-lg;
-    background: 
-      linear-gradient(180deg, hsl(var(--game-panel-from) / 0.9) 0%, hsl(var(--game-panel-to) / 0.95) 100%),
-      url('/ui/wood-grain.png');
-    background-size: cover, cover;
-    background-position: center, center;
-    image-rendering: pixelated;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    background: linear-gradient(180deg, hsl(var(--game-panel-from)) 0%, hsl(var(--game-panel-to)) 100%);
   }
-
-  .parchment-panel {
-    background: 
-      linear-gradient(180deg, hsl(38 40% 85% / 0.92) 0%, hsl(38 30% 78% / 0.95) 100%),
-      url('/ui/wood-grain.png');
-    background-size: cover, cover;
-    background-position: center, center;
-    image-rendering: pixelated;
-    color: hsl(25 40% 18%);
-    border: 1px solid hsl(35 30% 55%);
-  }
-  .parchment-panel .text-foreground { color: hsl(25 40% 18%); }
-  .parchment-panel .text-muted-foreground { color: hsl(25 25% 42%); }
-  .parchment-panel .text-primary { color: hsl(30 65% 32%); }
-  .parchment-panel .text-destructive { color: hsl(0 65% 40%); }
-  .parchment-panel .text-food,
-  .parchment-panel .text-accent-foreground { color: hsl(130 45% 28%); }
-  .parchment-panel .bg-secondary\/30,
-  .parchment-panel .bg-secondary\/50 { background-color: hsl(35 30% 70% / 0.35); }
-  .parchment-panel .border-border\/50,
-  .parchment-panel .border-border { border-color: hsl(35 25% 60% / 0.5); }
-
-  .wood-btn {
-    background: url('/ui/wood-btn-dark.png') center / 100% 100% no-repeat;
-    image-rendering: pixelated;
-    color: hsl(38 30% 85%);
-    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
-    border: none;
-    transition: filter 0.1s;
-  }
-  .wood-btn:hover { filter: brightness(1.15); }
-  .wood-btn:active { filter: brightness(0.9); }
-  .wood-btn:disabled { filter: grayscale(0.6) brightness(0.7); }
-
-  .wood-btn-primary {
-    background: url('/ui/wood-btn-light.png') center / 100% 100% no-repeat;
-    image-rendering: pixelated;
-    color: hsl(38 40% 95%);
-    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-    border: none;
-    transition: filter 0.1s;
-  }
-  .wood-btn-primary:hover { filter: brightness(1.1); }
-  .wood-btn-primary:active { filter: brightness(0.85); }
-  .wood-btn-primary:disabled { filter: grayscale(0.6) brightness(0.7); }
 
   .resource-icon {
     @apply w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold;

@@ -93,10 +93,10 @@ export default function GratitudeModal({ open, onClose, allyUserId, allyName }: 
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="game-panel border-primary/30 max-w-sm">
         <DialogHeader>
-          <DialogTitle className="font-display text-foreground flex items-center gap-3">
+          <DialogTitle className="font-display text-foreground flex items-center gap-2">
             🙏 Thank Your Ally
           </DialogTitle>
-          <DialogDescription className="text-muted-foreground text-sm">
+          <DialogDescription className="text-muted-foreground text-xs">
             <span className="font-bold text-primary">{allyName}</span> helped defend your village!
             Send them a thank-you gift?
           </DialogDescription>
@@ -109,8 +109,8 @@ export default function GratitudeModal({ open, onClose, allyUserId, allyName }: 
             return (
               <div key={key} className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-foreground">{icon} {label}</span>
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-xs text-foreground">{icon} {label}</span>
+                  <span className="text-xs text-muted-foreground">
                     {amounts[key]} / {max}
                   </span>
                 </div>
@@ -126,15 +126,15 @@ export default function GratitudeModal({ open, onClose, allyUserId, allyName }: 
           })}
 
           {totalGiving > 0 && (
-            <div className="text-center text-sm text-primary font-display">
+            <div className="text-center text-xs text-primary font-display">
               Sending: {RESOURCE_INFO.filter(r => amounts[r.key] > 0).map(r => `${amounts[r.key]}${r.icon}`).join(' ')}
             </div>
           )}
 
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="flex-1 py-3 rounded-lg bg-muted text-muted-foreground font-display text-sm"
+              className="flex-1 py-2 rounded-lg bg-muted text-muted-foreground font-display text-sm"
             >
               Skip
             </button>
@@ -142,7 +142,7 @@ export default function GratitudeModal({ open, onClose, allyUserId, allyName }: 
               whileTap={{ scale: 0.95 }}
               onClick={handleSend}
               disabled={totalGiving === 0}
-              className="flex-1 py-3 rounded-lg wood-btn-primary font-display text-sm disabled:opacity-50"
+              className="flex-1 py-2 rounded-lg bg-primary text-primary-foreground font-display text-sm disabled:opacity-50"
             >
               🎁 Send Thanks
             </motion.button>

@@ -1,9 +1,8 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useGame } from '@/hooks/useGameState';
-import { TROOP_INFO, SPY_MISSION_INFO, TROOP_COUNTERS } from '@/lib/gameConstants';
+import { TROOP_INFO, SPY_MISSION_INFO } from '@/lib/gameConstants';
 import type { TroopType, Army, SpyMission } from '@/lib/gameTypes';
-import TroopIcon from './TroopIcon';
 
 const TROOP_TYPES: TroopType[] = ['militia', 'archer', 'knight', 'cavalry', 'siege', 'scout'];
 const SPY_MISSIONS: SpyMission[] = ['scout', 'sabotage', 'demoralize'];
@@ -25,7 +24,7 @@ export default function AttackConfigPanel({
   targetName, targetPower, travelTime,
   onConfirmAttack, onConfirmEspionage, onCancel, showEspionage = true,
 }: AttackConfigPanelProps) {
-  const { army, spies, resources, intelReports } = useGame();
+  const { army, spies, resources } = useGame();
   const [mode, setMode] = useState<'attack' | 'espionage'>('attack');
   const [troopCounts, setTroopCounts] = useState<Record<TroopType, number>>(() => {
     const init: Record<TroopType, number> = { militia: 0, archer: 0, knight: 0, cavalry: 0, siege: 0, scout: 0 };
@@ -85,69 +84,23 @@ export default function AttackConfigPanel({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="font-display text-sm text-foreground">⚔️ Deploy to {targetName}</h3>
-        <button onClick={onCancel} className="text-muted-foreground text-sm hover:text-foreground">✕</button>
+        <button onClick={onCancel} className="text-muted-foreground text-xs hover:text-foreground">✕</button>
       </div>
 
       {targetPower !== undefined && targetPower > 0 && (
-        <p className="text-sm text-destructive">Enemy Power: ⚔️{targetPower}</p>
+        <p className="text-[9px] text-destructive">Enemy Power: ⚔️{targetPower}</p>
       )}
-      <p className="text-sm text-muted-foreground">Travel time: ~{travelTime}s</p>
-
-      {/* Tactical Intel */}
-      {(() => {
-        const scoutReport = intelReports.find(r => r.mission === 'scout' && r.result === 'success' && r.targetName === targetName);
-        const targetTroops = scoutReport?.data?.troops as Record<string, number> | undefined;
-
-        if (!targetTroops || Object.values(targetTroops).every(c => c === 0)) {
-          return (
-            <div className="rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-3">
-              <p className="text-sm text-muted-foreground">⚠️ No intel on target forces. Send a Spy Scout mission first for tactical advantage.</p>
-            </div>
-          );
-        }
-
-        const presentTypes = (Object.entries(targetTroops) as [TroopType, number][]).filter(([, c]) => c > 0);
-        const strengths: string[] = [];
-        const warnings: string[] = [];
-
-        for (const [enemyType] of presentTypes) {
-          const enemyInfo = TROOP_INFO[enemyType as TroopType];
-          for (const ourType of TROOP_TYPES) {
-            if (army[ourType] <= 0) continue;
-            const counters = TROOP_COUNTERS[ourType];
-            if (counters.strongVs.includes(enemyType as TroopType)) {
-              strengths.push(`${TROOP_INFO[ourType].name} beat ${enemyInfo.name}`);
-            }
-            if (counters.weakVs.includes(enemyType as TroopType)) {
-              warnings.push(`${TROOP_INFO[ourType].name} vs ${enemyInfo.name}`);
-            }
-          }
-        }
-
-        return (
-          <div className="rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-3 space-y-1">
-            <p className="text-sm text-muted-foreground">
-              🎯 Target has: {presentTypes.map(([t, c]) => `${TROOP_INFO[t].emoji || ''} ${c} ${TROOP_INFO[t].name}`).join(', ')}
-            </p>
-            {strengths.length > 0 && (
-              <p className="text-sm text-emerald-500">⚔️ Strong: {[...new Set(strengths)].slice(0, 3).join(', ')}</p>
-            )}
-            {warnings.length > 0 && (
-              <p className="text-sm text-amber-500">⚠️ Weak: Don't send {[...new Set(warnings)].slice(0, 3).join(', ')}</p>
-            )}
-          </div>
-        );
-      })()}
+      <p className="text-[9px] text-muted-foreground">Travel time: ~{travelTime}s</p>
 
       {/* Mode toggle */}
-      <div className="flex gap-2">
+      <div className="flex gap-1">
         <button onClick={() => setMode('attack')}
-          className={`flex-1 font-display text-sm py-2.5 rounded-lg transition-colors ${mode === 'attack' ? 'bg-destructive text-destructive-foreground' : 'bg-muted text-muted-foreground'}`}>
+          className={`flex-1 font-display text-[10px] py-1.5 rounded-lg transition-colors ${mode === 'attack' ? 'bg-destructive text-destructive-foreground' : 'bg-muted text-muted-foreground'}`}>
           ⚔️ Attack
         </button>
         {showEspionage && spies > 0 && (
           <button onClick={() => setMode('espionage')}
-            className={`flex-1 font-display text-sm py-2.5 rounded-lg transition-colors ${mode === 'espionage' ? 'wood-btn-primary' : 'bg-muted text-muted-foreground'}`}>
+            className={`flex-1 font-display text-[10px] py-1.5 rounded-lg transition-colors ${mode === 'espionage' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
             🕵️ Espionage
           </button>
         )}
@@ -156,10 +109,10 @@ export default function AttackConfigPanel({
       {mode === 'attack' && (
         <>
           {/* Quick select */}
-          <div className="flex gap-2.5">
-            <button onClick={selectAll} className="text-sm text-primary bg-primary/10 px-3 py-0.5 rounded">All</button>
-            <button onClick={selectHalf} className="text-sm text-primary bg-primary/10 px-3 py-0.5 rounded">Half</button>
-            <button onClick={selectNone} className="text-sm text-muted-foreground bg-muted px-3 py-0.5 rounded">None</button>
+          <div className="flex gap-1.5">
+            <button onClick={selectAll} className="text-[9px] text-primary bg-primary/10 px-2 py-0.5 rounded">All</button>
+            <button onClick={selectHalf} className="text-[9px] text-primary bg-primary/10 px-2 py-0.5 rounded">Half</button>
+            <button onClick={selectNone} className="text-[9px] text-muted-foreground bg-muted px-2 py-0.5 rounded">None</button>
           </div>
 
           {/* Troop sliders */}
@@ -172,13 +125,13 @@ export default function AttackConfigPanel({
               return (
                 <div key={type} className="game-panel rounded-lg p-2">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-foreground flex items-center gap-2"><TroopIcon type={type} size={14} /> {info.name}</span>
-                    <span className="text-sm text-muted-foreground">{count}/{available}</span>
+                    <span className="text-xs text-foreground">{info.emoji} {info.name}</span>
+                    <span className="text-[10px] text-muted-foreground">{count}/{available}</span>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <motion.button whileTap={{ scale: 0.9 }}
                       onClick={() => setCount(type, count - 1)}
-                      className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">−</motion.button>
+                      className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">−</motion.button>
                     <input
                       type="range" min={0} max={available} value={count}
                       onChange={e => setCount(type, Number(e.target.value))}
@@ -186,9 +139,9 @@ export default function AttackConfigPanel({
                     />
                     <motion.button whileTap={{ scale: 0.9 }}
                       onClick={() => setCount(type, count + 1)}
-                      className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">+</motion.button>
+                      className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">+</motion.button>
                   </div>
-                  <div className="flex gap-3 text-sm text-muted-foreground mt-0.5">
+                  <div className="flex gap-2 text-[8px] text-muted-foreground mt-0.5">
                     <span>⚔️{info.attack * count}</span>
                     <span>🛡️{info.defense * count}</span>
                   </div>
@@ -200,8 +153,8 @@ export default function AttackConfigPanel({
           {/* Summary */}
           <div className="game-panel border-glow rounded-lg p-2 flex items-center justify-between">
             <div>
-              <p className="text-sm text-foreground font-display">Sending: {totalSending.count} troops</p>
-              <p className="text-sm text-muted-foreground">⚔️{totalSending.attack} 🛡️{totalSending.defense}</p>
+              <p className="text-[10px] text-foreground font-display">Sending: {totalSending.count} troops</p>
+              <p className="text-[9px] text-muted-foreground">⚔️{totalSending.attack} 🛡️{totalSending.defense}</p>
             </div>
             <motion.button whileTap={{ scale: 0.95 }}
               onClick={() => {
@@ -209,7 +162,7 @@ export default function AttackConfigPanel({
                 onConfirmAttack(troopCounts);
               }}
               disabled={totalSending.count === 0}
-              className={`font-display text-[11px] py-3 px-4 rounded-lg ${
+              className={`font-display text-[11px] py-2 px-4 rounded-lg ${
                 totalSending.count > 0 ? 'bg-destructive text-destructive-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'
               }`}>
               ⚔️ March!
@@ -220,7 +173,7 @@ export default function AttackConfigPanel({
 
       {mode === 'espionage' && (
         <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">🕵️ {spies} spies available</p>
+          <p className="text-[9px] text-muted-foreground">🕵️ {spies} spies available</p>
 
           {/* Mission select */}
           <div className="space-y-1">
@@ -230,38 +183,38 @@ export default function AttackConfigPanel({
                 <button key={m} onClick={() => setSpyMission(m)}
                   className={`w-full text-left game-panel rounded-lg p-2 transition-colors ${spyMission === m ? 'border-glow ring-1 ring-primary/50' : ''}`}>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-foreground font-display">{info.emoji} {info.name}</span>
-                    <span className="text-sm text-muted-foreground">🕵️{info.spiesRequired} · 💰{info.goldCost}</span>
+                    <span className="text-xs text-foreground font-display">{info.emoji} {info.name}</span>
+                    <span className="text-[9px] text-muted-foreground">🕵️{info.spiesRequired} · 💰{info.goldCost}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-0.5">{info.description}</p>
+                  <p className="text-[8px] text-muted-foreground mt-0.5">{info.description}</p>
                 </button>
               );
             })}
           </div>
 
           {/* Spy count */}
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-foreground">Operatives:</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-foreground">Operatives:</span>
             <motion.button whileTap={{ scale: 0.9 }}
               onClick={() => setSpyCount(Math.max(1, spyCount - 1))}
-              className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">−</motion.button>
-            <span className="text-sm text-foreground font-bold w-8 text-center">{spyCount}</span>
+              className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">−</motion.button>
+            <span className="text-xs text-foreground font-bold w-6 text-center">{spyCount}</span>
             <motion.button whileTap={{ scale: 0.9 }}
               onClick={() => setSpyCount(Math.min(maxSpyOperatives, spyCount + 1))}
-              className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">+</motion.button>
-            <span className="text-sm text-muted-foreground ml-auto">Cost: 💰{missionInfo.goldCost * spyCount}</span>
+              className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">+</motion.button>
+            <span className="text-[9px] text-muted-foreground ml-auto">Cost: 💰{missionInfo.goldCost * spyCount}</span>
           </div>
 
           <motion.button whileTap={{ scale: 0.95 }}
             onClick={() => canSendSpies && onConfirmEspionage(spyMission, spyCount)}
             disabled={!canSendSpies}
-            className={`w-full font-display text-[11px] py-3 rounded-lg ${
-              canSendSpies ? 'wood-btn-primary glow-gold-sm' : 'bg-muted text-muted-foreground'
+            className={`w-full font-display text-[11px] py-2 rounded-lg ${
+              canSendSpies ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'
             }`}>
             🕵️ Send Spies
           </motion.button>
           {!canSendSpies && spyIssues.length > 0 && (
-            <p className="text-sm text-destructive">{spyIssues.join(' · ')}</p>
+            <p className="text-[9px] text-destructive">{spyIssues.join(' · ')}</p>
           )}
         </div>
       )}

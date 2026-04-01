@@ -129,7 +129,7 @@ export default function GuildContracts({ allianceId, isLeader }: GuildContractsP
         <h3 className="font-display text-sm text-foreground">📜 Guild Contracts</h3>
         {isLeader && !creating && (
           <motion.button whileTap={{ scale: 0.95 }} onClick={() => setCreating(true)}
-            className="text-sm wood-btn-primary px-3 py-2 rounded-lg font-display">+ New</motion.button>
+            className="text-[10px] bg-primary text-primary-foreground px-2 py-1 rounded-lg font-display">+ New</motion.button>
         )}
       </div>
 
@@ -138,20 +138,20 @@ export default function GuildContracts({ allianceId, isLeader }: GuildContractsP
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
             className="space-y-2 overflow-hidden">
             <input type="text" placeholder="Contract title..." value={title} onChange={e => setTitle(e.target.value)}
-              className="w-full bg-secondary border border-border rounded-lg px-4 py-3 text-sm text-foreground" />
+              className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-xs text-foreground" />
             <input type="text" placeholder="Description (optional)" value={description} onChange={e => setDescription(e.target.value)}
-              className="w-full bg-secondary border border-border rounded-lg px-4 py-3 text-sm text-foreground" />
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground flex items-center gap-0.5"><ResourceIcon type="gold" size={10} /> Reward:</span>
+              className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-xs text-foreground" />
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground flex items-center gap-0.5"><ResourceIcon type="gold" size={10} /> Reward:</span>
               <input type="number" min={0} value={rewardGold} onChange={e => setRewardGold(Number(e.target.value))}
-                className="w-20 bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground" />
-              <span className="text-sm text-muted-foreground">gold</span>
+                className="w-20 bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground" />
+              <span className="text-xs text-muted-foreground">gold</span>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               <motion.button whileTap={{ scale: 0.95 }} onClick={createContract}
-                className="flex-1 wood-btn-primary text-sm py-2.5 rounded-lg font-display">Post Contract</motion.button>
+                className="flex-1 bg-primary text-primary-foreground text-xs py-1.5 rounded-lg font-display">Post Contract</motion.button>
               <motion.button whileTap={{ scale: 0.95 }} onClick={() => setCreating(false)}
-                className="flex-1 bg-muted text-muted-foreground text-sm py-2.5 rounded-lg">Cancel</motion.button>
+                className="flex-1 bg-muted text-muted-foreground text-xs py-1.5 rounded-lg">Cancel</motion.button>
             </div>
           </motion.div>
         )}
@@ -160,17 +160,17 @@ export default function GuildContracts({ allianceId, isLeader }: GuildContractsP
       {/* Open Contracts */}
       {openContracts.length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-sm text-primary font-display">Open ({openContracts.length})</p>
+          <p className="text-[10px] text-primary font-display">Open ({openContracts.length})</p>
           {openContracts.map(c => (
             <div key={c.id} className="bg-secondary/50 rounded-lg p-2 flex items-center justify-between">
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-foreground font-semibold truncate">{c.title}</p>
-                {c.description && <p className="text-sm text-muted-foreground truncate">{c.description}</p>}
-                <p className="text-sm text-primary flex items-center gap-0.5"><ResourceIcon type="gold" size={9} /> {c.reward_gold} gold</p>
+                <p className="text-xs text-foreground font-semibold truncate">{c.title}</p>
+                {c.description && <p className="text-[9px] text-muted-foreground truncate">{c.description}</p>}
+                <p className="text-[9px] text-primary flex items-center gap-0.5"><ResourceIcon type="gold" size={9} /> {c.reward_gold} gold</p>
               </div>
               {c.created_by !== user?.id && (
                 <motion.button whileTap={{ scale: 0.9 }} onClick={() => acceptContract(c)}
-                  className="text-sm bg-primary/20 text-primary px-3 py-2 rounded ml-2">Accept</motion.button>
+                  className="text-[9px] bg-primary/20 text-primary px-2 py-1 rounded ml-2">Accept</motion.button>
               )}
             </div>
           ))}
@@ -180,19 +180,19 @@ export default function GuildContracts({ allianceId, isLeader }: GuildContractsP
       {/* Active Contracts */}
       {activeContracts.length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-sm text-foreground font-display">In Progress ({activeContracts.length})</p>
+          <p className="text-[10px] text-foreground font-display">In Progress ({activeContracts.length})</p>
           {activeContracts.map(c => (
             <div key={c.id} className="bg-secondary/50 rounded-lg p-2 flex items-center justify-between">
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-foreground font-semibold truncate">{c.title}</p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-foreground font-semibold truncate">{c.title}</p>
+                <p className="text-[9px] text-muted-foreground">
                   Assigned to: {profileMap.get(c.assigned_to || '') || 'Unknown'}
                 </p>
-                <p className="text-sm text-primary flex items-center gap-0.5"><ResourceIcon type="gold" size={9} /> {c.reward_gold} gold</p>
+                <p className="text-[9px] text-primary flex items-center gap-0.5"><ResourceIcon type="gold" size={9} /> {c.reward_gold} gold</p>
               </div>
               {(c.assigned_to === user?.id || isLeader) && (
                 <motion.button whileTap={{ scale: 0.9 }} onClick={() => completeContract(c)}
-                  className="text-sm bg-food/20 text-food px-3 py-2 rounded ml-2">✓ Done</motion.button>
+                  className="text-[9px] bg-food/20 text-food px-2 py-1 rounded ml-2">✓ Done</motion.button>
               )}
             </div>
           ))}
@@ -202,17 +202,17 @@ export default function GuildContracts({ allianceId, isLeader }: GuildContractsP
       {/* Completed */}
       {completedContracts.length > 0 && (
         <div className="space-y-1">
-          <p className="text-sm text-muted-foreground font-display">Completed</p>
+          <p className="text-[10px] text-muted-foreground font-display">Completed</p>
           {completedContracts.map(c => (
             <div key={c.id} className="bg-muted/30 rounded-lg p-2 opacity-60">
-              <p className="text-sm text-foreground line-through">{c.title}</p>
+              <p className="text-[10px] text-foreground line-through">{c.title}</p>
             </div>
           ))}
         </div>
       )}
 
       {contracts.length === 0 && (
-        <p className="text-sm text-muted-foreground text-center py-3">
+        <p className="text-[10px] text-muted-foreground text-center py-2">
           {isLeader ? 'Post contracts for guild members to earn pay' : 'No contracts available'}
         </p>
       )}

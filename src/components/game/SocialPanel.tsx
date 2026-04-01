@@ -37,7 +37,7 @@ export default function SocialPanel({ initialDm, onDmHandled }: {
   return (
     <div className="flex flex-col h-full">
       {/* Sub-tab switcher */}
-      <div className="flex gap-2 px-4 pt-2 pb-1">
+      <div className="flex gap-1 px-3 pt-2 pb-1">
         {([
           { id: 'mail' as SubTab, icon: '💬', label: 'Mail' },
           { id: 'guild' as SubTab, icon: '🤝', label: 'Guild' },
@@ -45,7 +45,7 @@ export default function SocialPanel({ initialDm, onDmHandled }: {
           <button
             key={tab.id}
             onClick={() => setSubTab(tab.id)}
-            className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg text-sm font-display transition-colors ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-display transition-colors ${
               subTab === tab.id
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-secondary/50 text-muted-foreground hover:bg-secondary'

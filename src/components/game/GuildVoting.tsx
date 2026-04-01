@@ -276,7 +276,7 @@ export default function GuildVoting({ allianceId, isLeader }: GuildVotingProps) 
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={() => setCreating(!creating)}
-          className="bg-primary/20 text-primary text-sm px-3 py-2 rounded font-display"
+          className="bg-primary/20 text-primary text-[10px] px-2 py-1 rounded font-display"
         >
           {creating ? 'Cancel' : '+ Propose'}
         </motion.button>
@@ -290,13 +290,13 @@ export default function GuildVoting({ allianceId, isLeader }: GuildVotingProps) 
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden space-y-2"
           >
-            <div className="flex gap-2">
+            <div className="flex gap-1">
               {(['tax_rate', 'transfer', 'war'] as ProposalType[]).map(t => (
                 <motion.button
                   key={t}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setProposalType(t)}
-                  className={`flex-1 text-sm py-2.5 rounded font-display ${
+                  className={`flex-1 text-[10px] py-1.5 rounded font-display ${
                     proposalType === t
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-secondary text-muted-foreground'
@@ -308,27 +308,27 @@ export default function GuildVoting({ allianceId, isLeader }: GuildVotingProps) 
             </div>
 
             {proposalType === 'tax_rate' && (
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-muted-foreground">New rate:</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">New rate:</span>
                 <input
                   type="number"
                   min={0}
                   max={50}
                   value={newTaxRate}
                   onChange={e => setNewTaxRate(Number(e.target.value))}
-                  className="w-14 bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground text-center"
+                  className="w-14 bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground text-center"
                 />
-                <span className="text-sm text-muted-foreground">%</span>
+                <span className="text-xs text-muted-foreground">%</span>
               </div>
             )}
 
             {proposalType === 'transfer' && (
               <div className="space-y-2">
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                   <select
                     value={transferResource}
                     onChange={e => setTransferResource(e.target.value)}
-                    className="flex-1 bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground"
+                    className="flex-1 bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground"
                   >
                     <option value="gold">Gold</option>
                     <option value="wood">Wood</option>
@@ -340,13 +340,13 @@ export default function GuildVoting({ allianceId, isLeader }: GuildVotingProps) 
                     min={1}
                     value={transferAmount}
                     onChange={e => setTransferAmount(Number(e.target.value))}
-                    className="w-20 bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground text-center"
+                    className="w-20 bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground text-center"
                   />
                 </div>
                 <select
                   value={transferTarget}
                   onChange={e => setTransferTarget(e.target.value)}
-                  className="w-full bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground"
+                  className="w-full bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground"
                 >
                   <option value="">Select recipient...</option>
                   {members.filter(m => m.user_id !== user?.id).map(m => (
@@ -361,7 +361,7 @@ export default function GuildVoting({ allianceId, isLeader }: GuildVotingProps) 
                 <select
                   value={warTarget}
                   onChange={e => setWarTarget(e.target.value)}
-                  className="w-full bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground"
+                  className="w-full bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground"
                 >
                   <option value="">Select target alliance...</option>
                   {otherAlliances.map(a => (
@@ -374,7 +374,7 @@ export default function GuildVoting({ allianceId, isLeader }: GuildVotingProps) 
                   value={warReason}
                   onChange={e => setWarReason(e.target.value)}
                   maxLength={100}
-                  className="w-full bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground"
+                  className="w-full bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground"
                 />
               </div>
             )}
@@ -383,7 +383,7 @@ export default function GuildVoting({ allianceId, isLeader }: GuildVotingProps) 
               whileTap={{ scale: 0.95 }}
               onClick={createProposal}
               disabled={loading || (proposalType === 'transfer' && !transferTarget) || (proposalType === 'war' && !warTarget)}
-              className="w-full wood-btn-primary font-display text-sm py-3 rounded-lg disabled:opacity-50"
+              className="w-full bg-primary text-primary-foreground font-display text-xs py-2 rounded-lg disabled:opacity-50"
             >
               {loading ? 'Creating...' : 'Submit Proposal'}
             </motion.button>
@@ -393,7 +393,7 @@ export default function GuildVoting({ allianceId, isLeader }: GuildVotingProps) 
 
       <div className="space-y-2 max-h-60 overflow-y-auto">
         {proposals.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-3">No proposals yet</p>
+          <p className="text-[10px] text-muted-foreground text-center py-2">No proposals yet</p>
         )}
         {proposals.map(p => (
           <motion.div
@@ -404,20 +404,20 @@ export default function GuildVoting({ allianceId, isLeader }: GuildVotingProps) 
           >
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-foreground font-display truncate">
+                <p className="text-xs text-foreground font-display truncate">
                   {typeIcon(p.type)} {p.title}
                 </p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-[9px] text-muted-foreground">
                   by {p.proposer_name} • {p.status === 'open' ? timeLeft(p.expires_at) : ''}
                 </p>
               </div>
-              <span className={`text-sm font-display uppercase ${statusColor(p.status)}`}>
+              <span className={`text-[9px] font-display uppercase ${statusColor(p.status)}`}>
                 {p.status}
               </span>
             </div>
 
-            <div className="flex items-center gap-2.5">
-              <span className="text-sm text-green-400">👍 {p.votes_for}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] text-green-400">👍 {p.votes_for}</span>
               <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                 {(p.votes_for + p.votes_against) > 0 && (
                   <div
@@ -426,29 +426,29 @@ export default function GuildVoting({ allianceId, isLeader }: GuildVotingProps) 
                   />
                 )}
               </div>
-              <span className="text-sm text-destructive">👎 {p.votes_against}</span>
+              <span className="text-[9px] text-destructive">👎 {p.votes_against}</span>
             </div>
 
             {p.status === 'open' && !p.my_vote && (
-              <div className="flex gap-2.5">
+              <div className="flex gap-1.5">
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   onClick={() => castVote(p.id, 'for')}
-                  className="flex-1 bg-green-500/20 text-green-400 text-sm py-2 rounded font-display"
+                  className="flex-1 bg-green-500/20 text-green-400 text-[10px] py-1 rounded font-display"
                 >
                   Vote For
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   onClick={() => castVote(p.id, 'against')}
-                  className="flex-1 bg-destructive/20 text-destructive text-sm py-2 rounded font-display"
+                  className="flex-1 bg-destructive/20 text-destructive text-[10px] py-1 rounded font-display"
                 >
                   Vote Against
                 </motion.button>
               </div>
             )}
             {p.my_vote && p.status === 'open' && (
-              <p className="text-sm text-muted-foreground text-center">
+              <p className="text-[9px] text-muted-foreground text-center">
                 You voted: <span className={p.my_vote === 'for' ? 'text-green-400' : 'text-destructive'}>{p.my_vote}</span>
               </p>
             )}

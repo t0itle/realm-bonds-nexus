@@ -178,7 +178,7 @@ export default function DungeonMasterPanel() {
   };
 
   return (
-    <div className="flex flex-col h-full p-2 gap-3 parchment-panel rounded-xl">
+    <div className="flex flex-col h-full p-2 gap-2">
       {/* Event Banner */}
       <AnimatePresence>
         {eventBanner && (
@@ -187,13 +187,13 @@ export default function DungeonMasterPanel() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             onClick={handleEventClick}
-            className="game-panel p-3 text-left border border-primary/30 bg-primary/5 rounded-lg flex items-start gap-3"
+            className="game-panel p-3 text-left border border-primary/30 bg-primary/5 rounded-lg flex items-start gap-2"
           >
             <Sparkles className="w-4 h-4 text-primary mt-0.5 shrink-0" />
             <div>
-              <p className="text-sm font-display text-primary font-bold">⚡ Kingdom Event</p>
-              <p className="text-sm text-muted-foreground mt-1">{eventBanner}</p>
-              <p className="text-sm text-primary/60 mt-1">Tap to consult the Oracle</p>
+              <p className="text-xs font-display text-primary font-bold">⚡ Kingdom Event</p>
+              <p className="text-xs text-muted-foreground mt-1">{eventBanner}</p>
+              <p className="text-[10px] text-primary/60 mt-1">Tap to consult the Oracle</p>
             </div>
           </motion.button>
         )}
@@ -208,10 +208,10 @@ export default function DungeonMasterPanel() {
             animate={{ opacity: 1, y: 0 }}
             className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div className={`max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
+            <div className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed ${
               msg.role === 'user'
                 ? 'bg-primary text-primary-foreground'
-                : 'bg-white/40 border border-border/20'
+                : 'game-panel border border-border/50'
             }`}>
               {msg.role === 'assistant' && <Scroll className="w-3 h-3 text-primary inline mr-1 mb-0.5" />}
               <span className="whitespace-pre-wrap">{msg.content}</span>
@@ -220,7 +220,7 @@ export default function DungeonMasterPanel() {
         ))}
         {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
           <div className="flex justify-start">
-            <div className="game-panel border border-border/50 rounded-xl px-4 py-3 text-sm">
+            <div className="game-panel border border-border/50 rounded-xl px-3 py-2 text-xs">
               <span className="animate-pulse">🔮 The oracle gazes into the beyond...</span>
             </div>
           </div>
@@ -228,13 +228,13 @@ export default function DungeonMasterPanel() {
       </div>
 
       {/* Quick Actions */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-1 flex-wrap">
         {['How is my kingdom?', 'Military advice', 'What should I build?'].map(q => (
           <button
             key={q}
             onClick={() => sendMessage(q)}
             disabled={isLoading}
-            className="text-sm px-3 py-2 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50"
+            className="text-[10px] px-2 py-1 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50"
           >
             {q}
           </button>
@@ -242,19 +242,19 @@ export default function DungeonMasterPanel() {
       </div>
 
       {/* Input */}
-      <div className="flex gap-3 items-center">
+      <div className="flex gap-2 items-center">
         <input
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && sendMessage()}
           placeholder="Speak to the Oracle..."
           disabled={isLoading}
-          className="flex-1 bg-secondary/50 border border-border rounded-lg px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+          className="flex-1 bg-secondary/50 border border-border rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
         />
         <button
           onClick={() => sendMessage()}
           disabled={isLoading || !input.trim()}
-          className="p-2 rounded-lg wood-btn-primary disabled:opacity-50 hover:bg-primary/90 transition-colors"
+          className="p-2 rounded-lg bg-primary text-primary-foreground disabled:opacity-50 hover:bg-primary/90 transition-colors"
         >
           <Send className="w-4 h-4" />
         </button>

@@ -163,13 +163,13 @@ export default function AlliancePanel() {
             <p className="text-sm text-foreground font-display">
               {alliances.find(a => a.id === myAlliance)?.name || 'Your Alliance'}
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               [{alliances.find(a => a.id === myAlliance)?.tag}]
             </p>
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={leaveAlliance}
-              className="bg-destructive/20 text-destructive font-display text-sm py-2.5 px-4 rounded-lg"
+              className="bg-destructive/20 text-destructive font-display text-xs py-1.5 px-4 rounded-lg"
             >
               Leave Alliance
             </motion.button>
@@ -181,7 +181,7 @@ export default function AlliancePanel() {
               placeholder="Alliance Name"
               value={name}
               onChange={e => setName(e.target.value)}
-              className="w-full bg-secondary border border-border rounded-lg px-4 py-3 text-sm text-foreground"
+              className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground"
             />
             <input
               type="text"
@@ -189,16 +189,16 @@ export default function AlliancePanel() {
               value={tag}
               maxLength={5}
               onChange={e => setTag(e.target.value)}
-              className="w-full bg-secondary border border-border rounded-lg px-4 py-3 text-sm text-foreground"
+              className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground"
             />
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <div className="flex gap-3">
+            {error && <p className="text-xs text-destructive">{error}</p>}
+            <div className="flex gap-2">
               <motion.button whileTap={{ scale: 0.95 }} onClick={createAlliance}
-                className="flex-1 wood-btn-primary font-display text-sm py-3 rounded-lg glow-gold">
+                className="flex-1 bg-primary text-primary-foreground font-display text-sm py-2 rounded-lg glow-gold">
                 Create
               </motion.button>
               <motion.button whileTap={{ scale: 0.95 }} onClick={() => setCreating(false)}
-                className="flex-1 bg-muted text-muted-foreground font-display text-sm py-3 rounded-lg">
+                className="flex-1 bg-muted text-muted-foreground font-display text-sm py-2 rounded-lg">
                 Cancel
               </motion.button>
             </div>
@@ -209,7 +209,7 @@ export default function AlliancePanel() {
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => setCreating(true)}
-              className="wood-btn-primary font-display text-sm py-3 px-6 rounded-lg glow-gold"
+              className="bg-primary text-primary-foreground font-display text-sm py-2 px-6 rounded-lg glow-gold"
             >
               Create Alliance
             </motion.button>
@@ -222,8 +222,8 @@ export default function AlliancePanel() {
         <>
           {/* Member List */}
           <div className="game-panel border-glow rounded-xl p-3 space-y-2">
-            <h3 className="font-display text-sm text-foreground flex items-center gap-2.5">
-              👥 Members <span className="text-sm text-muted-foreground font-normal">({members.length})</span>
+            <h3 className="font-display text-sm text-foreground flex items-center gap-1.5">
+              👥 Members <span className="text-[10px] text-muted-foreground font-normal">({members.length})</span>
             </h3>
             <div className="space-y-1.5 max-h-48 overflow-y-auto">
               {members.map((m, i) => {
@@ -233,22 +233,22 @@ export default function AlliancePanel() {
                   <motion.div key={m.user_id}
                     initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.05 }}
-                    className="flex items-center gap-3 py-2.5 px-3 rounded-lg bg-secondary/50">
+                    className="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-secondary/50">
                     <span className="text-lg">{m.avatar_emoji}</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-display text-foreground truncate">
+                      <p className="text-xs font-display text-foreground truncate">
                         {roleLabel} {m.display_name}
                       </p>
-                      <p className="text-sm text-muted-foreground truncate">
+                      <p className="text-[9px] text-muted-foreground truncate">
                         {m.village_name} · 👤{m.population}
                       </p>
                     </div>
-                    <span className={`text-sm font-semibold capitalize ${roleColor}`}>{m.role}</span>
+                    <span className={`text-[9px] font-semibold capitalize ${roleColor}`}>{m.role}</span>
                   </motion.div>
                 );
               })}
               {members.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-3">Loading members...</p>
+                <p className="text-[10px] text-muted-foreground text-center py-2">Loading members...</p>
               )}
             </div>
           </div>
@@ -278,15 +278,15 @@ export default function AlliancePanel() {
               <div className="flex items-center gap-3">
                 <span className="text-primary font-display text-sm font-bold w-5">#{i + 1}</span>
                 <div>
-                  <p className="font-display text-sm text-foreground">{alliance.name}</p>
-                  <p className="text-sm text-muted-foreground">[{alliance.tag}] • {alliance.memberCount} members</p>
+                  <p className="font-display text-xs text-foreground">{alliance.name}</p>
+                  <p className="text-[10px] text-muted-foreground">[{alliance.tag}] • {alliance.memberCount} members</p>
                 </div>
               </div>
               {!myAlliance && (
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={() => joinAlliance(alliance.id)}
-                  className="bg-primary/20 text-primary font-display text-sm py-2 px-4 rounded-lg"
+                  className="bg-primary/20 text-primary font-display text-[10px] py-1 px-3 rounded-lg"
                 >
                   Join
                 </motion.button>

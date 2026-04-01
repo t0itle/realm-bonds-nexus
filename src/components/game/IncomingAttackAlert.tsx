@@ -151,7 +151,7 @@ export default function IncomingAttackAlert({ onAllyAttacked }: IncomingAttackAl
   if (myAttacks.length === 0) return null;
 
   return (
-    <div className="px-4 py-2">
+    <div className="px-3 py-1">
       {myAttacks.map(attack => {
         const remaining = Math.max(0, new Date(attack.arrives_at).getTime() - Date.now());
         const mins = Math.floor(remaining / 60000);
@@ -163,16 +163,16 @@ export default function IncomingAttackAlert({ onAllyAttacked }: IncomingAttackAl
             key={attack.id}
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="game-panel border border-destructive/50 rounded-xl px-4 py-3 mb-1 bg-destructive/5"
+            className="game-panel border border-destructive/50 rounded-xl px-3 py-2 mb-1 bg-destructive/5"
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <span className="text-lg animate-pulse">⚠️</span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-display text-destructive">
+                <p className="text-[10px] font-display text-destructive">
                   Incoming attack from <span className="font-bold">{attack.player_name}</span>!
                 </p>
                 <div className="flex items-center justify-between mt-0.5">
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-[9px] text-muted-foreground">
                     {totalSent > 0 ? `~${totalSent} troops` : 'Unknown force'}
                   </span>
                   <span className="text-[11px] font-bold text-destructive">

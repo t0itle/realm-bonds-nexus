@@ -214,12 +214,12 @@ export default function TroopTransferPanel({
       <motion.button
         whileTap={{ scale: 0.95 }}
         onClick={() => setExpanded(true)}
-        className="w-full bg-muted/30 rounded-lg px-4 py-3 text-left"
+        className="w-full bg-muted/30 rounded-lg px-3 py-2 text-left"
       >
-        <p className="text-sm font-display text-foreground flex items-center gap-2">
+        <p className="text-[10px] font-display text-foreground flex items-center gap-1">
           🔄 Transfer Troops
         </p>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-[8px] text-muted-foreground">
           Send troops to/from this {outpost.outpost_type === 'fort' ? 'fort' : 'settlement'}
         </p>
       </motion.button>
@@ -229,18 +229,18 @@ export default function TroopTransferPanel({
   return (
     <div className="bg-muted/30 rounded-lg p-2 space-y-2">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-display text-foreground">🔄 Transfer Troops</p>
+        <p className="text-[10px] font-display text-foreground">🔄 Transfer Troops</p>
         <button onClick={() => { setExpanded(false); setSending({}); }}
-          className="text-sm text-muted-foreground hover:text-foreground">✕</button>
+          className="text-[9px] text-muted-foreground hover:text-foreground">✕</button>
       </div>
 
       {/* Direction toggle */}
-      <div className="flex gap-2">
+      <div className="flex gap-1">
         <button
           onClick={() => { setDirection('to-outpost'); setSending({}); }}
-          className={`flex-1 text-sm py-2.5 rounded-lg font-display transition-colors ${
+          className={`flex-1 text-[9px] py-1.5 rounded-lg font-display transition-colors ${
             direction === 'to-outpost'
-              ? 'wood-btn-primary'
+              ? 'bg-primary text-primary-foreground'
               : 'bg-muted text-muted-foreground'
           }`}
         >
@@ -248,9 +248,9 @@ export default function TroopTransferPanel({
         </button>
         <button
           onClick={() => { setDirection('from-outpost'); setSending({}); setSelectedTarget('village'); }}
-          className={`flex-1 text-sm py-2.5 rounded-lg font-display transition-colors ${
+          className={`flex-1 text-[9px] py-1.5 rounded-lg font-display transition-colors ${
             direction === 'from-outpost'
-              ? 'wood-btn-primary'
+              ? 'bg-primary text-primary-foreground'
               : 'bg-muted text-muted-foreground'
           }`}
         >
@@ -261,15 +261,15 @@ export default function TroopTransferPanel({
       {/* Target selection for from-outpost */}
       {direction === 'from-outpost' && targets.length > 1 && (
         <div className="space-y-1">
-          <p className="text-sm text-muted-foreground">Send to:</p>
-          <div className="flex flex-wrap gap-2">
+          <p className="text-[8px] text-muted-foreground">Send to:</p>
+          <div className="flex flex-wrap gap-1">
             {targets.map(t => (
               <button
                 key={t.id}
                 onClick={() => setSelectedTarget(t.id)}
-                className={`text-sm px-3 py-2 rounded-lg transition-colors ${
+                className={`text-[8px] px-2 py-1 rounded-lg transition-colors ${
                   (selectedTarget || 'village') === t.id
-                    ? 'wood-btn-primary'
+                    ? 'bg-primary text-primary-foreground'
                     : 'bg-muted text-muted-foreground'
                 }`}
               >
@@ -283,12 +283,12 @@ export default function TroopTransferPanel({
       {/* Current garrison display */}
       {outpost.garrison_troops && Object.values(outpost.garrison_troops).some(v => (v || 0) > 0) && (
         <div className="bg-card/50 rounded-lg p-1.5">
-          <p className="text-sm text-muted-foreground mb-0.5">Current Garrison:</p>
+          <p className="text-[8px] text-muted-foreground mb-0.5">Current Garrison:</p>
           <div className="flex flex-wrap gap-x-2 gap-y-0.5">
             {(Object.entries(outpost.garrison_troops) as [TroopType, number][])
               .filter(([, v]) => (v || 0) > 0)
               .map(([type, count]) => (
-                <span key={type} className="text-sm text-foreground">
+                <span key={type} className="text-[9px] text-foreground">
                   {TROOP_INFO[type]?.emoji} {count}
                 </span>
               ))
@@ -299,7 +299,7 @@ export default function TroopTransferPanel({
 
       {/* Troop sliders */}
       {troopTypes.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-3">
+        <p className="text-[9px] text-muted-foreground text-center py-2">
           {direction === 'to-outpost' ? 'No troops in village to send' : 'No troops garrisoned here'}
         </p>
       ) : (
@@ -309,8 +309,8 @@ export default function TroopTransferPanel({
             return (
               <div key={type} className="space-y-0.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-foreground">{TROOP_INFO[type].emoji} {TROOP_INFO[type].name}</span>
-                  <span className="text-sm text-muted-foreground">{sending[type] || 0}/{max}</span>
+                  <span className="text-[9px] text-foreground">{TROOP_INFO[type].emoji} {TROOP_INFO[type].name}</span>
+                  <span className="text-[9px] text-muted-foreground">{sending[type] || 0}/{max}</span>
                 </div>
                 <Slider
                   min={0} max={max} step={1}
@@ -326,10 +326,10 @@ export default function TroopTransferPanel({
       {/* Travel info */}
       {totalSending > 0 && (
         <div className="text-center space-y-0.5">
-          <p className="text-sm text-foreground">
+          <p className="text-[9px] text-foreground">
             Sending <span className="font-bold">{totalSending}</span> troops
           </p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-[8px] text-muted-foreground">
             Travel time: <span className="font-bold text-primary">
               {Math.floor(travelInfo.seconds / 60)}:{(travelInfo.seconds % 60).toString().padStart(2, '0')}
             </span>
@@ -342,7 +342,7 @@ export default function TroopTransferPanel({
         whileTap={{ scale: 0.95 }}
         onClick={handleTransfer}
         disabled={totalSending === 0}
-        className="w-full wood-btn-primary font-display text-[11px] py-3 rounded-lg disabled:opacity-40 active:scale-95 transition-transform"
+        className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2 rounded-lg disabled:opacity-40 active:scale-95 transition-transform"
       >
         🔄 Transfer Troops
       </motion.button>

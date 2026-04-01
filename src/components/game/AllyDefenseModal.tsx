@@ -8,7 +8,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Slider } from '@/components/ui/slider';
-import TroopIcon from './TroopIcon';
 
 interface AllyDefenseModalProps {
   open: boolean;
@@ -118,10 +117,10 @@ export default function AllyDefenseModal({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="game-panel border-primary/30 max-w-sm">
         <DialogHeader>
-          <DialogTitle className="font-display text-foreground flex items-center gap-3">
+          <DialogTitle className="font-display text-foreground flex items-center gap-2">
             🛡️ Reinforce {allyName}
           </DialogTitle>
-          <DialogDescription className="text-muted-foreground text-sm">
+          <DialogDescription className="text-muted-foreground text-xs">
             <span className="text-destructive font-bold">{attackerName}</span> is attacking your ally!
             Attack arrives in <span className="font-bold text-destructive">{Math.floor(attackRemaining / 60)}:{(attackRemaining % 60).toString().padStart(2, '0')}</span>
           </DialogDescription>
@@ -134,10 +133,10 @@ export default function AllyDefenseModal({
             troopTypes.map(type => (
               <div key={type} className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-foreground flex items-center gap-2">
-                    <TroopIcon type={type} size={14} /> {TROOP_INFO[type].name}
+                  <span className="text-xs text-foreground">
+                    {TROOP_INFO[type].emoji} {TROOP_INFO[type].name}
                   </span>
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {sending[type] || 0} / {army[type]}
                   </span>
                 </div>
@@ -153,15 +152,15 @@ export default function AllyDefenseModal({
           )}
 
           {totalSending > 0 && (
-            <div className="text-center text-sm text-muted-foreground">
+            <div className="text-center text-xs text-muted-foreground">
               Sending <span className="font-bold text-foreground">{totalSending}</span> troops
             </div>
           )}
 
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="flex-1 py-3 rounded-lg bg-muted text-muted-foreground font-display text-sm"
+              className="flex-1 py-2 rounded-lg bg-muted text-muted-foreground font-display text-sm"
             >
               Cancel
             </button>
@@ -169,7 +168,7 @@ export default function AllyDefenseModal({
               whileTap={{ scale: 0.95 }}
               onClick={handleSend}
               disabled={totalSending === 0}
-              className="flex-1 py-3 rounded-lg wood-btn-primary font-display text-sm disabled:opacity-50"
+              className="flex-1 py-2 rounded-lg bg-primary text-primary-foreground font-display text-sm disabled:opacity-50"
             >
               🛡️ Send Reinforcements
             </motion.button>

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/hooks/useGameState';
 import { calcMarchTime, getMaxRange, BUILDING_INFO, getSlowestTroopSpeed, WATCHTOWER_RANGE_BONUS } from '@/lib/gameConstants';
@@ -405,139 +405,6 @@ const EVENT_BASES = [
   { names: ['Whispering Stones', 'Standing Monoliths', 'Runestone Circle', 'Oracle Pillars', 'Singing Megaliths'], descs: ['hum with ancient power', 'reveal visions when touched', 'align with the stars above', 'speak prophecies to the worthy', 'were placed here by a forgotten race'], emoji: '🗿', type: 'mystery' as const, basePower: 25 },
   { names: ['Floating Island', 'Sky Ruin', 'Levitating Sanctuary', 'Cloud Fortress', 'Aerial Temple'], descs: ['drifts silently overhead', 'defies all known laws of nature', 'casts a vast shadow below', 'is accessible only by magic or flight', 'holds treasures from the Age of Wonders'], emoji: '🏝️', type: 'mystery' as const, basePower: 85 },
 ];
-
-// ── World Boss definitions ──
-interface WorldBossTroop {
-  name: string;
-  tier: 'weak' | 'average' | 'elite';
-  attack: number;
-  defense: number;
-  baseCount: number;
-}
-
-interface WorldBossBase {
-  name: string;
-  emoji: string;
-  description: string;
-  lore: string;
-  troops: WorldBossTroop[];
-  basePower: number;
-  growthRate: number; // power multiplier per day
-  rewardMultiplier: number;
-}
-
-const WORLD_BOSS_BASES: WorldBossBase[] = [
-  {
-    name: "Necromancer's Tower",
-    emoji: '🏚️',
-    description: 'A dark spire crackling with necrotic energy, surrounded by shambling hordes of the undead.',
-    lore: 'The Necromancer within has been raising armies for centuries, and now turns their gaze upon the living.',
-    troops: [
-      { name: 'Skeletons', tier: 'weak', attack: 3, defense: 2, baseCount: 80 },
-      { name: 'Zombies', tier: 'average', attack: 6, defense: 8, baseCount: 40 },
-      { name: 'Death Knights', tier: 'elite', attack: 18, defense: 15, baseCount: 10 },
-    ],
-    basePower: 600,
-    growthRate: 0.15,
-    rewardMultiplier: 6,
-  },
-  {
-    name: 'Demonic Portal',
-    emoji: '🌀',
-    description: 'A tear through reality into a hellish dimension of fire and brimstone. Demons pour through endlessly.',
-    lore: 'An ancient seal has been broken. The barrier between worlds grows thinner by the day.',
-    troops: [
-      { name: 'Imps', tier: 'weak', attack: 4, defense: 1, baseCount: 100 },
-      { name: 'Succubi', tier: 'average', attack: 8, defense: 5, baseCount: 35 },
-      { name: 'Demon Warriors', tier: 'elite', attack: 20, defense: 18, baseCount: 8 },
-    ],
-    basePower: 700,
-    growthRate: 0.15,
-    rewardMultiplier: 7,
-  },
-  {
-    name: 'Dreadkeep',
-    emoji: '🧛',
-    description: "A Vampire Lord's fortress, shrouded in eternal twilight. Blood-crazed thralls patrol the grounds.",
-    lore: 'Lord Nosferatu has awakened from his millennia-long slumber, and the land withers in his shadow.',
-    troops: [
-      { name: 'Thralls', tier: 'weak', attack: 3, defense: 3, baseCount: 70 },
-      { name: 'Blood Knights', tier: 'average', attack: 10, defense: 9, baseCount: 30 },
-      { name: 'Nosferatus', tier: 'elite', attack: 22, defense: 20, baseCount: 6 },
-    ],
-    basePower: 800,
-    growthRate: 0.15,
-    rewardMultiplier: 8,
-  },
-];
-
-interface ProceduralWorldBoss extends ProceduralEvent {
-  bossType: number; // index into WORLD_BOSS_BASES
-  troops: { name: string; tier: string; count: number; attack: number; defense: number }[];
-  daysAlive: number;
-  scaledPower: number;
-  weekSeed: number;
-}
-
-function getWorldBoss(strongestPlayerPower = 0): ProceduralWorldBoss {
-  const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-  const weekSeed = Math.floor(Date.now() / WEEK_MS);
-  const daysAlive = Math.floor((Date.now() % WEEK_MS) / (24 * 60 * 60 * 1000));
-  const rng = seededRandom(weekSeed * 9973);
-
-  const bossIdx = Math.floor(rng() * WORLD_BOSS_BASES.length);
-  const boss = WORLD_BOSS_BASES[bossIdx];
-
-  // Deterministic position: spawn in chunks 2-8 from origin
-  const chunkDist = 2 + Math.floor(rng() * 7);
-  const angle = rng() * Math.PI * 2;
-  const spawnCX = Math.round(Math.cos(angle) * chunkDist);
-  const spawnCY = Math.round(Math.sin(angle) * chunkDist);
-  const bossX = spawnCX * CHUNK_SIZE + CHUNK_SIZE * 0.3 + rng() * CHUNK_SIZE * 0.4;
-  const bossY = spawnCY * CHUNK_SIZE + CHUNK_SIZE * 0.3 + rng() * CHUNK_SIZE * 0.4;
-
-  const timeScale = 1 + boss.growthRate * daysAlive;
-
-  // Scale boss to be 1.5x stronger than the strongest player's army
-  const playerScaleFactor = strongestPlayerPower > 0
-    ? Math.max(1, (strongestPlayerPower * 1.5) / boss.basePower)
-    : 1;
-  const finalScale = timeScale * playerScaleFactor;
-
-  const scaledPower = Math.floor(boss.basePower * finalScale);
-
-  const troops = boss.troops.map(t => ({
-    name: t.name,
-    tier: t.tier,
-    count: Math.floor(t.baseCount * finalScale),
-    attack: t.attack,
-    defense: t.defense,
-  }));
-
-  const rewardBase = boss.rewardMultiplier * finalScale;
-
-  return {
-    id: `worldboss-${weekSeed}`,
-    name: boss.name,
-    description: boss.description,
-    emoji: boss.emoji,
-    x: bossX,
-    y: bossY,
-    type: 'danger',
-    power: scaledPower,
-    reward: {
-      gold: Math.floor(2000 + rng() * 3000 * rewardBase / 6),
-      wood: Math.floor(1000 + rng() * 2000 * rewardBase / 6),
-      stone: Math.floor(1000 + rng() * 2000 * rewardBase / 6),
-      food: Math.floor(1000 + rng() * 2000 * rewardBase / 6),
-    },
-    bossType: bossIdx,
-    troops,
-    daysAlive,
-    scaledPower,
-    weekSeed,
-  };
-}
 
 // Adjective modifiers for extra name variety
 const EVENT_ADJECTIVES = ['Ancient', 'Fearsome', 'Legendary', 'Mysterious', 'Forgotten', 'Cursed', 'Hidden', 'Burning', 'Frozen', 'Savage', 'Haunted', 'Sacred', 'Dire', 'Grand', 'Lesser', 'Greater', 'Elder', 'Young', 'Spectral', 'Corrupted'];
@@ -1009,120 +876,11 @@ const EVENT_COLORS = { danger: 'border-destructive/60 bg-destructive/20', opport
 type SelectedItem =
   | { kind: 'npc'; data: ProceduralRealm; biome: string }
   | { kind: 'event'; data: ProceduralEvent; chunkKey: string; index: number }
-  | { kind: 'worldboss'; data: ProceduralWorldBoss }
   | { kind: 'player'; data: any }
   | { kind: 'mine'; data: SteelMine }
   | { kind: 'outpost'; data: { id: string; x: number; y: number; name: string; user_id: string; level: number; garrison_power: number; garrison_troops: Partial<Record<string, number>>; has_wall: boolean; wall_level: number; territory_radius: number; outpost_type: string } }
   | { kind: 'empty'; data: { x: number; y: number } }
   | null;
-
-// ── Memoized sub-components to avoid rebuilding SVG strings every frame ──
-
-const RiverRenderer = React.memo(function RiverRenderer({
-  t, chunkKey, ti, worldToScreen, containerSize, cameraPpu,
-}: {
-  t: TerrainFeature; chunkKey: string; ti: number;
-  worldToScreen: (wx: number, wy: number) => { sx: number; sy: number };
-  containerSize: { w: number; h: number }; cameraPpu: number;
-}) {
-  if (!t.points || t.points.length < 2) return null;
-  const screenPoints = t.points.map(p => worldToScreen(p.x, p.y));
-  const anyVisible = screenPoints.some(p => p.sx > -200 && p.sx < containerSize.w + 200 && p.sy > -200 && p.sy < containerSize.h + 200);
-  if (!anyVisible) return null;
-  const strokeW = Math.max(2, t.width * cameraPpu);
-  let d = `M ${screenPoints[0].sx} ${screenPoints[0].sy}`;
-  for (let i = 1; i < screenPoints.length; i++) {
-    const prev = screenPoints[i - 1];
-    const cur = screenPoints[i];
-    const cpx = (prev.sx + cur.sx) / 2 + (i % 2 === 0 ? 10 : -10);
-    const cpy = (prev.sy + cur.sy) / 2;
-    d += ` Q ${cpx} ${cpy} ${cur.sx} ${cur.sy}`;
-  }
-  const labelSize = Math.max(8, Math.min(12, strokeW * 2));
-  const midIdx = Math.floor(screenPoints.length / 2);
-  const midPt = screenPoints[midIdx];
-  return (
-    <div key={`river-${chunkKey}-${ti}`} className="absolute inset-0 pointer-events-none" style={{ overflow: 'visible' }}>
-      <svg className="absolute inset-0 w-full h-full" style={{ overflow: 'visible' }}>
-        <path d={d} fill="none" stroke="hsl(200 70% 50% / 0.15)" strokeWidth={strokeW * 3} strokeLinecap="round" strokeLinejoin="round" />
-        <path d={d} fill="none" stroke="hsl(205 75% 45% / 0.45)" strokeWidth={strokeW} strokeLinecap="round" strokeLinejoin="round" />
-        <path d={d} fill="none" stroke="hsl(195 80% 65% / 0.2)" strokeWidth={strokeW * 0.4} strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-      {strokeW > 3 && (
-        <span className="absolute font-display text-sky-300/40 whitespace-nowrap" style={{ left: midPt.sx, top: midPt.sy - strokeW - 4, fontSize: labelSize, transform: 'translateX(-50%)' }}>
-          {t.name}
-        </span>
-      )}
-      {t.bridgeAt?.map((bp, bi) => {
-        const { sx: bsx, sy: bsy } = worldToScreen(bp.x, bp.y);
-        const bridgeW = Math.max(12, strokeW * 2.5);
-        if (bridgeW < 8) return null;
-        return (
-          <div key={`bridge-${bi}`} className="absolute flex flex-col items-center" style={{ left: bsx, top: bsy, transform: 'translate(-50%, -50%)', zIndex: 5 }}>
-            <div style={{
-              width: bridgeW,
-              height: bridgeW * 0.5,
-              background: 'linear-gradient(180deg, hsl(30 40% 50% / 0.7), hsl(25 35% 35% / 0.6))',
-              borderRadius: `${bridgeW * 0.5}px ${bridgeW * 0.5}px 2px 2px`,
-              border: '1px solid hsl(30 30% 60% / 0.4)',
-              boxShadow: '0 2px 6px hsl(0 0% 0% / 0.3)',
-            }} />
-            {bridgeW > 15 && <span style={{ fontSize: 7 }} className="text-amber-200/50 mt-0.5">🌉</span>}
-          </div>
-        );
-      })}
-    </div>
-  );
-});
-
-const MarchPathRenderer = React.memo(function MarchPathRenderer({
-  march, worldToScreen, cameraPpu, displayName, soldierSprite, containerSize,
-}: {
-  march: { id: string; waypoints: { x: number; y: number }[]; arrivalTime: number; startTime: number; targetName: string; };
-  worldToScreen: (wx: number, wy: number) => { sx: number; sy: number };
-  cameraPpu: number; displayName: string; soldierSprite: string;
-  containerSize: { w: number; h: number };
-}) {
-  const now = Date.now();
-  const totalDuration = march.arrivalTime - march.startTime;
-  const elapsed = now - march.startTime;
-  const progress = Math.min(1, Math.max(0, elapsed / totalDuration));
-  const wp = march.waypoints;
-  const currentPos = interpolateAlongPath(wp, progress);
-  const screenWaypoints = useMemo(() => wp.map(p => worldToScreen(p.x, p.y)), [wp, worldToScreen]);
-  const polylinePoints = useMemo(() => screenWaypoints.map(p => `${p.sx},${p.sy}`).join(' '), [screenWaypoints]);
-  const { sx, sy } = worldToScreen(currentPos.x, currentPos.y);
-  // Skip rendering if the current march position is off-screen
-  if (sx < -200 || sx > containerSize.w + 200 || sy < -200 || sy > containerSize.h + 200) return null;
-  const aheadPos = interpolateAlongPath(wp, Math.min(1, progress + 0.05));
-  const facingLeft = aheadPos.x < currentPos.x;
-  const marchSize = Math.max(16, Math.min(36, cameraPpu * 5000));
-  const remainingSec = Math.max(0, Math.ceil((march.arrivalTime - now) / 1000));
-  return (
-    <div key={march.id}>
-      <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible', zIndex: 35 }}>
-        <polyline points={polylinePoints}
-          fill="none" stroke="hsl(var(--primary) / 0.4)" strokeWidth={2} strokeDasharray="6 4" />
-      </svg>
-      <div className="absolute z-40 flex flex-col items-center pointer-events-none"
-        style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
-        <img src={soldierSprite} alt="Army" className="drop-shadow-lg"
-          style={{ width: marchSize, height: marchSize, objectFit: 'contain', transform: facingLeft ? 'scaleX(-1)' : undefined }} loading="lazy" />
-        <div className="bg-background/90 rounded px-1.5 py-0.5 text-center mt-0.5 border border-primary/30 shadow-md">
-          <p className="text-foreground font-display whitespace-nowrap font-bold" style={{ fontSize: Math.max(7, marchSize / 4) }}>
-            {displayName}
-          </p>
-          <p className="text-primary font-display whitespace-nowrap" style={{ fontSize: Math.max(6, marchSize / 5) }}>
-            ⚔️ Army → {march.targetName}
-          </p>
-          <p className="text-muted-foreground" style={{ fontSize: Math.max(6, marchSize / 5) }}>
-            {remainingSec}s
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-});
 
 export default function WorldMap() {
   const { allVillages, addResources, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, activeSpyMissions, resources, getWatchtowerLevel, getSpyGuildLevel, refreshVillages, refreshMineOutposts, myVillages, settlementType, deployTroops, returnTroops } = useGame();
@@ -1136,7 +894,7 @@ export default function WorldMap() {
   const [wallSegments, setWallSegments] = useState<{ id: string; user_id: string; outpost_a_id: string; outpost_b_id: string; wall_level: number; health: number; max_health: number }[]>([]);
   const [outpostBuildQueue, setOutpostBuildQueue] = useState<{ outpostId: string; action: 'upgrade' | 'wall'; finishTime: number; targetLevel: number; newGarrison: number; newRadius?: number; targetOutpostId?: string }[]>([]);
   const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; startTime: number; startX: number; startY: number; targetX: number; targetY: number; waypoints: { x: number; y: number }[]; action: () => void; sentArmy?: Partial<Record<string, number>> }[]>([]);
-  const [otherMarches, setOtherMarches] = useState<{ id: string; user_id: string; player_name: string; start_x: number; start_y: number; target_x: number; target_y: number; target_name: string; started_at: string; arrives_at: string; march_type: string; target_user_id?: string | null }[]>([]);
+  const [otherMarches, setOtherMarches] = useState<{ id: string; user_id: string; player_name: string; start_x: number; start_y: number; target_x: number; target_y: number; target_name: string; started_at: string; arrives_at: string; march_type: string }[]>([]);
   const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
   const [legendOpen, setLegendOpen] = useState(false);
   const [, forceRender] = useState(0);
@@ -1146,161 +904,8 @@ export default function WorldMap() {
     onAttack: (sentArmy: Partial<import('@/hooks/useGameState').Army>) => void;
     showEspionage: boolean;
   } | null>(null);
-  const [worldBossDefeated, setWorldBossDefeated] = useState(false);
 
-  // ── Compute strongest player army power across all villages ──
-  const strongestPlayerPower = useMemo(() => {
-    let maxPower = 0;
-    for (const v of allVillages) {
-      const vil = v.village as any;
-      const power = (vil.army_militia || 0) * 1
-        + (vil.army_archer || 0) * 2
-        + (vil.army_knight || 0) * 4
-        + (vil.army_cavalry || 0) * 5
-        + (vil.army_siege || 0) * 6
-        + (vil.army_scout || 0) * 1;
-      if (power > maxPower) maxPower = power;
-    }
-    return maxPower;
-  }, [allVillages]);
-
-  // ── World Boss (one per week, scales to strongest player) ──
-  const worldBoss = useMemo(() => getWorldBoss(strongestPlayerPower), [strongestPlayerPower]);
-
-  // Check if player already defeated this week's boss
-  useEffect(() => {
-    if (!user) return;
-    supabase.from('world_boss_defeats' as any)
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('boss_week_seed', worldBoss.weekSeed)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setWorldBossDefeated(true);
-      });
-  }, [user, worldBoss.weekSeed]);
-
-  // ── World Boss weekly raid logic (Fridays only) ──
-  useEffect(() => {
-    if (!user || worldBossDefeated) return;
-
-    // Only raid on Fridays (day 5)
-    const now = new Date();
-    if (now.getUTCDay() !== 5) return;
-
-    const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-    const weekKey = `worldboss-raid-${Math.floor(Date.now() / WEEK_MS)}`;
-    if (sessionStorage.getItem(weekKey)) return;
-
-    const bossRange = CHUNK_SIZE * 5;
-    const nearbyVillages = allVillages.filter(v => {
-      const dx = v.village.map_x - worldBoss.x;
-      const dy = v.village.map_y - worldBoss.y;
-      return Math.sqrt(dx * dx + dy * dy) <= bossRange;
-    });
-    if (nearbyVillages.length === 0) return;
-
-    // Rank targets: vassals count > army strength > total resources (excl. food)
-    const scored = nearbyVillages.map(v => {
-      const vil = v.village as any;
-      const vassalCount = vassalages.filter(va => va.lord_id === vil.user_id && va.status === 'active').length;
-      const armyPower = (vil.army_militia || 0) + (vil.army_archer || 0) * 2 + (vil.army_knight || 0) * 4
-        + (vil.army_cavalry || 0) * 5 + (vil.army_siege || 0) * 6 + (vil.army_scout || 0);
-      const totalRes = Number(vil.gold || 0) + Number(vil.wood || 0) + Number(vil.stone || 0);
-      const score = vassalCount * 100000 + armyPower * 100 + totalRes;
-      return { v, score, userId: vil.user_id as string };
-    }).sort((a, b) => b.score - a.score);
-
-    const target = scored[0].v;
-    const targetUserId = scored[0].userId;
-    const raidRng = seededRandom(worldBoss.weekSeed * 7919);
-    if (raidRng() > 0.5) { sessionStorage.setItem(weekKey, '1'); return; }
-
-    const raidArmy: Record<string, number> = {};
-    worldBoss.troops.forEach(t => { raidArmy[t.name] = Math.floor(t.count * 0.3); });
-
-    const arrivalSec = 120 + Math.floor(raidRng() * 180);
-    const arrivesAt = new Date(Date.now() + arrivalSec * 1000).toISOString();
-
-    // Boss-specific warning notification
-    const bossWarnings: Record<string, string> = {
-      "Necromancer's Tower": "☠️ An army of the dead has been seen marching your way...",
-      "Demonic Portal": "🌀 A horde of otherworldly horrors has been spotted stampeding in your direction...",
-      "Dreadkeep": "🧛 A pale host has been seen parading under the moonlight toward your city...",
-    };
-    const warningMsg = bossWarnings[worldBoss.name] || `${worldBoss.emoji} ${worldBoss.name} is sending an army your way!`;
-
-    // Show warning to the targeted player
-    if (targetUserId === user.id) {
-      toast.warning(warningMsg, { duration: 15000 });
-    }
-
-    supabase.from('active_marches').insert({
-      user_id: '00000000-0000-0000-0000-000000000000',
-      player_name: `${worldBoss.emoji} ${worldBoss.name}`,
-      start_x: worldBoss.x, start_y: worldBoss.y,
-      target_x: target.village.map_x, target_y: target.village.map_y,
-      target_name: target.village.name,
-      target_user_id: targetUserId,
-      arrives_at: arrivesAt,
-      march_type: 'attack',
-      sent_army: raidArmy,
-    } as any).then(() => {
-      sessionStorage.setItem(weekKey, '1');
-    });
-
-    // Schedule resource theft on arrival: steal 1 week of production (gold, wood, stone — NOT food)
-    const arrivalMs = arrivalSec * 1000;
-    const raidTimer = setTimeout(async () => {
-      const vid = target.village.id;
-      // Re-fetch village + buildings for accurate production estimate
-      const [{ data: freshVillage }, { data: vBuildings }] = await Promise.all([
-        supabase.from('villages').select('*').eq('id', vid).single(),
-        supabase.from('buildings').select('*').eq('village_id', vid),
-      ]);
-      if (!freshVillage) return;
-
-      // Estimate per-tick production from buildings (simplified — mirrors getProduction logic)
-      let prodGold = 0, prodWood = 0, prodStone = 0;
-      if (vBuildings) {
-        for (const b of vBuildings) {
-          const lvl = b.level || 1;
-          const w = b.workers || 0;
-          const workerBonus = 1 + w * 0.15;
-          if (b.type === 'goldmine') prodGold += Math.floor(5 * lvl * workerBonus);
-          else if (b.type === 'lumbermill') prodWood += Math.floor(4 * lvl * workerBonus);
-          else if (b.type === 'quarry') prodStone += Math.floor(3 * lvl * workerBonus);
-          else if (b.type === 'market') prodGold += Math.floor(3 * lvl * workerBonus);
-        }
-      }
-      // Ticks per minute × 60 min × 24 hr × 7 days = weekly production
-      const ticksPerWeek = 60 * 24 * 7;
-      const weekGold = prodGold * ticksPerWeek;
-      const weekWood = prodWood * ticksPerWeek;
-      const weekStone = prodStone * ticksPerWeek;
-
-      // Cap at what the village actually has
-      const stealGold = Math.min(weekGold, Math.max(0, Number(freshVillage.gold)));
-      const stealWood = Math.min(weekWood, Math.max(0, Number(freshVillage.wood)));
-      const stealStone = Math.min(weekStone, Math.max(0, Number(freshVillage.stone)));
-
-      if (stealGold + stealWood + stealStone <= 0) return;
-
-      await supabase.from('villages').update({
-        gold: Math.max(0, Number(freshVillage.gold) - stealGold),
-        wood: Math.max(0, Number(freshVillage.wood) - stealWood),
-        stone: Math.max(0, Number(freshVillage.stone) - stealStone),
-      } as any).eq('id', vid);
-
-      // Deduct from local state if it's the player's active village
-      addResources({ gold: -stealGold, wood: -stealWood, stone: -stealStone, food: 0 });
-      toast.error(`${worldBoss.emoji} ${worldBoss.name} raided ${target.village.name}! Lost ${stealGold} gold, ${stealWood} wood, ${stealStone} stone!`);
-    }, arrivalMs);
-
-    return () => clearTimeout(raidTimer);
-  }, [user, worldBoss, worldBossDefeated, allVillages, addResources, vassalages]);
-
-
+  // ── Subscribe to other players' marches in realtime ──
   useEffect(() => {
     if (!user) return;
     // Load existing active marches
@@ -1317,16 +922,6 @@ export default function WorldMap() {
           const m = payload.new as any;
           if (m.user_id !== user.id) {
             setOtherMarches(prev => [...prev, m]);
-            // Boss march warning for targeted player
-            if (m.user_id === '00000000-0000-0000-0000-000000000000' && m.target_user_id === user.id) {
-              const bossWarnings: Record<string, string> = {
-                "🏚️ Necromancer's Tower": "☠️ An army of the dead has been seen marching your way...",
-                "🌀 Demonic Portal": "🌀 A horde of otherworldly horrors has been spotted stampeding in your direction...",
-                "🧛 Dreadkeep": "🧛 A pale host has been seen parading under the moonlight toward your city...",
-              };
-              const warning = bossWarnings[m.player_name] || `⚠️ ${m.player_name} is sending an army toward ${m.target_name}!`;
-              toast.warning(warning, { duration: 15000 });
-            }
           }
         } else if (payload.eventType === 'DELETE') {
           setOtherMarches(prev => prev.filter(m => m.id !== (payload.old as any).id));
@@ -1379,15 +974,7 @@ export default function WorldMap() {
     return () => clearInterval(interval);
   }, [otherMarches.length]);
 
-  // Tick every second for boss march countdown display
-  const [bossTick, setBossTick] = useState(0);
-  const hasBossMarches = otherMarches.some(m => m.user_id === '00000000-0000-0000-0000-000000000000' && m.target_user_id === user?.id);
-  useEffect(() => {
-    if (!hasBossMarches) return;
-    const interval = setInterval(() => setBossTick(t => t + 1), 1000);
-    return () => clearInterval(interval);
-  }, [hasBossMarches]);
-
+  // Get TH level for dynamic sprite
   const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
 
   const SETTLEMENT_TIER_SPRITES: Record<string, string> = {
@@ -1562,21 +1149,7 @@ export default function WorldMap() {
   const containerRef = useRef<HTMLDivElement>(null);
   const dragStart = useRef<{ x: number; y: number; cx: number; cy: number } | null>(null);
   const lastTouchDist = useRef<number | null>(null);
-  // ── rAF throttling refs ──
-  const panRafId = useRef<number | null>(null);
-  const pendingPan = useRef<{ dx: number; dy: number; startCx: number; startCy: number } | null>(null);
-  const zoomRafId = useRef<number | null>(null);
-  const pendingZoomFactor = useRef<number>(1);
-
   const [containerSize, setContainerSize] = useState({ w: 400, h: 600 });
-
-  // Cleanup rAF on unmount
-  useEffect(() => {
-    return () => {
-      if (panRafId.current) cancelAnimationFrame(panRafId.current);
-      if (zoomRafId.current) cancelAnimationFrame(zoomRafId.current);
-    };
-  }, []);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -1609,18 +1182,17 @@ export default function WorldMap() {
     const minCY = Math.floor((camera.cy - halfH) / CHUNK_SIZE);
     const maxCY = Math.floor((camera.cy + halfH) / CHUNK_SIZE);
 
-    // Cap visible chunks based on zoom LOD
+    // Cap to max ~30 visible chunks to avoid rendering too many elements
     const rangeX = maxCX - minCX + 1;
     const rangeY = maxCY - minCY + 1;
-    const farZoom = camera.ppu < 0.001;
-    const maxChunks = farZoom ? 9 : 30; // 3x3 at far zoom, ~5x5 otherwise
-    const fallbackR = farZoom ? 1 : 2;
-    if (rangeX * rangeY > maxChunks) {
+    if (rangeX * rangeY > 30) {
+      // Too zoomed out — show only nearby chunks
+      const r = 2;
       const ccx = Math.floor(camera.cx / CHUNK_SIZE);
       const ccy = Math.floor(camera.cy / CHUNK_SIZE);
       const chunks: { cx: number; cy: number; data: ChunkData }[] = [];
-      for (let x = ccx - fallbackR; x <= ccx + fallbackR; x++) {
-        for (let y = ccy - fallbackR; y <= ccy + fallbackR; y++) {
+      for (let x = ccx - r; x <= ccx + r; x++) {
+        for (let y = ccy - r; y <= ccy + r; y++) {
           chunks.push({ cx: x, cy: y, data: getChunk(x, y) });
         }
       }
@@ -1648,41 +1220,19 @@ export default function WorldMap() {
 
     const dx = e.clientX - drag.x;
     const dy = e.clientY - drag.y;
+    const startCx = drag.cx;
+    const startCy = drag.cy;
 
-    // Store latest delta and schedule rAF update
-    pendingPan.current = { dx, dy, startCx: drag.cx, startCy: drag.cy };
-    if (panRafId.current === null) {
-      panRafId.current = requestAnimationFrame(() => {
-        panRafId.current = null;
-        const pan = pendingPan.current;
-        if (!pan) return;
-        safeSetCamera(prev => ({
-          ...prev,
-          cx: pan.startCx - pan.dx / prev.ppu,
-          cy: pan.startCy - pan.dy / prev.ppu,
-        }));
-      });
-    }
+    safeSetCamera(prev => ({
+      ...prev,
+      cx: startCx - dx / prev.ppu,
+      cy: startCy - dy / prev.ppu,
+    }));
   }, [safeSetCamera]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     const drag = dragStart.current;
     if (drag) {
-      // Flush any pending pan update immediately
-      if (panRafId.current !== null) {
-        cancelAnimationFrame(panRafId.current);
-        panRafId.current = null;
-        const pan = pendingPan.current;
-        if (pan) {
-          safeSetCamera(prev => ({
-            ...prev,
-            cx: pan.startCx - pan.dx / prev.ppu,
-            cy: pan.startCy - pan.dy / prev.ppu,
-          }));
-        }
-      }
-      pendingPan.current = null;
-
       const dx = e.clientX - drag.x;
       const dy = e.clientY - drag.y;
       const moved = Math.abs(dx) + Math.abs(dy);
@@ -1699,7 +1249,7 @@ export default function WorldMap() {
       }
     }
     dragStart.current = null;
-  }, [camera, containerSize, safeSetCamera]);
+  }, [camera, containerSize]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 2) {
@@ -1720,16 +1270,7 @@ export default function WorldMap() {
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     const factor = e.deltaY > 0 ? 0.85 : 1.18;
-    // Accumulate zoom factor and batch via rAF
-    pendingZoomFactor.current *= factor;
-    if (zoomRafId.current === null) {
-      zoomRafId.current = requestAnimationFrame(() => {
-        zoomRafId.current = null;
-        const accumulated = pendingZoomFactor.current;
-        pendingZoomFactor.current = 1;
-        safeSetCamera(prev => ({ ...prev, ppu: Math.max(0.00005, Math.min(0.05, prev.ppu * accumulated)) }));
-      });
-    }
+    safeSetCamera(prev => ({ ...prev, ppu: Math.max(0.00005, Math.min(0.05, prev.ppu * factor)) }));
   }, [safeSetCamera]);
 
   const getPlayerPos = (id: string) => {
@@ -1807,9 +1348,9 @@ export default function WorldMap() {
     ];
   }, [army.scout, getMyPos, allVillages, outposts, user?.id, getWatchtowerLevel]);
 
-  const isWithinVision = useCallback((_wx: number, _wy: number, _padding = 0) => {
-    return true; // Full map visibility — no fog of war
-  }, []);
+  const isWithinVision = useCallback((wx: number, wy: number, padding = 0) => {
+    return visionSources.some(source => Math.hypot(wx - source.x, wy - source.y) <= source.radius + padding);
+  }, [visionSources]);
 
   // Collect all terrain for pathfinding — includes visible chunks
   const visibleTerrain = useMemo(() => {
@@ -2076,11 +1617,13 @@ export default function WorldMap() {
   }, [tradeContracts, addResources]);
 
   const power = totalArmyPower();
-  const iconSize = useMemo(() => Math.max(28, Math.min(56, camera.ppu * 12000)), [camera.ppu]);
-  const fontSize = useMemo(() => Math.max(9, Math.min(13, camera.ppu * 4000)), [camera.ppu]);
-  const eventSize = useMemo(() => Math.max(22, Math.min(44, camera.ppu * 9000)), [camera.ppu]);
+  const iconSize = Math.max(28, Math.min(56, camera.ppu * 12000));
+  const fontSize = Math.max(9, Math.min(13, camera.ppu * 4000));
+  const eventSize = Math.max(22, Math.min(44, camera.ppu * 9000));
 
   // Collect all visible realms and events from chunks
+  const visibleRealms: (ProceduralRealm & { biome: string })[] = [];
+  const visibleEvents: ProceduralEvent[] = [];
   const allRealmNames = useMemo(() => {
     const map = new Map<string, string>();
     for (const chunk of visibleChunks) {
@@ -2090,116 +1633,25 @@ export default function WorldMap() {
     }
     return map;
   }, [visibleChunks]);
-
-  const { visibleRealms, visibleEvents } = useMemo(() => {
-    const realms: (ProceduralRealm & { biome: string })[] = [];
-    const events: ProceduralEvent[] = [];
-    for (const chunk of visibleChunks) {
-      for (const realm of chunk.data.realms) {
-        if (isVisible(realm.x, realm.y, 100)) realms.push({ ...realm, biome: chunk.data.regionBiome });
-      }
-      for (const event of chunk.data.events) {
-        if (!claimedEvents.has(event.id) && isVisible(event.x, event.y, 60)) events.push(event);
-      }
+  for (const chunk of visibleChunks) {
+    for (const realm of chunk.data.realms) {
+      if (isVisible(realm.x, realm.y, 100)) visibleRealms.push({ ...realm, biome: chunk.data.regionBiome });
     }
-    return { visibleRealms: realms, visibleEvents: events };
-  }, [visibleChunks, isVisible, claimedEvents]);
-
-  // ── LOD tiers based on zoom level ──
-  const lodTier = camera.ppu > 0.005 ? 'close' : camera.ppu >= 0.001 ? 'medium' : 'far';
+    for (const event of chunk.data.events) {
+      if (!claimedEvents.has(event.id) && isVisible(event.x, event.y, 60)) visibleEvents.push(event);
+    }
+  }
 
   // Cap rendered items when very zoomed out
   const maxItems = 30;
-  const renderRealms = useMemo(() => visibleRealms.slice(0, maxItems), [visibleRealms]);
-  const renderEvents = useMemo(() => lodTier !== 'far' ? visibleEvents.slice(0, maxItems) : [], [visibleEvents, lodTier]);
-
-  // ── Memoized collision-nudged player positions ──
-  const nudgedPlayerPositions = useMemo(() => {
-    const playerPositions = allVillages.map(pv => {
-      const pos = getPlayerPos(pv.village.id);
-      const { sx, sy } = worldToScreen(pos.x, pos.y);
-      const isMe = pv.village.user_id === user?.id;
-      return { pv, pos, sx, sy, isMe };
-    }).filter(p => {
-      if (!isWithinVision(p.pos.x, p.pos.y, 5000)) return false;
-      const margin = 80;
-      return p.sx > -margin && p.sx < containerSize.w + margin && p.sy > -margin && p.sy < containerSize.h + margin;
-    });
-
-    // Skip nudging if too many villages visible (labels unreadable at that zoom)
-    if (playerPositions.length <= 50) {
-      const minDist = Math.max(50, iconSize * 1.8);
-      const cellSize = minDist;
-
-      // Spatial hash: bucket villages into grid cells
-      const grid = new Map<string, number[]>();
-      for (let i = 0; i < playerPositions.length; i++) {
-        const p = playerPositions[i];
-        const cx = Math.floor(p.sx / cellSize);
-        const cy = Math.floor(p.sy / cellSize);
-        const key = `${cx},${cy}`;
-        const bucket = grid.get(key);
-        if (bucket) bucket.push(i);
-        else grid.set(key, [i]);
-      }
-
-      // Check collisions only within same or adjacent cells
-      const checked = new Set<string>();
-      for (const [key, indices] of grid) {
-        const [gx, gy] = key.split(',').map(Number);
-        // Gather indices from this cell and 8 neighbors
-        const nearby: number[] = [];
-        for (let dx = -1; dx <= 1; dx++) {
-          for (let dy = -1; dy <= 1; dy++) {
-            const nk = `${gx + dx},${gy + dy}`;
-            const bucket = grid.get(nk);
-            if (bucket) nearby.push(...bucket);
-          }
-        }
-        // Deduplicate and check pairs
-        for (let ii = 0; ii < indices.length; ii++) {
-          const i = indices[ii];
-          for (const j of nearby) {
-            if (j <= i) continue;
-            const pairKey = `${i},${j}`;
-            if (checked.has(pairKey)) continue;
-            checked.add(pairKey);
-            const a = playerPositions[i];
-            const b = playerPositions[j];
-            const ddx = b.sx - a.sx;
-            const ddy = b.sy - a.sy;
-            const dist = Math.sqrt(ddx * ddx + ddy * ddy);
-            if (dist < minDist && dist > 0) {
-              const overlap = (minDist - dist) / 2;
-              const nx = ddx / dist;
-              const ny = ddy / dist;
-              if (a.isMe) {
-                b.sx += nx * overlap * 2;
-                b.sy += ny * overlap * 2;
-              } else if (b.isMe) {
-                a.sx -= nx * overlap * 2;
-                a.sy -= ny * overlap * 2;
-              } else {
-                a.sx -= nx * overlap;
-                a.sy -= ny * overlap;
-                b.sx += nx * overlap;
-                b.sy += ny * overlap;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Sort so "me" renders on top
-    return playerPositions.sort((a, b) => (a.isMe ? 1 : 0) - (b.isMe ? 1 : 0));
-  }, [allVillages, camera.cx, camera.cy, camera.ppu, containerSize, iconSize, user?.id]);
+  const renderRealms = visibleRealms.slice(0, maxItems);
+  const renderEvents = visibleEvents.slice(0, maxItems);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="px-4 pt-2 pb-1.5 flex items-center justify-between border-b border-border/30">
+      <div className="px-3 pt-2 pb-1.5 flex items-center justify-between border-b border-border/30">
         <h2 className="font-display text-sm text-foreground/90 tracking-wide">World Map</h2>
-        <div className="flex items-center gap-3 text-sm text-muted-foreground/70">
+        <div className="flex items-center gap-3 text-[9px] text-muted-foreground/70">
           {marches.length > 0 && <span className="text-primary/80 animate-pulse">🚶 {marches.length}</span>}
           {tradeContracts.length > 0 && <span className="text-food/80">📜 {tradeContracts.length}</span>}
           <span className="font-mono">⚔️{power.attack} 🛡️{power.defense}</span>
@@ -2300,8 +1752,7 @@ export default function WorldMap() {
         })}
 
 
-        {/* Terrain features hidden at far zoom */}
-        {lodTier !== 'far' && visibleChunks.map(chunk => chunk.data.terrain.map((t, ti) => {
+        {visibleChunks.map(chunk => chunk.data.terrain.map((t, ti) => {
           if (t.type === 'lake') {
             const { sx, sy } = worldToScreen(t.x, t.y);
             const w = t.width * camera.ppu;
@@ -2363,23 +1814,66 @@ export default function WorldMap() {
             );
           }
           if (t.type === 'river' && t.points && t.points.length > 1) {
+            const screenPoints = t.points.map(p => worldToScreen(p.x, p.y));
+            // Check if any point is visible
+            const anyVisible = screenPoints.some(p => p.sx > -200 && p.sx < containerSize.w + 200 && p.sy > -200 && p.sy < containerSize.h + 200);
+            if (!anyVisible) return null;
+            const strokeW = Math.max(2, t.width * camera.ppu);
+            // Build SVG path
+            let d = `M ${screenPoints[0].sx} ${screenPoints[0].sy}`;
+            for (let i = 1; i < screenPoints.length; i++) {
+              const prev = screenPoints[i - 1];
+              const cur = screenPoints[i];
+              const cpx = (prev.sx + cur.sx) / 2 + (i % 2 === 0 ? 10 : -10);
+              const cpy = (prev.sy + cur.sy) / 2;
+              d += ` Q ${cpx} ${cpy} ${cur.sx} ${cur.sy}`;
+            }
+            const labelSize = Math.max(8, Math.min(12, strokeW * 2));
+            const midIdx = Math.floor(screenPoints.length / 2);
+            const midPt = screenPoints[midIdx];
             return (
-              <RiverRenderer
-                key={`river-${chunk.cx}-${chunk.cy}-${ti}`}
-                t={t}
-                chunkKey={`${chunk.cx}-${chunk.cy}`}
-                ti={ti}
-                worldToScreen={worldToScreen}
-                containerSize={containerSize}
-                cameraPpu={camera.ppu}
-              />
+              <div key={`river-${chunk.cx}-${chunk.cy}-${ti}`} className="absolute inset-0 pointer-events-none" style={{ overflow: 'visible' }}>
+                <svg className="absolute inset-0 w-full h-full" style={{ overflow: 'visible' }}>
+                  {/* River glow */}
+                  <path d={d} fill="none" stroke="hsl(200 70% 50% / 0.15)" strokeWidth={strokeW * 3} strokeLinecap="round" strokeLinejoin="round" />
+                  {/* River body */}
+                  <path d={d} fill="none" stroke="hsl(205 75% 45% / 0.45)" strokeWidth={strokeW} strokeLinecap="round" strokeLinejoin="round" />
+                  {/* River highlight */}
+                  <path d={d} fill="none" stroke="hsl(195 80% 65% / 0.2)" strokeWidth={strokeW * 0.4} strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                {/* River name */}
+                {strokeW > 3 && (
+                  <span className="absolute font-display text-sky-300/40 whitespace-nowrap" style={{ left: midPt.sx, top: midPt.sy - strokeW - 4, fontSize: labelSize, transform: 'translateX(-50%)' }}>
+                    {t.name}
+                  </span>
+                )}
+                {/* Bridges */}
+                {t.bridgeAt?.map((bp, bi) => {
+                  const { sx: bsx, sy: bsy } = worldToScreen(bp.x, bp.y);
+                  const bridgeW = Math.max(12, strokeW * 2.5);
+                  if (bridgeW < 8) return null;
+                  return (
+                    <div key={`bridge-${bi}`} className="absolute flex flex-col items-center" style={{ left: bsx, top: bsy, transform: 'translate(-50%, -50%)', zIndex: 5 }}>
+                      <div style={{
+                        width: bridgeW,
+                        height: bridgeW * 0.5,
+                        background: 'linear-gradient(180deg, hsl(30 40% 50% / 0.7), hsl(25 35% 35% / 0.6))',
+                        borderRadius: `${bridgeW * 0.5}px ${bridgeW * 0.5}px 2px 2px`,
+                        border: '1px solid hsl(30 30% 60% / 0.4)',
+                        boxShadow: '0 2px 6px hsl(0 0% 0% / 0.3)',
+                      }} />
+                      {bridgeW > 15 && <span style={{ fontSize: 7 }} className="text-amber-200/50 mt-0.5">🌉</span>}
+                    </div>
+                  );
+                })}
+              </div>
             );
           }
           return null;
         }))}
 
-        {/* ── Decorations (trees, grass, rocks) — hidden at medium and far zoom ── */}
-        {lodTier === 'close' && visibleChunks.map(chunk => chunk.data.decorations.map((d, di) => {
+        {/* ── Decorations (trees, grass, rocks) ── */}
+        {visibleChunks.map(chunk => chunk.data.decorations.map((d, di) => {
           const { sx, sy } = worldToScreen(d.x, d.y);
           const s = d.size * camera.ppu;
           if (s < 4) return null;
@@ -2455,7 +1949,7 @@ export default function WorldMap() {
                 style={{ width: iconSize, height: iconSize, imageRendering: 'auto' }}
               />
               {iconSize > 30 && (
-                <div className={`text-center rounded-md mt-1 px-3 py-0.5 backdrop-blur-sm shadow-sm ${isVassal ? 'bg-primary/15 border border-primary/25' : 'bg-background/70 border border-border/30'}`}>
+                <div className={`text-center rounded-md mt-1 px-2 py-0.5 backdrop-blur-sm shadow-sm ${isVassal ? 'bg-primary/15 border border-primary/25' : 'bg-background/70 border border-border/30'}`}>
                   <p className="font-display text-foreground leading-tight whitespace-nowrap" style={{ fontSize: Math.max(8, fontSize - 1) }}>
                     {isVassal ? '👑 ' : ''}{realm.name}
                   </p>
@@ -2498,49 +1992,6 @@ export default function WorldMap() {
           );
         })}
 
-        {/* ── World Boss ── */}
-        {!worldBossDefeated && (() => {
-          if (!isVisible(worldBoss.x, worldBoss.y, 120)) return null;
-          const { sx, sy } = worldToScreen(worldBoss.x, worldBoss.y);
-          const bossSize = eventSize * 1.5;
-          const tierColors: Record<string, string> = { weak: 'text-muted-foreground', average: 'text-amber-400', elite: 'text-destructive' };
-          return (
-            <button key={worldBoss.id} data-map-item
-              onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'worldboss', data: worldBoss }); }}
-              className="absolute z-30 group transition-transform hover:scale-110"
-              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
-              {/* Pulsing glow ring */}
-              <div className="absolute inset-0 rounded-full animate-pulse pointer-events-none"
-                style={{
-                  width: bossSize * 2, height: bossSize * 2,
-                  left: '50%', top: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  background: 'radial-gradient(circle, hsl(0 80% 50% / 0.25), hsl(280 70% 40% / 0.15) 50%, transparent 70%)',
-                  boxShadow: '0 0 30px 10px hsl(0 80% 50% / 0.2)',
-                }} />
-              <img
-                src={mapEventDanger}
-                alt={worldBoss.name}
-                loading="lazy"
-                className="drop-shadow-lg transition-all group-hover:drop-shadow-xl relative z-10"
-                style={{ width: bossSize, height: bossSize, imageRendering: 'auto', objectFit: 'contain', filter: 'hue-rotate(280deg) saturate(1.5) brightness(1.2)' }}
-              />
-              {bossSize > 30 && (
-                <div className="absolute left-1/2 -translate-x-1/2 text-center z-10" style={{ top: bossSize + 4 }}>
-                  <div className="bg-destructive/90 backdrop-blur-sm rounded-md px-3 py-0.5 border border-destructive/60 shadow-lg">
-                    <p className="font-display text-destructive-foreground whitespace-nowrap leading-tight" style={{ fontSize: Math.max(8, bossSize / 5) }}>
-                      {worldBoss.emoji} {worldBoss.name}
-                    </p>
-                    <p className="text-destructive-foreground/70 whitespace-nowrap" style={{ fontSize: Math.max(6, bossSize / 7) }}>
-                      ⚔️ {worldBoss.scaledPower} • Day {worldBoss.daysAlive + 1}/7
-                    </p>
-                  </div>
-                </div>
-              )}
-            </button>
-          );
-        })()}
-
         {/* Steel Mines */}
         {visibleChunks.map(chunk => chunk.data.steelMines.map(mine => {
           if (!isWithinVision(mine.x, mine.y, 4000)) return null;
@@ -2563,19 +2014,54 @@ export default function WorldMap() {
           );
         }))}
 
-        {/* Player settlements with memoized collision nudging */}
-        {nudgedPlayerPositions.map(({ pv, sx, sy, isMe }) => {
-            if (lodTier === 'far') {
-              // Simple colored dots at far zoom
-              const dotSize = isMe ? 10 : 6;
-              return (
-                <button key={pv.village.id} data-map-item
-                  onClick={(e) => { e.stopPropagation(); if (isMe) { window.dispatchEvent(new CustomEvent('switch-tab', { detail: 'village' })); } else { setSelected({ kind: 'player', data: pv }); } }}
-                  className={`absolute rounded-full ${isMe ? 'z-40' : 'z-30'} hover:z-50`}
-                  style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', width: dotSize, height: dotSize, background: isMe ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))', border: isMe ? '2px solid hsl(var(--primary-foreground))' : 'none' }}
-                />
-              );
+        {/* Player settlements with collision nudging */}
+        {(() => {
+          // Compute positions first, then nudge overlapping ones apart
+          const playerPositions = allVillages.map(pv => {
+            const pos = getPlayerPos(pv.village.id);
+            const { sx, sy } = worldToScreen(pos.x, pos.y);
+            const isMe = pv.village.user_id === user?.id;
+            return { pv, pos, sx, sy, isMe };
+          }).filter(p => {
+            if (!isWithinVision(p.pos.x, p.pos.y, 5000)) return false;
+            const margin = 80;
+            return p.sx > -margin && p.sx < containerSize.w + margin && p.sy > -margin && p.sy < containerSize.h + margin;
+          });
+
+          // Simple collision nudge: push overlapping labels apart
+          const minDist = Math.max(50, iconSize * 1.8);
+          for (let i = 0; i < playerPositions.length; i++) {
+            for (let j = i + 1; j < playerPositions.length; j++) {
+              const a = playerPositions[i];
+              const b = playerPositions[j];
+              const dx = b.sx - a.sx;
+              const dy = b.sy - a.sy;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist < minDist && dist > 0) {
+                const overlap = (minDist - dist) / 2;
+                const nx = dx / dist;
+                const ny = dy / dist;
+                // Don't nudge "me" — nudge others
+                if (a.isMe) {
+                  b.sx += nx * overlap * 2;
+                  b.sy += ny * overlap * 2;
+                } else if (b.isMe) {
+                  a.sx -= nx * overlap * 2;
+                  a.sy -= ny * overlap * 2;
+                } else {
+                  a.sx -= nx * overlap;
+                  a.sy -= ny * overlap;
+                  b.sx += nx * overlap;
+                  b.sy += ny * overlap;
+                }
+              }
             }
+          }
+
+          // Sort so "me" renders on top
+          const sorted = playerPositions.sort((a, b) => (a.isMe ? 1 : 0) - (b.isMe ? 1 : 0));
+
+          return sorted.map(({ pv, sx, sy, isMe }) => {
             const pvSettlementType = isMe ? settlementType : (pv.village.settlement_type || 'village');
             const sprite = getSettlementSprite(pvSettlementType, isMe);
             const settlementLabel = SETTLEMENT_LABELS[pvSettlementType] || '🏠 Village';
@@ -2611,20 +2097,53 @@ export default function WorldMap() {
                 )}
               </button>
             );
-        })}
+          });
+        })()}
 
         {/* ── Animated March Sprites with waypoint paths ── */}
-        {marches.map(march => (
-          <MarchPathRenderer
-            key={march.id}
-            march={march}
-            worldToScreen={worldToScreen}
-            cameraPpu={camera.ppu}
-            displayName={displayName}
-            soldierSprite={FACTION_SOLDIER_SPRITES[activeSkin.id] || FACTION_SOLDIER_SPRITES.default || mapSoldier}
-            containerSize={containerSize}
-          />
-        ))}
+        {marches.map(march => {
+          const now = Date.now();
+          const totalDuration = march.arrivalTime - march.startTime;
+          const elapsed = now - march.startTime;
+          const progress = Math.min(1, Math.max(0, elapsed / totalDuration));
+          const wp = march.waypoints;
+          const currentPos = interpolateAlongPath(wp, progress);
+          const { sx, sy } = worldToScreen(currentPos.x, currentPos.y);
+          // Determine facing direction from next waypoint
+          const aheadPos = interpolateAlongPath(wp, Math.min(1, progress + 0.05));
+          const facingLeft = aheadPos.x < currentPos.x;
+          const marchSize = Math.max(16, Math.min(36, camera.ppu * 5000));
+          const remainingSec = Math.max(0, Math.ceil((march.arrivalTime - now) / 1000));
+          // Build polyline path from waypoints
+          const screenWaypoints = wp.map(p => worldToScreen(p.x, p.y));
+          const polylinePoints = screenWaypoints.map(p => `${p.sx},${p.sy}`).join(' ');
+          return (
+            <div key={march.id}>
+              {/* Dotted march path polyline */}
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible', zIndex: 35 }}>
+                <polyline points={polylinePoints}
+                  fill="none" stroke="hsl(var(--primary) / 0.4)" strokeWidth={2} strokeDasharray="6 4" />
+              </svg>
+              {/* Moving soldier sprite */}
+              <div className="absolute z-40 flex flex-col items-center pointer-events-none"
+                style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
+                <img src={FACTION_SOLDIER_SPRITES[activeSkin.id] || FACTION_SOLDIER_SPRITES.default || mapSoldier} alt="Army" className="drop-shadow-lg"
+                  style={{ width: marchSize, height: marchSize, objectFit: 'contain', transform: facingLeft ? 'scaleX(-1)' : undefined }} loading="lazy" />
+                <div className="bg-background/90 rounded px-1.5 py-0.5 text-center mt-0.5 border border-primary/30 shadow-md">
+                  <p className="text-foreground font-display whitespace-nowrap font-bold" style={{ fontSize: Math.max(7, marchSize / 4) }}>
+                    {displayName}
+                  </p>
+                  <p className="text-primary font-display whitespace-nowrap" style={{ fontSize: Math.max(6, marchSize / 5) }}>
+                    ⚔️ Army → {march.targetName}
+                  </p>
+                  <p className="text-muted-foreground" style={{ fontSize: Math.max(6, marchSize / 5) }}>
+                    {remainingSec}s
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
 
         {/* ── Other Players' Marches (live from DB) ── */}
         {otherMarches.map(march => {
@@ -2978,65 +2497,34 @@ export default function WorldMap() {
             </button>
           );
         })}
-        <div className="absolute bottom-4 right-3 flex flex-col gap-2 z-50">
+        <div className="absolute bottom-4 right-3 flex flex-col gap-1 z-50">
           <button onClick={() => safeSetCamera(prev => ({ ...prev, ppu: Math.min(0.05, prev.ppu * 1.5) }))}
             className="w-9 h-9 bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-sm font-medium active:scale-90 transition-all hover:bg-background/95 shadow-sm">+</button>
           <button onClick={() => safeSetCamera(prev => ({ ...prev, ppu: Math.max(0.00005, prev.ppu / 1.5) }))}
             className="w-9 h-9 bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-sm font-medium active:scale-90 transition-all hover:bg-background/95 shadow-sm">−</button>
           <button onClick={goHome}
-            className="w-9 h-9 bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-sm active:scale-90 transition-all hover:bg-background/95 shadow-sm mt-0.5">⌂</button>
+            className="w-9 h-9 bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-xs active:scale-90 transition-all hover:bg-background/95 shadow-sm mt-0.5">⌂</button>
         </div>
 
-        {/* ── Boss March Countdown Timer ── */}
-        {(() => {
-          void bossTick; // trigger re-render every second
-          const BOSS_UUID = '00000000-0000-0000-0000-000000000000';
-          const bossMarches = otherMarches.filter(m => m.user_id === BOSS_UUID && m.target_user_id === user?.id);
-          if (bossMarches.length === 0) return null;
-          return (
-            <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2.5">
-              {bossMarches.map(bm => {
-                const endT = new Date(bm.arrives_at).getTime();
-                const remaining = Math.max(0, Math.ceil((endT - Date.now()) / 1000));
-                if (remaining <= 0) return null;
-                const mins = Math.floor(remaining / 60);
-                const secs = remaining % 60;
-                const timeStr = mins > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : `${secs}s`;
-                const urgency = remaining < 60 ? 'animate-pulse' : '';
-                const bossName = bm.player_name || 'World Boss';
-                return (
-                  <div key={bm.id} className={`flex items-center gap-3 px-4 py-3 rounded-lg border border-destructive/60 bg-destructive/20 backdrop-blur-md shadow-lg ${urgency}`}>
-                    <span className="text-base">{bossName.split(' ')[0]}</span>
-                    <div className="flex flex-col">
-                      <span className="text-sm text-destructive font-display uppercase tracking-wider">Incoming Raid</span>
-                      <span className="text-lg font-bold font-display text-destructive tabular-nums">{timeStr}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })()}
-
+        {/* Legend — collapsible on mobile */}
         <div className="absolute bottom-3 left-3 z-50">
           <button
             onClick={() => setLegendOpen(prev => !prev)}
-            className="game-panel border-glow rounded-lg px-3 py-2.5 text-sm text-foreground font-display flex items-center gap-2 sm:hidden active:scale-95 transition-transform"
+            className="game-panel border-glow rounded-lg px-2 py-1.5 text-[9px] text-foreground font-display flex items-center gap-1 sm:hidden active:scale-95 transition-transform"
           >
             🗺️ Legend {legendOpen ? '▾' : '▸'}
           </button>
-          <div className={`${legendOpen ? 'flex' : 'hidden'} sm:flex flex-col bg-background/90 backdrop-blur-sm rounded-lg p-2 space-y-1 text-sm border border-border mt-1 sm:mt-0`}>
-            <div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full bg-destructive" /><span className="text-foreground">Hostile</span></div>
-            <div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full bg-muted-foreground" /><span className="text-foreground">Neutral</span></div>
-            <div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full bg-food" /><span className="text-foreground">Friendly</span></div>
-            <div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full border border-primary bg-primary/20" /><span className="text-foreground">Event</span></div>
-            <div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-lg bg-secondary" /><span className="text-foreground">Player</span></div>
-            <div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: 'hsl(200 70% 45% / 0.5)' }} /><span className="text-foreground">Water</span></div>
-            <div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5" style={{ background: 'hsl(30 20% 35% / 0.6)', clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }} /><span className="text-foreground">Mountain</span></div>
-            <div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: 'hsl(100 35% 40% / 0.6)' }} /><span className="text-foreground">Island</span></div>
-            <div className="flex items-center gap-2.5"><div className="w-2.5 h-1" style={{ background: 'hsl(205 75% 45% / 0.6)', borderRadius: 2 }} /><span className="text-foreground">River</span></div>
-            <div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded border border-muted-foreground/40 bg-muted/60 flex items-center justify-center text-[6px]">⚙️</div><span className="text-foreground">Steel Mine</span></div>
-            <div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full bg-destructive animate-pulse" /><span className="text-foreground">World Boss</span></div>
+          <div className={`${legendOpen ? 'flex' : 'hidden'} sm:flex flex-col bg-background/90 backdrop-blur-sm rounded-lg p-2 space-y-1 text-[8px] border border-border mt-1 sm:mt-0`}>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-destructive" /><span className="text-foreground">Hostile</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-muted-foreground" /><span className="text-foreground">Neutral</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-food" /><span className="text-foreground">Friendly</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full border border-primary bg-primary/20" /><span className="text-foreground">Event</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-lg bg-secondary" /><span className="text-foreground">Player</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: 'hsl(200 70% 45% / 0.5)' }} /><span className="text-foreground">Water</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5" style={{ background: 'hsl(30 20% 35% / 0.6)', clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }} /><span className="text-foreground">Mountain</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: 'hsl(100 35% 40% / 0.6)' }} /><span className="text-foreground">Island</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-1" style={{ background: 'hsl(205 75% 45% / 0.6)', borderRadius: 2 }} /><span className="text-foreground">River</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded border border-muted-foreground/40 bg-muted/60 flex items-center justify-center text-[6px]">⚙️</div><span className="text-foreground">Steel Mine</span></div>
           </div>
         </div>
       </div>
@@ -3073,140 +2561,44 @@ export default function WorldMap() {
 
             {selected.kind === 'event' && (
               <div className="space-y-2">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <span className="text-3xl">{selected.data.emoji}</span>
                   <div className="flex-1">
                     <h3 className="font-display text-sm text-foreground">{selected.data.name}</h3>
-                    <span className={`text-sm font-bold px-3 py-0.5 rounded-full ${
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
                       selected.data.type === 'danger' ? 'bg-destructive/20 text-destructive' :
                       selected.data.type === 'opportunity' ? 'bg-primary/20 text-primary' : 'bg-accent/20 text-accent-foreground'
                     }`}>{selected.data.type}{selected.data.power > 0 ? ` ⚔️${selected.data.power}` : ''}</span>
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground">{selected.data.description}</p>
+                <p className="text-[10px] text-muted-foreground">{selected.data.description}</p>
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex gap-2.5 text-sm text-primary font-bold flex-wrap">
+                  <div className="flex gap-1.5 text-[10px] text-primary font-bold flex-wrap">
                     {Object.entries(selected.data.reward).filter(([, v]) => v && v > 0).map(([k, v]) => (
                       <span key={k}>+{v} {k}</span>
                     ))}
                   </div>
                   <motion.button whileTap={{ scale: 0.95 }}
                     onClick={() => handleInvestigate(selected.data)}
-                    className="wood-btn-primary font-display text-[11px] py-2.5 px-4 rounded-lg glow-gold-sm active:scale-95 transition-transform whitespace-nowrap">
+                    className="bg-primary text-primary-foreground font-display text-[11px] py-2.5 px-4 rounded-lg glow-gold-sm active:scale-95 transition-transform whitespace-nowrap">
                     {selected.data.power > 0 ? '⚔️ Fight & Claim' : '✋ Claim'}
                   </motion.button>
                 </div>
               </div>
             )}
 
-            {selected.kind === 'worldboss' && (() => {
-              const boss = selected.data;
-              const bossBase = WORLD_BOSS_BASES[boss.bossType];
-              const steelReward = Math.floor(50 + boss.daysAlive * 15 * bossBase.rewardMultiplier / 6);
-              return (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl">{boss.emoji}</span>
-                    <div className="flex-1">
-                      <h3 className="font-display text-sm text-foreground">{boss.name}</h3>
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-bold px-3 py-0.5 rounded-full bg-destructive/20 text-destructive">
-                          WORLD BOSS ⚔️{boss.scaledPower}
-                        </span>
-                        <span className="text-sm text-muted-foreground">Day {boss.daysAlive + 1}/7</span>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{boss.description}</p>
-                  <p className="text-sm text-muted-foreground/70 italic">{bossBase.lore}</p>
-
-                  {/* Troop Tiers */}
-                  <div className="bg-muted/30 rounded-lg p-2 space-y-1">
-                    <p className="text-sm font-semibold text-foreground">🪖 Army Composition</p>
-                    {boss.troops.map(t => (
-                      <div key={t.name} className="flex items-center justify-between text-sm">
-                        <span className={`font-display ${t.tier === 'elite' ? 'text-destructive' : t.tier === 'average' ? 'text-primary' : 'text-muted-foreground'}`}>
-                          {t.tier === 'elite' ? '💀' : t.tier === 'average' ? '⚔️' : '🦴'} {t.name}
-                          <span className="text-muted-foreground/60 ml-1">({t.tier})</span>
-                        </span>
-                        <span className="text-foreground font-mono">
-                          ×{t.count} <span className="text-muted-foreground/60">atk:{t.attack} def:{t.defense}</span>
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Rewards */}
-                  <div className="flex items-center gap-2.5 text-sm text-primary font-bold flex-wrap">
-                    {Object.entries(boss.reward).filter(([, v]) => v && v > 0).map(([k, v]) => (
-                      <span key={k}>+{v} {k}</span>
-                    ))}
-                    <span>+{steelReward} steel</span>
-                  </div>
-
-                  <motion.button whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      if (!isInRange(boss.x, boss.y)) { toast.error('Too far! Train scouts to extend your range.'); return; }
-                      const hasTroops = Object.values(army).some(v => v > 0);
-                      if (!hasTroops) { toast.error('You need troops to fight the world boss!'); return; }
-                      const travelSec = calcTravelTime(boss.x, boss.y);
-                      setAttackConfig({
-                        targetName: boss.name, targetPower: boss.scaledPower,
-                        targetX: boss.x, targetY: boss.y, travelTime: travelSec,
-                        showEspionage: false,
-                        onAttack: (sentArmy) => {
-                          toast(`⚔️ Troops marching to ${boss.name}... ETA ${travelSec}s`);
-                          deployTroops(sentArmy);
-                          createMarch(`worldboss-${Date.now()}`, boss.name, boss.x, boss.y, travelSec, async () => {
-                            const log = attackTarget(boss.name, boss.scaledPower, sentArmy);
-                            if (log.result === 'victory') {
-                              addResources({ ...boss.reward });
-                              addResources({ gold: 0, wood: 0, stone: 0, food: 0 } as any); // steel added via village update
-                              // Record defeat
-                              if (user) {
-                                await supabase.from('world_boss_defeats' as any).insert({
-                                  user_id: user.id,
-                                  boss_week_seed: boss.weekSeed,
-                                  boss_type: boss.name,
-                                });
-                                // Add steel reward to village
-                                const myVillage = allVillages.find(v => v.village.user_id === user.id);
-                                if (myVillage) {
-                                  await supabase.from('villages').update({
-                                    steel: (myVillage.village as any).steel + steelReward
-                                  } as any).eq('id', myVillage.village.id);
-                                }
-                              }
-                              setWorldBossDefeated(true);
-                              toast.success(`🏆 WORLD BOSS DEFEATED! ${boss.name} has been vanquished! Massive rewards claimed!`);
-                            } else {
-                              toast.error(`💀 Defeated by ${boss.name}! The world boss grows stronger...`);
-                            }
-                          }, sentArmy);
-                          setAttackConfig(null);
-                          setSelected(null);
-                        },
-                      });
-                    }}
-                    className="w-full bg-destructive text-destructive-foreground font-display text-[11px] py-2.5 rounded-lg active:scale-95 transition-transform">
-                    ⚔️ Challenge World Boss (⚔️{boss.scaledPower})
-                  </motion.button>
-                </div>
-              );
-            })()}
-
             {selected.kind === 'player' && (
               <div className="space-y-2">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <span className="text-3xl">🏰</span>
                   <div>
                     <h3 className="font-display text-sm text-foreground">{selected.data.village.name}</h3>
-                    <p className="text-sm text-muted-foreground">{selected.data.profile.display_name} • Lv.{selected.data.village.level}</p>
+                    <p className="text-[10px] text-muted-foreground">{selected.data.profile.display_name} • Lv.{selected.data.village.level}</p>
                   </div>
                 </div>
                 {selected.data.village.user_id !== user?.id && (
                   <div className="space-y-2">
-                    <div className="flex gap-3">
+                    <div className="flex gap-2">
                       <motion.button whileTap={{ scale: 0.95 }}
                         onClick={() => {
                           const targetId = selected.data.village.user_id;
@@ -3297,24 +2689,24 @@ export default function WorldMap() {
               const canAffordOutpost = resources.gold >= outpostCost.gold && resources.wood >= outpostCost.wood && resources.stone >= outpostCost.stone && resources.food >= outpostCost.food;
               return (
               <div className="space-y-2">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <span className="text-3xl">⛏️</span>
                   <div className="flex-1">
                     <h3 className="font-display text-sm text-foreground">{selected.data.name}</h3>
-                    <p className="text-sm text-muted-foreground">Iron Ore Deposit · Yields ⚙️{selected.data.steelPerTick} steel/tick</p>
+                    <p className="text-[10px] text-muted-foreground">Iron Ore Deposit · Yields ⚙️{selected.data.steelPerTick} steel/tick</p>
                   </div>
                   {isCaptured && (
-                    <span className="text-sm font-bold px-3 py-0.5 rounded-full bg-primary/20 text-primary">⛏️ Mining</span>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary">⛏️ Mining</span>
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-[10px] text-muted-foreground">
                   {isCaptured
                     ? 'Your mining outpost here is producing steel.'
                     : `Defeat the garrison (⚔️${selected.data.power}), then build a mining outpost to extract steel.`}
                 </p>
                 {!isCaptured && (
                   <div className="space-y-1.5">
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-[9px] text-muted-foreground">
                       <span className="font-semibold text-foreground">Outpost cost:</span>{' '}
                       <span className={resources.gold >= outpostCost.gold ? '' : 'text-destructive'}>🪙{outpostCost.gold}</span>{' '}
                       <span className={resources.wood >= outpostCost.wood ? '' : 'text-destructive'}>🪵{outpostCost.wood}</span>{' '}
@@ -3375,7 +2767,7 @@ export default function WorldMap() {
                         });
                       }}
                       disabled={!isInRange(selected.data.x, selected.data.y)}
-                      className="w-full wood-btn-primary font-display text-[11px] py-2.5 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
+                      className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2.5 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
                       {!isInRange(selected.data.x, selected.data.y) ? '⚠️ Out of Range' : `⚔️ Clear Garrison & Build Outpost (⚔️${selected.data.power})`}
                     </motion.button>
                   </div>
@@ -3470,11 +2862,11 @@ export default function WorldMap() {
 
               return (
                 <div className="space-y-2">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <span className="text-3xl">{isSettlement ? '🏘️' : (op.outpost_type === 'fort' ? '🏰' : (op.outpost_type === 'bridge' ? '🌉' : (isOwn ? '🏕️' : '⚑')))}</span>
                     <div className="flex-1">
                       <h3 className="font-display text-sm text-foreground">{op.name}</h3>
-                      <div className="flex items-center gap-3 text-sm">
+                      <div className="flex items-center gap-2 text-[9px]">
                         <span className="text-primary font-semibold">Lv.{op.level}</span>
                         <span className="text-muted-foreground">⚔️{op.garrison_power} defense</span>
                         {existingWalls.length > 0 && <span className="text-accent-foreground bg-accent/20 px-1.5 rounded-full">🧱 {existingWalls.length} wall{existingWalls.length !== 1 ? 's' : ''}</span>}
@@ -3484,7 +2876,7 @@ export default function WorldMap() {
                       </div>
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-[10px] text-muted-foreground">
                     {isOwn
                       ? (isSettlement
                         ? 'Your settlement. Switch to it from the resource bar to manage buildings and resources independently.'
@@ -3499,25 +2891,25 @@ export default function WorldMap() {
                     <div className="space-y-2">
                       {/* Upgrade */}
                       <div className="bg-muted/30 rounded-lg p-2 space-y-1">
-                        <p className="text-sm font-semibold text-foreground">⬆️ Upgrade to Lv.{op.level + 1}</p>
-                        <p className="text-sm text-muted-foreground">+5k vision, +3k territory, +20 garrison</p>
-                        <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                        <p className="text-[10px] font-semibold text-foreground">⬆️ Upgrade to Lv.{op.level + 1}</p>
+                        <p className="text-[8px] text-muted-foreground">+5k vision, +3k territory, +20 garrison</p>
+                        <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
                           <span className={resources.gold >= upgradeCost.gold ? '' : 'text-destructive'}>🪙{upgradeCost.gold}</span>
                           <span className={resources.wood >= upgradeCost.wood ? '' : 'text-destructive'}>🪵{upgradeCost.wood}</span>
                           <span className={resources.stone >= upgradeCost.stone ? '' : 'text-destructive'}>🪨{upgradeCost.stone}</span>
                           <span className={resources.food >= upgradeCost.food ? '' : 'text-destructive'}>🌾{upgradeCost.food}</span>
                         </div>
                         {isUpgrading ? (
-                          <div className="w-full bg-muted rounded-lg py-3 text-center space-y-1">
+                          <div className="w-full bg-muted rounded-lg py-2 text-center space-y-1">
                             <p className="font-display text-[11px] text-primary">⏳ Upgrading...</p>
                             <div className="bg-background rounded-full h-1.5 mx-2 overflow-hidden">
                               <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${Math.max(0, 100 - ((isUpgrading.finishTime - Date.now()) / (upgradeTimeSec * 1000)) * 100)}%` }} />
                             </div>
-                            <p className="text-sm text-muted-foreground">{Math.max(0, Math.ceil((isUpgrading.finishTime - Date.now()) / 1000))}s remaining</p>
+                            <p className="text-[9px] text-muted-foreground">{Math.max(0, Math.ceil((isUpgrading.finishTime - Date.now()) / 1000))}s remaining</p>
                           </div>
                         ) : (
                           <motion.button whileTap={{ scale: 0.95 }} onClick={handleUpgrade} disabled={!canAffordUpgrade}
-                            className="w-full wood-btn-primary font-display text-[11px] py-3 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
+                            className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
                             ⬆️ Upgrade Outpost ({Math.floor(upgradeTimeSec / 60)}:{(upgradeTimeSec % 60).toString().padStart(2, '0')})
                           </motion.button>
                         )}
@@ -3525,30 +2917,30 @@ export default function WorldMap() {
 
                       {/* ── Build Wall Segments ── */}
                       <div className="bg-muted/30 rounded-lg p-2 space-y-1.5">
-                        <p className="text-sm font-semibold text-foreground">🧱 Wall Connections</p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-[10px] font-semibold text-foreground">🧱 Wall Connections</p>
+                        <p className="text-[8px] text-muted-foreground">
                           Build walls between outposts to block enemy troops. Walls can be destroyed by siege weapons or espionage.
                         </p>
 
                         {/* Existing walls from this outpost */}
                         {existingWalls.length > 0 && (
                           <div className="space-y-1">
-                            <p className="text-sm text-muted-foreground font-semibold">Connected walls:</p>
+                            <p className="text-[8px] text-muted-foreground font-semibold">Connected walls:</p>
                             {existingWalls.map(ws => {
                               const otherId = ws.outpost_a_id === op.id ? ws.outpost_b_id : ws.outpost_a_id;
                               const otherOp = outposts.find(o => o.id === otherId);
                               const healthPct = ws.health / ws.max_health;
                               return (
-                                <div key={ws.id} className="flex items-center gap-2.5 bg-accent/10 rounded p-1.5">
-                                  <span className="text-sm text-foreground flex-1">🧱 → {otherOp?.name || 'Unknown'}</span>
-                                  <span className="text-sm text-muted-foreground">Lv.{ws.wall_level}</span>
+                                <div key={ws.id} className="flex items-center gap-1.5 bg-accent/10 rounded p-1.5">
+                                  <span className="text-[9px] text-foreground flex-1">🧱 → {otherOp?.name || 'Unknown'}</span>
+                                  <span className="text-[8px] text-muted-foreground">Lv.{ws.wall_level}</span>
                                   <div className="w-10 h-1.5 bg-muted rounded-full overflow-hidden">
                                     <div className="h-full rounded-full transition-all" style={{
                                       width: `${healthPct * 100}%`,
                                       backgroundColor: healthPct > 0.5 ? 'hsl(var(--primary))' : 'hsl(var(--destructive))',
                                     }} />
                                   </div>
-                                  <span className="text-[11px] text-muted-foreground">{ws.health}/{ws.max_health}</span>
+                                  <span className="text-[7px] text-muted-foreground">{ws.health}/{ws.max_health}</span>
                                 </div>
                               );
                             })}
@@ -3558,8 +2950,8 @@ export default function WorldMap() {
                         {/* Available connections */}
                         {availableToConnect.length > 0 && (
                           <div className="space-y-1">
-                            <p className="text-sm text-muted-foreground font-semibold">Build wall to:</p>
-                            <div className="flex items-center gap-2.5 text-sm text-muted-foreground mb-1">
+                            <p className="text-[8px] text-muted-foreground font-semibold">Build wall to:</p>
+                            <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground mb-1">
                               <span className={resources.gold >= wallCostPerSegment.gold ? '' : 'text-destructive'}>🪙{wallCostPerSegment.gold}</span>
                               <span className={resources.wood >= wallCostPerSegment.wood ? '' : 'text-destructive'}>🪵{wallCostPerSegment.wood}</span>
                               <span className={resources.stone >= wallCostPerSegment.stone ? '' : 'text-destructive'}>🪨{wallCostPerSegment.stone}</span>
@@ -3570,19 +2962,19 @@ export default function WorldMap() {
                               const dist = Math.hypot(target.x - op.x, target.y - op.y);
                               const isBuilding = outpostBuildQueue.find(q => q.outpostId === op.id && q.targetOutpostId === target.id);
                               return (
-                                <div key={target.id} className="flex items-center gap-2.5">
+                                <div key={target.id} className="flex items-center gap-1.5">
                                   {isBuilding ? (
-                                    <div className="flex-1 bg-muted rounded py-2.5 px-3 text-center">
-                                      <p className="font-display text-sm text-accent-foreground">⏳ Building...</p>
-                                      <p className="text-sm text-muted-foreground">{Math.max(0, Math.ceil((isBuilding.finishTime - Date.now()) / 1000))}s</p>
+                                    <div className="flex-1 bg-muted rounded py-1.5 px-2 text-center">
+                                      <p className="font-display text-[9px] text-accent-foreground">⏳ Building...</p>
+                                      <p className="text-[8px] text-muted-foreground">{Math.max(0, Math.ceil((isBuilding.finishTime - Date.now()) / 1000))}s</p>
                                     </div>
                                   ) : (
                                     <motion.button whileTap={{ scale: 0.95 }}
                                       onClick={() => handleBuildWallTo(target)}
                                       disabled={!canAffordWallSeg}
-                                      className="flex-1 flex items-center justify-between bg-accent/20 hover:bg-accent/30 text-accent-foreground font-display text-sm py-2.5 px-3 rounded disabled:opacity-40 active:scale-95 transition-all">
+                                      className="flex-1 flex items-center justify-between bg-accent/20 hover:bg-accent/30 text-accent-foreground font-display text-[10px] py-1.5 px-2 rounded disabled:opacity-40 active:scale-95 transition-all">
                                       <span>🧱 → {target.name}</span>
-                                      <span className="text-sm text-muted-foreground">{Math.round(dist / 1000)}k</span>
+                                      <span className="text-[8px] text-muted-foreground">{Math.round(dist / 1000)}k</span>
                                     </motion.button>
                                   )}
                                 </div>
@@ -3592,7 +2984,7 @@ export default function WorldMap() {
                         )}
 
                         {availableToConnect.length === 0 && existingWalls.length === 0 && (
-                          <p className="text-sm text-muted-foreground italic">No nearby outposts within range. Build outposts closer together to connect walls.</p>
+                          <p className="text-[8px] text-muted-foreground italic">No nearby outposts within range. Build outposts closer together to connect walls.</p>
                         )}
                       </div>
                       {/* Convert to Bridge — only for outposts near a river */}
@@ -3611,9 +3003,9 @@ export default function WorldMap() {
                         const canAffordBridge = resources.gold >= bridgeCost.gold && resources.wood >= bridgeCost.wood && resources.stone >= bridgeCost.stone && resources.food >= bridgeCost.food;
                         return (
                           <div className="bg-sky-500/10 rounded-lg p-2 space-y-1 border border-sky-400/20">
-                            <p className="text-sm font-semibold text-sky-300">🌉 Convert to Bridge</p>
-                            <p className="text-sm text-muted-foreground">This outpost is near a river. Convert it into a bridge to allow troops to cross here.</p>
-                            <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                            <p className="text-[10px] font-semibold text-sky-300">🌉 Convert to Bridge</p>
+                            <p className="text-[8px] text-muted-foreground">This outpost is near a river. Convert it into a bridge to allow troops to cross here.</p>
+                            <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
                               <span className={resources.gold >= bridgeCost.gold ? '' : 'text-destructive'}>🪙{bridgeCost.gold}</span>
                               <span className={resources.wood >= bridgeCost.wood ? '' : 'text-destructive'}>🪵{bridgeCost.wood}</span>
                               <span className={resources.stone >= bridgeCost.stone ? '' : 'text-destructive'}>🪨{bridgeCost.stone}</span>
@@ -3631,7 +3023,7 @@ export default function WorldMap() {
                                 toast.success(`🌉 ${bridgeName} has been built! Troops can now cross the river here.`);
                                 setSelected(null);
                               }}
-                              className="w-full bg-sky-600/80 text-white font-display text-[11px] py-3 rounded-lg disabled:opacity-40 active:scale-95 transition-transform">
+                              className="w-full bg-sky-600/80 text-white font-display text-[11px] py-2 rounded-lg disabled:opacity-40 active:scale-95 transition-transform">
                               🌉 Build Bridge
                             </motion.button>
                           </div>
@@ -3640,9 +3032,9 @@ export default function WorldMap() {
                       {/* Convert to Fort at Lv.5+ */}
                       {op.outpost_type === 'outpost' && op.level >= 5 && (
                         <div className="bg-accent/20 rounded-lg p-2 space-y-1">
-                          <p className="text-sm font-semibold text-accent-foreground">🏰 Convert to Fort</p>
-                          <p className="text-sm text-muted-foreground">Upgrade this outpost into a fort. Forts can garrison armies and have stronger defenses. At Lv.10, forts can become full settlements.</p>
-                          <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                          <p className="text-[10px] font-semibold text-accent-foreground">🏰 Convert to Fort</p>
+                          <p className="text-[8px] text-muted-foreground">Upgrade this outpost into a fort. Forts can garrison armies and have stronger defenses. At Lv.10, forts can become full settlements.</p>
+                          <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
                             <span className={resources.gold >= 400 ? '' : 'text-destructive'}>🪙400</span>
                             <span className={resources.wood >= 250 ? '' : 'text-destructive'}>🪵250</span>
                             <span className={resources.stone >= 300 ? '' : 'text-destructive'}>🪨300</span>
@@ -3660,7 +3052,7 @@ export default function WorldMap() {
                               toast.success(`🏰 ${fortName} has been established!`);
                               setSelected(null);
                             }}
-                            className="w-full bg-accent text-accent-foreground font-display text-[11px] py-3 rounded-lg disabled:opacity-40 active:scale-95 transition-transform">
+                            className="w-full bg-accent text-accent-foreground font-display text-[11px] py-2 rounded-lg disabled:opacity-40 active:scale-95 transition-transform">
                             🏰 Convert to Fort
                           </motion.button>
                         </div>
@@ -3668,9 +3060,9 @@ export default function WorldMap() {
                       {/* Convert Fort to Settlement at Lv.10+ */}
                       {op.outpost_type === 'fort' && op.level >= 10 && (
                         <div className="bg-primary/20 rounded-lg p-2 space-y-1">
-                          <p className="text-sm font-semibold text-primary">🏘️ Convert to Settlement</p>
-                          <p className="text-sm text-muted-foreground">This fort is powerful enough to become a full settlement with its own village, buildings, and resource production.</p>
-                          <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                          <p className="text-[10px] font-semibold text-primary">🏘️ Convert to Settlement</p>
+                          <p className="text-[8px] text-muted-foreground">This fort is powerful enough to become a full settlement with its own village, buildings, and resource production.</p>
+                          <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
                             <span className={resources.gold >= 800 ? '' : 'text-destructive'}>🪙800</span>
                             <span className={resources.wood >= 500 ? '' : 'text-destructive'}>🪵500</span>
                             <span className={resources.stone >= 400 ? '' : 'text-destructive'}>🪨400</span>
@@ -3704,7 +3096,7 @@ export default function WorldMap() {
                               toast.success(`🏘️ ${settleName} is now a full settlement!`);
                               setSelected(null);
                             }}
-                            className="w-full wood-btn-primary font-display text-[11px] py-3 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
+                            className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
                             🏘️ Convert to Settlement
                           </motion.button>
                         </div>
@@ -3729,8 +3121,8 @@ export default function WorldMap() {
                       {/* Delete Outpost (only for non-settlement outposts) */}
                       {!isSettlement && (
                         <div className="bg-destructive/10 rounded-lg p-2 space-y-1">
-                          <p className="text-sm font-semibold text-destructive">🗑️ Demolish Outpost</p>
-                          <p className="text-sm text-muted-foreground">Permanently remove this outpost. This cannot be undone.</p>
+                          <p className="text-[10px] font-semibold text-destructive">🗑️ Demolish Outpost</p>
+                          <p className="text-[8px] text-muted-foreground">Permanently remove this outpost. This cannot be undone.</p>
                           <motion.button whileTap={{ scale: 0.95 }}
                             onClick={async () => {
                               if (!window.confirm(`Demolish ${op.name}? This cannot be undone.`)) return;
@@ -3739,7 +3131,7 @@ export default function WorldMap() {
                               toast.success(`🗑️ ${op.name} demolished.`);
                               setSelected(null);
                             }}
-                            className="w-full bg-destructive text-destructive-foreground font-display text-[11px] py-3 rounded-lg active:scale-95 transition-transform">
+                            className="w-full bg-destructive text-destructive-foreground font-display text-[11px] py-2 rounded-lg active:scale-95 transition-transform">
                             🗑️ Demolish
                           </motion.button>
                         </div>
@@ -3748,7 +3140,7 @@ export default function WorldMap() {
                   )}
                   {!isOwn && (
                     <div className="space-y-1.5">
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-[9px] text-muted-foreground">
                         Defeat the garrison to raze this outpost. Wall level adds +{op.wall_level * 10} bonus defense.
                       </p>
                       <motion.button whileTap={{ scale: 0.95 }}
@@ -3813,11 +3205,11 @@ export default function WorldMap() {
               const coordLabel = `${(selected.data.x / 1000).toFixed(1)}k, ${(selected.data.y / 1000).toFixed(1)}k`;
               return (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <span className="text-2xl">📍</span>
                     <div>
-                      <h3 className="font-display text-sm text-foreground">Open Territory</h3>
-                      <p className="text-sm text-muted-foreground font-mono">{coordLabel}</p>
+                      <h3 className="font-display text-sm text-foreground">Unexplored Territory</h3>
+                      <p className="text-[9px] text-muted-foreground font-mono">{coordLabel}</p>
                     </div>
                   </div>
 
@@ -3825,10 +3217,10 @@ export default function WorldMap() {
                   <div className="bg-muted/30 rounded-lg p-2.5 space-y-1.5">
                     <div className="flex items-center justify-between">
                       <p className="font-display text-[11px] text-foreground">🏕️ Found Outpost</p>
-                      {!canBuildOutpost && <span className="text-sm text-destructive">TH Lv.3+</span>}
+                      {!canBuildOutpost && <span className="text-[8px] text-destructive">TH Lv.3+</span>}
                     </div>
-                    <p className="text-sm text-muted-foreground">Expand your borders by founding an outpost here.</p>
-                    <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                    <p className="text-[9px] text-muted-foreground">Expand your borders and reveal fog of war in this area.</p>
+                    <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
                       <span className={resources.gold >= outpostCost.gold ? '' : 'text-destructive'}>🪙{outpostCost.gold}</span>
                       <span className={resources.wood >= outpostCost.wood ? '' : 'text-destructive'}>🪵{outpostCost.wood}</span>
                       <span className={resources.stone >= outpostCost.stone ? '' : 'text-destructive'}>🪨{outpostCost.stone}</span>
@@ -3861,18 +3253,18 @@ export default function WorldMap() {
                           }).select().single();
                           if (error) { toast.error('Failed to build outpost'); return; }
                           setOutposts(prev => [...prev, { id: data.id, x: data.x, y: data.y, name: data.name, user_id: user!.id, level: 1, garrison_power: 0, garrison_troops: {}, has_wall: false, wall_level: 0, territory_radius: 15000, outpost_type: 'outpost' }]);
-                          toast.success(`🏕️ ${opName} established!`);
+                          toast.success(`🏕️ ${opName} established! Fog lifted in this area.`);
                         });
                         setSelected(null);
                       }}
-                      className="w-full wood-btn-primary font-display text-[11px] py-3 rounded-lg glow-gold-sm disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform">
+                      className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2 rounded-lg glow-gold-sm disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform">
                       {!inRange ? '⚠️ Out of Range' : '🏕️ Found Outpost'}
                     </motion.button>
                   </div>
 
                   {/* Hint about settlement path */}
                   <div className="bg-muted/20 rounded-lg p-2 text-center">
-                    <p className="text-sm text-muted-foreground">💡 Upgrade an outpost to Lv.5 to convert it into a full settlement with its own village and resources.</p>
+                    <p className="text-[9px] text-muted-foreground">💡 Upgrade an outpost to Lv.5 to convert it into a full settlement with its own village and resources.</p>
                   </div>
                 </div>
               );
@@ -3886,7 +3278,7 @@ export default function WorldMap() {
         {attackConfig && (
           <motion.div
             initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
-            className="absolute bottom-16 sm:bottom-14 inset-x-0 z-[60] mx-2 sm:mx-3 parchment-panel border-glow rounded-xl p-3 max-h-[55vh] overflow-y-auto safe-bottom">
+            className="absolute bottom-16 sm:bottom-14 inset-x-0 z-[60] mx-2 sm:mx-3 game-panel border-glow rounded-xl p-3 max-h-[55vh] overflow-y-auto safe-bottom">
             <AttackConfigPanel
               targetName={attackConfig.targetName}
               targetPower={attackConfig.targetPower}

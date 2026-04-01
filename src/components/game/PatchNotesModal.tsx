@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CURRENT_VERSION, PATCH_NOTES } from '@/config/patchNotes';
 
-
 const SEEN_VERSION_KEY = 'patch_notes_seen_version';
 
 export default function PatchNotesModal() {
@@ -39,17 +38,17 @@ export default function PatchNotesModal() {
             exit={{ scale: 0.85, opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 350 }}
             onClick={e => e.stopPropagation()}
-            className="parchment-panel rounded-2xl p-5 max-w-sm w-full space-y-3 max-h-[80vh] overflow-y-auto"
+            className="game-panel border border-primary/40 rounded-2xl p-5 max-w-sm w-full space-y-3 max-h-[80vh] overflow-y-auto"
           >
             <div className="text-center space-y-1">
               <span className="text-2xl">📜</span>
-              <h3 className="font-display text-lg text-amber-900">{latest.title}</h3>
-              <p className="text-sm text-amber-800/70">v{latest.version} · {latest.date}</p>
+              <h3 className="font-display text-lg text-foreground">{latest.title}</h3>
+              <p className="text-[10px] text-muted-foreground">v{latest.version} · {latest.date}</p>
             </div>
 
             <ul className="space-y-1.5">
               {latest.changes.map((change, i) => (
-                <li key={i} className="text-sm text-amber-900/90 leading-relaxed">
+                <li key={i} className="text-xs text-foreground/90 leading-relaxed">
                   {change}
                 </li>
               ))}
@@ -57,7 +56,7 @@ export default function PatchNotesModal() {
 
             <button
               onClick={dismiss}
-              className="w-full py-2.5 rounded-lg wood-btn-primary font-display text-sm"
+              className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-display text-sm"
             >
               Let's go!
             </button>
