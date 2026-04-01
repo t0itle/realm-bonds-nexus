@@ -829,6 +829,30 @@ export type Database = {
         }
         Relationships: []
       }
+      player_skins: {
+        Row: {
+          id: string
+          is_active: boolean
+          purchased_at: string
+          skin_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          is_active?: boolean
+          purchased_at?: string
+          skin_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          is_active?: boolean
+          purchased_at?: string
+          skin_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_emoji: string
