@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Slider } from '@/components/ui/slider';
+import TroopIcon from './TroopIcon';
 
 interface AllyDefenseModalProps {
   open: boolean;
