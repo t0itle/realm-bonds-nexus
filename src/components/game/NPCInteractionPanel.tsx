@@ -120,7 +120,17 @@ export default function NPCInteractionPanel({
     if (!isInRange) { toast.error('Out of range!'); return; }
     const rate = getTradeRate(give, receive);
     const received = Math.floor(amount * rate);
+    // Check NPC stock
+    if (townState) {
+      const stockKey = `stock_${receive}` as keyof NPCTownState;
+      const npcStock = (townState[stockKey] as number) || 0;
+      if (received > npcStock) {
+        toast.error(`${realm.name} only has ${npcStock} ${receive} in stock!`);
+        return;
+      }
+    }
     addResources({ [give]: -amount, [receive]: received });
+    await onDeductNPCStock(realm.id, receive, received);
     await onUpdateSentiment(realm.id, Math.floor(amount / 50));
     toast.success(`Traded ${amount} ${RESOURCE_ICONS[give]} for ${received} ${RESOURCE_ICONS[receive]}`);
   };
