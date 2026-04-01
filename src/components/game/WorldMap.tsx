@@ -1519,7 +1519,7 @@ export default function WorldMap() {
             } else {
               toast.error(`Defeated at ${eventData.name}!`);
             }
-          });
+          }, sentArmy);
           setAttackConfig(null);
           setSelected(null);
         },
