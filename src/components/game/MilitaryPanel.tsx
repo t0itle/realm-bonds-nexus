@@ -238,7 +238,7 @@ export default function MilitaryPanel() {
                 return (
                   <div key={type} className="game-panel rounded-xl p-2.5 border border-destructive/20">
                     <div className="flex items-center gap-2">
-                      <span className="text-lg">{getTroopDisplay(type).emoji}</span>
+                      <TroopIcon type={type} size={20} />
                       <span className="font-display text-xs text-foreground flex-1">{getTroopDisplay(type).name} <span className="text-muted-foreground">({army[type]})</span></span>
                       <div className="flex items-center gap-1">
                         <motion.button whileTap={{ scale: 0.9 }}
