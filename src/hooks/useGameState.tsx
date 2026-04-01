@@ -13,6 +13,7 @@ import { useTroopTraining } from './useTroopTraining';
 import { useApothecary } from './useApothecary';
 import { useVassalage } from './useVassalage';
 import { useCombat } from './useCombat';
+import { useQueueProcessing } from './useQueueProcessing';
 
 // Re-export all types from gameTypes
 export type {
