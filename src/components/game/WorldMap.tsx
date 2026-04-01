@@ -1068,10 +1068,56 @@ export default function WorldMap() {
   }, [visibleChunks]);
 
   // Helper to create a march with pathfinding around obstacles
+  // Check if a line segment from (ax,ay)->(bx,by) crosses any enemy wall segment
+  const findBlockingWall = useCallback((ax: number, ay: number, bx: number, by: number): typeof wallSegments[0] | null => {
+    if (!user) return null;
+    for (const ws of wallSegments) {
+      if (ws.user_id === user.id) continue; // own walls don't block
+      if (ws.health <= 0) continue; // destroyed walls don't block
+      const opA = outposts.find(o => o.id === ws.outpost_a_id);
+      const opB = outposts.find(o => o.id === ws.outpost_b_id);
+      if (!opA || !opB) continue;
+      // Line segment intersection test
+      if (segmentsIntersect(ax, ay, bx, by, opA.x, opA.y, opB.x, opB.y)) {
+        return ws;
+      }
+    }
+    return null;
+  }, [user, wallSegments, outposts]);
+
   const createMarch = useCallback((id: string, targetName: string, targetX: number, targetY: number, _travelSec: number, action: () => void) => {
     const myPos = getMyPos();
     const now = Date.now();
     const waypoints = findPath(myPos.x, myPos.y, targetX, targetY, allTerrain);
+
+    // Check if march path crosses any enemy wall
+    let pathBlocked = false;
+    for (let i = 0; i < waypoints.length - 1; i++) {
+      const blockingWall = findBlockingWall(waypoints[i].x, waypoints[i].y, waypoints[i + 1].x, waypoints[i + 1].y);
+      if (blockingWall) {
+        // If we have siege weapons, damage the wall instead of being blocked
+        if (army.siege > 0) {
+          const damage = army.siege * 15;
+          const newHealth = Math.max(0, blockingWall.health - damage);
+          supabase.from('wall_segments').update({ health: newHealth } as any).eq('id', blockingWall.id).then();
+          setWallSegments(prev => prev.map(ws => ws.id === blockingWall.id ? { ...ws, health: newHealth } : ws));
+          if (newHealth <= 0) {
+            toast.success(`🏗️ Siege weapons destroyed enemy wall! Path cleared.`);
+          } else {
+            toast(`🏗️ Siege weapons damaged wall (${newHealth}/${blockingWall.max_health} HP remaining). Path still blocked!`);
+            pathBlocked = true;
+          }
+        } else {
+          const opA = outposts.find(o => o.id === blockingWall.outpost_a_id);
+          const opB = outposts.find(o => o.id === blockingWall.outpost_b_id);
+          toast.error(`🧱 Path blocked by enemy wall between ${opA?.name || '?'} and ${opB?.name || '?'}! Use siege weapons or espionage to destroy it.`);
+          pathBlocked = true;
+        }
+        break;
+      }
+    }
+    if (pathBlocked) return;
+
     const pathDist = getPathLength(waypoints);
     const actualTravelSec = Math.max(5, Math.floor(pathDist / (getSlowestTroopSpeed(army) * 200)));
     const arrivalTime = now + actualTravelSec * 1000;
@@ -1080,7 +1126,6 @@ export default function WorldMap() {
       startTime: now, startX: myPos.x, startY: myPos.y,
       targetX, targetY, waypoints, action,
     }]);
-    // Persist to DB for live visibility by other players
     if (user) {
       supabase.from('active_marches').insert({
         user_id: user.id,
@@ -1095,7 +1140,7 @@ export default function WorldMap() {
     if (pathDist > Math.hypot(targetX - myPos.x, targetY - myPos.y) * 1.1) {
       toast.info(`Route adjusted around obstacles — travel time: ${actualTravelSec}s`);
     }
-  }, [getMyPos, allTerrain, army, user, displayName]);
+  }, [getMyPos, allTerrain, army, user, displayName, findBlockingWall]);
 
   const getDistance = useCallback((targetX: number, targetY: number) => {
     const myPos = getMyPos();
