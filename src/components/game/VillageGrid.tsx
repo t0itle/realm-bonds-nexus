@@ -223,6 +223,7 @@ export default function VillageGrid() {
                     ? 'game-panel border-glow'
                     : 'border-2 border-dashed border-border/50 bg-muted/30 hover:border-primary/50'
                 }`}
+                style={{ containerType: 'inline-size' }}
               >
                 {building && sprite ? (
                   <>
@@ -237,36 +238,36 @@ export default function VillageGrid() {
                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 rounded-xl">
                         <ResourceIcon type="hammer" size={24} className="animate-pulse" />
                         {upgrading && (
-                          <span className="text-[10px] font-display text-primary font-bold">
+                          <span className="font-display text-primary font-bold" style={{ fontSize: '12cqi' }}>
                             {formatTime(upgrading.finishTime - Date.now())}
                           </span>
                         )}
-                        <span className="text-[8px] text-muted-foreground">
+                        <span className="text-muted-foreground" style={{ fontSize: '10cqi' }}>
                           {isUnderConstruction ? 'Building...' : `→ Lv.${upgrading?.targetLevel}`}
                         </span>
                       </div>
                     )}
                     {/* Worker sprite */}
                     {worker && building.level > 0 && !upgrading && (
-                      <div className="absolute bottom-7 right-1 w-5 h-5 overflow-hidden">
+                      <div className="absolute overflow-hidden" style={{ bottom: '28%', right: '4%', width: '20%', height: '20%' }}>
                         <img
                           src={WORKERS_SPRITE}
                           alt={worker.name}
-                          className="h-5 object-cover animate-float"
+                          className="h-full object-cover animate-float"
                           style={{
                             objectPosition: `${worker.clipX}% center`,
-                            width: '20px',
+                            width: '100%',
                           }}
                           loading="lazy"
                         />
                       </div>
                     )}
                     {!upgrading && !isUnderConstruction && (
-                      <div className="absolute bottom-0 inset-x-0 bg-background/70 backdrop-blur-sm px-1 py-px flex items-center justify-center gap-1 leading-none">
-                        <span className="text-[7px] font-display text-foreground/90 truncate">
+                      <div className="absolute bottom-0 inset-x-0 bg-background/70 backdrop-blur-sm flex items-center justify-center gap-[2%] leading-none" style={{ padding: '1% 3%' }}>
+                        <span className="font-display text-foreground/90 truncate" style={{ fontSize: '10cqi' }}>
                           {type === 'townhall' && building.level >= 7 ? 'Castle' : BUILDING_INFO[type!].name}
                         </span>
-                        <span className={`text-[7px] font-bold ${isMaxLevel ? 'text-amber-400' : 'text-primary'}`}>
+                        <span className={`font-bold ${isMaxLevel ? 'text-amber-400' : 'text-primary'}`} style={{ fontSize: '10cqi' }}>
                           {isMaxLevel ? '✦MAX' : `Lv${building.level}`}
                         </span>
                       </div>
@@ -282,11 +283,12 @@ export default function VillageGrid() {
                             e.stopPropagation();
                             setWorkerBuilding(building);
                           }}
-                          className={`absolute top-0.5 left-0.5 flex items-center gap-px px-1 py-px rounded-md text-[8px] font-bold transition-colors ${
+                          className={`absolute flex items-center rounded-md font-bold transition-colors ${
                             assigned > 0
                               ? 'bg-primary/90 text-primary-foreground shadow-sm'
                               : 'bg-muted/80 text-muted-foreground hover:bg-muted'
                           }`}
+                          style={{ top: '3%', left: '3%', fontSize: '10cqi', padding: '1% 4%', gap: '1%' }}
                         >
                           👷{assigned}
                         </button>
@@ -294,11 +296,11 @@ export default function VillageGrid() {
                     })()}
                     {/* Max level star badge */}
                     {isMaxLevel && !upgrading && !isUnderConstruction && (
-                      <div className="absolute top-0.5 right-0.5 text-amber-400 text-[10px] drop-shadow-[0_0_4px_rgba(251,191,36,0.7)]">⭐</div>
+                      <div className="absolute text-amber-400 drop-shadow-[0_0_4px_rgba(251,191,36,0.7)]" style={{ top: '3%', right: '3%', fontSize: '12cqi' }}>⭐</div>
                     )}
                   </>
                 ) : (
-                  <span className="text-2xl opacity-30">＋</span>
+                  <span className="opacity-30" style={{ fontSize: '25cqi' }}>＋</span>
                 )}
               </motion.button>
             );
