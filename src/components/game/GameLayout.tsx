@@ -297,7 +297,7 @@ export default function GameLayout() {
       </div>
 
       <nav className="game-panel border-t border-glow safe-bottom" style={woodPanelStyle}>
-        <div className="flex items-center justify-around py-2.5 bg-background/30">
+        <div className="flex items-center justify-around py-2.5 bg-background/30 text-shadow-wood">
           {TABS.map(tab => (
             <motion.button
               key={tab.id}
