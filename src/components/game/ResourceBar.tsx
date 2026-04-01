@@ -107,7 +107,7 @@ export default function ResourceBar() {
             <span className="font-display text-[11px] text-foreground flex items-center gap-2.5">
               {myVillages.find(v => v.id === villageId)?.settlement_type === 'city' ? '🏙️' : myVillages.find(v => v.id === villageId)?.settlement_type === 'town' ? '🏘️' : '🏠'} {villageName}
             </span>
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-foreground/70">
               {myVillages.length} settlements • Lv.{myVillages.length} ▾
             </span>
           </button>
@@ -184,7 +184,7 @@ export default function ResourceBar() {
                   ? 'text-destructive font-bold animate-pulse'
                   : isFood && foodDeclining
                     ? 'text-amber-500 font-semibold'
-                    : 'text-muted-foreground';
+                    : 'text-foreground/70';
               const breakdown = getBreakdown(key);
               return (
                 <Tooltip key={key}>
@@ -221,8 +221,8 @@ export default function ResourceBar() {
           <div className="flex items-center justify-between text-sm border-t border-border/50 pt-1">
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="text-muted-foreground flex items-center gap-0.5 cursor-default">
-                  <ResourceIcon type="steel" size={10} /> Steel: <strong className="text-foreground">{steel}</strong>{steelProduction > 0 && <span className="text-primary"> +{steelProduction}/min</span>}
+                <span className="text-foreground/80 flex items-center gap-0.5 cursor-default">
+                   <ResourceIcon type="steel" size={10} /> Steel: <strong className="text-foreground">{steel}</strong>{steelProduction > 0 && <span className="text-primary"> +{steelProduction}/min</span>}
                 </span>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-sm max-w-[200px]">
@@ -237,11 +237,11 @@ export default function ResourceBar() {
             </Tooltip>
             <button
               onClick={() => setShowCaravan(prev => !prev)}
-              className={`flex items-center gap-0.5 active:scale-95 transition-transform ${storageNearFull ? 'text-destructive font-bold' : 'text-muted-foreground'}`}
+              className={`flex items-center gap-0.5 active:scale-95 transition-transform ${storageNearFull ? 'text-destructive font-bold' : 'text-foreground/80'}`}
             >
               🏪 {Math.floor(storagePct)}%
             </button>
-            <span className="text-muted-foreground flex items-center gap-0.5">
+            <span className="text-foreground/80 flex items-center gap-0.5">
               <ResourceIcon type="population" size={10} /> {population.current}/{population.max}
             </span>
             <Tooltip>
