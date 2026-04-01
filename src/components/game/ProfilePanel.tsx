@@ -251,7 +251,7 @@ export default function ProfilePanel() {
                 <div className="flex items-center gap-3">
                   {/* Sprite preview with this skin's filter */}
                   <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-background/50 flex items-center justify-center overflow-hidden">
-                    <img src={BUILDING_SPRITES.townhall} alt={skin.name} className="w-10 h-10 object-contain" style={{ filter: skin.spriteFilter }} />
+                    <img src={skin.id !== 'default' && FACTION_BUILDING_SPRITES[skin.id] ? FACTION_BUILDING_SPRITES[skin.id].townhall : BUILDING_SPRITES.townhall} alt={skin.name} className="w-10 h-10 object-contain" />
                   </div>
 
                   <div className="flex-1 min-w-0">
