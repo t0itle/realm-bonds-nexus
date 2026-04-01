@@ -1083,6 +1083,8 @@ const MarchPathRenderer = React.memo(function MarchPathRenderer({
   const wp = march.waypoints;
   const currentPos = interpolateAlongPath(wp, progress);
   const { sx, sy } = worldToScreen(currentPos.x, currentPos.y);
+  // Skip rendering if the current march position is off-screen
+  if (sx < -200 || sx > containerSize.w + 200 || sy < -200 || sy > containerSize.h + 200) return null;
   const aheadPos = interpolateAlongPath(wp, Math.min(1, progress + 0.05));
   const facingLeft = aheadPos.x < currentPos.x;
   const marchSize = Math.max(16, Math.min(36, cameraPpu * 5000));
