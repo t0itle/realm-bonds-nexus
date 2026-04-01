@@ -950,24 +950,24 @@ export default function WorldMap() {
     if (village && (village.village.map_x !== 0 || village.village.map_y !== 0)) {
       return { x: village.village.map_x, y: village.village.map_y };
     }
-    // Fallback: deterministic position based on village id
+    // Fallback: deterministic position in Heartlands continent center
     let h = 5381;
     for (let i = 0; i < id.length; i++) {
       h = ((h << 5) + h + id.charCodeAt(i)) >>> 0;
     }
     const h2 = ((h * 2654435761) >>> 0);
     const angle = (h % 10000) / 10000 * Math.PI * 2;
-    const radius = 25000 + (h2 % 120000);
+    const radius = 25000 + (h2 % 80000);
     return {
-      x: 100000 + Math.cos(angle) * radius,
-      y: 100000 + Math.sin(angle) * radius,
+      x: 420000 + Math.cos(angle) * radius,
+      y: 470000 + Math.sin(angle) * radius,
     };
   };
 
   // goHome moved below getMyPos
 
   const getMyPos = useCallback(() => {
-    if (!user) return { x: 100000, y: 100000 };
+    if (!user) return { x: 420000, y: 470000 };
     const myVillage = allVillages.find(v => v.village.user_id === user.id);
     return getPlayerPos(myVillage?.village.id || 'me');
   }, [user, allVillages]);
