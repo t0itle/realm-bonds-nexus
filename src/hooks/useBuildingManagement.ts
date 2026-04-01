@@ -142,7 +142,6 @@ export function useBuildingManagement({
     getBuildTime,
     isBuildingUpgrading,
     getBarracksLevel,
-    getWatchtowerLevel,
     buildAt,
     upgradeBuilding,
     demolishBuilding,
