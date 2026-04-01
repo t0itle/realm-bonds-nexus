@@ -78,6 +78,10 @@ function isPointNearBridge(px: number, py: number, bridges: { x: number; y: numb
 }
 
 function isCellBlocked(wx: number, wy: number, terrainFeatures: TerrainFeature[], bridgeOutpostPositions?: { x: number; y: number }[]): boolean {
+  // Block movement into ocean chunks
+  const chunkX = Math.floor(wx / CHUNK_SIZE);
+  const chunkY = Math.floor(wy / CHUNK_SIZE);
+  if (isOceanChunk(chunkX, chunkY)) return true;
   const pad = PATH_GRID_CELL * 0.5;
   for (const t of terrainFeatures) {
     if (t.type === 'mountain') {
@@ -366,7 +370,7 @@ function generateRegionName(rng: () => number): string {
 
 const REGION_EMOJIS: Record<string, string> = {
   Plains: '🌾', Highlands: '⛰️', Marsh: '🐸', Desert: '🏜️', Tundra: '🧊',
-  Forest: '🌲', Steppe: '🌿', Badlands: '🌋', Coast: '⚓', Jungle: '🌴',
+  Forest: '🌲', Steppe: '🌿', Badlands: '🌋', Coast: '⚓', Jungle: '🌴', Ocean: '🌊',
 };
 // ── Event variety system ──
 const EVENT_BASES = [
@@ -403,6 +407,34 @@ const EVENT_BASES = [
 const EVENT_ADJECTIVES = ['Ancient', 'Fearsome', 'Legendary', 'Mysterious', 'Forgotten', 'Cursed', 'Hidden', 'Burning', 'Frozen', 'Savage', 'Haunted', 'Sacred', 'Dire', 'Grand', 'Lesser', 'Greater', 'Elder', 'Young', 'Spectral', 'Corrupted'];
 const EVENT_LOCATIONS = ['of the Northern Pass', 'by the River Crossing', 'near the Old Road', 'in the Deep Valley', 'at the Mountain\'s Base', 'beyond the Treeline', 'along the Coast', 'beneath the Cliffs', 'on the High Plains', 'within the Mist', 'beside the Ancient Oak', 'atop the Hill', 'under the Crags', 'past the Ruins', 'outside the Swamp'];
 
+// ── Ocean zone detection ──
+// Uses seeded noise to create irregular ocean boundaries with bays, peninsulas, and straits
+const OCEAN_NAMES = ['The Abyssal Deep', 'Sea of Storms', 'The Endless Blue', 'Drowned Expanse', 'Shattered Sea', 'The Void Waters', 'Mare Tenebris', 'Sea of Whispers', 'The Sunken Reach', 'Leviathan\'s Domain'];
+
+function isOceanChunk(cx: number, cy: number): boolean {
+  const dist = Math.sqrt(cx * cx + cy * cy);
+  if (dist < 12) return false; // Inner zone is always land
+  if (dist > 25) return true;  // Far out is always ocean
+  // Transition zone (12-25): use seeded noise for irregular coastline
+  const angle = Math.atan2(cy, cx);
+  const coastSeed = hashCoords(Math.floor(angle * 8), 0, 7777);
+  const coastRng = seededRandom(coastSeed);
+  const coastThreshold = 15 + coastRng() * 10; // 15-25 chunks from origin
+  return dist > coastThreshold;
+}
+
+function isCoastalChunk(cx: number, cy: number): boolean {
+  if (isOceanChunk(cx, cy)) return false;
+  // Check if any neighbor is ocean
+  for (let dx = -1; dx <= 1; dx++) {
+    for (let dy = -1; dy <= 1; dy++) {
+      if (dx === 0 && dy === 0) continue;
+      if (isOceanChunk(cx + dx, cy + dy)) return true;
+    }
+  }
+  return false;
+}
+
 function generateChunk(chunkX: number, chunkY: number): ChunkData {
   const seed = hashCoords(chunkX, chunkY, 42);
   const rng = seededRandom(seed);
@@ -413,9 +445,60 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
   const dist = Math.sqrt(chunkX * chunkX + chunkY * chunkY);
   const difficultyMult = 1 + dist * 0.15;
 
+  // ── Ocean chunks: deep water, no land content ──
+  if (isOceanChunk(chunkX, chunkY)) {
+    const oceanName = OCEAN_NAMES[Math.floor(rng() * OCEAN_NAMES.length)];
+    // Occasional small islands in the ocean for exploration
+    const terrain: TerrainFeature[] = [];
+    if (rng() < 0.08) { // 8% chance of a tiny island
+      terrain.push({
+        type: 'island',
+        x: worldBaseX + CHUNK_SIZE * 0.3 + rng() * CHUNK_SIZE * 0.4,
+        y: worldBaseY + CHUNK_SIZE * 0.3 + rng() * CHUNK_SIZE * 0.4,
+        width: 5000 + rng() * 10000,
+        height: 4000 + rng() * 8000,
+        rotation: rng() * 360,
+        name: ['Lost Atoll', 'Shipwreck Isle', 'Skull Rock', 'Marooner\'s Key', 'Phantom Island', 'Coral Haven', 'Driftwood Reef', 'Siren\'s Rest'][Math.floor(rng() * 8)],
+      });
+    }
+    // Rare sea events
+    const events: ProceduralEvent[] = [];
+    if (rng() < 0.15) {
+      const seaEventBases = [
+        { name: 'Kraken Sighting', desc: 'Massive tentacles breach the waves.', emoji: '🦑', type: 'danger' as const, power: 120 },
+        { name: 'Ghost Ship', desc: 'A spectral vessel drifts aimlessly through the fog.', emoji: '⛵', type: 'mystery' as const, power: 80 },
+        { name: 'Floating Wreckage', desc: 'Cargo from a sunken merchant vessel bobs in the waves.', emoji: '📦', type: 'opportunity' as const, power: 0 },
+        { name: 'Sea Serpent', desc: 'A massive creature glides beneath the surface.', emoji: '🐍', type: 'danger' as const, power: 100 },
+        { name: 'Treasure Map Fragment', desc: 'A waterlogged scrap of parchment washed ashore.', emoji: '🗺️', type: 'mystery' as const, power: 15 },
+      ];
+      const seaEvent = seaEventBases[Math.floor(rng() * seaEventBases.length)];
+      const timeSeed = Math.floor(Date.now() / (1000 * 60 * 30));
+      events.push({
+        id: `event-${chunkX}-${chunkY}-sea-${timeSeed}`,
+        name: seaEvent.name,
+        description: `${seaEvent.name} ${seaEvent.desc}`,
+        emoji: seaEvent.emoji,
+        type: seaEvent.type,
+        power: Math.floor(seaEvent.power * difficultyMult),
+        x: worldBaseX + 15000 + rng() * (CHUNK_SIZE - 30000),
+        y: worldBaseY + 15000 + rng() * (CHUNK_SIZE - 30000),
+        reward: {
+          gold: Math.floor((80 + rng() * 300) * difficultyMult),
+          wood: seaEvent.type === 'opportunity' ? Math.floor(50 * difficultyMult) : 0,
+          stone: 0,
+          food: seaEvent.type === 'opportunity' ? Math.floor(40 * difficultyMult) : 0,
+        },
+      });
+    }
+    return { realms: [], events, terrain, steelMines: [], decorations: [], regionName: oceanName, regionBiome: 'Ocean' };
+  }
+
+  // ── Coastal chunks: force Coast biome ──
+  const isCoastal = isCoastalChunk(chunkX, chunkY);
+
   // Generate region name for this chunk
   const regionName = generateRegionName(rng);
-  const regionBiome = BIOME_TYPES[Math.floor(rng() * BIOME_TYPES.length)];
+  const regionBiome = isCoastal ? 'Coast' : BIOME_TYPES[Math.floor(rng() * BIOME_TYPES.length)];
 
   // 0-1 realms per chunk (reduced density for cleaner map)
   const realmCount = rng() < 0.45 ? 0 : 1;
@@ -1397,6 +1480,24 @@ export default function WorldMap() {
             return lines;
           })()}
         </svg>
+
+        {/* ── Ocean chunk overlays ── */}
+        {visibleChunks.filter(c => c.data.regionBiome === 'Ocean').map(chunk => {
+          const { sx, sy } = worldToScreen(chunk.cx * CHUNK_SIZE, chunk.cy * CHUNK_SIZE);
+          const size = CHUNK_SIZE * camera.ppu;
+          if (size < 4) return null;
+          return (
+            <div key={`ocean-${chunk.cx}-${chunk.cy}`}
+              className="absolute pointer-events-none"
+              style={{
+                left: sx, top: sy,
+                width: size, height: size,
+                background: 'radial-gradient(ellipse at center, hsl(210 80% 25% / 0.6), hsl(215 85% 18% / 0.75) 60%, hsl(220 90% 12% / 0.85))',
+                borderRadius: 0,
+              }}
+            />
+          );
+        })}
 
         {/* ── Terrain Features ── */}
         {visibleChunks.map(chunk => chunk.data.terrain.map((t, ti) => {
