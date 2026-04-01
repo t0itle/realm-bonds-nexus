@@ -58,7 +58,7 @@ export default function PatchNotesModal() {
 
             <button
               onClick={dismiss}
-              className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-display text-sm"
+              className="w-full py-2.5 rounded-lg wood-btn-primary font-display text-sm"
             >
               Let's go!
             </button>

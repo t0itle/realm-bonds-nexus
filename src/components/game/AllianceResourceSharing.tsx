@@ -190,7 +190,7 @@ export default function AllianceResourceSharing({ allianceId }: { allianceId: st
           whileTap={{ scale: 0.95 }}
           onClick={sendResources}
           disabled={!canSend || sending}
-          className="w-full bg-primary text-primary-foreground font-display text-sm py-3 rounded-lg glow-gold disabled:opacity-40"
+          className="w-full wood-btn-primary font-display text-sm py-3 rounded-lg glow-gold disabled:opacity-40"
         >
           {sending ? 'Sending...' : `Send Resources`}
         </motion.button>

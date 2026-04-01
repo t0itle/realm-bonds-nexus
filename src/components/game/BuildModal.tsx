@@ -130,7 +130,7 @@ export default function BuildModal({ position, onClose }: { position: number; on
               </p>
               <button
                 onClick={() => setSteelPopup(false)}
-                className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-display text-sm"
+                className="w-full py-2.5 rounded-lg wood-btn-primary font-display text-sm"
               >
                 Got it
               </button>

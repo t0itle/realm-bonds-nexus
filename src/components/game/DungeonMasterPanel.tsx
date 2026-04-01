@@ -254,7 +254,7 @@ export default function DungeonMasterPanel() {
         <button
           onClick={() => sendMessage()}
           disabled={isLoading || !input.trim()}
-          className="p-2 rounded-lg bg-primary text-primary-foreground disabled:opacity-50 hover:bg-primary/90 transition-colors"
+          className="p-2 rounded-lg wood-btn-primary disabled:opacity-50 hover:bg-primary/90 transition-colors"
         >
           <Send className="w-4 h-4" />
         </button>

@@ -147,7 +147,7 @@ export default function AttackConfigPanel({
         </button>
         {showEspionage && spies > 0 && (
           <button onClick={() => setMode('espionage')}
-            className={`flex-1 font-display text-sm py-2.5 rounded-lg transition-colors ${mode === 'espionage' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+            className={`flex-1 font-display text-sm py-2.5 rounded-lg transition-colors ${mode === 'espionage' ? 'wood-btn-primary' : 'bg-muted text-muted-foreground'}`}>
             🕵️ Espionage
           </button>
         )}
@@ -256,7 +256,7 @@ export default function AttackConfigPanel({
             onClick={() => canSendSpies && onConfirmEspionage(spyMission, spyCount)}
             disabled={!canSendSpies}
             className={`w-full font-display text-[11px] py-3 rounded-lg ${
-              canSendSpies ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'
+              canSendSpies ? 'wood-btn-primary glow-gold-sm' : 'bg-muted text-muted-foreground'
             }`}>
             🕵️ Send Spies
           </motion.button>

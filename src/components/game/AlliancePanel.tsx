@@ -194,7 +194,7 @@ export default function AlliancePanel() {
             {error && <p className="text-sm text-destructive">{error}</p>}
             <div className="flex gap-3">
               <motion.button whileTap={{ scale: 0.95 }} onClick={createAlliance}
-                className="flex-1 bg-primary text-primary-foreground font-display text-sm py-3 rounded-lg glow-gold">
+                className="flex-1 wood-btn-primary font-display text-sm py-3 rounded-lg glow-gold">
                 Create
               </motion.button>
               <motion.button whileTap={{ scale: 0.95 }} onClick={() => setCreating(false)}
@@ -209,7 +209,7 @@ export default function AlliancePanel() {
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => setCreating(true)}
-              className="bg-primary text-primary-foreground font-display text-sm py-3 px-6 rounded-lg glow-gold"
+              className="wood-btn-primary font-display text-sm py-3 px-6 rounded-lg glow-gold"
             >
               Create Alliance
             </motion.button>

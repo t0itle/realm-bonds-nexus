@@ -142,7 +142,7 @@ export default function GratitudeModal({ open, onClose, allyUserId, allyName }: 
               whileTap={{ scale: 0.95 }}
               onClick={handleSend}
               disabled={totalGiving === 0}
-              className="flex-1 py-3 rounded-lg bg-primary text-primary-foreground font-display text-sm disabled:opacity-50"
+              className="flex-1 py-3 rounded-lg wood-btn-primary font-display text-sm disabled:opacity-50"
             >
               🎁 Send Thanks
             </motion.button>

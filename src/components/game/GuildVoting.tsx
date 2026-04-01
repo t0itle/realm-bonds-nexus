@@ -383,7 +383,7 @@ export default function GuildVoting({ allianceId, isLeader }: GuildVotingProps) 
               whileTap={{ scale: 0.95 }}
               onClick={createProposal}
               disabled={loading || (proposalType === 'transfer' && !transferTarget) || (proposalType === 'war' && !warTarget)}
-              className="w-full bg-primary text-primary-foreground font-display text-sm py-3 rounded-lg disabled:opacity-50"
+              className="w-full wood-btn-primary font-display text-sm py-3 rounded-lg disabled:opacity-50"
             >
               {loading ? 'Creating...' : 'Submit Proposal'}
             </motion.button>

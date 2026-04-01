@@ -169,7 +169,7 @@ export default function AllyDefenseModal({
               whileTap={{ scale: 0.95 }}
               onClick={handleSend}
               disabled={totalSending === 0}
-              className="flex-1 py-3 rounded-lg bg-primary text-primary-foreground font-display text-sm disabled:opacity-50"
+              className="flex-1 py-3 rounded-lg wood-btn-primary font-display text-sm disabled:opacity-50"
             >
               🛡️ Send Reinforcements
             </motion.button>

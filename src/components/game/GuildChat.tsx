@@ -83,7 +83,7 @@ export default function GuildChat({ allianceId }: { allianceId: string }) {
           onKeyDown={e => e.key === 'Enter' && send()}
           className="flex-1 bg-secondary border border-border rounded-lg px-3 py-2.5 text-sm text-foreground" />
         <motion.button whileTap={{ scale: 0.95 }} onClick={send}
-          className="bg-primary text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-display">Send</motion.button>
+          className="wood-btn-primary px-4 py-2.5 rounded-lg text-sm font-display">Send</motion.button>
       </div>
     </div>
   );

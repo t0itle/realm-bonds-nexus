@@ -129,7 +129,7 @@ function OracleWidget() {
               <div ref={scrollRef} className="max-h-32 overflow-y-auto space-y-1.5">
                 {messages.map((msg, i) => (
                   <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed ${msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted/50'}`}>
+                    <div className={`max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed ${msg.role === 'user' ? 'wood-btn-primary' : 'bg-muted/50'}`}>
                       {msg.role === 'assistant' && <Scroll className="w-2.5 h-2.5 text-primary inline mr-0.5 mb-0.5" />}
                       <span className="whitespace-pre-wrap">{msg.content}</span>
                     </div>
@@ -150,7 +150,7 @@ function OracleWidget() {
                   placeholder="Ask the Oracle..." disabled={loading}
                   className="flex-1 bg-secondary/50 border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50" />
                 <button onClick={() => send()} disabled={loading || !input.trim()}
-                  className="p-1.5 rounded-lg bg-primary text-primary-foreground disabled:opacity-50">
+                  className="p-1.5 rounded-lg wood-btn-primary disabled:opacity-50">
                   <Send className="w-3 h-3" />
                 </button>
               </div>
@@ -670,7 +670,7 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
                 disabled={!affordable && !needsSteel}
                 className={`w-full py-2.5 rounded-lg font-display text-sm font-bold transition-all ${
                   affordable
-                    ? 'bg-primary text-primary-foreground glow-gold'
+                    ? 'wood-btn-primary glow-gold'
                     : 'bg-muted text-muted-foreground cursor-not-allowed'
                 }`}
               >
@@ -741,7 +741,7 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
               </p>
               <button
                 onClick={() => setSteelPopup(false)}
-                className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-display text-sm"
+                className="w-full py-2.5 rounded-lg wood-btn-primary font-display text-sm"
               >
                 Got it
               </button>
