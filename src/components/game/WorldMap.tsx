@@ -2321,8 +2321,8 @@ export default function WorldMap() {
           return null;
         }))}
 
-        {/* ── Decorations (trees, grass, rocks) ── */}
-        {visibleChunks.map(chunk => chunk.data.decorations.map((d, di) => {
+        {/* ── Decorations (trees, grass, rocks) — hidden at medium and far zoom ── */}
+        {lodTier === 'close' && visibleChunks.map(chunk => chunk.data.decorations.map((d, di) => {
           const { sx, sy } = worldToScreen(d.x, d.y);
           const s = d.size * camera.ppu;
           if (s < 4) return null;
