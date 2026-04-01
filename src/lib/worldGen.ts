@@ -454,5 +454,6 @@ export const BIOME_COLORS: Record<string, { land: string; landLight: string; acc
   Coast: { land: 'hsl(50 30% 35% / 0.3)', landLight: 'hsl(55 25% 45% / 0.2)', accent: 'hsl(45 35% 40% / 0.15)' },
   Marsh: { land: 'hsl(160 25% 22% / 0.35)', landLight: 'hsl(155 20% 30% / 0.2)', accent: 'hsl(165 30% 25% / 0.15)' },
   Steppe: { land: 'hsl(70 25% 30% / 0.3)', landLight: 'hsl(65 20% 40% / 0.2)', accent: 'hsl(75 30% 35% / 0.15)' },
+  Lava: { land: 'hsl(10 70% 25% / 0.4)', landLight: 'hsl(5 60% 30% / 0.25)', accent: 'hsl(15 80% 35% / 0.2)' },
   Ocean: { land: 'transparent', landLight: 'transparent', accent: 'transparent' },
 };
