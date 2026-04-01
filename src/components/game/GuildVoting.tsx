@@ -298,7 +298,7 @@ export default function GuildVoting({ allianceId, isLeader }: GuildVotingProps) 
                   onClick={() => setProposalType(t)}
                   className={`flex-1 text-sm py-2.5 rounded font-display ${
                     proposalType === t
-                      ? 'wood-btn-primary'
+                      ? 'bg-primary text-primary-foreground'
                       : 'bg-secondary text-muted-foreground'
                   }`}
                 >

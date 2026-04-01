@@ -47,7 +47,7 @@ export default function SocialPanel({ initialDm, onDmHandled }: {
             onClick={() => setSubTab(tab.id)}
             className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg text-sm font-display transition-colors ${
               subTab === tab.id
-                ? 'wood-btn-primary'
+                ? 'bg-primary text-primary-foreground'
                 : 'bg-secondary/50 text-muted-foreground hover:bg-secondary'
             }`}
           >
