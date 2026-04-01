@@ -1405,7 +1405,7 @@ export default function WorldMap() {
     return null;
   }, [user, wallSegments, outposts]);
 
-  const createMarch = useCallback((id: string, targetName: string, targetX: number, targetY: number, _travelSec: number, action: () => void) => {
+  const createMarch = useCallback((id: string, targetName: string, targetX: number, targetY: number, _travelSec: number, action: () => void, sentArmy?: Partial<Record<string, number>>) => {
     const myPos = getMyPos();
     const now = Date.now();
     const pathTerrain = getTerrainForPath(myPos.x, myPos.y, targetX, targetY);
