@@ -475,7 +475,7 @@ function WarLogPanel() {
                 <span key={type} className="text-destructive flex items-center gap-0.5">-{count as number} <TroopIcon type={type as TroopType} size={10} /></span>
               ))}
               {!isSent && r.defender_troops_lost && Object.entries(r.defender_troops_lost).filter(([, v]) => v && (v as number) > 0).map(([type, count]) => (
-                <span key={type} className="text-destructive">-{count as number} {TROOP_INFO[type as TroopType]?.emoji || type}</span>
+                <span key={type} className="text-destructive flex items-center gap-0.5">-{count as number} <TroopIcon type={type as TroopType} size={10} /></span>
               ))}
             </div>
 
