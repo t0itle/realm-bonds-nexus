@@ -100,7 +100,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setRationsLocal(r);
     if (villageId) supabase.from('villages').update({ rations: r } as any).eq('id', villageId).then();
   }, [villageId, setRationsLocal]);
-
   const setPopTaxRate = useCallback((rate: number) => {
     setPopTaxRateLocal(rate);
     if (villageId) supabase.from('villages').update({ pop_tax_rate: rate } as any).eq('id', villageId).then();
