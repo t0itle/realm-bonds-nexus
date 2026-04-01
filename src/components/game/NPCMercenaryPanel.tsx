@@ -79,9 +79,9 @@ export default function NPCMercenaryPanel({ realmId, realmName, realmPower, rela
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-display text-foreground">⚔️ Hire Mercenaries</span>
+        <span className="text-sm font-display text-foreground">⚔️ Hire Mercenaries</span>
         {discountLabel && (
-          <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${
+          <span className={`text-sm font-bold px-1.5 py-0.5 rounded-full ${
             discount < 1 ? 'bg-food/20 text-food' : 'bg-destructive/20 text-destructive'
           }`}>
             {discountLabel}
@@ -97,23 +97,23 @@ export default function NPCMercenaryPanel({ realmId, realmName, realmPower, rela
           const cost = getCost(merc, Math.max(1, count));
 
           return (
-            <div key={merc.type} className={`flex items-center gap-2 p-1.5 rounded-lg ${
+            <div key={merc.type} className={`flex items-center gap-3 p-1.5 rounded-lg ${
               locked ? 'bg-muted/20 opacity-50' : 'bg-muted/40'
             }`}>
               <span className="text-base">{merc.emoji}</span>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] text-foreground font-bold">{merc.name}</p>
-                <p className="text-[8px] text-muted-foreground">
+                <p className="text-sm text-foreground font-bold">{merc.name}</p>
+                <p className="text-sm text-muted-foreground">
                   {locked ? `Requires ${merc.requiredSentiment}+ sentiment` : `⚔️${merc.attack} 🛡️${merc.defense} · ${avail} avail · ${cost}💰/ea`}
                 </p>
               </div>
               {!locked && avail > 0 && (
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
                   <button onClick={() => setHiring(prev => ({ ...prev, [merc.type]: Math.max(0, (prev[merc.type] || 0) - 1) }))}
-                    className="w-6 h-6 rounded bg-muted/60 text-foreground text-[10px] font-bold">−</button>
-                  <span className="text-[10px] text-foreground w-6 text-center font-bold">{count}</span>
+                    className="w-6 h-6 rounded bg-muted/60 text-foreground text-sm font-bold">−</button>
+                  <span className="text-sm text-foreground w-6 text-center font-bold">{count}</span>
                   <button onClick={() => setHiring(prev => ({ ...prev, [merc.type]: Math.min(avail, (prev[merc.type] || 0) + 1) }))}
-                    className="w-6 h-6 rounded bg-muted/60 text-foreground text-[10px] font-bold">+</button>
+                    className="w-6 h-6 rounded bg-muted/60 text-foreground text-sm font-bold">+</button>
                 </div>
               )}
             </div>
@@ -123,15 +123,15 @@ export default function NPCMercenaryPanel({ realmId, realmName, realmPower, rela
 
       {totalTroops > 0 && (
         <div className="flex items-center justify-between">
-          <span className="text-[9px] text-muted-foreground">{totalTroops} troops · {totalCost} 💰</span>
+          <span className="text-sm text-muted-foreground">{totalTroops} troops · {totalCost} 💰</span>
           <motion.button whileTap={{ scale: 0.95 }} onClick={handleHire} disabled={isHiring || resources.gold < totalCost}
-            className="bg-primary/20 text-primary font-display text-[10px] px-3 py-1.5 rounded-lg disabled:opacity-50">
+            className="bg-primary/20 text-primary font-display text-sm px-4 py-2.5 rounded-lg disabled:opacity-50">
             {isHiring ? 'Hiring...' : '⚔️ Hire'}
           </motion.button>
         </div>
       )}
 
-      <p className="text-[8px] text-muted-foreground italic">
+      <p className="text-sm text-muted-foreground italic">
         Mercenaries fight alongside your army for 10 minutes. Higher sentiment = better prices & elite units.
       </p>
     </div>

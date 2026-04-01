@@ -82,7 +82,7 @@ export default function AuthPage() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="text-xs font-display text-muted-foreground block mb-1">
+            <label className="text-sm font-display text-muted-foreground block mb-1">
               {isSignUp ? 'Ruler Name' : 'Username or Email'}
             </label>
             <input
@@ -91,7 +91,7 @@ export default function AuthPage() {
               onChange={e => isSignUp ? setUsername(e.target.value) : (e.target.value.includes('@') ? setEmail(e.target.value) : setUsername(e.target.value))}
               placeholder={isSignUp ? 'Lord Shadowmere' : 'Username or email'}
               required
-              className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full bg-card border border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
 
@@ -99,7 +99,7 @@ export default function AuthPage() {
             <>
               {showEmail ? (
                 <div>
-                  <label className="text-xs font-display text-muted-foreground block mb-1">
+                  <label className="text-sm font-display text-muted-foreground block mb-1">
                     Email <span className="text-muted-foreground/60">(optional)</span>
                   </label>
                   <input
@@ -107,14 +107,14 @@ export default function AuthPage() {
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     placeholder="ruler@realm.com"
-                    className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full bg-card border border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
               ) : (
                 <button
                   type="button"
                   onClick={() => setShowEmail(true)}
-                  className="text-[10px] text-primary hover:underline"
+                  className="text-sm text-primary hover:underline"
                 >
                   + Add email (optional, for password recovery)
                 </button>
@@ -123,7 +123,7 @@ export default function AuthPage() {
           )}
 
           <div>
-            <label className="text-xs font-display text-muted-foreground block mb-1">Password</label>
+            <label className="text-sm font-display text-muted-foreground block mb-1">Password</label>
             <input
               type="password"
               required
@@ -131,12 +131,12 @@ export default function AuthPage() {
               onChange={e => setPassword(e.target.value)}
               placeholder="••••••••"
               minLength={6}
-              className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full bg-card border border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
 
           {error && (
-            <p className="text-xs text-destructive">{error}</p>
+            <p className="text-sm text-destructive">{error}</p>
           )}
 
           <motion.button
@@ -153,14 +153,14 @@ export default function AuthPage() {
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-border" />
-            <span className="text-[10px] text-muted-foreground">or</span>
+            <span className="text-sm text-muted-foreground">or</span>
             <div className="flex-1 h-px bg-border" />
           </div>
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={handleGoogleSignIn}
             disabled={googleLoading}
-            className="w-full flex items-center justify-center gap-3 bg-card border border-border rounded-lg px-3 py-2.5 hover:bg-secondary/50 transition-colors disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-3 bg-card border border-border rounded-lg px-4 py-2.5 hover:bg-secondary/50 transition-colors disabled:opacity-50"
           >
             <svg width="16" height="16" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
@@ -176,7 +176,7 @@ export default function AuthPage() {
 
         <button
           onClick={() => { setIsSignUp(!isSignUp); setError(''); setShowEmail(false); setEmail(''); setUsername(''); }}
-          className="w-full text-center text-xs text-muted-foreground hover:text-primary transition-colors"
+          className="w-full text-center text-sm text-muted-foreground hover:text-primary transition-colors"
         >
           {isSignUp ? 'Already have a kingdom? Sign in' : "New ruler? Create your kingdom"}
         </button>

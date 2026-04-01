@@ -117,38 +117,38 @@ function OracleWidget() {
 
   return (
     <div className="mx-3 mb-2">
-      <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center gap-2 game-panel px-3 py-2 rounded-xl border border-primary/20">
+      <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center gap-3 game-panel px-4 py-3 rounded-xl border border-primary/20">
         <span className="text-base">🔮</span>
-        <span className="text-[10px] font-display text-primary flex-1 text-left">Oracle of the Realm</span>
-        <span className="text-[10px] text-muted-foreground">{expanded ? '▼' : '▶'}</span>
+        <span className="text-sm font-display text-primary flex-1 text-left">Oracle of the Realm</span>
+        <span className="text-sm text-muted-foreground">{expanded ? '▼' : '▶'}</span>
       </button>
       <AnimatePresence>
         {expanded && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-            <div className="game-panel border border-border/50 rounded-b-xl px-3 py-2 space-y-2">
+            <div className="game-panel border border-border/50 rounded-b-xl px-4 py-3 space-y-2">
               <div ref={scrollRef} className="max-h-32 overflow-y-auto space-y-1.5">
                 {messages.map((msg, i) => (
                   <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] rounded-lg px-2 py-1 text-[10px] leading-relaxed ${msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted/50'}`}>
+                    <div className={`max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed ${msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted/50'}`}>
                       {msg.role === 'assistant' && <Scroll className="w-2.5 h-2.5 text-primary inline mr-0.5 mb-0.5" />}
                       <span className="whitespace-pre-wrap">{msg.content}</span>
                     </div>
                   </div>
                 ))}
                 {loading && messages[messages.length - 1]?.role !== 'assistant' && (
-                  <div className="text-[10px] text-muted-foreground animate-pulse">🔮 Gazing...</div>
+                  <div className="text-sm text-muted-foreground animate-pulse">🔮 Gazing...</div>
                 )}
               </div>
-              <div className="flex gap-1 flex-wrap">
+              <div className="flex gap-2 flex-wrap">
                 {['Kingdom status?', 'What to build?', 'Military advice'].map(q => (
                   <button key={q} onClick={() => send(q)} disabled={loading}
-                    className="text-[9px] px-1.5 py-0.5 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50">{q}</button>
+                    className="text-sm px-1.5 py-0.5 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50">{q}</button>
                 ))}
               </div>
-              <div className="flex gap-1.5 items-center">
+              <div className="flex gap-2.5 items-center">
                 <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()}
                   placeholder="Ask the Oracle..." disabled={loading}
-                  className="flex-1 bg-secondary/50 border border-border rounded-lg px-2 py-1.5 text-[10px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50" />
+                  className="flex-1 bg-secondary/50 border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50" />
                 <button onClick={() => send()} disabled={loading || !input.trim()}
                   className="p-1.5 rounded-lg bg-primary text-primary-foreground disabled:opacity-50">
                   <Send className="w-3 h-3" />
@@ -167,10 +167,10 @@ function CollapsibleSection({ icon, title, defaultOpen, children }: {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div>
-      <button onClick={() => setOpen(!open)} className="w-full flex items-center gap-2 game-panel px-3 py-2 rounded-xl border border-border/30">
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center gap-3 game-panel px-4 py-3 rounded-xl border border-border/30">
         <span className="text-base">{icon}</span>
-        <span className="text-[10px] font-display text-foreground flex-1 text-left">{title}</span>
-        <span className="text-[10px] text-muted-foreground">{open ? '▼' : '▶'}</span>
+        <span className="text-sm font-display text-foreground flex-1 text-left">{title}</span>
+        <span className="text-sm text-muted-foreground">{open ? '▼' : '▶'}</span>
       </button>
       <AnimatePresence>
         {open && (
@@ -201,7 +201,7 @@ export default function VillageGrid() {
 
   return (
     <>
-      <div className="flex-1 flex flex-col items-center justify-center px-3 py-3">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-3">
         <div className={`grid gap-2.5 w-full max-w-xs`} style={{ gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))` }}>
           {grid.map((building, i) => {
             const type = building?.type as Exclude<BuildingType, 'empty'> | undefined;
@@ -238,11 +238,11 @@ export default function VillageGrid() {
                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 rounded-xl">
                         <ResourceIcon type="hammer" size={24} className="animate-pulse" />
                         {upgrading && (
-                          <span className="text-[10px] font-display text-primary font-bold">
+                          <span className="text-sm font-display text-primary font-bold">
                             {formatTime(upgrading.finishTime - Date.now())}
                           </span>
                         )}
-                        <span className="text-[8px] text-muted-foreground">
+                        <span className="text-sm text-muted-foreground">
                           {isUnderConstruction ? 'Building...' : `→ Lv.${upgrading?.targetLevel}`}
                         </span>
                       </div>
@@ -263,11 +263,11 @@ export default function VillageGrid() {
                       </div>
                     )}
                     {!upgrading && !isUnderConstruction && (
-                      <div className="absolute bottom-0 inset-x-0 bg-background/70 backdrop-blur-sm px-1 py-px flex items-center justify-center gap-1 leading-none">
-                        <span className="text-[7px] font-display text-foreground/90 truncate">
+                      <div className="absolute bottom-0 inset-x-0 bg-background/70 backdrop-blur-sm px-1 py-px flex items-center justify-center gap-2 leading-none">
+                        <span className="text-[11px] font-display text-foreground/90 truncate">
                           {type === 'townhall' && building.level >= 7 ? 'Castle' : BUILDING_INFO[type!].name}
                         </span>
-                        <span className={`text-[7px] font-bold ${isMaxLevel ? 'text-amber-400' : 'text-primary'}`}>
+                        <span className={`text-[11px] font-bold ${isMaxLevel ? 'text-amber-400' : 'text-primary'}`}>
                           {isMaxLevel ? '✦MAX' : `Lv${building.level}`}
                         </span>
                       </div>
@@ -278,13 +278,13 @@ export default function VillageGrid() {
                       if (assigned <= 0) return null;
                       return (
                         <div className="absolute bottom-0 left-0 bg-background/70 backdrop-blur-sm px-1 py-px rounded-tr-md">
-                          <span className="text-[7px] font-bold text-primary flex items-center gap-px"><img src={WORKER_BADGE_SPRITE} alt="worker" className="w-2.5 h-2.5 inline-block" />{assigned}</span>
+                          <span className="text-[11px] font-bold text-primary flex items-center gap-px"><img src={WORKER_BADGE_SPRITE} alt="worker" className="w-2.5 h-2.5 inline-block" />{assigned}</span>
                         </div>
                       );
                     })()}
                     {/* Max level star badge */}
                     {isMaxLevel && !upgrading && !isUnderConstruction && (
-                      <div className="absolute top-0.5 right-0.5 text-amber-400 text-[10px] drop-shadow-[0_0_4px_rgba(251,191,36,0.7)]">⭐</div>
+                      <div className="absolute top-0.5 right-0.5 text-amber-400 text-sm drop-shadow-[0_0_4px_rgba(251,191,36,0.7)]">⭐</div>
                     )}
                   </>
                 ) : (
@@ -313,7 +313,7 @@ export default function VillageGrid() {
             return (
               <div className="mx-3 mb-2 game-panel border border-primary/30 rounded-xl px-4 py-3 text-center space-y-1">
                 <span className="text-lg animate-pulse">🏗️</span>
-                <p className="font-display text-xs text-foreground">Upgrading to {upgrade.label}...</p>
+                <p className="font-display text-sm text-foreground">Upgrading to {upgrade.label}...</p>
                 <p className="text-sm font-bold text-primary">{hours > 0 ? `${hours}h ` : ''}{mins}m {secs}s</p>
                 <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                   <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${Math.min(100, (1 - remaining / (upgrade.next === 'town' ? 7200000 : 86400000)) * 100)}%` }} />
@@ -334,15 +334,15 @@ export default function VillageGrid() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-display text-xs text-foreground">⬆️ Upgrade to {upgrade.label}</p>
-                  <p className="text-[9px] text-muted-foreground mt-0.5">
+                  <p className="font-display text-sm text-foreground">⬆️ Upgrade to {upgrade.label}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">
                     {!thMaxed ? `Requires TH Lv.${upgrade.thRequired}` : `Unlocks ${upgrade.next === 'town' ? 16 : 25} building slots`}
                   </p>
                 </div>
-                <span className="text-[10px] text-primary font-display">{upgrade.buildTime}</span>
+                <span className="text-sm text-primary font-display">{upgrade.buildTime}</span>
               </div>
               {thMaxed && (
-                <div className="flex flex-wrap gap-1.5 mt-1.5 text-[9px] text-muted-foreground">
+                <div className="flex flex-wrap gap-2.5 mt-1.5 text-sm text-muted-foreground">
                   <span className={resources.gold >= upgrade.cost.gold ? '' : 'text-destructive'}>🪙{(upgrade.cost.gold / 1000).toFixed(0)}k</span>
                   <span className={resources.wood >= upgrade.cost.wood ? '' : 'text-destructive'}>🪵{(upgrade.cost.wood / 1000).toFixed(0)}k</span>
                   <span className={resources.stone >= upgrade.cost.stone ? '' : 'text-destructive'}>🪨{(upgrade.cost.stone / 1000).toFixed(0)}k</span>
@@ -359,14 +359,14 @@ export default function VillageGrid() {
       <OracleWidget />
 
       {/* Inline Army & Stats */}
-      <div className="px-3 pb-2 space-y-2">
+      <div className="px-4 pb-2 space-y-2">
         <CollapsibleSection icon="⚔️" title="Army" defaultOpen={(Object.values(army) as number[]).reduce((s, v) => s + v, 0) > 0}>
-          <Suspense fallback={<div className="text-center text-muted-foreground text-xs py-4">Loading...</div>}>
+          <Suspense fallback={<div className="text-center text-muted-foreground text-sm py-4">Loading...</div>}>
             <MilitaryPanel />
           </Suspense>
         </CollapsibleSection>
         <CollapsibleSection icon="📊" title="Stats" defaultOpen={false}>
-          <Suspense fallback={<div className="text-center text-muted-foreground text-xs py-4">Loading...</div>}>
+          <Suspense fallback={<div className="text-center text-muted-foreground text-sm py-4">Loading...</div>}>
             <StatSheet />
           </Suspense>
         </CollapsibleSection>
@@ -445,9 +445,9 @@ export default function VillageGrid() {
               >
                 <div className="flex items-center justify-between">
                   <h4 className="font-display text-sm text-foreground">👷 Workers — {wInfo.name}</h4>
-                  <button onClick={() => setWorkerBuilding(null)} className="text-muted-foreground text-xs hover:text-foreground">✕</button>
+                  <button onClick={() => setWorkerBuilding(null)} className="text-muted-foreground text-sm hover:text-foreground">✕</button>
                 </div>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   Each worker boosts production by 35%. Max {maxW} workers at Lv.{workerBuilding.level}.
                 </p>
                 <div className="flex items-center justify-center gap-4">
@@ -463,7 +463,7 @@ export default function VillageGrid() {
                   >−</motion.button>
                   <div className="text-center">
                     <p className="text-2xl font-bold text-foreground">{assigned}</p>
-                    <p className="text-[9px] text-muted-foreground">/ {maxW}</p>
+                    <p className="text-sm text-muted-foreground">/ {maxW}</p>
                   </div>
                   <motion.button
                     whileTap={{ scale: 0.9 }}
@@ -476,7 +476,7 @@ export default function VillageGrid() {
                     }`}
                   >+</motion.button>
                 </div>
-                <p className="text-[9px] text-center text-muted-foreground">
+                <p className="text-sm text-center text-muted-foreground">
                   {population.civilians} civilians available
                 </p>
               </motion.div>
@@ -530,13 +530,13 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
           <h3 className="font-display text-lg text-foreground">
             {type === 'townhall' && building.level >= 7 ? '🏰 Castle' : info.name}
           </h3>
-          <p className="text-xs text-primary font-bold">Level {building.level} / {info.maxLevel}</p>
+          <p className="text-sm text-primary font-bold">Level {building.level} / {info.maxLevel}</p>
         </div>
       </div>
       <p className="text-sm text-muted-foreground">{info.description}</p>
 
       {(Object.keys(production).length > 0 || steelProd > 0) && (
-        <div className="flex gap-3 text-xs">
+        <div className="flex gap-3 text-sm">
           <span className="text-muted-foreground">Production:</span>
           {Object.entries(production).map(([key, val]) => (
             <span key={key} className="text-foreground">+{val} {key}/min</span>
@@ -551,15 +551,15 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
 
       {upgrading && (
         <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 text-center space-y-1">
-          <p className="text-xs font-display text-primary animate-pulse">🔨 Upgrading to Level {upgrading.targetLevel}...</p>
+          <p className="text-sm font-display text-primary animate-pulse">🔨 Upgrading to Level {upgrading.targetLevel}...</p>
           <p className="text-sm font-bold text-foreground">{formatTime(upgrading.finishTime - Date.now())}</p>
         </div>
       )}
 
       {!maxed && !upgrading && (
         <div className="space-y-2">
-          <p className="text-xs text-muted-foreground font-display">Upgrade Cost:</p>
-          <div className="flex gap-3 text-xs">
+          <p className="text-sm text-muted-foreground font-display">Upgrade Cost:</p>
+          <div className="flex gap-3 text-sm">
                   {Object.entries(upgradeCost).filter(([, v]) => v > 0).map(([key, val]) => {
                     const rType = getResourceType(key);
                     const canAffordThis = resourceCheck[key] !== false;
@@ -571,7 +571,7 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
                     );
                   })}
           </div>
-          <p className="text-[10px] text-muted-foreground flex items-center gap-0.5"><ResourceIcon type="timer" size={10} /> Build time: {formatTime(buildTime * 1000)}</p>
+          <p className="text-sm text-muted-foreground flex items-center gap-0.5"><ResourceIcon type="timer" size={10} /> Build time: {formatTime(buildTime * 1000)}</p>
           {(() => {
             const needsSteel = upgradeCost.steel > 0 && !canAffordSteel(upgradeCost.steel);
             return (
@@ -596,7 +596,7 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
       )}
 
       {maxed && !upgrading && (
-        <div className="text-center py-2 text-primary font-display text-sm animate-pulse-gold rounded-lg border border-primary/30">
+        <div className="text-center py-3 text-primary font-display text-sm animate-pulse-gold rounded-lg border border-primary/30">
           ✦ Maximum Level ✦
         </div>
       )}
@@ -607,22 +607,22 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
           {!confirmDemolish ? (
             <button
               onClick={() => setConfirmDemolish(true)}
-              className="w-full py-2 rounded-lg font-display text-xs text-destructive bg-destructive/10 hover:bg-destructive/20 transition-colors"
+              className="w-full py-3 rounded-lg font-display text-sm text-destructive bg-destructive/10 hover:bg-destructive/20 transition-colors"
             >
               🏚️ Demolish Building
             </button>
           ) : (
             <div className="space-y-2">
-              <p className="text-xs text-destructive text-center">Are you sure? You'll recover 30% of invested resources.</p>
-              <div className="flex gap-2">
+              <p className="text-sm text-destructive text-center">Are you sure? You'll recover 30% of invested resources.</p>
+              <div className="flex gap-3">
                 <motion.button whileTap={{ scale: 0.95 }}
                   onClick={onDemolish}
-                  className="flex-1 py-2 rounded-lg font-display text-xs bg-destructive text-destructive-foreground">
+                  className="flex-1 py-3 rounded-lg font-display text-sm bg-destructive text-destructive-foreground">
                   Confirm
                 </motion.button>
                 <motion.button whileTap={{ scale: 0.95 }}
                   onClick={() => setConfirmDemolish(false)}
-                  className="flex-1 py-2 rounded-lg font-display text-xs bg-muted text-muted-foreground">
+                  className="flex-1 py-3 rounded-lg font-display text-sm bg-muted text-muted-foreground">
                   Cancel
                 </motion.button>
               </div>

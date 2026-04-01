@@ -19,18 +19,18 @@ function BudgetTooltip({ lines, label, net }: { lines: { icon: string; label: st
     <div className="space-y-0.5 min-w-[140px]">
       <div className="font-bold text-[11px] text-foreground mb-1">{label} Budget</div>
       {visible.length === 0 ? (
-        <div className="text-[10px] text-muted-foreground">No production</div>
+        <div className="text-sm text-muted-foreground">No production</div>
       ) : (
         <>
           {visible.map((l, i) => (
-            <div key={i} className="flex justify-between gap-3 text-[10px] tabular-nums">
+            <div key={i} className="flex justify-between gap-3 text-sm tabular-nums">
               <span className="text-muted-foreground">{l.icon} {l.label}</span>
               <span className={l.value > 0 ? 'text-emerald-500' : 'text-destructive'}>
                 {l.value > 0 ? '+' : ''}{l.value}/min
               </span>
             </div>
           ))}
-          <div className="border-t border-border/50 mt-1 pt-1 flex justify-between text-[10px] tabular-nums font-bold">
+          <div className="border-t border-border/50 mt-1 pt-1 flex justify-between text-sm tabular-nums font-bold">
             <span className="text-foreground">Net</span>
             <span className={net > 0 ? 'text-emerald-500' : net < 0 ? 'text-destructive' : 'text-muted-foreground'}>
               {net > 0 ? '+' : ''}{net}/min
@@ -101,12 +101,12 @@ export default function ResourceBar() {
         <div className="mx-2 mt-2">
           <button
             onClick={() => setShowVillageSwitcher(prev => !prev)}
-            className="w-full game-panel px-2.5 py-1.5 border-glow rounded-xl flex items-center justify-between active:scale-[0.98] transition-transform"
+            className="w-full game-panel px-2.5 py-2.5 border-glow rounded-xl flex items-center justify-between active:scale-[0.98] transition-transform"
           >
-            <span className="font-display text-[11px] text-foreground flex items-center gap-1.5">
+            <span className="font-display text-[11px] text-foreground flex items-center gap-2.5">
               {myVillages.find(v => v.id === villageId)?.settlement_type === 'city' ? '🏙️' : myVillages.find(v => v.id === villageId)?.settlement_type === 'town' ? '🏘️' : '🏠'} {villageName}
             </span>
-            <span className="text-[9px] text-muted-foreground">
+            <span className="text-sm text-muted-foreground">
               {myVillages.length} settlements • Lv.{myVillages.length} ▾
             </span>
           </button>
@@ -118,12 +118,12 @@ export default function ResourceBar() {
                 exit={{ height: 0, opacity: 0 }}
                 className="overflow-hidden"
               >
-                <div className="game-panel rounded-b-xl border-t-0 px-1.5 py-1 space-y-0.5">
+                <div className="game-panel rounded-b-xl border-t-0 px-1.5 py-2 space-y-0.5">
                   {myVillages.map(v => (
                     <div key={v.id} className="flex items-center gap-0.5">
                       <button
                         onClick={() => { switchVillage(v.id); setShowVillageSwitcher(false); }}
-                        className={`flex-1 text-left px-2 py-1.5 rounded-lg text-[10px] flex items-center gap-1.5 transition-colors ${
+                        className={`flex-1 text-left px-3 py-2.5 rounded-lg text-sm flex items-center gap-2.5 transition-colors ${
                           v.id === villageId
                             ? 'bg-primary/20 text-primary font-bold'
                             : 'text-muted-foreground hover:bg-muted/50'
@@ -131,24 +131,24 @@ export default function ResourceBar() {
                       >
                         <span>{v.settlement_type === 'city' ? '🏙️' : v.settlement_type === 'town' ? '🏘️' : '🏠'}</span>
                         <span className="truncate">{v.name}</span>
-                        {v.id === villageId && <span className="ml-auto text-[8px]">● Active</span>}
+                        {v.id === villageId && <span className="ml-auto text-sm">● Active</span>}
                       </button>
                       {myVillages.length > 1 && v.id !== villageId && (
                         confirmAbandon === v.id ? (
                           <div className="flex gap-0.5">
                             <button
                               onClick={async () => { await abandonSettlement(v.id); setConfirmAbandon(null); }}
-                              className="text-[8px] px-1.5 py-0.5 rounded bg-destructive text-destructive-foreground font-bold"
+                              className="text-sm px-1.5 py-0.5 rounded bg-destructive text-destructive-foreground font-bold"
                             >Yes</button>
                             <button
                               onClick={() => setConfirmAbandon(null)}
-                              className="text-[8px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+                              className="text-sm px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
                             >No</button>
                           </div>
                         ) : (
                           <button
                             onClick={() => setConfirmAbandon(v.id)}
-                            className="text-[8px] px-1 py-0.5 rounded text-destructive hover:bg-destructive/10"
+                            className="text-sm px-1 py-0.5 rounded text-destructive hover:bg-destructive/10"
                             title="Abandon settlement"
                           >🗑️</button>
                         )
@@ -162,9 +162,9 @@ export default function ResourceBar() {
         </div>
       )}
 
-      <div className={`game-panel px-2 py-1.5 mx-2 ${myVillages.length <= 1 ? 'mt-2' : 'mt-1'} border-glow space-y-1 ${foodCritical ? 'border-destructive/60' : foodLow ? 'border-destructive/40' : ''}`}>
+      <div className={`game-panel px-3 py-2.5 mx-2 ${myVillages.length <= 1 ? 'mt-2' : 'mt-1'} border-glow space-y-1 ${foodCritical ? 'border-destructive/60' : foodLow ? 'border-destructive/40' : ''}`}>
         <TooltipProvider delayDuration={200}>
-          <div className="flex items-center justify-between gap-1">
+          <div className="flex items-center justify-between gap-2">
             {RESOURCE_CONFIG.map(({ key, label, color }) => {
               const isFood = key === 'food';
               const foodValueColor = isFood && foodCritical
@@ -186,7 +186,7 @@ export default function ResourceBar() {
                 <Tooltip key={key}>
                   <TooltipTrigger asChild>
                     <motion.div
-                      className="flex items-center gap-1 min-w-0 cursor-default"
+                      className="flex items-center gap-2 min-w-0 cursor-default"
                       whileTap={{ scale: 0.95 }}
                     >
                       <ResourceIcon type={key} size={14} />
@@ -194,13 +194,13 @@ export default function ResourceBar() {
                         <span className={`text-xs font-semibold tabular-nums ${foodValueColor} truncate`}>
                           {Math.floor(resources[key]).toLocaleString()}{isFood && foodDeclining && ' ▼'}
                         </span>
-                        <span className={`text-[9px] ${prodColor}`}>
+                        <span className={`text-sm ${prodColor}`}>
                           {totalProduction[key] >= 0 ? '+' : ''}{totalProduction[key]}/min
                         </span>
                       </div>
                     </motion.div>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs max-w-[220px]">
+                  <TooltipContent side="bottom" className="text-sm max-w-[220px]">
                     <BudgetTooltip lines={breakdown} label={label} net={totalProduction[key]} />
                   </TooltipContent>
                 </Tooltip>
@@ -209,19 +209,19 @@ export default function ResourceBar() {
           </div>
         </TooltipProvider>
         {foodCritical && (
-          <div className="text-[9px] text-destructive font-bold text-center animate-pulse">
+          <div className="text-sm text-destructive font-bold text-center animate-pulse">
             ⚠️ Famine! Troops will desert if food reaches 0!
           </div>
         )}
         <TooltipProvider delayDuration={200}>
-          <div className="flex items-center justify-between text-[9px] border-t border-border/50 pt-1">
+          <div className="flex items-center justify-between text-sm border-t border-border/50 pt-1">
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="text-muted-foreground flex items-center gap-0.5 cursor-default">
                   <ResourceIcon type="steel" size={10} /> Steel: <strong className="text-foreground">{steel}</strong>{steelProduction > 0 && <span className="text-primary"> +{steelProduction}/min</span>}
                 </span>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs max-w-[200px]">
+              <TooltipContent side="bottom" className="text-sm max-w-[200px]">
                 <BudgetTooltip
                   lines={[
                     ...(steelProduction > 0 ? [{ icon: '⚒️', label: 'Production', value: steelProduction }] : []),
@@ -249,7 +249,7 @@ export default function ResourceBar() {
                   </strong>
                 </span>
               </TooltipTrigger>
-              <TooltipContent side="top" className="text-xs max-w-[200px]">
+              <TooltipContent side="top" className="text-sm max-w-[200px]">
                 Happiness: {population.happiness}/100 — Affects population growth and rebellion risk. Build Temples and adjust Rations to improve it.
               </TooltipContent>
             </Tooltip>

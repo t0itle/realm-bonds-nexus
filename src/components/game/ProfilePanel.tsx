@@ -98,14 +98,14 @@ export default function ProfilePanel() {
 
       <div className="game-panel border-glow rounded-xl p-4 text-center space-y-3">
         {/* Avatar with crown */}
-        <div className="flex flex-col items-center gap-1 pt-4">
+        <div className="flex flex-col items-center gap-2 pt-4">
           <div className="cursor-pointer" onClick={() => fileInputRef.current?.click()}>
             <CrownAvatar avatarUrl={avatarUrl} size={72} />
           </div>
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
           <button 
             onClick={() => fileInputRef.current?.click()} 
-            className="text-[9px] text-primary hover:underline mt-1"
+            className="text-sm text-primary hover:underline mt-1"
             disabled={uploading}
           >
             {uploading ? 'Uploading...' : 'Change Avatar'}
@@ -115,23 +115,23 @@ export default function ProfilePanel() {
         {/* Display name */}
         <AnimatePresence mode="wait">
           {editingName ? (
-            <motion.div key="edit-name" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-1 justify-center">
+            <motion.div key="edit-name" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2 justify-center">
               <input
                 value={nameInput}
                 onChange={e => setNameInput(e.target.value)}
                 maxLength={20}
                 autoFocus
-                className="bg-muted text-foreground font-display text-center text-sm rounded-lg px-2 py-1 border border-border w-36 focus:outline-none focus:border-primary"
+                className="bg-muted text-foreground font-display text-center text-sm rounded-lg px-3 py-2 border border-border w-36 focus:outline-none focus:border-primary"
                 onKeyDown={e => e.key === 'Enter' && saveName()}
               />
-              <button onClick={saveName} className="text-primary text-xs">✓</button>
-              <button onClick={() => setEditingName(false)} className="text-muted-foreground text-xs">✕</button>
+              <button onClick={saveName} className="text-primary text-sm">✓</button>
+              <button onClick={() => setEditingName(false)} className="text-muted-foreground text-sm">✕</button>
             </motion.div>
           ) : (
             <motion.div key="show-name" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <h3 className="font-display text-foreground cursor-pointer hover:text-primary transition-colors inline-flex items-center gap-1"
+              <h3 className="font-display text-foreground cursor-pointer hover:text-primary transition-colors inline-flex items-center gap-2"
                 onClick={() => { setNameInput(displayName); setEditingName(true); }}>
-                {displayName} <span className="text-[9px] text-muted-foreground">✏️</span>
+                {displayName} <span className="text-sm text-muted-foreground">✏️</span>
               </h3>
             </motion.div>
           )}
@@ -140,41 +140,41 @@ export default function ProfilePanel() {
         {/* Village name */}
         <AnimatePresence mode="wait">
           {editingVillage ? (
-            <motion.div key="edit-village" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-1 justify-center">
+            <motion.div key="edit-village" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2 justify-center">
               <input
                 value={villageInput}
                 onChange={e => setVillageInput(e.target.value)}
                 maxLength={30}
                 autoFocus
-                className="bg-muted text-muted-foreground text-center text-xs rounded-lg px-2 py-1 border border-border w-40 focus:outline-none focus:border-primary"
+                className="bg-muted text-muted-foreground text-center text-sm rounded-lg px-3 py-2 border border-border w-40 focus:outline-none focus:border-primary"
                 onKeyDown={e => e.key === 'Enter' && saveVillage()}
               />
-              <button onClick={saveVillage} className="text-primary text-xs">✓</button>
-              <button onClick={() => setEditingVillage(false)} className="text-muted-foreground text-xs">✕</button>
+              <button onClick={saveVillage} className="text-primary text-sm">✓</button>
+              <button onClick={() => setEditingVillage(false)} className="text-muted-foreground text-sm">✕</button>
             </motion.div>
           ) : (
             <motion.div key="show-village" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <p className="text-xs text-muted-foreground cursor-pointer hover:text-primary transition-colors inline-flex items-center gap-1"
+              <p className="text-sm text-muted-foreground cursor-pointer hover:text-primary transition-colors inline-flex items-center gap-2"
                 onClick={() => { setVillageInput(villageName); setEditingVillage(true); }}>
-                {villageName} <span className="text-[9px]">✏️</span>
+                {villageName} <span className="text-sm">✏️</span>
               </p>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <p className="text-xs text-primary font-bold">Level {playerLevel}</p>
-        <p className="text-xs text-muted-foreground">Power: {(totalBuildingLevels * 100 + power.attack + power.defense).toLocaleString()}</p>
+        <p className="text-sm text-primary font-bold">Level {playerLevel}</p>
+        <p className="text-sm text-muted-foreground">Power: {(totalBuildingLevels * 100 + power.attack + power.defense).toLocaleString()}</p>
       </div>
 
       <div className="game-panel border-glow rounded-xl p-4 space-y-2">
         <h3 className="font-display text-sm text-foreground">Production Rates</h3>
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="flex items-center gap-2"><ResourceIcon type="gold" size={14} /><span className="text-foreground">{totalProduction.gold} gold/min</span></div>
-          <div className="flex items-center gap-2"><ResourceIcon type="wood" size={14} /><span className="text-foreground">{totalProduction.wood} wood/min</span></div>
-          <div className="flex items-center gap-2"><ResourceIcon type="stone" size={14} /><span className="text-foreground">{totalProduction.stone} stone/min</span></div>
-          <div className="flex items-center gap-2"><ResourceIcon type="food" size={14} /><span className="text-foreground">{totalProduction.food} food/min</span></div>
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="flex items-center gap-3"><ResourceIcon type="gold" size={14} /><span className="text-foreground">{totalProduction.gold} gold/min</span></div>
+          <div className="flex items-center gap-3"><ResourceIcon type="wood" size={14} /><span className="text-foreground">{totalProduction.wood} wood/min</span></div>
+          <div className="flex items-center gap-3"><ResourceIcon type="stone" size={14} /><span className="text-foreground">{totalProduction.stone} stone/min</span></div>
+          <div className="flex items-center gap-3"><ResourceIcon type="food" size={14} /><span className="text-foreground">{totalProduction.food} food/min</span></div>
           {steelProduction > 0 && (
-            <div className="flex items-center gap-2"><ResourceIcon type="steel" size={14} /><span className="text-foreground">{steelProduction} steel/min</span></div>
+            <div className="flex items-center gap-3"><ResourceIcon type="steel" size={14} /><span className="text-foreground">{steelProduction} steel/min</span></div>
           )}
         </div>
       </div>
@@ -182,7 +182,7 @@ export default function ProfilePanel() {
       {totalTroops > 0 && (
         <div className="game-panel border-glow rounded-xl p-4 space-y-2">
           <h3 className="font-display text-sm text-foreground">Army ({totalTroops} troops)</h3>
-          <div className="flex items-center gap-3 mb-1 text-xs">
+          <div className="flex items-center gap-3 mb-1 text-sm">
             <span className="text-primary font-bold">⚔️ {power.attack} ATK</span>
             <span className="text-foreground font-bold">🛡️ {power.defense} DEF</span>
           </div>
@@ -190,7 +190,7 @@ export default function ProfilePanel() {
             {Object.entries(army).filter(([, v]) => v > 0).map(([type, count]) => {
               const skinDisplay = getTroopDisplay(type as TroopType);
               return (
-                <div key={type} className="flex items-center justify-between text-xs">
+                <div key={type} className="flex items-center justify-between text-sm">
                   <span className="text-foreground">{skinDisplay.emoji} {skinDisplay.name}</span>
                   <span className="text-primary font-bold">x{count}</span>
                 </div>
@@ -207,7 +207,7 @@ export default function ProfilePanel() {
             const type = b.type as Exclude<BuildingType, 'empty'>;
             const info = BUILDING_INFO[type];
             return (
-              <div key={b.id} className="flex items-center justify-between text-xs">
+              <div key={b.id} className="flex items-center justify-between text-sm">
                 <span className="text-foreground">{info.icon} {info.name}</span>
                 <span className="text-primary font-bold">Lv.{b.level}</span>
               </div>
@@ -220,25 +220,25 @@ export default function ProfilePanel() {
       <div className="game-panel border-glow rounded-xl p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="font-display text-sm text-foreground">🎨 Faction Skins</h3>
-          <span className="text-[9px] text-muted-foreground px-2 py-0.5 rounded-full bg-muted">
+          <span className="text-sm text-muted-foreground px-3 py-0.5 rounded-full bg-muted">
             Active: {activeSkin.icon} {activeSkin.name}
           </span>
         </div>
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Change the look of your buildings, troops, and map sprites. Each faction reskins everything.
         </p>
 
         {/* Sprite preview of active skin */}
-        <div className="flex items-center justify-center gap-2 py-2">
+        <div className="flex items-center justify-center gap-3 py-3">
           {(['townhall', 'barracks', 'farm'] as const).map(bType => (
             <div key={bType} className="flex flex-col items-center">
               <img src={getBuildingSprite(bType)} alt={bType} className="w-10 h-10 object-contain" />
-              <span className="text-[7px] text-muted-foreground mt-0.5">{BUILDING_INFO[bType].name}</span>
+              <span className="text-[11px] text-muted-foreground mt-0.5">{BUILDING_INFO[bType].name}</span>
             </div>
           ))}
           <div className="flex flex-col items-center">
             <span className="text-2xl">{getTroopDisplay('knight').emoji}</span>
-            <span className="text-[7px] text-muted-foreground mt-0.5">{getTroopDisplay('knight').name}</span>
+            <span className="text-[11px] text-muted-foreground mt-0.5">{getTroopDisplay('knight').name}</span>
           </div>
         </div>
 
@@ -258,17 +258,17 @@ export default function ProfilePanel() {
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2.5">
                       <span className="text-sm">{skin.icon}</span>
-                      <span className="font-display text-xs text-foreground">{skin.name}</span>
-                      {isActive && <span className="text-[7px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-bold">ACTIVE</span>}
-                      {owned && !isActive && <span className="text-[7px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">OWNED</span>}
+                      <span className="font-display text-sm text-foreground">{skin.name}</span>
+                      {isActive && <span className="text-[11px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-bold">ACTIVE</span>}
+                      {owned && !isActive && <span className="text-[11px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">OWNED</span>}
                     </div>
-                    <p className="text-[9px] text-muted-foreground truncate">{skin.description}</p>
+                    <p className="text-sm text-muted-foreground truncate">{skin.description}</p>
                     {/* Troop preview */}
-                    <div className="flex gap-1.5 mt-1">
+                    <div className="flex gap-2.5 mt-1">
                       {(['militia', 'archer', 'knight', 'cavalry'] as TroopType[]).map(t => (
-                        <span key={t} className="text-[8px] text-muted-foreground">{skin.troops[t].emoji}</span>
+                        <span key={t} className="text-sm text-muted-foreground">{skin.troops[t].emoji}</span>
                       ))}
                     </div>
                   </div>
@@ -279,14 +279,14 @@ export default function ProfilePanel() {
                       <motion.button whileTap={{ scale: 0.95 }}
                         onClick={() => purchaseSkin(skin.id)}
                         disabled={!canAffordSkin}
-                        className={`font-display text-[9px] py-1.5 px-3 rounded-lg whitespace-nowrap ${canAffordSkin ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
+                        className={`font-display text-sm py-2.5 px-4 rounded-lg whitespace-nowrap ${canAffordSkin ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
                         🪙 {skin.cost.toLocaleString()}
                       </motion.button>
                     )}
                     {owned && !isActive && (
                       <motion.button whileTap={{ scale: 0.95 }}
                         onClick={() => setActiveSkin(skin.id)}
-                        className="font-display text-[9px] py-1.5 px-3 rounded-lg bg-secondary text-foreground whitespace-nowrap">
+                        className="font-display text-sm py-2.5 px-4 rounded-lg bg-secondary text-foreground whitespace-nowrap">
                         Equip
                       </motion.button>
                     )}
@@ -302,15 +302,15 @@ export default function ProfilePanel() {
       {isSupported && (
         <div className="game-panel border-glow rounded-xl p-4 space-y-2">
           <h3 className="font-display text-sm text-foreground">🔔 Push Notifications</h3>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Get notified about attacks, completed buildings, and vassal events.
           </p>
           {permission === 'denied' ? (
-            <p className="text-[10px] text-destructive">Notifications blocked. Enable in browser settings.</p>
+            <p className="text-sm text-destructive">Notifications blocked. Enable in browser settings.</p>
           ) : (
             <motion.button whileTap={{ scale: 0.95 }}
               onClick={() => isSubscribed ? unsubscribe() : subscribe()}
-              className={`w-full font-display text-xs py-2 rounded-lg transition-colors ${
+              className={`w-full font-display text-sm py-3 rounded-lg transition-colors ${
                 isSubscribed 
                   ? 'bg-destructive/20 text-destructive' 
                   : 'bg-primary text-primary-foreground glow-gold-sm'
@@ -323,9 +323,9 @@ export default function ProfilePanel() {
 
       {/* Google account status */}
       {hasGoogle && (
-        <div className="game-panel border-glow rounded-xl p-4 flex items-center gap-2">
-          <span className="text-xs text-primary">✓</span>
-          <span className="text-xs text-muted-foreground">Signed in with Google</span>
+        <div className="game-panel border-glow rounded-xl p-4 flex items-center gap-3">
+          <span className="text-sm text-primary">✓</span>
+          <span className="text-sm text-muted-foreground">Signed in with Google</span>
         </div>
       )}
 

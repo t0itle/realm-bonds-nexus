@@ -49,10 +49,10 @@ function TroopList({ troops, label, color }: { troops: any; label: string; color
   if (entries.length === 0) return null;
   return (
     <div>
-      <p className={`text-[8px] font-display ${color} mb-0.5`}>{label}</p>
+      <p className={`text-sm font-display ${color} mb-0.5`}>{label}</p>
       <div className="flex flex-wrap gap-x-2 gap-y-0.5">
         {entries.map(([type, count]) => (
-          <span key={type} className="text-[9px] text-foreground">
+          <span key={type} className="text-sm text-foreground">
             {TROOP_INFO[type as TroopType]?.emoji || '🗡️'} {TROOP_INFO[type as TroopType]?.name || type}: <span className="font-bold">{Number(count)}</span>
           </span>
         ))}
@@ -68,9 +68,9 @@ function ResourceList({ resources, label, color }: { resources: any; label: stri
   if (entries.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-x-2 gap-y-0.5">
-      <span className={`text-[8px] font-display ${color}`}>{label}</span>
+      <span className={`text-sm font-display ${color}`}>{label}</span>
       {entries.map(([type, count]) => (
-        <span key={type} className="text-[9px] text-foreground">
+        <span key={type} className="text-sm text-foreground">
           {icons[type] || ''}{Number(count)}
         </span>
       ))}
@@ -94,7 +94,7 @@ function BattleDetail({ battle, isDefender }: { battle: BattleAlert; isDefender:
     >
       <div className="mt-2 pt-2 border-t border-border/50 space-y-2">
         {/* Battle outcome banner */}
-        <div className={`rounded-lg px-2 py-1 text-center text-[10px] font-display ${
+        <div className={`rounded-lg px-3 py-2 text-center text-sm font-display ${
           (isDefender ? !attackerWon : attackerWon)
             ? 'bg-primary/15 text-primary'
             : 'bg-destructive/15 text-destructive'
@@ -104,11 +104,11 @@ function BattleDetail({ battle, isDefender }: { battle: BattleAlert; isDefender:
 
         {/* Attacker section */}
         <div className="game-panel rounded-lg p-2 space-y-1">
-          <p className="text-[9px] font-display text-foreground">⚔️ Attacker — {battle.attacker_name}</p>
+          <p className="text-sm font-display text-foreground">⚔️ Attacker — {battle.attacker_name}</p>
           <TroopList troops={battle.attacker_troops_sent} label="Troops Sent" color="text-muted-foreground" />
           <TroopList troops={battle.attacker_troops_lost} label="Casualties" color="text-destructive" />
           {totalSent > 0 && (
-            <p className="text-[8px] text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Survived: {totalSent - totalAtkLost}/{totalSent} ({totalSent > 0 ? Math.round(((totalSent - totalAtkLost) / totalSent) * 100) : 0}%)
             </p>
           )}
@@ -116,13 +116,13 @@ function BattleDetail({ battle, isDefender }: { battle: BattleAlert; isDefender:
 
         {/* Defender section */}
         <div className="game-panel rounded-lg p-2 space-y-1">
-          <p className="text-[9px] font-display text-foreground">🛡️ Defender — {battle.defender_name}</p>
+          <p className="text-sm font-display text-foreground">🛡️ Defender — {battle.defender_name}</p>
           <TroopList troops={battle.defender_troops_lost} label="Casualties" color="text-destructive" />
           {totalDefLost > 0 && (
-            <p className="text-[8px] text-muted-foreground">Lost {totalDefLost} troops in defense</p>
+            <p className="text-sm text-muted-foreground">Lost {totalDefLost} troops in defense</p>
           )}
           {totalDefLost === 0 && (
-            <p className="text-[8px] text-muted-foreground">No casualties</p>
+            <p className="text-sm text-muted-foreground">No casualties</p>
           )}
         </div>
 
@@ -134,18 +134,18 @@ function BattleDetail({ battle, isDefender }: { battle: BattleAlert; isDefender:
             color={isDefender ? 'text-destructive' : 'text-primary'}
           />
           {battle.building_damaged && (
-            <p className="text-[9px] text-amber-400">
+            <p className="text-sm text-amber-400">
               🏚️ {battle.building_damaged} damaged{battle.building_damage_levels ? ` (−${battle.building_damage_levels} lvl)` : ''}
             </p>
           )}
           {battle.vassalized && (
-            <p className="text-[9px] font-bold text-primary">
+            <p className="text-sm font-bold text-primary">
               ⛓️ {isDefender ? 'You were vassalized!' : 'Enemy vassalized!'}
             </p>
           )}
         </div>
 
-        <p className="text-[7px] text-muted-foreground text-right">
+        <p className="text-[11px] text-muted-foreground text-right">
           {new Date(battle.created_at).toLocaleString()}
         </p>
       </div>
@@ -326,18 +326,18 @@ export default function NotificationsPanel({ embedded = false }: { embedded?: bo
     if (notifications.length === 0) return null;
     return (
       <div className="game-panel border-glow rounded-xl p-3 space-y-2">
-        <h3 className="font-display text-xs text-foreground flex items-center gap-1">🔔 Alerts</h3>
+        <h3 className="font-display text-sm text-foreground flex items-center gap-2">🔔 Alerts</h3>
         <div className="space-y-1.5 max-h-48 overflow-y-auto">
           {notifications.slice(0, 10).map(n => (
             <div key={n.id} className={`rounded-lg p-2 space-y-0.5 border ${typeColors[n.type]} bg-card/50`}>
-              <div className="flex items-start gap-1.5">
+              <div className="flex items-start gap-2.5">
                 <span className="text-sm">{n.icon}</span>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-1">
-                    <p className="text-[10px] font-display text-foreground leading-tight">{n.title}</p>
-                    <span className="text-[7px] text-muted-foreground whitespace-nowrap">{n.time}</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-display text-foreground leading-tight">{n.title}</p>
+                    <span className="text-[11px] text-muted-foreground whitespace-nowrap">{n.time}</span>
                   </div>
-                  <p className="text-[8px] text-muted-foreground">{n.detail}</p>
+                  <p className="text-sm text-muted-foreground">{n.detail}</p>
                 </div>
               </div>
             </div>
@@ -352,7 +352,7 @@ export default function NotificationsPanel({ embedded = false }: { embedded?: bo
       <h2 className="font-display text-lg text-foreground text-shadow-gold">📜 War Chronicle</h2>
 
       {notifications.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center gap-2 py-12">
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 py-12">
           <span className="text-4xl">🔕</span>
           <p className="text-sm text-muted-foreground">All quiet in the realm</p>
         </div>
@@ -367,19 +367,19 @@ export default function NotificationsPanel({ embedded = false }: { embedded?: bo
                 className={`game-panel rounded-xl p-3 border transition-colors ${typeColors[n.type]} ${n.battle ? 'cursor-pointer hover:bg-accent/5' : ''}`}
                 onClick={() => n.battle && setExpandedId(isExpanded ? null : n.id)}
               >
-                <div className="flex items-start gap-2">
+                <div className="flex items-start gap-3">
                   <span className="text-lg mt-0.5">{n.icon}</span>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center justify-between gap-3">
                       <p className="text-[11px] font-display text-foreground leading-tight">{n.title}</p>
-                      <div className="flex items-center gap-1">
-                        <span className="text-[8px] text-muted-foreground whitespace-nowrap">{n.time}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">{n.time}</span>
                         {n.battle && (
-                          <span className="text-[9px] text-muted-foreground">{isExpanded ? '▲' : '▼'}</span>
+                          <span className="text-sm text-muted-foreground">{isExpanded ? '▲' : '▼'}</span>
                         )}
                       </div>
                     </div>
-                    <p className="text-[9px] text-muted-foreground mt-0.5">{n.detail}</p>
+                    <p className="text-sm text-muted-foreground mt-0.5">{n.detail}</p>
                   </div>
                 </div>
 

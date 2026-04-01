@@ -153,7 +153,7 @@ export default function AllianceResourceSharing({ allianceId }: { allianceId: st
         <select
           value={selectedMember}
           onChange={e => setSelectedMember(e.target.value)}
-          className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground"
+          className="w-full bg-secondary border border-border rounded-lg px-4 py-3 text-sm text-foreground"
         >
           <option value="">Select member...</option>
           {members.map(m => (
@@ -161,9 +161,9 @@ export default function AllianceResourceSharing({ allianceId }: { allianceId: st
           ))}
         </select>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-3">
           {(['gold', 'wood', 'stone', 'food'] as const).map(res => (
-            <div key={res} className="flex items-center gap-1">
+            <div key={res} className="flex items-center gap-2">
               <span className="text-sm">{RESOURCE_ICONS[res]}</span>
               <input
                 type="number"
@@ -177,20 +177,20 @@ export default function AllianceResourceSharing({ allianceId }: { allianceId: st
                   setAmounts(prev => ({ ...prev, [res]: val }));
                 }}
                 placeholder="0"
-                className="w-full bg-secondary border border-border rounded-lg px-2 py-1.5 text-xs text-foreground"
+                className="w-full bg-secondary border border-border rounded-lg px-3 py-2.5 text-sm text-foreground"
               />
             </div>
           ))}
         </div>
 
-        {error && <p className="text-xs text-destructive">{error}</p>}
-        {success && <p className="text-xs text-primary">{success}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        {success && <p className="text-sm text-primary">{success}</p>}
 
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={sendResources}
           disabled={!canSend || sending}
-          className="w-full bg-primary text-primary-foreground font-display text-sm py-2 rounded-lg glow-gold disabled:opacity-40"
+          className="w-full bg-primary text-primary-foreground font-display text-sm py-3 rounded-lg glow-gold disabled:opacity-40"
         >
           {sending ? 'Sending...' : `Send Resources`}
         </motion.button>
@@ -199,7 +199,7 @@ export default function AllianceResourceSharing({ allianceId }: { allianceId: st
       {/* Transfer history */}
       {transfers.length > 0 && (
         <div className="space-y-1.5">
-          <h4 className="font-display text-xs text-muted-foreground">Recent Transfers</h4>
+          <h4 className="font-display text-sm text-muted-foreground">Recent Transfers</h4>
           {transfers.slice(0, 5).map(t => {
             const parts = [];
             if (t.gold > 0) parts.push(`💰${t.gold}`);
@@ -208,7 +208,7 @@ export default function AllianceResourceSharing({ allianceId }: { allianceId: st
             if (t.food > 0) parts.push(`🌾${t.food}`);
             const isSender = t.sender_id === user?.id;
             return (
-              <div key={t.id} className="game-panel rounded-lg p-2 text-[10px] text-muted-foreground flex items-center justify-between">
+              <div key={t.id} className="game-panel rounded-lg p-2 text-sm text-muted-foreground flex items-center justify-between">
                 <span>
                   {isSender ? `You → ${t.receiverName}` : `${t.senderName} → You`}
                 </span>
