@@ -6,6 +6,7 @@ import { useTroopSkins } from '@/hooks/useTroopSkins';
 import BuildModal from './BuildModal';
 import ResourceIcon, { getResourceType } from './ResourceIcon';
 import { Send, Scroll } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { lazy, Suspense } from 'react';
 
