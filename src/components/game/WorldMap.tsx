@@ -1437,7 +1437,8 @@ export default function WorldMap() {
     if (pathBlocked) return;
 
     const pathDist = getPathLength(waypoints);
-    const actualTravelSec = Math.max(5, Math.floor(pathDist / (getSlowestTroopSpeed(army) * 200)));
+    const scoutBonus = Math.min(0.30, (army.scout || 0) * 0.03);
+    const actualTravelSec = Math.max(5, Math.floor(pathDist / (getSlowestTroopSpeed(army) * 200) * (1 - scoutBonus)));
     const arrivalTime = now + actualTravelSec * 1000;
     setMarches(prev => [...prev, {
       id, targetName, arrivalTime,
