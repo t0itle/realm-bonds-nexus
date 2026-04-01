@@ -22,8 +22,9 @@ export default function ResourceBar() {
   const storagePct = Math.min(100, (totalStored / (storageCapacity * 4)) * 100);
   const storageNearFull = storagePct > 85;
 
-  const foodCritical = totalProduction.food < 0;
-  const foodLow = resources.food < 50 && foodCritical;
+  const foodDeclining = totalProduction.food < 0;
+  const foodLow = foodDeclining && resources.food < 200;
+  const foodCritical = foodDeclining && resources.food < 50;
 
   return (
     <>
