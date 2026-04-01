@@ -10,6 +10,17 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.6.0',
+    date: '2026-04-01',
+    title: 'Settlements & Faction Identity',
+    changes: [
+      '🏘️ Village → Town → City upgrade system with huge costs',
+      '🏙️ Cities unlock 25 building slots for massive expansion',
+      '🎨 Faction skins now tint outposts, armies & castles on map',
+      '⚔️ Army marches show faction colors while moving',
+    ],
+  },
+  {
     version: '0.5.0',
     date: '2026-04-01',
     title: 'Faction Skins & War Balance',
