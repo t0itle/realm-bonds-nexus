@@ -1351,74 +1351,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     buildings, workerAssignments, setWorkerAssignments, population, villageId,
   });
 
-  const buildAt = useCallback(async (position: number, type: Exclude<BuildingType, 'empty'>) => {
-    if (!villageId || !user) return false;
-    if (type === 'house' && currentHouses >= maxHouses) return false;
-    const cost = getUpgradeCost(type, 0);
-    if (!canAfford(cost)) return false;
-    if (cost.steel > 0 && !canAffordSteel(cost.steel)) return false;
-    const newResources = { gold: resources.gold - cost.gold, wood: resources.wood - cost.wood, stone: resources.stone - cost.stone, food: resources.food - cost.food };
-    // Insert building at level 0 (under construction), queue will set it to 1
-    const { data, error } = await supabase.from('buildings').insert({ village_id: villageId, user_id: user.id, type, level: 0, position }).select().single();
-    if (error) return false;
-    await supabase.from('villages').update(newResources).eq('id', villageId);
-    setResources(newResources);
-    if (cost.steel > 0) setSteel(prev => prev - cost.steel);
-    setBuildings(prev => [...prev, { id: data.id, type: type as BuildingType, level: 0, position, village_id: villageId }]);
-    const buildTime = getBuildTime(type, 0);
-    const finishTime = Date.now() + buildTime * 1000;
-    setBuildQueue(prev => [...prev, { buildingId: data.id, buildingType: type as BuildingType, targetLevel: 1, finishTime }]);
-    // Persist build queue to DB
-    supabase.from('build_queue').insert({ user_id: user.id, building_id: data.id, building_type: type, target_level: 1, finish_time: new Date(finishTime).toISOString() } as any).then();
-    return true;
-  }, [villageId, user, resources, canAfford, canAffordSteel, currentHouses, maxHouses, getBuildTime]);
 
-  const upgradeBuilding = useCallback(async (id: string) => {
-    if (!villageId || !user) return false;
-    const building = buildings.find(b => b.id === id);
-    if (!building || building.type === 'empty') return false;
-    // Check if already upgrading
-    if (buildQueue.some(q => q.buildingId === id)) return false;
-    const info = BUILDING_INFO[building.type];
-    if (building.level >= info.maxLevel) return false;
-    const cost = getUpgradeCost(building.type, building.level);
-    if (!canAfford(cost)) return false;
-    if (cost.steel > 0 && !canAffordSteel(cost.steel)) return false;
-    const newResources = { gold: resources.gold - cost.gold, wood: resources.wood - cost.wood, stone: resources.stone - cost.stone, food: resources.food - cost.food };
-    await supabase.from('villages').update(newResources).eq('id', villageId);
-    setResources(newResources);
-    if (cost.steel > 0) setSteel(prev => prev - cost.steel);
-    const newLevel = building.level + 1;
-    const buildTime = getBuildTime(building.type, building.level);
-    const finishTime = Date.now() + buildTime * 1000;
-    setBuildQueue(prev => [...prev, { buildingId: id, buildingType: building.type as BuildingType, targetLevel: newLevel, finishTime }]);
-    // Persist build queue to DB
-    supabase.from('build_queue').insert({ user_id: user.id, building_id: id, building_type: building.type, target_level: newLevel, finish_time: new Date(finishTime).toISOString() } as any).then();
-    return true;
-  }, [buildings, villageId, user, resources, canAfford, canAffordSteel, buildQueue, getBuildTime]);
 
-  // Demolish building (returns 30% resources, can't demolish townhall)
-  const demolishBuilding = useCallback(async (id: string) => {
-    if (!villageId || !user) return false;
-    const building = buildings.find(b => b.id === id);
-    if (!building || building.type === 'empty' || building.type === 'townhall') return false;
-    if (buildQueue.some(q => q.buildingId === id)) return false;
-    const type = building.type as Exclude<BuildingType, 'empty'>;
-    let refund = { gold: 0, wood: 0, stone: 0, food: 0 };
-    for (let lvl = 0; lvl < building.level; lvl++) {
-      const c = getUpgradeCost(type, lvl);
-      refund.gold += c.gold; refund.wood += c.wood; refund.stone += c.stone; refund.food += c.food;
-    }
-    refund = { gold: Math.floor(refund.gold * 0.3), wood: Math.floor(refund.wood * 0.3), stone: Math.floor(refund.stone * 0.3), food: Math.floor(refund.food * 0.3) };
-    setWorkerAssignments(prev => { const n = { ...prev }; delete n[id]; return n; });
-    await supabase.from('buildings').delete().eq('id', id);
-    setBuildings(prev => prev.filter(b => b.id !== id));
-    setResources(prev => ({ gold: prev.gold + refund.gold, wood: prev.wood + refund.wood, stone: prev.stone + refund.stone, food: prev.food + refund.food }));
-    await supabase.from('villages').update({ gold: resources.gold + refund.gold, wood: resources.wood + refund.wood, stone: resources.stone + refund.stone, food: resources.food + refund.food }).eq('id', villageId);
-    return true;
-  }, [buildings, villageId, user, buildQueue, resources]);
-
-  // getWatchtowerLevel is now provided by useSpyMissions
 
   // Apothecary level
   const getApothecaryLevel = useCallback(() => {
