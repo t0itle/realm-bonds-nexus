@@ -49,9 +49,11 @@ interface Props {
   onUpdateSentiment: (npcTownId: string, delta: number, status?: NPCPlayerRelation['status']) => Promise<void>;
   onSetRelationStatus: (npcTownId: string, status: NPCPlayerRelation['status'], tributeRate?: number) => Promise<void>;
   onHireMercenaries: (npcTownId: string, troops: Record<string, number>, goldCost: number) => Promise<boolean>;
+  onDeductNPCStock: (npcTownId: string, resource: string, amount: number) => Promise<void>;
   isInRange: boolean;
   travelTime: number;
   hasActiveTrade: boolean;
+  isScouted: boolean;
 }
 
 export default function NPCInteractionPanel({
