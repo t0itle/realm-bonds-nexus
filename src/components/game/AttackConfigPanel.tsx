@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useGame } from '@/hooks/useGameState';
-import { TROOP_INFO, SPY_MISSION_INFO } from '@/lib/gameConstants';
+import { TROOP_INFO, SPY_MISSION_INFO, TROOP_COUNTERS } from '@/lib/gameConstants';
 import type { TroopType, Army, SpyMission } from '@/lib/gameTypes';
 import TroopIcon from './TroopIcon';
 
@@ -25,7 +25,7 @@ export default function AttackConfigPanel({
   targetName, targetPower, travelTime,
   onConfirmAttack, onConfirmEspionage, onCancel, showEspionage = true,
 }: AttackConfigPanelProps) {
-  const { army, spies, resources } = useGame();
+  const { army, spies, resources, intelReports } = useGame();
   const [mode, setMode] = useState<'attack' | 'espionage'>('attack');
   const [troopCounts, setTroopCounts] = useState<Record<TroopType, number>>(() => {
     const init: Record<TroopType, number> = { militia: 0, archer: 0, knight: 0, cavalry: 0, siege: 0, scout: 0 };
@@ -92,6 +92,52 @@ export default function AttackConfigPanel({
         <p className="text-[9px] text-destructive">Enemy Power: ⚔️{targetPower}</p>
       )}
       <p className="text-[9px] text-muted-foreground">Travel time: ~{travelTime}s</p>
+
+      {/* Tactical Intel */}
+      {(() => {
+        const scoutReport = intelReports.find(r => r.mission === 'scout' && r.result === 'success' && r.targetName === targetName);
+        const targetTroops = scoutReport?.data?.troops as Record<string, number> | undefined;
+
+        if (!targetTroops || Object.values(targetTroops).every(c => c === 0)) {
+          return (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-2">
+              <p className="text-xs text-muted-foreground">⚠️ No intel on target forces. Send a Spy Scout mission first for tactical advantage.</p>
+            </div>
+          );
+        }
+
+        const presentTypes = (Object.entries(targetTroops) as [TroopType, number][]).filter(([, c]) => c > 0);
+        const strengths: string[] = [];
+        const warnings: string[] = [];
+
+        for (const [enemyType] of presentTypes) {
+          const enemyInfo = TROOP_INFO[enemyType as TroopType];
+          for (const ourType of TROOP_TYPES) {
+            if (army[ourType] <= 0) continue;
+            const counters = TROOP_COUNTERS[ourType];
+            if (counters.strongVs.includes(enemyType as TroopType)) {
+              strengths.push(`${TROOP_INFO[ourType].name} beat ${enemyInfo.name}`);
+            }
+            if (counters.weakVs.includes(enemyType as TroopType)) {
+              warnings.push(`${TROOP_INFO[ourType].name} vs ${enemyInfo.name}`);
+            }
+          }
+        }
+
+        return (
+          <div className="rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-2 space-y-1">
+            <p className="text-xs text-muted-foreground">
+              🎯 Target has: {presentTypes.map(([t, c]) => `${TROOP_INFO[t].emoji || ''} ${c} ${TROOP_INFO[t].name}`).join(', ')}
+            </p>
+            {strengths.length > 0 && (
+              <p className="text-xs text-emerald-500">⚔️ Strong: {[...new Set(strengths)].slice(0, 3).join(', ')}</p>
+            )}
+            {warnings.length > 0 && (
+              <p className="text-xs text-amber-500">⚠️ Weak: Don't send {[...new Set(warnings)].slice(0, 3).join(', ')}</p>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Mode toggle */}
       <div className="flex gap-1">
