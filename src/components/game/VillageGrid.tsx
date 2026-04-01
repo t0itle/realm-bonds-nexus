@@ -271,25 +271,14 @@ export default function VillageGrid() {
                         </span>
                       </div>
                     )}
-                    {/* Worker count badge */}
+                    {/* Worker count badge - bottom-left, only when assigned */}
                     {!upgrading && !isUnderConstruction && type && (() => {
-                      const maxW = getMaxWorkers(building!);
-                      if (maxW <= 0) return null;
                       const assigned = workerAssignments[building!.id] || 0;
+                      if (assigned <= 0) return null;
                       return (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setWorkerBuilding(building);
-                          }}
-                          className={`absolute top-0.5 left-0.5 flex items-center gap-px px-1 py-px rounded-md text-[8px] font-bold transition-colors ${
-                            assigned > 0
-                              ? 'bg-primary/90 text-primary-foreground shadow-sm'
-                              : 'bg-muted/80 text-muted-foreground hover:bg-muted'
-                          }`}
-                        >
-                          👷{assigned}
-                        </button>
+                        <div className="absolute bottom-0 left-0 bg-background/70 backdrop-blur-sm px-1 py-px rounded-tr-md">
+                          <span className="text-[7px] font-bold text-primary">👷{assigned}</span>
+                        </div>
                       );
                     })()}
                     {/* Max level star badge */}
