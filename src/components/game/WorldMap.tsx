@@ -1002,6 +1002,7 @@ const EVENT_COLORS = { danger: 'border-destructive/60 bg-destructive/20', opport
 type SelectedItem =
   | { kind: 'npc'; data: ProceduralRealm; biome: string }
   | { kind: 'event'; data: ProceduralEvent; chunkKey: string; index: number }
+  | { kind: 'worldboss'; data: ProceduralWorldBoss }
   | { kind: 'player'; data: any }
   | { kind: 'mine'; data: SteelMine }
   | { kind: 'outpost'; data: { id: string; x: number; y: number; name: string; user_id: string; level: number; garrison_power: number; garrison_troops: Partial<Record<string, number>>; has_wall: boolean; wall_level: number; territory_radius: number; outpost_type: string } }
