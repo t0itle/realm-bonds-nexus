@@ -3,6 +3,7 @@ import { useGame } from '@/hooks/useGameState';
 import { motion, AnimatePresence } from 'framer-motion';
 import ResourceIcon from './ResourceIcon';
 import CaravanPanel from './CaravanPanel';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 
 const RESOURCE_CONFIG = [
   { key: 'gold' as const, label: 'Gold', color: 'text-gold' },
