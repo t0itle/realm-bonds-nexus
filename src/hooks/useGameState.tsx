@@ -979,22 +979,82 @@ export function GameProvider({ children }: { children: ReactNode }) {
     currentHouses,
   }), [populationBase, maxPopulation, totalWorkers, totalSoldiers, armyCap, happiness, housingCapacity, maxHouses, currentHouses]);
 
-  // Auto-update settlement_type based on population thresholds
-  // village (< 30 pop) → town (30-59 pop) → city (60+ pop)
-  const settlementTypeRef = useRef<string>('village');
+  // Settlement type — loaded from DB, upgraded explicitly
+  const settlementTypeRef = useRef<'village' | 'town' | 'city'>('village');
+  const [settlementType, setSettlementType] = useState<'village' | 'town' | 'city'>('village');
+  const [settlementUpgradeFinishTime, setSettlementUpgradeFinishTime] = useState<number | null>(null);
+  const isSettlementUpgrading = settlementUpgradeFinishTime !== null && settlementUpgradeFinishTime > Date.now();
+
+  // Settlement upgrade costs & requirements
+  const SETTLEMENT_UPGRADES = {
+    village: { next: 'town' as const, label: 'Town', thRequired: 10, cost: { gold: 15000, wood: 12000, stone: 10000, food: 8000 }, steelCost: 50, buildTimeSec: 7200 }, // 2 hours
+    town: { next: 'city' as const, label: 'City', thRequired: 10, cost: { gold: 80000, wood: 75000, stone: 70000, food: 60000 }, steelCost: 200, buildTimeSec: 86400 }, // 24 hours
+    city: null, // max
+  };
+
+  // Process settlement upgrade timer
   useEffect(() => {
-    if (!villageId) return;
-    let newType = 'village';
-    if (populationBase >= 60) newType = 'city';
-    else if (populationBase >= 30) newType = 'town';
-    
-    if (newType !== settlementTypeRef.current) {
-      settlementTypeRef.current = newType;
-      supabase.from('villages').update({ settlement_type: newType } as any).eq('id', villageId).then();
-      // Update myVillages locally
-      setMyVillages(prev => prev.map(v => v.id === villageId ? { ...v, settlement_type: newType } : v));
+    if (!settlementUpgradeFinishTime) return;
+    if (settlementUpgradeFinishTime <= Date.now()) {
+      // Upgrade complete
+      const upgrade = SETTLEMENT_UPGRADES[settlementType];
+      if (upgrade) {
+        const newType = upgrade.next;
+        setSettlementType(newType);
+        settlementTypeRef.current = newType;
+        setSettlementUpgradeFinishTime(null);
+        if (villageId) supabase.from('villages').update({ settlement_type: newType } as any).eq('id', villageId).then();
+        setMyVillages(prev => prev.map(v => v.id === villageId ? { ...v, settlement_type: newType } : v));
+        toast.success(`🏗️ Settlement upgraded to ${upgrade.label}! New building slots unlocked.`);
+      }
+      return;
     }
-  }, [populationBase, villageId]);
+    const timer = setTimeout(() => {
+      const upgrade = SETTLEMENT_UPGRADES[settlementType];
+      if (upgrade) {
+        const newType = upgrade.next;
+        setSettlementType(newType);
+        settlementTypeRef.current = newType;
+        setSettlementUpgradeFinishTime(null);
+        if (villageId) supabase.from('villages').update({ settlement_type: newType } as any).eq('id', villageId).then();
+        setMyVillages(prev => prev.map(v => v.id === villageId ? { ...v, settlement_type: newType } : v));
+        toast.success(`🏗️ Settlement upgraded to ${upgrade.label}! New building slots unlocked.`);
+      }
+    }, settlementUpgradeFinishTime - Date.now());
+    return () => clearTimeout(timer);
+  }, [settlementUpgradeFinishTime, settlementType, villageId]);
+
+  const upgradeSettlement = useCallback(async (): Promise<boolean> => {
+    if (!villageId || !user) return false;
+    const upgrade = SETTLEMENT_UPGRADES[settlementType];
+    if (!upgrade) { toast.error('Already at maximum settlement level!'); return false; }
+    if (townhallLevel < upgrade.thRequired) { toast.error(`Town Hall must be level ${upgrade.thRequired} to upgrade!`); return false; }
+    if (!canAfford(upgrade.cost)) { toast.error('Not enough resources!'); return false; }
+    if (upgrade.steelCost > 0 && !canAffordSteel(upgrade.steelCost)) { toast.error('Not enough steel!'); return false; }
+    if (isSettlementUpgrading) { toast.error('Settlement upgrade already in progress!'); return false; }
+
+    const newResources = {
+      gold: resources.gold - upgrade.cost.gold,
+      wood: resources.wood - upgrade.cost.wood,
+      stone: resources.stone - upgrade.cost.stone,
+      food: resources.food - upgrade.cost.food,
+    };
+    setResources(newResources);
+    if (upgrade.steelCost > 0) setSteel(prev => prev - upgrade.steelCost);
+    await supabase.from('villages').update({ ...newResources, steel: steel - upgrade.steelCost } as any).eq('id', villageId);
+
+    const finishTime = Date.now() + upgrade.buildTimeSec * 1000;
+    setSettlementUpgradeFinishTime(finishTime);
+    // Store in build_queue for persistence
+    supabase.from('build_queue').insert({
+      user_id: user.id, building_id: villageId, building_type: 'settlement_upgrade',
+      target_level: upgrade.next === 'town' ? 2 : 3,
+      finish_time: new Date(finishTime).toISOString(),
+    } as any).then();
+
+    toast.success(`🏗️ Upgrading to ${upgrade.label}! This will take ${Math.floor(upgrade.buildTimeSec / 3600)}h.`);
+    return true;
+  }, [villageId, user, settlementType, townhallLevel, canAfford, canAffordSteel, resources, steel, isSettlementUpgrading]);
 
   // Player level = Town Hall level
   useEffect(() => {
