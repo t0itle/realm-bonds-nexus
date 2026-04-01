@@ -409,10 +409,16 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
   const rng = seededRandom(seed);
   const worldBaseX = chunkX * CHUNK_SIZE;
   const worldBaseY = chunkY * CHUNK_SIZE;
+  const chunkCenterX = worldBaseX + CHUNK_SIZE / 2;
+  const chunkCenterY = worldBaseY + CHUNK_SIZE / 2;
 
-  // Distance from origin affects difficulty
-  const dist = Math.sqrt(chunkX * chunkX + chunkY * chunkY);
-  const difficultyMult = 1 + dist * 0.15;
+  // ── Determine continent/ocean/island ──
+  const region = getWorldRegion(chunkCenterX, chunkCenterY);
+  const isOceanChunk = region.type === 'ocean';
+  const isIslandChunk = region.type === 'island';
+
+  const dist = Math.sqrt((chunkCenterX - WORLD_SIZE / 2) ** 2 + (chunkCenterY - WORLD_SIZE / 2) ** 2) / (WORLD_SIZE / 2);
+  const difficultyMult = 1 + dist * 0.6;
 
   // Generate region name for this chunk
   const regionName = generateRegionName(rng);
