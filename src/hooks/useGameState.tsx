@@ -44,6 +44,7 @@ import type {
 interface GameContextType {
   resources: Resources; steel: number; buildings: Building[];
   villageName: string; villageId: string | null; playerLevel: number;
+  grossProduction: Resources;
   displayName: string; avatarUrl: string | null;
   setDisplayName: (n: string) => Promise<boolean>; setVillageName: (n: string) => Promise<boolean>; setAvatarUrl: (u: string | null) => void;
   demolishBuilding: (id: string) => Promise<boolean>; buildAt: (p: number, t: Exclude<BuildingType, 'empty'>) => Promise<boolean>; upgradeBuilding: (id: string) => Promise<boolean>;
