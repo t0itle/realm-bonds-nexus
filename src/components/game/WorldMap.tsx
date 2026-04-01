@@ -848,6 +848,21 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
   return { realms, events, terrain, steelMines, decorations, regionName, regionBiome };
 }
 
+// ── Preload sprite images to avoid render-time fetches ──
+const PRELOAD_SPRITES = [
+  mapCastleHostile, mapCastleNeutral, mapCastleFriendly,
+  mapEventDanger, mapEventOpportunity, mapEventMystery,
+  mapMine, mapPlayer, mapTrees, mapGrass, mapRocks,
+  mapVillage, mapVillageTier, mapTownTier, mapCityTier,
+  mapRuins, mapSoldier, mapMountain,
+];
+if (typeof window !== 'undefined') {
+  PRELOAD_SPRITES.forEach(src => {
+    const img = new Image();
+    img.src = src;
+  });
+}
+
 // ── Chunk cache (time-keyed so events rotate) ──
 const chunkCache = new Map<string, ChunkData>();
 let chunkCacheTimeSeed = Math.floor(Date.now() / (1000 * 60 * 30));
