@@ -1104,8 +1104,10 @@ export default function WorldMap() {
         } catch (err) {
           console.error('March action failed:', err);
           toast.error(`⚠️ Battle at ${m.targetName} failed — troops returned home.`);
-          // If action fails, we need to somehow return troops. The sentArmy was captured in the closure
-          // but we can't access it here. At minimum, notify the user.
+          // Return all sent troops on failure
+          if (m.sentArmy) {
+            returnTroops(m.sentArmy as any);
+          }
         }
       });
       // Clean up arrived marches from DB
