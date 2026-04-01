@@ -1454,8 +1454,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addSteel = useCallback((amount: number) => {
-    setSteel(prev => prev + amount);
-  }, []);
+    setSteel(prev => {
+      const newVal = prev + amount;
+      if (villageId) {
+        supabase.from('villages').update({ steel: newVal } as any).eq('id', villageId).then();
+      }
+      return newVal;
+    });
+  }, [villageId]);
 
   const getWallLevel = useCallback(() => {
     const wall = buildings.find(b => b.type === 'wall');
