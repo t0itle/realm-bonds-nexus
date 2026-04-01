@@ -634,7 +634,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setHappinessBase((village as any).happiness ?? 50);
         setRationsLocal(((village as any).rations as RationsLevel) ?? 'normal');
         setPopTaxRateLocal((village as any).pop_tax_rate ?? 5);
-        setSpies((village as any).spies ?? 0);
+        setSpiesRef.current((village as any).spies ?? 0);
         setPoisons((village as any).poisons ?? 0);
         setInjuredTroops({
           militia: (village as any).injured_militia ?? 0,
