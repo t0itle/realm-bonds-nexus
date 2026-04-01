@@ -372,7 +372,7 @@ export default function MessagesPanel({ initialDm, onDmHandled }: MessagesPanelP
     return (
       <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
         <div className={`max-w-[75%] rounded-xl px-4 py-3 ${
-          isMine ? 'wood-btn-primary rounded-br-sm' : 'bg-secondary text-foreground rounded-bl-sm'
+          isMine ? 'bg-primary text-primary-foreground rounded-br-sm' : 'bg-secondary text-foreground rounded-bl-sm'
         }`}>
           <p className="text-sm">{msg.content}</p>
           <p className={`text-sm mt-0.5 ${isMine ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
