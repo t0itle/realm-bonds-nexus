@@ -1820,7 +1820,7 @@ export default function WorldMap() {
               <div className="relative">
                 <img src={mapVillage} alt={outpost.name} loading="lazy"
                   className={`drop-shadow-md ${isOwn ? 'brightness-90' : 'brightness-75 hue-rotate-180'}`}
-                  style={{ width: opSize, height: opSize, objectFit: 'contain' }} />
+                  style={{ width: opSize, height: opSize, objectFit: 'contain', filter: isOwn ? getSpriteFilter() : undefined }} />
                 <div className="absolute -inset-1 rounded-full pointer-events-none"
                   style={{
                     boxShadow: isOwn ? '0 0 10px 3px hsl(var(--primary) / 0.2)' : '0 0 8px 2px hsl(var(--destructive) / 0.15)',
