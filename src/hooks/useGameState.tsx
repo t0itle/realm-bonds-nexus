@@ -927,7 +927,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
           siege: (v as any).army_siege ?? 0,
           scout: (v as any).army_scout ?? 0,
         });
-        setSpies((v as any).spies ?? 0);
+        setSpiesRef.current((v as any).spies ?? 0);
         setPoisons((v as any).poisons ?? 0);
         // Skip injured troops here to prevent write-back loop
       }).subscribe();
