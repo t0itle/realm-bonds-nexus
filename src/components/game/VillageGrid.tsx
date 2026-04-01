@@ -181,6 +181,8 @@ function CollapsibleSection({ icon, title, defaultOpen, children }: {
 
 export default function VillageGrid() {
   const { buildings, upgradeBuilding, demolishBuilding, canAfford, canAffordSteel, isBuildingUpgrading, getBuildTime, resources, steel } = useGame();
+  const { getSpriteFilter } = useTroopSkins();
+  const spriteFilter = getSpriteFilter();
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [buildPosition, setBuildPosition] = useState<number | null>(null);
   const [, forceUpdate] = useState(0);
