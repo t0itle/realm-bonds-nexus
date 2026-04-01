@@ -149,6 +149,10 @@
     text-shadow: 0 0 20px hsl(42 80% 60% / 0.4);
   }
 
+  .text-shadow-wood {
+    text-shadow: 0 1px 3px rgba(0,0,0,0.7), 0 0 8px rgba(0,0,0,0.3);
+  }
+
   .glow-gold {
     box-shadow: 0 0 15px hsl(42 80% 60% / 0.3), inset 0 1px 0 hsl(42 80% 60% / 0.1);
   }
