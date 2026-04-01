@@ -97,7 +97,23 @@ export default function NPCInteractionPanel({
     return trades.sort((a, b) => b.rate - a.rate).slice(0, 6);
   })();
 
+  const isHostileAndUnfriendly = realm.type === 'hostile' && sentiment < 20;
+
+  const HOSTILE_TRADE_REJECTIONS = [
+    `"You dare approach ${realm.name} with trade goods? Leave before we take them by force!" — ${realm.ruler}`,
+    `"${realm.ruler} spits at your offer. 'We do not trade with weaklings. Prove your worth in battle!'"`,
+    `"The gates of ${realm.name} are closed to you, outsider. Your gold means nothing here."`,
+    `"${realm.ruler} laughs cruelly. 'Come back when you've earned our respect... if you survive that long.'"`,
+    `"Guards seize your caravan at the border. '${realm.ruler} has forbidden trade with your kind!'"`,
+  ];
+
   const executeTrade = async (give: keyof Resources, receive: keyof Resources, amount: number) => {
+    if (isHostileAndUnfriendly) {
+      const msg = HOSTILE_TRADE_REJECTIONS[Math.floor(Math.random() * HOSTILE_TRADE_REJECTIONS.length)];
+      toast.error(msg);
+      await onUpdateSentiment(realm.id, -3);
+      return;
+    }
     if (resources[give] < amount) { toast.error(`Not enough ${give}!`); return; }
     if (!isInRange) { toast.error('Out of range!'); return; }
     const rate = getTradeRate(give, receive);
@@ -287,6 +303,14 @@ export default function NPCInteractionPanel({
         {/* TRADE TAB */}
         {tab === 'trade' && (
           <motion.div key="trade" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-2">
+            {isHostileAndUnfriendly && (
+              <div className="bg-destructive/15 border border-destructive/30 rounded-lg p-2 space-y-1">
+                <p className="text-[10px] text-destructive font-bold">⚠️ Hostile Territory — Trade Refused</p>
+                <p className="text-[9px] text-destructive/80">
+                  {realm.ruler} refuses all trade with you. Improve relations through diplomacy (Talk tab) or envoys before they'll consider commerce. Current sentiment: {sentiment}/100 (need 20+).
+                </p>
+              </div>
+            )}
             <div className="text-[9px] text-muted-foreground flex items-center gap-1">
               <span>🌍 {biome} market</span>
               <span>·</span>
