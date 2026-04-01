@@ -230,7 +230,7 @@ export default function ProfilePanel() {
         <div className="flex items-center justify-center gap-2 py-2">
           {(['townhall', 'barracks', 'farm'] as const).map(bType => (
             <div key={bType} className="flex flex-col items-center">
-              <img src={BUILDING_SPRITES[bType]} alt={bType} className="w-10 h-10 object-contain" style={{ filter: spriteFilter }} />
+              <img src={getBuildingSprite(bType)} alt={bType} className="w-10 h-10 object-contain" />
               <span className="text-[7px] text-muted-foreground mt-0.5">{BUILDING_INFO[bType].name}</span>
             </div>
           ))}
