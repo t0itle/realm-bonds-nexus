@@ -313,6 +313,9 @@ export default function MilitaryPanel() {
 
       {/* ===== WAR LOG TAB ===== */}
       {tab === 'warlog' && <WarLogPanel />}
+
+      {/* ===== SKINS TAB ===== */}
+      {tab === 'skins' && <SkinsShopPanel />}
     </div>
   );
 }
