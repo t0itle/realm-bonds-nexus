@@ -2,10 +2,10 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef, Re
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from './useAuth';
-import { getMineSteelPerMinuteFromMineIds, getMineSteelPerTickFromMineId } from '@/lib/mineProduction';
 import { useSpyMissions } from './useSpyMissions';
 import { useProfile } from './useProfile';
 import { usePopulation } from './usePopulation';
+import { useProduction } from './useProduction';
 
 // Re-export all types from gameTypes
 export type {
@@ -702,88 +702,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
   }, [buildings, villageId]);
 
-  // Gross production from buildings (with worker bonuses)
-  const grossProduction = useMemo(() => {
-    return buildings.reduce<Resources>(
-      (acc, b) => {
-        if (b.type === 'empty') return acc;
-        const workers = workerAssignments[b.id] || 0;
-        const prod = getProduction(b.type, b.level, workers);
-        return { gold: acc.gold + (prod.gold || 0), wood: acc.wood + (prod.wood || 0), stone: acc.stone + (prod.stone || 0), food: acc.food + (prod.food || 0) };
-      },
-      { gold: 0, wood: 0, stone: 0, food: 0 }
-    );
-  }, [buildings, workerAssignments]);
-
-  // Steel production from buildings + owned world-map mines
-  const buildingSteelProduction = useMemo(() => {
-    return buildings.reduce((acc, b) => {
-      if (b.type === 'empty') return acc;
-      const workers = workerAssignments[b.id] || 0;
-      return acc + getSteelProduction(b.type, b.level, workers);
-    }, 0);
-  }, [buildings, workerAssignments]);
-
-  const mineSteelPerTick = useMemo(() => ownedMineIds.reduce((acc, mineId) => acc + getMineSteelPerTickFromMineId(mineId), 0), [ownedMineIds]);
-
-  const steelProduction = useMemo(() => {
-    return buildingSteelProduction + getMineSteelPerMinuteFromMineIds(ownedMineIds);
-  }, [buildingSteelProduction, ownedMineIds]);
-
-  // Net production: gross - army upkeep - pop food cost + pop tax income
-  const totalProduction = useMemo(() => {
-    let foodCost = 0, goldCost = 0;
-    for (const [type, count] of Object.entries(army)) {
-      const info = TROOP_INFO[type as TroopType];
-      foodCost += info.foodUpkeep * count;
-      goldCost += info.goldUpkeep * count;
-    }
-
-    const taxFraction = allianceId ? allianceTaxRate / 100 : 0;
-    const taxedGrossGold = Math.floor(grossProduction.gold * (1 - taxFraction));
-    const taxedGrossWood = Math.floor(grossProduction.wood * (1 - taxFraction));
-    const taxedGrossStone = Math.floor(grossProduction.stone * (1 - taxFraction));
-    const taxedGrossFood = Math.floor(grossProduction.food * (1 - taxFraction));
-
-    return {
-      gold: taxedGrossGold - goldCost + popTaxIncome,
-      wood: taxedGrossWood,
-      stone: taxedGrossStone,
-      food: taxedGrossFood - foodCost - popFoodCost,
-    };
-  }, [grossProduction, army, popTaxIncome, popFoodCost, allianceId, allianceTaxRate]);
-
-  // Army upkeep
-  const armyUpkeep = useCallback(() => {
-    let foodCost = 0, goldCost = 0;
-    for (const [type, count] of Object.entries(army)) {
-      const info = TROOP_INFO[type as TroopType];
-      foodCost += info.foodUpkeep * count;
-      goldCost += info.goldUpkeep * count;
-    }
-    return { food: foodCost, gold: goldCost };
-  }, [army]);
-
-  // Refs for computed values (defined above) — keeps tick stable
-  const grossProductionRef = useRef(grossProduction);
-  grossProductionRef.current = grossProduction;
-  const popFoodCostRef = useRef(popFoodCost);
-  popFoodCostRef.current = popFoodCost;
-  const popTaxIncomeRef = useRef(popTaxIncome);
-  popTaxIncomeRef.current = popTaxIncome;
-  const happinessRef = useRef(happiness);
-  happinessRef.current = happiness;
-  const maxPopulationRef = useRef(maxPopulation);
-  maxPopulationRef.current = maxPopulation;
-  const resourcesRef = useRef(resources);
-  resourcesRef.current = resources;
-
-  // Storage capacity: base 2000 + 500 per level per warehouse building + 500 per village level
-  const storageCapacity = useMemo(() => {
-    const villageLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
-    const warehouseLevels = buildings.filter(b => b.type === 'warehouse').reduce((sum, b) => sum + b.level, 0);
-    return 2000 + (villageLevel - 1) * 500 + warehouseLevels * 500;
-  }, [buildings]);
+  // === PRODUCTION ===
+  const {
+    grossProduction, buildingSteelProduction, mineSteelPerTick,
+    steelProduction, totalProduction, armyUpkeep, storageCapacity,
+  } = useProduction({ buildings, workerAssignments, army, allianceId, allianceTaxRate, ownedMineIds, popFoodCost, popTaxIncome });
   const storageCapRef = useRef(storageCapacity);
   storageCapRef.current = storageCapacity;
 
