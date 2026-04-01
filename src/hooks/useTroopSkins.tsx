@@ -209,6 +209,7 @@ export function TroopSkinProvider({ children }: { children: ReactNode }) {
     samurai: 'hue-rotate(320deg) saturate(1.4) brightness(1.05)',
     undead: 'hue-rotate(100deg) saturate(1.5) brightness(0.8)',
     roman: 'hue-rotate(40deg) saturate(1.2) brightness(1.1)',
+    pirate: 'hue-rotate(200deg) saturate(1.3) brightness(1.0)',
   };
 
   const getSpriteFilter = useCallback((): string | undefined => {

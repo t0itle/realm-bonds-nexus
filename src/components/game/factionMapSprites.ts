@@ -55,6 +55,11 @@ export const FACTION_MAP_SPRITES: Record<string, TierSpriteMap> = {
     town: romanMapTown,
     city: romanMapCity,
   },
+  pirate: {
+    village: pirateMapVillage,
+    town: pirateMapTown,
+    city: pirateMapCity,
+  },
 };
 
 export const FACTION_SOLDIER_SPRITES: Record<string, string> = {
@@ -63,4 +68,5 @@ export const FACTION_SOLDIER_SPRITES: Record<string, string> = {
   samurai: samuraiMapSoldier,
   undead: undeadMapSoldier,
   roman: romanMapSoldier,
+  pirate: pirateMapSoldier,
 };
