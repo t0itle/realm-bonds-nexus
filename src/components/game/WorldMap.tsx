@@ -1510,6 +1510,14 @@ export default function WorldMap() {
 
   const [containerSize, setContainerSize] = useState({ w: 400, h: 600 });
 
+  // Cleanup rAF on unmount
+  useEffect(() => {
+    return () => {
+      if (panRafId.current) cancelAnimationFrame(panRafId.current);
+      if (zoomRafId.current) cancelAnimationFrame(zoomRafId.current);
+    };
+  }, []);
+
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
