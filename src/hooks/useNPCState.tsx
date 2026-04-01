@@ -219,6 +219,35 @@ export function useNPCState() {
     ) || null;
   }, [townRelations]);
 
+  // Deduct resources from NPC town stock after a trade
+  const deductNPCStock = useCallback(async (npcTownId: string, resource: string, amount: number) => {
+    const state = townStates.get(npcTownId);
+    if (!state) return;
+    const stockKey = `stock_${resource}` as keyof NPCTownState;
+    const current = (state[stockKey] as number) || 0;
+    const newVal = Math.max(0, current - amount);
+
+    await supabase.from('npc_town_state').update({
+      [stockKey]: newVal,
+      updated_at: new Date().toISOString(),
+    } as any).eq('npc_town_id', npcTownId);
+
+    setTownStates(prev => {
+      const next = new Map(prev);
+      const existing = next.get(npcTownId);
+      if (existing) {
+        next.set(npcTownId, { ...existing, [stockKey]: newVal });
+      }
+      return next;
+    });
+  }, [townStates]);
+
+  // Check if player has scouted this NPC (has intel report for it)
+  const hasScoutedNPC = useCallback((npcTownId: string): boolean => {
+    // Check intel_reports loaded in the game state — we'll track scouted NPCs here
+    return scoutedNPCs.has(npcTownId);
+  }, []);
+
   // Get total hired mercenary power
   const getMercenaryPower = useCallback(() => {
     const MERC_POWER: Record<string, number> = { militia: 5, archer: 8, knight: 15, cavalry: 14, siege: 25 };
@@ -245,5 +274,7 @@ export function useNPCState() {
     hireMercenaries,
     getTownRelation,
     getMercenaryPower,
+    deductNPCStock,
+    scoutedNPCs,
   };
 }
