@@ -811,7 +811,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     };
     loadData();
-  }, [user, refreshMineOutposts]);
+  }, [user]);
 
   // Initial load
   useEffect(() => {
