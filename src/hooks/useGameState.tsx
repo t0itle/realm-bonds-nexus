@@ -936,22 +936,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return { attack, defense };
   }, [army]);
 
-  const addResources = useCallback((r: Partial<Resources>) => {
-    setResources(prev => ({
-      gold: prev.gold + (r.gold || 0), wood: prev.wood + (r.wood || 0),
-      stone: prev.stone + (r.stone || 0), food: prev.food + (r.food || 0),
-    }));
-  }, []);
 
-  const addSteel = useCallback((amount: number) => {
-    setSteel(prev => {
-      const newVal = prev + amount;
-      if (villageId) {
-        supabase.from('villages').update({ steel: newVal } as any).eq('id', villageId).then();
-      }
-      return newVal;
-    });
-  }, [villageId]);
+
 
   useEffect(() => {
     if (!user || !villageId || mineSteelPerTick <= 0) return;
