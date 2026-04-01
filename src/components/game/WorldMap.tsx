@@ -3124,6 +3124,23 @@ export default function WorldMap() {
                           </motion.button>
                         </div>
                       )}
+                      {/* Troop Transfer (forts and settlements only) */}
+                      {(op.outpost_type === 'fort' || isSettlement) && (
+                        <TroopTransferPanel
+                          outpost={op as any}
+                          allOutposts={outposts as any}
+                          myVillagePos={getMyPos()}
+                          onTransferComplete={() => {
+                            // Refresh outposts
+                            supabase.from('outposts').select('*').then(({ data }) => {
+                              if (data) {
+                                setOutposts(data.map((o: any) => ({ id: o.id, x: o.x, y: o.y, name: o.name, user_id: o.user_id, level: o.level || 1, garrison_power: o.garrison_power || 0, garrison_troops: o.garrison_troops || {}, has_wall: o.has_wall || false, wall_level: o.wall_level || 0, territory_radius: o.territory_radius || 15000, outpost_type: o.outpost_type || 'outpost' })));
+                              }
+                            });
+                          }}
+                          createMarch={createMarch}
+                        />
+                      )}
                       {/* Delete Outpost (only for non-settlement outposts) */}
                       {!isSettlement && (
                         <div className="bg-destructive/10 rounded-lg p-2 space-y-1">
