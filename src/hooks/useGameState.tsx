@@ -190,10 +190,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
   rationsRef.current = rations;
   const popTaxRateRef = useRef(popTaxRate);
   popTaxRateRef.current = popTaxRate;
-  const allianceTaxRateRef = useRef(allianceTaxRate);
-  allianceTaxRateRef.current = allianceTaxRate;
-  const allianceIdRef = useRef(allianceId);
-  allianceIdRef.current = allianceId;
 
   // Wrap setRations and setPopTaxRate to immediately persist to DB
   const setRations = useCallback((r: RationsLevel) => {
