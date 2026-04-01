@@ -629,7 +629,7 @@ export default function WorldMap() {
   const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, resources, getWatchtowerLevel, getSpyGuildLevel, refreshVillages, myVillages } = useGame();
   const { user } = useAuth();
   const npcState = useNPCState();
-  const { getBuildingSprite, getSpriteFilter } = useTroopSkins();
+  const { activeSkin, getBuildingSprite, getSpriteFilter } = useTroopSkins();
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
   const [capturedMines, setCapturedMines] = useState<Set<string>>(new Set());
@@ -685,7 +685,10 @@ export default function WorldMap() {
 
   // Get TH level for dynamic sprite
   const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
+  const factionTownhall = getBuildingSprite('townhall');
   const getSettlementSprite = (thLevel: number, isMe: boolean) => {
+    // If the current player has a faction skin, use the faction townhall sprite
+    if (isMe && activeSkin.id !== 'default') return factionTownhall;
     if (thLevel >= 7) return isMe ? mapCastleFriendly : mapCastleNeutral;
     if (thLevel >= 5) return mapCastleNeutral;
     return mapVillage;
@@ -1818,7 +1821,7 @@ export default function WorldMap() {
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'outpost', data: outpost }); }}
             >
               <div className="relative">
-                <img src={mapVillage} alt={outpost.name} loading="lazy"
+                <img src={isOwn && activeSkin.id !== 'default' ? factionTownhall : mapVillage} alt={outpost.name} loading="lazy"
                   className={`drop-shadow-md ${isOwn ? 'brightness-90' : 'brightness-75 hue-rotate-180'}`}
                   style={{ width: opSize, height: opSize, objectFit: 'contain', filter: isOwn ? getSpriteFilter() : undefined }} />
                 <div className="absolute -inset-1 rounded-full pointer-events-none"
