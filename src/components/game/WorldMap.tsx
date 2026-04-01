@@ -169,7 +169,7 @@ function findPath(startX: number, startY: number, endX: number, endY: number, te
       
       const worldX = fromGrid(nx);
       const worldY = fromGrid(ny);
-      if (isCellBlocked(worldX, worldY, terrainFeatures)) continue;
+      if (isCellBlocked(worldX, worldY, terrainFeatures, bridgeOutpostPositions)) continue;
       
       const moveCost = dx !== 0 && dy !== 0 ? 1.414 : 1;
       const ng = current.g + moveCost;
