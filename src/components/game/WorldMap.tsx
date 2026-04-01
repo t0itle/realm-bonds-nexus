@@ -737,34 +737,30 @@ export default function WorldMap() {
     if (outpostBuildQueue.length === 0) return;
     const interval = setInterval(() => {
       const now = Date.now();
-      setOutpostBuildQueue(prev => {
-        const completed = prev.filter(q => q.finishTime <= now);
-        const remaining = prev.filter(q => q.finishTime > now);
-        if (completed.length > 0) {
-          for (const q of completed) {
-            if (q.action === 'upgrade') {
-              // Recalculate values from target level
-              const baseGarrison = (q.targetLevel - 1) * 20;
-              const baseRadius = 15000 + (q.targetLevel - 1) * 3000;
-              supabase.from('outposts').update({ level: q.targetLevel, garrison_power: baseGarrison, territory_radius: baseRadius } as any).eq('id', q.outpostId);
-              setOutposts(prev2 => prev2.map(o => o.id === q.outpostId ? { ...o, level: q.targetLevel, garrison_power: baseGarrison, territory_radius: baseRadius } : o));
-              toast.success(`🏕️ Outpost upgraded to Lv.${q.targetLevel}!`);
-            } else {
-              const wallGarrison = q.targetLevel * 30;
-              supabase.from('outposts').update({ has_wall: true, wall_level: q.targetLevel, garrison_power: wallGarrison } as any).eq('id', q.outpostId);
-              setOutposts(prev2 => prev2.map(o => o.id === q.outpostId ? { ...o, has_wall: true, wall_level: q.targetLevel, garrison_power: wallGarrison } : o));
-              toast.success(`🧱 Wall ${q.targetLevel > 1 ? 'upgraded' : 'built'}!`);
-            }
+      const completed = outpostBuildQueue.filter(q => q.finishTime <= now);
+      const remaining = outpostBuildQueue.filter(q => q.finishTime > now);
+      if (completed.length > 0) {
+        setOutpostBuildQueue(remaining);
+        for (const q of completed) {
+          if (q.action === 'upgrade') {
+            const baseGarrison = (q.targetLevel - 1) * 20;
+            const baseRadius = 15000 + (q.targetLevel - 1) * 3000;
+            supabase.from('outposts').update({ level: q.targetLevel, garrison_power: baseGarrison, territory_radius: baseRadius } as any).eq('id', q.outpostId).then();
+            setOutposts(prev2 => prev2.map(o => o.id === q.outpostId ? { ...o, level: q.targetLevel, garrison_power: baseGarrison, territory_radius: baseRadius } : o));
+            toast.success(`🏕️ Outpost upgraded to Lv.${q.targetLevel}!`);
+          } else {
+            const wallGarrison = q.targetLevel * 30;
+            supabase.from('outposts').update({ has_wall: true, wall_level: q.targetLevel, garrison_power: wallGarrison } as any).eq('id', q.outpostId).then();
+            setOutposts(prev2 => prev2.map(o => o.id === q.outpostId ? { ...o, has_wall: true, wall_level: q.targetLevel, garrison_power: wallGarrison } : o));
+            toast.success(`🧱 Wall ${q.targetLevel > 1 ? 'upgraded' : 'built'}!`);
           }
-          // Clean up completed entries from DB
-          supabase.from('build_queue').delete()
-            .eq('user_id', user?.id ?? '')
-            .in('building_type', ['outpost_upgrade', 'outpost_wall'])
-            .lte('finish_time', new Date(now).toISOString())
-            .then();
         }
-        return remaining;
-      });
+        supabase.from('build_queue').delete()
+          .eq('user_id', user?.id ?? '')
+          .in('building_type', ['outpost_upgrade', 'outpost_wall'])
+          .lte('finish_time', new Date(now).toISOString())
+          .then();
+      }
     }, 1000);
     return () => clearInterval(interval);
   }, [outpostBuildQueue.length, user?.id]);
