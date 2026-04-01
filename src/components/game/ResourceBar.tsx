@@ -121,18 +121,6 @@ export default function ResourceBar() {
           <span className="text-muted-foreground flex items-center gap-0.5">
             <ResourceIcon type="steel" size={10} /> Steel: <strong className="text-foreground">{steel}</strong>{steelProduction > 0 && <span className="text-primary"> +{steelProduction}/min</span>}
           </span>
-          <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className={`flex items-center gap-0.5 cursor-default ${population.happiness >= 67 ? 'text-emerald-500' : population.happiness >= 33 ? 'text-amber-500' : 'text-destructive'}`}>
-                  {population.happiness >= 67 ? '😊' : population.happiness >= 33 ? '😐' : '😞'}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="text-xs">
-                Happiness: {population.happiness}%
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
           <button
             onClick={() => setShowCaravan(prev => !prev)}
             className={`flex items-center gap-0.5 active:scale-95 transition-transform ${storageNearFull ? 'text-destructive font-bold' : 'text-muted-foreground'}`}
@@ -142,6 +130,21 @@ export default function ResourceBar() {
           <span className="text-muted-foreground flex items-center gap-0.5">
             <ResourceIcon type="population" size={10} /> {population.current}/{population.max}
           </span>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="flex items-center gap-0.5 cursor-default">
+                  <img src={happinessSprite} alt="Happiness" width={14} height={14} className="pixelated" />
+                  <strong className={`tabular-nums ${population.happiness >= 66 ? 'text-emerald-500' : population.happiness >= 33 ? 'text-amber-500' : 'text-destructive'}`}>
+                    {population.happiness}
+                  </strong>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs max-w-[200px]">
+                Happiness: {population.happiness}/100 — Affects population growth and rebellion risk. Build Temples and adjust Rations to improve it.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
       <AnimatePresence>
