@@ -479,7 +479,7 @@ interface ProceduralWorldBoss extends ProceduralEvent {
   weekSeed: number;
 }
 
-function getWorldBoss(): ProceduralWorldBoss {
+function getWorldBoss(strongestPlayerPower = 0): ProceduralWorldBoss {
   const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
   const weekSeed = Math.floor(Date.now() / WEEK_MS);
   const daysAlive = Math.floor((Date.now() % WEEK_MS) / (24 * 60 * 60 * 1000));
@@ -496,18 +496,25 @@ function getWorldBoss(): ProceduralWorldBoss {
   const bossX = spawnCX * CHUNK_SIZE + CHUNK_SIZE * 0.3 + rng() * CHUNK_SIZE * 0.4;
   const bossY = spawnCY * CHUNK_SIZE + CHUNK_SIZE * 0.3 + rng() * CHUNK_SIZE * 0.4;
 
-  const powerScale = 1 + boss.growthRate * daysAlive;
-  const scaledPower = Math.floor(boss.basePower * powerScale);
+  const timeScale = 1 + boss.growthRate * daysAlive;
+
+  // Scale boss to be 1.5x stronger than the strongest player's army
+  const playerScaleFactor = strongestPlayerPower > 0
+    ? Math.max(1, (strongestPlayerPower * 1.5) / boss.basePower)
+    : 1;
+  const finalScale = timeScale * playerScaleFactor;
+
+  const scaledPower = Math.floor(boss.basePower * finalScale);
 
   const troops = boss.troops.map(t => ({
     name: t.name,
     tier: t.tier,
-    count: Math.floor(t.baseCount * (1 + 0.1 * daysAlive)),
+    count: Math.floor(t.baseCount * finalScale),
     attack: t.attack,
     defense: t.defense,
   }));
 
-  const rewardBase = boss.rewardMultiplier * powerScale;
+  const rewardBase = boss.rewardMultiplier * finalScale;
 
   return {
     id: `worldboss-${weekSeed}`,
