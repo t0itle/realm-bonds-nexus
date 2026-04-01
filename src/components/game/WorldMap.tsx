@@ -1784,9 +1784,8 @@ export default function WorldMap() {
           <rect width="100%" height="100%" fill="hsl(220 15% 18% / 0.4)" mask="url(#fog-mask)" filter="url(#fog-clouds)" />
         </svg>
 
-        {/* ── Unified Territory borders (merged per owner) + Wall segments ── */}
+        {/* ── Unified Territory borders + Explicit Wall segments ── */}
         {(() => {
-          const WALL_CONNECT_DIST = 50000; // max world-unit distance for wall segments
           // Group outposts by owner
           const ownerGroups = new Map<string, typeof outposts>();
           for (const op of outposts) {
@@ -1802,14 +1801,13 @@ export default function WorldMap() {
             const borderColor = isOwn ? 'hsl(var(--primary))' : 'hsl(var(--destructive))';
             const fillColor = isOwn ? 'hsl(var(--primary) / 0.06)' : 'hsl(var(--destructive) / 0.04)';
 
-            // Calculate bounding box
             let minSx = Infinity, minSy = Infinity, maxSx = -Infinity, maxSy = -Infinity;
-            const screenData: { cx: number; cy: number; r: number; hasWall: boolean; op: typeof ops[0] }[] = [];
+            const screenData: { cx: number; cy: number; r: number; op: typeof ops[0] }[] = [];
             for (const op of ops) {
               const { sx, sy } = worldToScreen(op.x, op.y);
               const r = op.territory_radius * camera.ppu;
               if (r < 10) continue;
-              screenData.push({ cx: sx, cy: sy, r, hasWall: op.has_wall, op });
+              screenData.push({ cx: sx, cy: sy, r, op });
               minSx = Math.min(minSx, sx - r - 10);
               minSy = Math.min(minSy, sy - r - 10);
               maxSx = Math.max(maxSx, sx + r + 10);
@@ -1821,20 +1819,19 @@ export default function WorldMap() {
             const svgH = maxSy - minSy;
             if (svgW <= 0 || svgH <= 0) return;
 
-            // Find wall segments: pairs of walled outposts within connection distance
-            const wallSegments: { x1: number; y1: number; x2: number; y2: number; avgLevel: number }[] = [];
-            const walledOps = screenData.filter(d => d.hasWall);
-            for (let i = 0; i < walledOps.length; i++) {
-              for (let j = i + 1; j < walledOps.length; j++) {
-                const a = walledOps[i], b = walledOps[j];
-                const worldDist = Math.hypot(a.op.x - b.op.x, a.op.y - b.op.y);
-                if (worldDist <= WALL_CONNECT_DIST) {
-                  wallSegments.push({
-                    x1: a.cx - minSx, y1: a.cy - minSy,
-                    x2: b.cx - minSx, y2: b.cy - minSy,
-                    avgLevel: Math.floor((a.op.wall_level + b.op.wall_level) / 2),
-                  });
-                }
+            // Get explicit wall segments for this owner from DB
+            const ownerWallSegs = wallSegments.filter(ws => ws.user_id === ownerId);
+            const opMap = new Map(screenData.map(d => [d.op.id, d]));
+            const renderedSegments: { x1: number; y1: number; x2: number; y2: number; level: number; health: number; maxHealth: number; id: string }[] = [];
+            for (const ws of ownerWallSegs) {
+              const a = opMap.get(ws.outpost_a_id);
+              const b = opMap.get(ws.outpost_b_id);
+              if (a && b) {
+                renderedSegments.push({
+                  x1: a.cx - minSx, y1: a.cy - minSy,
+                  x2: b.cx - minSx, y2: b.cy - minSy,
+                  level: ws.wall_level, health: ws.health, maxHealth: ws.max_health, id: ws.id,
+                });
               }
             }
 
@@ -1850,73 +1847,64 @@ export default function WorldMap() {
                     ))}
                   </clipPath>
                 </defs>
-                {/* Filled unified territory */}
                 <rect x="0" y="0" width={svgW} height={svgH}
-                  clipPath={`url(#clip-territory-${ownerId})`}
-                  fill={fillColor} />
-                {/* Territory border circles (always dashed, light) */}
+                  clipPath={`url(#clip-territory-${ownerId})`} fill={fillColor} />
                 {screenData.map((c, i) => (
-                  <circle key={`border-${i}`}
-                    cx={c.cx - minSx} cy={c.cy - minSy} r={c.r}
-                    fill="none"
-                    stroke={borderColor}
-                    strokeWidth={1}
-                    strokeDasharray="6 4"
-                    opacity={0.3}
-                  />
+                  <circle key={`border-${i}`} cx={c.cx - minSx} cy={c.cy - minSy} r={c.r}
+                    fill="none" stroke={borderColor} strokeWidth={1}
+                    strokeDasharray="6 4" opacity={0.3} />
                 ))}
-                {/* Wall segments connecting walled outposts */}
-                {wallSegments.map((seg, i) => {
-                  const thickness = Math.max(2.5, Math.min(6, seg.avgLevel * 1.5 + 2));
+                {/* Explicit wall segments */}
+                {renderedSegments.map((seg) => {
+                  const thickness = Math.max(2.5, Math.min(6, seg.level * 1.5 + 2));
+                  const healthPct = seg.health / seg.maxHealth;
+                  const wallOpacity = healthPct > 0.5 ? 0.7 : healthPct > 0.2 ? 0.45 : 0.25;
+                  const damaged = healthPct < 1;
                   return (
-                    <g key={`wall-seg-${i}`}>
-                      {/* Outer wall line (stone color) */}
+                    <g key={`wall-seg-${seg.id}`}>
                       <line x1={seg.x1} y1={seg.y1} x2={seg.x2} y2={seg.y2}
-                        stroke={borderColor} strokeWidth={thickness + 2} opacity={0.25}
-                        strokeLinecap="round" />
-                      {/* Main wall line */}
+                        stroke={borderColor} strokeWidth={thickness + 2} opacity={0.15} strokeLinecap="round" />
                       <line x1={seg.x1} y1={seg.y1} x2={seg.x2} y2={seg.y2}
-                        stroke={borderColor} strokeWidth={thickness} opacity={0.7}
-                        strokeLinecap="round" />
-                      {/* Crenellation pattern (small rectangles along wall) */}
+                        stroke={borderColor} strokeWidth={thickness} opacity={wallOpacity}
+                        strokeLinecap="round" strokeDasharray={damaged ? '8 3' : 'none'} />
                       {(() => {
-                        const dx = seg.x2 - seg.x1;
-                        const dy = seg.y2 - seg.y1;
+                        const dx = seg.x2 - seg.x1, dy = seg.y2 - seg.y1;
                         const len = Math.hypot(dx, dy);
                         if (len < 20) return null;
                         const count = Math.floor(len / 12);
-                        const nx = -dy / len; // normal
-                        const ny = dx / len;
+                        const nx = -dy / len, ny = dx / len;
                         const dots: React.ReactNode[] = [];
-                        for (let t = 0; t < count; t++) {
+                        for (let t = 0; t < count; t += 2) {
                           const frac = (t + 0.5) / count;
-                          const px = seg.x1 + dx * frac;
-                          const py = seg.y1 + dy * frac;
-                          if (t % 2 === 0) {
-                            dots.push(
-                              <rect key={t}
-                                x={px + nx * (thickness * 0.5) - 1.5}
-                                y={py + ny * (thickness * 0.5) - 1.5}
-                                width={3} height={3}
-                                fill={borderColor} opacity={0.5}
-                              />
-                            );
-                          }
+                          dots.push(<rect key={t}
+                            x={seg.x1 + dx * frac + nx * (thickness * 0.5) - 1.5}
+                            y={seg.y1 + dy * frac + ny * (thickness * 0.5) - 1.5}
+                            width={3} height={3} fill={borderColor} opacity={wallOpacity * 0.7} />);
                         }
                         return dots;
+                      })()}
+                      {damaged && (() => {
+                        const mx = (seg.x1 + seg.x2) / 2, my = (seg.y1 + seg.y2) / 2, barW = 20;
+                        return (<g>
+                          <rect x={mx - barW / 2} y={my - 6} width={barW} height={3} fill="hsl(var(--muted))" rx={1} opacity={0.8} />
+                          <rect x={mx - barW / 2} y={my - 6} width={barW * healthPct} height={3}
+                            fill={healthPct > 0.5 ? 'hsl(var(--primary))' : 'hsl(var(--destructive))'} rx={1} opacity={0.9} />
+                        </g>);
                       })()}
                     </g>
                   );
                 })}
-                {/* Walled outpost nodes (fortification dots) */}
-                {walledOps.map((c, i) => (
-                  <g key={`wall-node-${i}`}>
-                    <circle cx={c.cx - minSx} cy={c.cy - minSy} r={6}
-                      fill={borderColor} opacity={0.5} />
-                    <circle cx={c.cx - minSx} cy={c.cy - minSy} r={4}
-                      fill={fillColor} stroke={borderColor} strokeWidth={1.5} opacity={0.8} />
-                  </g>
-                ))}
+                {/* Wall node markers */}
+                {(() => {
+                  const connectedIds = new Set<string>();
+                  for (const ws of ownerWallSegs) { connectedIds.add(ws.outpost_a_id); connectedIds.add(ws.outpost_b_id); }
+                  return screenData.filter(d => connectedIds.has(d.op.id)).map((c, i) => (
+                    <g key={`wall-node-${i}`}>
+                      <circle cx={c.cx - minSx} cy={c.cy - minSy} r={6} fill={borderColor} opacity={0.5} />
+                      <circle cx={c.cx - minSx} cy={c.cy - minSy} r={4} fill={fillColor} stroke={borderColor} strokeWidth={1.5} opacity={0.8} />
+                    </g>
+                  ));
+                })()}
               </svg>
             );
           });
