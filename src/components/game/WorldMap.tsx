@@ -1157,13 +1157,17 @@ export default function WorldMap() {
       });
   }, [user, worldBoss.weekSeed]);
 
-  // ── World Boss daily raid logic ──
+  // ── World Boss weekly raid logic (Fridays only) ──
   useEffect(() => {
     if (!user || worldBossDefeated) return;
-    const DAY_MS = 24 * 60 * 60 * 1000;
-    const daySeed = Math.floor(Date.now() / DAY_MS);
-    const raidKey = `worldboss-raid-${daySeed}`;
-    if (sessionStorage.getItem(raidKey)) return;
+
+    // Only raid on Fridays (day 5)
+    const now = new Date();
+    if (now.getUTCDay() !== 5) return;
+
+    const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+    const weekKey = `worldboss-raid-${Math.floor(Date.now() / WEEK_MS)}`;
+    if (sessionStorage.getItem(weekKey)) return;
 
     const bossRange = CHUNK_SIZE * 5;
     const nearbyVillages = allVillages.filter(v => {
@@ -1180,21 +1184,33 @@ export default function WorldMap() {
       const armyPower = (vil.army_militia || 0) + (vil.army_archer || 0) * 2 + (vil.army_knight || 0) * 4
         + (vil.army_cavalry || 0) * 5 + (vil.army_siege || 0) * 6 + (vil.army_scout || 0);
       const totalRes = Number(vil.gold || 0) + Number(vil.wood || 0) + Number(vil.stone || 0);
-      // Weighted score: vassals most important, then army, then resources
       const score = vassalCount * 100000 + armyPower * 100 + totalRes;
       return { v, score, userId: vil.user_id as string };
     }).sort((a, b) => b.score - a.score);
 
     const target = scored[0].v;
     const targetUserId = scored[0].userId;
-    const raidRng = seededRandom(daySeed * 7919 + worldBoss.weekSeed);
-    if (raidRng() > 0.5) { sessionStorage.setItem(raidKey, '1'); return; }
+    const raidRng = seededRandom(worldBoss.weekSeed * 7919);
+    if (raidRng() > 0.5) { sessionStorage.setItem(weekKey, '1'); return; }
 
     const raidArmy: Record<string, number> = {};
     worldBoss.troops.forEach(t => { raidArmy[t.name] = Math.floor(t.count * 0.3); });
 
     const arrivalSec = 120 + Math.floor(raidRng() * 180);
     const arrivesAt = new Date(Date.now() + arrivalSec * 1000).toISOString();
+
+    // Boss-specific warning notification
+    const bossWarnings: Record<string, string> = {
+      "Necromancer's Tower": "☠️ An army of the dead has been seen marching your way...",
+      "Demonic Portal": "🌀 A horde of otherworldly horrors has been spotted stampeding in your direction...",
+      "Dreadkeep": "🧛 A pale host has been seen parading under the moonlight toward your city...",
+    };
+    const warningMsg = bossWarnings[worldBoss.name] || `${worldBoss.emoji} ${worldBoss.name} is sending an army your way!`;
+
+    // Show warning to the targeted player
+    if (targetUserId === user.id) {
+      toast.warning(warningMsg, { duration: 15000 });
+    }
 
     supabase.from('active_marches').insert({
       user_id: '00000000-0000-0000-0000-000000000000',
@@ -1207,7 +1223,7 @@ export default function WorldMap() {
       march_type: 'attack',
       sent_army: raidArmy,
     } as any).then(() => {
-      sessionStorage.setItem(raidKey, '1');
+      sessionStorage.setItem(weekKey, '1');
     });
 
     // Schedule resource theft on arrival: steal 1 week of production (gold, wood, stone — NOT food)
