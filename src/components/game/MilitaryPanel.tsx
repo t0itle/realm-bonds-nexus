@@ -226,6 +226,45 @@ export default function MilitaryPanel() {
             })}
           </div>
 
+          {/* Disband troops */}
+          {Object.values(army).some(v => v > 0) && (
+            <div className="space-y-2">
+              <h3 className="font-display text-sm text-foreground">Disband Troops</h3>
+              <p className="text-[10px] text-muted-foreground">Dismiss soldiers back to civilian life. No resources refunded.</p>
+              {TROOP_TYPES.filter(type => army[type] > 0).map(type => {
+                const info = TROOP_INFO[type];
+                const count = Math.min(disbandCount[type], army[type]);
+                const popReturn = info.popCost * count;
+                return (
+                  <div key={type} className="game-panel rounded-xl p-2.5 border border-destructive/20">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{getTroopDisplay(type).emoji}</span>
+                      <span className="font-display text-xs text-foreground flex-1">{getTroopDisplay(type).name} <span className="text-muted-foreground">({army[type]})</span></span>
+                      <div className="flex items-center gap-1">
+                        <motion.button whileTap={{ scale: 0.9 }}
+                          onClick={() => setDisbandCount(p => ({ ...p, [type]: Math.max(1, p[type] - 1) }))}
+                          className="w-5 h-5 rounded bg-muted text-foreground text-[10px] flex items-center justify-center">−</motion.button>
+                        <span className="text-[10px] text-foreground w-5 text-center font-bold">{count}</span>
+                        <motion.button whileTap={{ scale: 0.9 }}
+                          onClick={() => setDisbandCount(p => ({ ...p, [type]: Math.min(army[type], p[type] + 1) }))}
+                          className="w-5 h-5 rounded bg-muted text-foreground text-[10px] flex items-center justify-center">+</motion.button>
+                        <motion.button whileTap={{ scale: 0.9 }}
+                          onClick={() => setDisbandCount(p => ({ ...p, [type]: army[type] }))}
+                          className="text-[8px] text-muted-foreground px-1">All</motion.button>
+                      </div>
+                      <motion.button whileTap={{ scale: 0.95 }}
+                        onClick={() => { if (disbandTroops(type, count)) setDisbandCount(p => ({ ...p, [type]: 1 })); }}
+                        className="font-display text-[10px] py-1 px-2.5 rounded-lg bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors">
+                        Disband
+                      </motion.button>
+                    </div>
+                    <p className="text-[9px] text-muted-foreground mt-1">→ +{popReturn} civilian{popReturn !== 1 ? 's' : ''}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {/* Vassal status */}
           <VassalPanel />
 
