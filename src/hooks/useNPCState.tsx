@@ -25,6 +25,12 @@ export interface NPCTownState {
   available_mercenaries: Record<string, number>;
   last_action: string | null;
   last_action_at: string | null;
+  // Finite trade resources
+  stock_gold: number;
+  stock_wood: number;
+  stock_stone: number;
+  stock_food: number;
+  stock_steel: number;
 }
 
 export interface MercenaryContract {
