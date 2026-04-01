@@ -887,7 +887,7 @@ export default function WorldMap() {
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
   const [capturedMines, setCapturedMines] = useState<Set<string>>(new Set());
-  const [outposts, setOutposts] = useState<{ id: string; x: number; y: number; name: string; user_id: string; level: number; garrison_power: number; has_wall: boolean; wall_level: number; territory_radius: number; outpost_type: string }[]>([]);
+  const [outposts, setOutposts] = useState<{ id: string; x: number; y: number; name: string; user_id: string; level: number; garrison_power: number; garrison_troops: Partial<Record<string, number>>; has_wall: boolean; wall_level: number; territory_radius: number; outpost_type: string }[]>([]);
   const [wallSegments, setWallSegments] = useState<{ id: string; user_id: string; outpost_a_id: string; outpost_b_id: string; wall_level: number; health: number; max_health: number }[]>([]);
   const [outpostBuildQueue, setOutpostBuildQueue] = useState<{ outpostId: string; action: 'upgrade' | 'wall'; finishTime: number; targetLevel: number; newGarrison: number; newRadius?: number; targetOutpostId?: string }[]>([]);
   const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; startTime: number; startX: number; startY: number; targetX: number; targetY: number; waypoints: { x: number; y: number }[]; action: () => void; sentArmy?: Partial<Record<string, number>> }[]>([]);
