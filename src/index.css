@@ -171,6 +171,20 @@
     image-rendering: pixelated;
   }
 
+  .parchment-panel {
+    background: 
+      linear-gradient(180deg, hsl(38 40% 85% / 0.92) 0%, hsl(38 30% 78% / 0.95) 100%),
+      url('/ui/wood-grain.png');
+    background-size: cover, cover;
+    background-position: center, center;
+    image-rendering: pixelated;
+    color: hsl(25 40% 18%);
+    border: 1px solid hsl(35 30% 55%);
+  }
+  .parchment-panel .text-foreground { color: hsl(25 40% 18%); }
+  .parchment-panel .text-muted-foreground { color: hsl(25 25% 38%); }
+  .parchment-panel .text-primary { color: hsl(25 60% 30%); }
+
   .wood-btn {
     background: url('/ui/wood-btn-dark.png') center / 100% 100% no-repeat;
     image-rendering: pixelated;
