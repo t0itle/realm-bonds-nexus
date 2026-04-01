@@ -745,7 +745,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       // Upgrade complete
       const upgrade = SETTLEMENT_UPGRADES[settlementType];
       if (upgrade) {
-        const newType = upgrade.next;
+        const newType = upgrade.next as 'village' | 'town' | 'city';
         setSettlementType(newType);
         settlementTypeRef.current = newType;
         setSettlementUpgradeFinishTime(null);
