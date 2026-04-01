@@ -25,7 +25,7 @@ export default function AttackConfigPanel({
   targetName, targetPower, travelTime,
   onConfirmAttack, onConfirmEspionage, onCancel, showEspionage = true,
 }: AttackConfigPanelProps) {
-  const { army, spies, resources } = useGame();
+  const { army, spies, resources, intelReports } = useGame();
   const [mode, setMode] = useState<'attack' | 'espionage'>('attack');
   const [troopCounts, setTroopCounts] = useState<Record<TroopType, number>>(() => {
     const init: Record<TroopType, number> = { militia: 0, archer: 0, knight: 0, cavalry: 0, siege: 0, scout: 0 };
