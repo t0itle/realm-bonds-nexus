@@ -1461,7 +1461,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [buildings]);
 
   const attackTarget = useCallback((targetName: string, targetPower: number, sentArmy?: Partial<Army>) => {
-    // Use sent army or full army
+    // Troops were already deployed (subtracted) when the march started.
+    // sentArmy represents the troops that marched — resolve combat with them.
     const attackingArmy: Army = sentArmy ? {
       militia: sentArmy.militia ?? 0, archer: sentArmy.archer ?? 0, knight: sentArmy.knight ?? 0,
       cavalry: sentArmy.cavalry ?? 0, siege: sentArmy.siege ?? 0, scout: sentArmy.scout ?? 0,
@@ -1476,22 +1477,24 @@ export function GameProvider({ children }: { children: ReactNode }) {
     };
     const result = resolveCombat(attackingArmy, fakeDefenderArmy, 0, Math.floor(targetPower / 50));
     
-    // Subtract losses from the FULL army (only sent troops can be lost)
-    const newArmy = { ...army };
+    // Calculate survivors from the sent army and return them to village
+    const survivors: Partial<Army> = {};
     let popLost = 0;
     const apothLvl = getApothecaryLevel();
     const injuryRate = apothLvl > 0 ? Math.min(0.6, 0.2 + apothLvl * 0.08) : 0;
     const newInjured: Partial<Army> = {};
-    for (const [type, lost] of Object.entries(result.attackerLosses) as [TroopType, number][]) {
-      const actualLost = Math.min(lost, attackingArmy[type] || 0);
-      const injured = Math.floor(actualLost * injuryRate);
-      const dead = actualLost - injured;
-      newArmy[type] = Math.max(0, (newArmy[type] || 0) - actualLost);
+    for (const type of Object.keys(attackingArmy) as TroopType[]) {
+      const sent = attackingArmy[type] || 0;
+      const lost = Math.min(result.attackerLosses[type] || 0, sent);
+      const injured = Math.floor(lost * injuryRate);
+      const dead = lost - injured;
+      const surviving = sent - lost;
+      if (surviving > 0) survivors[type] = surviving;
       if (injured > 0) newInjured[type] = injured;
       popLost += TROOP_INFO[type].popCost * dead;
     }
-    setArmy(newArmy);
-    persistArmyToVillage(newArmy);
+    // Return surviving troops to village
+    if (Object.values(survivors).some(v => v && v > 0)) returnTroops(survivors);
     if (Object.keys(newInjured).length > 0) setInjuredTroops(prev => {
       const u = { ...prev };
       for (const [t, c] of Object.entries(newInjured) as [TroopType, number][]) u[t] += c;
@@ -1514,7 +1517,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     };
     setBattleLogs(prev => [log, ...prev].slice(0, 20));
     return log;
-  }, [army, addResources, persistArmyToVillage]);
+  }, [army, addResources, returnTroops]);
 
   // PvP attack against another player
   const attackPlayer = useCallback(async (targetUserId: string, targetName: string, targetVillageId: string, sentArmy?: Partial<Army>): Promise<BattleLog | null> => {
