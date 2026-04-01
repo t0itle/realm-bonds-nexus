@@ -432,6 +432,71 @@ export default function VillageGrid() {
           />
         )}
       </AnimatePresence>
+
+      {/* Worker assignment popup */}
+      <AnimatePresence>
+        {workerBuilding && workerBuilding.type !== 'empty' && (() => {
+          const wType = workerBuilding.type as Exclude<BuildingType, 'empty'>;
+          const wInfo = BUILDING_INFO[wType];
+          const maxW = getMaxWorkers(workerBuilding);
+          const assigned = workerAssignments[workerBuilding.id] || 0;
+          return (
+            <motion.div
+              key="worker-popup"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-6"
+              onClick={() => setWorkerBuilding(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.85, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.85, opacity: 0 }}
+                onClick={e => e.stopPropagation()}
+                className="game-panel border border-primary/30 rounded-2xl p-4 max-w-xs w-full space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <h4 className="font-display text-sm text-foreground">👷 Workers — {wInfo.name}</h4>
+                  <button onClick={() => setWorkerBuilding(null)} className="text-muted-foreground text-xs hover:text-foreground">✕</button>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Each worker boosts production by 35%. Max {maxW} workers at Lv.{workerBuilding.level}.
+                </p>
+                <div className="flex items-center justify-center gap-4">
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      if (unassignWorker(workerBuilding.id)) forceUpdate(v => v + 1);
+                    }}
+                    disabled={assigned <= 0}
+                    className={`w-10 h-10 rounded-xl font-display text-lg flex items-center justify-center ${
+                      assigned > 0 ? 'bg-destructive/20 text-destructive hover:bg-destructive/30' : 'bg-muted text-muted-foreground'
+                    }`}
+                  >−</motion.button>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-foreground">{assigned}</p>
+                    <p className="text-[9px] text-muted-foreground">/ {maxW}</p>
+                  </div>
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      if (assignWorker(workerBuilding.id)) forceUpdate(v => v + 1);
+                    }}
+                    disabled={assigned >= maxW || population.civilians <= 0}
+                    className={`w-10 h-10 rounded-xl font-display text-lg flex items-center justify-center ${
+                      assigned < maxW && population.civilians > 0 ? 'bg-primary/20 text-primary hover:bg-primary/30' : 'bg-muted text-muted-foreground'
+                    }`}
+                  >+</motion.button>
+                </div>
+                <p className="text-[9px] text-center text-muted-foreground">
+                  {population.civilians} civilians available
+                </p>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
     </>
   );
 }
