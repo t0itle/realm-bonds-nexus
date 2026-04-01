@@ -406,6 +406,133 @@ const EVENT_BASES = [
   { names: ['Floating Island', 'Sky Ruin', 'Levitating Sanctuary', 'Cloud Fortress', 'Aerial Temple'], descs: ['drifts silently overhead', 'defies all known laws of nature', 'casts a vast shadow below', 'is accessible only by magic or flight', 'holds treasures from the Age of Wonders'], emoji: '🏝️', type: 'mystery' as const, basePower: 85 },
 ];
 
+// ── World Boss definitions ──
+interface WorldBossTroop {
+  name: string;
+  tier: 'weak' | 'average' | 'elite';
+  attack: number;
+  defense: number;
+  baseCount: number;
+}
+
+interface WorldBossBase {
+  name: string;
+  emoji: string;
+  description: string;
+  lore: string;
+  troops: WorldBossTroop[];
+  basePower: number;
+  growthRate: number; // power multiplier per day
+  rewardMultiplier: number;
+}
+
+const WORLD_BOSS_BASES: WorldBossBase[] = [
+  {
+    name: "Necromancer's Tower",
+    emoji: '🏚️',
+    description: 'A dark spire crackling with necrotic energy, surrounded by shambling hordes of the undead.',
+    lore: 'The Necromancer within has been raising armies for centuries, and now turns their gaze upon the living.',
+    troops: [
+      { name: 'Skeletons', tier: 'weak', attack: 3, defense: 2, baseCount: 80 },
+      { name: 'Zombies', tier: 'average', attack: 6, defense: 8, baseCount: 40 },
+      { name: 'Death Knights', tier: 'elite', attack: 18, defense: 15, baseCount: 10 },
+    ],
+    basePower: 600,
+    growthRate: 0.15,
+    rewardMultiplier: 6,
+  },
+  {
+    name: 'Demonic Portal',
+    emoji: '🌀',
+    description: 'A tear through reality into a hellish dimension of fire and brimstone. Demons pour through endlessly.',
+    lore: 'An ancient seal has been broken. The barrier between worlds grows thinner by the day.',
+    troops: [
+      { name: 'Imps', tier: 'weak', attack: 4, defense: 1, baseCount: 100 },
+      { name: 'Succubi', tier: 'average', attack: 8, defense: 5, baseCount: 35 },
+      { name: 'Demon Warriors', tier: 'elite', attack: 20, defense: 18, baseCount: 8 },
+    ],
+    basePower: 700,
+    growthRate: 0.15,
+    rewardMultiplier: 7,
+  },
+  {
+    name: 'Dreadkeep',
+    emoji: '🧛',
+    description: "A Vampire Lord's fortress, shrouded in eternal twilight. Blood-crazed thralls patrol the grounds.",
+    lore: 'Lord Nosferatu has awakened from his millennia-long slumber, and the land withers in his shadow.',
+    troops: [
+      { name: 'Thralls', tier: 'weak', attack: 3, defense: 3, baseCount: 70 },
+      { name: 'Blood Knights', tier: 'average', attack: 10, defense: 9, baseCount: 30 },
+      { name: 'Nosferatus', tier: 'elite', attack: 22, defense: 20, baseCount: 6 },
+    ],
+    basePower: 800,
+    growthRate: 0.15,
+    rewardMultiplier: 8,
+  },
+];
+
+interface ProceduralWorldBoss extends ProceduralEvent {
+  bossType: number; // index into WORLD_BOSS_BASES
+  troops: { name: string; tier: string; count: number; attack: number; defense: number }[];
+  daysAlive: number;
+  scaledPower: number;
+  weekSeed: number;
+}
+
+function getWorldBoss(): ProceduralWorldBoss {
+  const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+  const weekSeed = Math.floor(Date.now() / WEEK_MS);
+  const daysAlive = Math.floor((Date.now() % WEEK_MS) / (24 * 60 * 60 * 1000));
+  const rng = seededRandom(weekSeed * 9973);
+
+  const bossIdx = Math.floor(rng() * WORLD_BOSS_BASES.length);
+  const boss = WORLD_BOSS_BASES[bossIdx];
+
+  // Deterministic position: spawn in chunks 2-8 from origin
+  const chunkDist = 2 + Math.floor(rng() * 7);
+  const angle = rng() * Math.PI * 2;
+  const spawnCX = Math.round(Math.cos(angle) * chunkDist);
+  const spawnCY = Math.round(Math.sin(angle) * chunkDist);
+  const bossX = spawnCX * CHUNK_SIZE + CHUNK_SIZE * 0.3 + rng() * CHUNK_SIZE * 0.4;
+  const bossY = spawnCY * CHUNK_SIZE + CHUNK_SIZE * 0.3 + rng() * CHUNK_SIZE * 0.4;
+
+  const powerScale = 1 + boss.growthRate * daysAlive;
+  const scaledPower = Math.floor(boss.basePower * powerScale);
+
+  const troops = boss.troops.map(t => ({
+    name: t.name,
+    tier: t.tier,
+    count: Math.floor(t.baseCount * (1 + 0.1 * daysAlive)),
+    attack: t.attack,
+    defense: t.defense,
+  }));
+
+  const rewardBase = boss.rewardMultiplier * powerScale;
+
+  return {
+    id: `worldboss-${weekSeed}`,
+    name: boss.name,
+    description: boss.description,
+    emoji: boss.emoji,
+    x: bossX,
+    y: bossY,
+    type: 'danger',
+    power: scaledPower,
+    reward: {
+      gold: Math.floor(2000 + rng() * 3000 * rewardBase / 6),
+      wood: Math.floor(1000 + rng() * 2000 * rewardBase / 6),
+      stone: Math.floor(1000 + rng() * 2000 * rewardBase / 6),
+      food: Math.floor(1000 + rng() * 2000 * rewardBase / 6),
+    },
+    bossType: bossIdx,
+    troops,
+    daysAlive,
+    scaledPower,
+    weekSeed,
+  };
+}
+];
+
 // Adjective modifiers for extra name variety
 const EVENT_ADJECTIVES = ['Ancient', 'Fearsome', 'Legendary', 'Mysterious', 'Forgotten', 'Cursed', 'Hidden', 'Burning', 'Frozen', 'Savage', 'Haunted', 'Sacred', 'Dire', 'Grand', 'Lesser', 'Greater', 'Elder', 'Young', 'Spectral', 'Corrupted'];
 const EVENT_LOCATIONS = ['of the Northern Pass', 'by the River Crossing', 'near the Old Road', 'in the Deep Valley', 'at the Mountain\'s Base', 'beyond the Treeline', 'along the Coast', 'beneath the Cliffs', 'on the High Plains', 'within the Mist', 'beside the Ancient Oak', 'atop the Hill', 'under the Crags', 'past the Ruins', 'outside the Swamp'];
