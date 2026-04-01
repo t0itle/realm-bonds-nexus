@@ -1596,9 +1596,9 @@ export default function WorldMap() {
     ];
   }, [army.scout, getMyPos, allVillages, outposts, user?.id, getWatchtowerLevel]);
 
-  const isWithinVision = useCallback((wx: number, wy: number, padding = 0) => {
-    return visionSources.some(source => Math.hypot(wx - source.x, wy - source.y) <= source.radius + padding);
-  }, [visionSources]);
+  const isWithinVision = useCallback((_wx: number, _wy: number, _padding = 0) => {
+    return true; // Full map visibility — no fog of war
+  }, []);
 
   // Collect all terrain for pathfinding — includes visible chunks
   const visibleTerrain = useMemo(() => {
