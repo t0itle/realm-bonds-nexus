@@ -3886,7 +3886,7 @@ export default function WorldMap() {
         {attackConfig && (
           <motion.div
             initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
-            className="absolute bottom-16 sm:bottom-14 inset-x-0 z-[60] mx-2 sm:mx-3 game-panel border-glow rounded-xl p-3 max-h-[55vh] overflow-y-auto safe-bottom">
+            className="absolute bottom-16 sm:bottom-14 inset-x-0 z-[60] mx-2 sm:mx-3 parchment-panel border-glow rounded-xl p-3 max-h-[55vh] overflow-y-auto safe-bottom">
             <AttackConfigPanel
               targetName={attackConfig.targetName}
               targetPower={attackConfig.targetPower}
