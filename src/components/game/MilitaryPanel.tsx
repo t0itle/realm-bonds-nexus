@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTroopSkins } from '@/hooks/useTroopSkins';
 import { supabase } from '@/integrations/supabase/client';
 import ResourceIcon, { getResourceType } from './ResourceIcon';
+import TroopIcon from './TroopIcon';
 import VassalPanel from './VassalPanel';
 
 const TROOP_TYPES: TroopType[] = ['militia', 'archer', 'knight', 'cavalry', 'siege', 'scout'];
