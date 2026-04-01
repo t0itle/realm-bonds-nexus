@@ -721,61 +721,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const armyRef = useRef(army);
   armyRef.current = army;
 
-  const persistArmyToVillage = useCallback((nextArmy: Army) => {
-    if (!villageId) return;
-
-    supabase.from('villages').update({
-      army_militia: nextArmy.militia,
-      army_archer: nextArmy.archer,
-      army_knight: nextArmy.knight,
-      army_cavalry: nextArmy.cavalry,
-      army_siege: nextArmy.siege,
-      army_scout: nextArmy.scout,
-    } as any).eq('id', villageId).then();
-  }, [villageId]);
-
-  // Deploy troops: subtract sent troops from village immediately when march begins
-  const deployTroops = useCallback((sentArmy: Partial<Army>) => {
-    setArmy(prev => {
-      const next = { ...prev };
-      for (const [type, count] of Object.entries(sentArmy) as [TroopType, number][]) {
-        if (count > 0) next[type] = Math.max(0, (next[type] || 0) - count);
-      }
-      persistArmyToVillage(next);
-      return next;
-    });
-  }, [persistArmyToVillage]);
-
-  // Disband troops: convert soldiers back to civilians
-  const disbandTroops = useCallback((type: TroopType, count: number): boolean => {
-    const current = armyRef.current[type] || 0;
-    if (count <= 0 || count > current) return false;
-    const popToReturn = TROOP_INFO[type].popCost * count;
-    setArmy(prev => {
-      const next = { ...prev, [type]: prev[type] - count };
-      persistArmyToVillage(next);
-      return next;
-    });
-    setPopulationBase(prev => {
-      const newPop = prev + popToReturn;
-      if (villageId) supabase.from('villages').update({ population: newPop } as any).eq('id', villageId).then();
-      return newPop;
-    });
-    toast.success(`Disbanded ${count} ${TROOP_INFO[type].name}${count > 1 ? 's' : ''} → +${popToReturn} civilians`);
-    return true;
-  }, [persistArmyToVillage, villageId]);
-
-  // Return troops: add surviving troops back to village after march completes
-  const returnTroops = useCallback((survivors: Partial<Army>) => {
-    setArmy(prev => {
-      const next = { ...prev };
-      for (const [type, count] of Object.entries(survivors) as [TroopType, number][]) {
-        if (count > 0) next[type] = (next[type] || 0) + count;
-      }
-      persistArmyToVillage(next);
-      return next;
-    });
-  }, [persistArmyToVillage]);
+  const { persistArmyToVillage, deployTroops, disbandTroops, returnTroops } = useTroopManagement({
+    villageId, user, army, setArmy, populationBase, setPopulationBase,
+  });
 
   useEffect(() => {
     if (!villageId || !user) return;
