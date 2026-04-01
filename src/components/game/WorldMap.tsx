@@ -1199,7 +1199,7 @@ export default function WorldMap() {
         setSelected(null);
       },
     });
-  }, [army, attackTarget, calcTravelTime, createMarch, isInRange]);
+  }, [army, attackTarget, calcTravelTime, createMarch, isInRange, deployTroops]);
 
   const handleEnvoy = useCallback((realm: ProceduralRealm) => {
     if (tradeContracts.some(c => c.realmId === realm.id)) {
