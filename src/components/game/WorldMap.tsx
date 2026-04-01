@@ -1185,6 +1185,7 @@ export default function WorldMap() {
       showEspionage: getSpyGuildLevel() >= 1, targetId: realm.id,
       onAttack: (sentArmy) => {
         toast(`⚔️ Troops marching to ${realm.name}... ETA ${travelSec}s`);
+        deployTroops(sentArmy);
         createMarch(`atk-${Date.now()}`, realm.name, realm.x, realm.y, travelSec, () => {
           const log = attackTarget(realm.name, realm.power, sentArmy);
           if (log.result === 'victory') {
