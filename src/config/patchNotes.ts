@@ -17,7 +17,7 @@ export const PATCH_NOTES: PatchNote[] = [
       '🎨 Faction skins — Viking, Samurai, Undead & Roman themes',
       '🏯 Unique building sprites per faction culture',
       '⚔️ War Log tracks all battles & outpost conflicts',
-      '🛡️ Raids now capped at defender's actual resources',
+      '🛡️ Raids now capped at actual defender resources',
       '🚫 Over-recruiting prevention with queue awareness',
       '🍖 Army starvation — troops desert when food runs out',
       '⚖️ Server & client upkeep costs synced properly',
