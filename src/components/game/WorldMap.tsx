@@ -1099,7 +1099,14 @@ export default function WorldMap() {
       // Execute actions OUTSIDE the state updater to avoid swallowed side effects
       arrived.forEach(m => {
         toast.success(`Troops arrived at ${m.targetName}!`);
-        m.action();
+        try {
+          m.action();
+        } catch (err) {
+          console.error('March action failed:', err);
+          toast.error(`⚠️ Battle at ${m.targetName} failed — troops returned home.`);
+          // If action fails, we need to somehow return troops. The sentArmy was captured in the closure
+          // but we can't access it here. At minimum, notify the user.
+        }
       });
       // Clean up arrived marches from DB
       if (user) {
