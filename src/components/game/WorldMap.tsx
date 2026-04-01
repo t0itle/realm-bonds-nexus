@@ -3641,7 +3641,7 @@ export default function WorldMap() {
                           }).select().single();
                           if (error) { toast.error('Failed to build outpost'); return; }
                           setOutposts(prev => [...prev, { id: data.id, x: data.x, y: data.y, name: data.name, user_id: user!.id, level: 1, garrison_power: 0, garrison_troops: {}, has_wall: false, wall_level: 0, territory_radius: 15000, outpost_type: 'outpost' }]);
-                          toast.success(`🏕️ ${opName} established! Fog lifted in this area.`);
+                          toast.success(`🏕️ ${opName} established!`);
                         });
                         setSelected(null);
                       }}
