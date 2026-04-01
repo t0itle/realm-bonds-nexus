@@ -77,7 +77,7 @@ function isPointNearBridge(px: number, py: number, bridges: { x: number; y: numb
   return bridges.some(b => Math.hypot(px - b.x, py - b.y) < radius);
 }
 
-function isCellBlocked(wx: number, wy: number, terrainFeatures: TerrainFeature[]): boolean {
+function isCellBlocked(wx: number, wy: number, terrainFeatures: TerrainFeature[], bridgeOutpostPositions?: { x: number; y: number }[]): boolean {
   const pad = PATH_GRID_CELL * 0.5;
   for (const t of terrainFeatures) {
     if (t.type === 'mountain') {
@@ -88,10 +88,13 @@ function isCellBlocked(wx: number, wy: number, terrainFeatures: TerrainFeature[]
     }
     if (t.type === 'river' && t.points && t.points.length > 1) {
       const riverW = (t.width || 1000) + pad;
-      // Check if near river but NOT near a bridge
+      // Check if near river but NOT near a bridge (auto or player-built)
       for (let i = 0; i < t.points.length - 1; i++) {
         if (isPointNearRiverSegment(wx, wy, t.points[i], t.points[i + 1], riverW)) {
-          if (t.bridgeAt && isPointNearBridge(wx, wy, t.bridgeAt, riverW * 2)) return false; // bridge crossing OK
+          // Check auto-bridges (legacy, should be empty now)
+          if (t.bridgeAt && isPointNearBridge(wx, wy, t.bridgeAt, riverW * 2)) return false;
+          // Check player-built bridge outposts
+          if (bridgeOutpostPositions && isPointNearBridge(wx, wy, bridgeOutpostPositions, riverW * 2)) return false;
           return true;
         }
       }
@@ -106,7 +109,7 @@ interface PathNode {
   parent: PathNode | null;
 }
 
-function findPath(startX: number, startY: number, endX: number, endY: number, terrainFeatures: TerrainFeature[]): { x: number; y: number }[] {
+function findPath(startX: number, startY: number, endX: number, endY: number, terrainFeatures: TerrainFeature[], bridgeOutpostPositions?: { x: number; y: number }[]): { x: number; y: number }[] {
   const cell = PATH_GRID_CELL;
   const toGrid = (v: number) => Math.round(v / cell);
   const fromGrid = (g: number) => g * cell;
@@ -166,7 +169,7 @@ function findPath(startX: number, startY: number, endX: number, endY: number, te
       
       const worldX = fromGrid(nx);
       const worldY = fromGrid(ny);
-      if (isCellBlocked(worldX, worldY, terrainFeatures)) continue;
+      if (isCellBlocked(worldX, worldY, terrainFeatures, bridgeOutpostPositions)) continue;
       
       const moveCost = dx !== 0 && dy !== 0 ? 1.414 : 1;
       const ng = current.g + moveCost;
@@ -498,21 +501,22 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
     });
   }
 
-  // Mountains (0-3 per chunk, more in Highlands/Tundra/Badlands)
+  // Mountains (0-3 per chunk, more in Highlands/Tundra/Badlands) — vast and impassable
   const mtnChance = regionBiome === 'Highlands' || regionBiome === 'Tundra' || regionBiome === 'Badlands' ? 0.9 : 0.3;
   const mtnCount = rng() < mtnChance ? 1 + Math.floor(rng() * 3) : 0;
   for (let i = 0; i < mtnCount; i++) {
     terrain.push({
       type: 'mountain',
-      x: worldBaseX + 5000 + rng() * (CHUNK_SIZE - 10000),
-      y: worldBaseY + 5000 + rng() * (CHUNK_SIZE - 10000),
-      width: 3000 + rng() * 8000,
-      height: 3000 + rng() * 8000,
+      x: worldBaseX + 10000 + rng() * (CHUNK_SIZE - 20000),
+      y: worldBaseY + 10000 + rng() * (CHUNK_SIZE - 20000),
+      width: 12000 + rng() * 20000,
+      height: 10000 + rng() * 18000,
       name: MTN_NAMES[Math.floor(rng() * MTN_NAMES.length)],
     });
   }
 
-  // Rivers (0-1 per chunk, with bridges)
+  // Rivers (0-1 per chunk) — wide and impassable, NO auto-bridges
+  // Bridges can only be built by upgrading an outpost near a river
   if (rng() < 0.45) {
     const riverPoints: { x: number; y: number }[] = [];
     const segments = 5 + Math.floor(rng() * 4);
@@ -533,21 +537,14 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
       ry = Math.max(worldBaseY, Math.min(worldBaseY + CHUNK_SIZE, ry));
       riverPoints.push({ x: rx, y: ry });
     }
-    // Place 1-2 bridges along the river
-    const bridges: { x: number; y: number }[] = [];
-    const bridgeCount = 1 + Math.floor(rng() * 2);
-    for (let b = 0; b < bridgeCount; b++) {
-      const idx = 1 + Math.floor(rng() * (riverPoints.length - 2));
-      bridges.push(riverPoints[idx]);
-    }
     terrain.push({
       type: 'river',
       x: riverPoints[0].x,
       y: riverPoints[0].y,
-      width: 800 + rng() * 1500,
+      width: 3000 + rng() * 3000,
       height: 0,
       points: riverPoints,
-      bridgeAt: bridges,
+      bridgeAt: [], // No auto-bridges — only player-built bridge outposts
       name: RIVER_NAMES[Math.floor(rng() * RIVER_NAMES.length)],
     });
   }
@@ -1076,6 +1073,11 @@ export default function WorldMap() {
     return terrain;
   }, [visibleChunks]);
 
+  // Bridge outpost positions for pathfinding — outposts with type 'bridge' allow crossing rivers
+  const bridgeOutpostPositions = useMemo(() => {
+    return outposts.filter(o => o.outpost_type === 'bridge').map(o => ({ x: o.x, y: o.y }));
+  }, [outposts]);
+
   // Helper to create a march with pathfinding around obstacles
   // Check if a line segment from (ax,ay)->(bx,by) crosses any enemy wall segment
   const findBlockingWall = useCallback((ax: number, ay: number, bx: number, by: number): typeof wallSegments[0] | null => {
@@ -1097,7 +1099,7 @@ export default function WorldMap() {
   const createMarch = useCallback((id: string, targetName: string, targetX: number, targetY: number, _travelSec: number, action: () => void) => {
     const myPos = getMyPos();
     const now = Date.now();
-    const waypoints = findPath(myPos.x, myPos.y, targetX, targetY, allTerrain);
+    const waypoints = findPath(myPos.x, myPos.y, targetX, targetY, allTerrain, bridgeOutpostPositions);
 
     // Check if march path crosses any enemy wall
     let pathBlocked = false;
@@ -1149,7 +1151,7 @@ export default function WorldMap() {
     if (pathDist > Math.hypot(targetX - myPos.x, targetY - myPos.y) * 1.1) {
       toast.info(`Route adjusted around obstacles — travel time: ${actualTravelSec}s`);
     }
-  }, [getMyPos, allTerrain, army, user, displayName, findBlockingWall]);
+  }, [getMyPos, allTerrain, bridgeOutpostPositions, army, user, displayName, findBlockingWall]);
 
   const getDistance = useCallback((targetX: number, targetY: number) => {
     const myPos = getMyPos();
@@ -2428,7 +2430,7 @@ export default function WorldMap() {
               return (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-3xl">{isSettlement ? '🏘️' : (op.outpost_type === 'fort' ? '🏰' : (isOwn ? '🏕️' : '⚑'))}</span>
+                    <span className="text-3xl">{isSettlement ? '🏘️' : (op.outpost_type === 'fort' ? '🏰' : (op.outpost_type === 'bridge' ? '🌉' : (isOwn ? '🏕️' : '⚑')))}</span>
                     <div className="flex-1">
                       <h3 className="font-display text-sm text-foreground">{op.name}</h3>
                       <div className="flex items-center gap-2 text-[9px]">
@@ -2437,6 +2439,7 @@ export default function WorldMap() {
                         {existingWalls.length > 0 && <span className="text-accent-foreground bg-accent/20 px-1.5 rounded-full">🧱 {existingWalls.length} wall{existingWalls.length !== 1 ? 's' : ''}</span>}
                         {isSettlement && <span className="text-primary bg-primary/10 px-1.5 rounded-full">Settlement</span>}
                         {op.outpost_type === 'fort' && <span className="text-accent-foreground bg-accent/20 px-1.5 rounded-full">🏰 Fort</span>}
+                        {op.outpost_type === 'bridge' && <span className="text-sky-300 bg-sky-500/20 px-1.5 rounded-full">🌉 Bridge</span>}
                       </div>
                     </div>
                   </div>
@@ -2446,8 +2449,10 @@ export default function WorldMap() {
                         ? 'Your settlement. Switch to it from the resource bar to manage buildings and resources independently.'
                         : op.outpost_type === 'fort'
                           ? 'Your fort. Can garrison armies. Upgrade to Lv.10 to convert into a full settlement.'
-                          : 'Your outpost. Upgrade to Lv.5 to convert into a fort, then Lv.10 for a settlement.')
-                      : `Enemy ${isSettlement ? 'settlement' : op.outpost_type === 'fort' ? 'fort' : 'outpost'}. Garrison strength: ⚔️${op.garrison_power}`}
+                          : op.outpost_type === 'bridge'
+                            ? 'Your bridge. Troops can cross the river here. Can be destroyed by siege weapons or espionage.'
+                            : 'Your outpost. Upgrade to Lv.5 to convert into a fort, or build a bridge if near a river.')
+                      : `Enemy ${isSettlement ? 'settlement' : op.outpost_type === 'fort' ? 'fort' : op.outpost_type === 'bridge' ? 'bridge' : 'outpost'}. Garrison strength: ⚔️${op.garrison_power}`}
                   </p>
                   {isOwn && (
                     <div className="space-y-2">
@@ -2549,6 +2554,48 @@ export default function WorldMap() {
                           <p className="text-[8px] text-muted-foreground italic">No nearby outposts within range. Build outposts closer together to connect walls.</p>
                         )}
                       </div>
+                      {/* Convert to Bridge — only for outposts near a river */}
+                      {op.outpost_type === 'outpost' && (() => {
+                        // Check if this outpost is near any river
+                        const BRIDGE_RIVER_DIST = 8000;
+                        const nearRiver = allTerrain.some(t => {
+                          if (t.type !== 'river' || !t.points) return false;
+                          for (let i = 0; i < t.points.length - 1; i++) {
+                            if (isPointNearRiverSegment(op.x, op.y, t.points[i], t.points[i + 1], (t.width || 3000) + BRIDGE_RIVER_DIST)) return true;
+                          }
+                          return false;
+                        });
+                        if (!nearRiver) return null;
+                        const bridgeCost = { gold: 500, wood: 400, stone: 300, food: 100 };
+                        const canAffordBridge = resources.gold >= bridgeCost.gold && resources.wood >= bridgeCost.wood && resources.stone >= bridgeCost.stone && resources.food >= bridgeCost.food;
+                        return (
+                          <div className="bg-sky-500/10 rounded-lg p-2 space-y-1 border border-sky-400/20">
+                            <p className="text-[10px] font-semibold text-sky-300">🌉 Convert to Bridge</p>
+                            <p className="text-[8px] text-muted-foreground">This outpost is near a river. Convert it into a bridge to allow troops to cross here.</p>
+                            <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+                              <span className={resources.gold >= bridgeCost.gold ? '' : 'text-destructive'}>🪙{bridgeCost.gold}</span>
+                              <span className={resources.wood >= bridgeCost.wood ? '' : 'text-destructive'}>🪵{bridgeCost.wood}</span>
+                              <span className={resources.stone >= bridgeCost.stone ? '' : 'text-destructive'}>🪨{bridgeCost.stone}</span>
+                              <span className={resources.food >= bridgeCost.food ? '' : 'text-destructive'}>🌾{bridgeCost.food}</span>
+                            </div>
+                            <motion.button whileTap={{ scale: 0.95 }}
+                              disabled={!canAffordBridge}
+                              onClick={async () => {
+                                if (!user) return;
+                                if (!window.confirm(`Convert ${op.name} into a bridge? Troops will be able to cross the river here.`)) return;
+                                addResources({ gold: -bridgeCost.gold, wood: -bridgeCost.wood, stone: -bridgeCost.stone, food: -bridgeCost.food });
+                                const bridgeName = `Bridge at ${op.name.replace(/^Outpost\s*/, '')}`.trim() || `River Bridge`;
+                                await supabase.from('outposts').update({ outpost_type: 'bridge', name: bridgeName } as any).eq('id', op.id);
+                                setOutposts(prev => prev.map(o => o.id === op.id ? { ...o, outpost_type: 'bridge', name: bridgeName } : o));
+                                toast.success(`🌉 ${bridgeName} has been built! Troops can now cross the river here.`);
+                                setSelected(null);
+                              }}
+                              className="w-full bg-sky-600/80 text-white font-display text-[11px] py-2 rounded-lg disabled:opacity-40 active:scale-95 transition-transform">
+                              🌉 Build Bridge
+                            </motion.button>
+                          </div>
+                        );
+                      })()}
                       {/* Convert to Fort at Lv.5+ */}
                       {op.outpost_type === 'outpost' && op.level >= 5 && (
                         <div className="bg-accent/20 rounded-lg p-2 space-y-1">
