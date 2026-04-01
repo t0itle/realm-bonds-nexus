@@ -1,63 +1,56 @@
 
 
-# Resource Budget Tooltips (EU4-style breakdown)
+# Global UI Readability Overhaul
 
-## What we're building
-Each resource in the ResourceBar gets a tooltip showing a line-by-line breakdown of income sources and costs, so the player knows exactly why they're losing 12 food/min.
+## Overview
+Increase text sizes, padding, and gaps across all game components to improve mobile readability. This is a bulk find-and-replace operation across ~28 files.
 
-Example tooltip for Food:
-```text
-Food Budget
-──────────────
-🌾 Farms:        +14/min
-🏛️ Alliance Tax: -1/min
-⚔️ Army Upkeep:  -8/min
-🍞 Pop Rations:  -17/min
-──────────────
-Net:             -12/min
-```
+## Changes
 
-## Data needed
-The breakdown components already exist in `useProduction` but aren't exposed individually. We need:
-- **Building production** per resource type (from `grossProduction`)
-- **Alliance tax** deduction (fraction of gross)
-- **Army food/gold upkeep** (from `armyUpkeep()`)
-- **Population food cost** (`popFoodCost`) — already exposed
-- **Population tax income** (`popTaxIncome`) — already exposed
+### 1. Base font size (`src/index.css`)
+Add `font-size: 14px` to the `body` rule.
 
-## Implementation
+### 2. Text size replacements (26 game component files + 2 page files)
 
-### 1. Expose `grossProduction` from game context
-- **`src/hooks/useGameState.tsx`**: Add `grossProduction: Resources` to `GameContextType` interface and include it in the Provider value (it's already computed, just not passed through)
+| Find | Replace | Effective size |
+|------|---------|---------------|
+| `text-[7px]` | `text-[11px]` | 11px |
+| `text-[8px]` | `text-xs` | 12px |
+| `text-[9px]` | `text-xs` | 12px |
+| `text-[10px]` | `text-sm` | 14px |
+| `text-xs` (primary content) | `text-sm` | 14px |
 
-### 2. Compute per-resource breakdown in ResourceBar
-- **`src/components/game/ResourceBar.tsx`**: Pull `grossProduction`, `armyUpkeep`, `popFoodCost`, `popTaxIncome`, `rations`, `army` from `useGame()`
-- Import `RATIONS_INFO` and `TROOP_INFO` from gameConstants
-- For each resource, build a breakdown array of `{ label, icon, value }` entries:
-  - **Gold**: Building production, alliance tax, army gold upkeep, pop tax income
-  - **Wood**: Building production, alliance tax
-  - **Stone**: Building production, alliance tax
-  - **Food**: Building production, alliance tax, army food upkeep, population rations cost
-- Only show non-zero line items
+The `text-xs` → `text-sm` replacement needs care: only apply where `text-xs` is used for readable content (labels, values, descriptions), NOT for badge indicators or icon sizing contexts. Will review each file individually.
 
-### 3. Wrap each resource item in a Tooltip
-- **`src/components/game/ResourceBar.tsx`**: Wrap each resource's `motion.div` in a `Tooltip` component
-- Tooltip content renders the breakdown as a compact table with:
-  - Resource name as header
-  - Each source/drain on its own line: icon + label + signed value
-  - Green for positive, red for negative values
-  - Separator line, then bold **Net** total
-- Use `text-[10px]` for compact display, `tabular-nums` for alignment
+### 3. Padding increases (all game components)
 
-### 4. Also enhance Steel tooltip
-- Show building steel production + mine steel production as separate lines
+| Find | Replace |
+|------|---------|
+| `px-2 ` | `px-3 ` |
+| `px-3 ` | `px-4 ` |
+| `py-1 ` | `py-2 ` |
+| `py-1.5` | `py-2.5` |
+| `py-2 ` | `py-3 ` |
 
-## Technical details
-- `TooltipProvider` with `delayDuration={200}` already wraps the happiness indicator; we'll wrap the entire resource row in one `TooltipProvider`
-- Each tooltip uses `side="bottom"` to avoid clipping at the top of the screen
-- No new hooks or state — all data is already computed, just needs plumbing
+### 4. Gap increases (all game components)
 
-## Files changed
-1. `src/hooks/useGameState.tsx` — expose `grossProduction` in context type + provider value
-2. `src/components/game/ResourceBar.tsx` — add tooltip with breakdown for each resource + steel
+| Find | Replace |
+|------|---------|
+| `gap-1 ` | `gap-2 ` |
+| `gap-1.5` | `gap-2.5` |
+| `gap-2 ` | `gap-3 ` |
+
+### Files affected
+All files in `src/components/game/`: ResourceBar, VillageGrid, MilitaryPanel, StatSheet, BuildModal, AttackConfigPanel, NotificationsPanel, AlliancePanel, SocialPanel, ProfilePanel, WorldMap, GuildChat, GuildContracts, GuildTaxPanel, GuildVoting, CaravanPanel, MessagesPanel, IncomingAttackAlert, NPCInteractionPanel, NPCDiplomacyInfo, NPCMercenaryPanel, DungeonMasterPanel, AllianceResourceSharing, AllyDefenseModal, GratitudeModal, TroopTransferPanel, VassalPanel, PatchNotesModal
+
+Plus: `src/index.css`, `src/pages/AuthPage.tsx`, `src/pages/LandingPage.tsx`
+
+### What stays unchanged
+- `font-display` (Cinzel) heading sizes
+- `text-lg`, `text-xl`, `text-2xl` etc.
+- Layout structure and logic
+- Colors and animations
+
+### Risk
+Padding/gap increases compound — some panels may overflow on small screens. The text-xs → text-sm promotion is the riskiest since text-xs appears in many contexts. Will be selective and skip badge counters, tooltip micro-text, and decorative labels.
 
