@@ -44,13 +44,13 @@ export default function PatchNotesModal() {
           >
             <div className="text-center space-y-1">
               <span className="text-2xl">📜</span>
-              <h3 className="font-display text-lg text-foreground">{latest.title}</h3>
-              <p className="text-sm text-muted-foreground">v{latest.version} · {latest.date}</p>
+              <h3 className="font-display text-lg text-amber-900 dark:text-foreground">{latest.title}</h3>
+              <p className="text-sm text-amber-800/70 dark:text-muted-foreground">v{latest.version} · {latest.date}</p>
             </div>
 
             <ul className="space-y-1.5">
               {latest.changes.map((change, i) => (
-                <li key={i} className="text-sm text-foreground/90 leading-relaxed">
+                <li key={i} className="text-sm text-amber-900/90 dark:text-foreground/90 leading-relaxed">
                   {change}
                 </li>
               ))}
