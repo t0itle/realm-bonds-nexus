@@ -10,6 +10,7 @@ import { useTroopSkins } from '@/hooks/useTroopSkins';
 import AttackConfigPanel from './AttackConfigPanel';
 import { FACTION_MAP_SPRITES, FACTION_SOLDIER_SPRITES } from './factionMapSprites';
 import { getMineSteelPerTickForChunk } from '@/lib/mineProduction';
+import { CONTINENTS, OCEAN_ISLANDS, WORLD_SIZE, getWorldRegion, isPointOnContinentRiver, isPointInMountainRange, CONTINENT_SUB_BIOMES, type ContinentRiver, type MountainRange } from './worldData';
 
 // Map sprites
 import mapCastleHostile from '@/assets/sprites/map-castle-hostile.png';
@@ -79,22 +80,25 @@ function isPointNearBridge(px: number, py: number, bridges: { x: number; y: numb
 
 function isCellBlocked(wx: number, wy: number, terrainFeatures: TerrainFeature[]): boolean {
   const pad = PATH_GRID_CELL * 0.5;
+  
+  // Check if in ocean (out of bounds for land units)
+  const region = getWorldRegion(wx, wy);
+  if (region.type === 'ocean') return true;
+  
+  // Check continent-level mountain ranges
+  if (isPointInMountainRange(wx, wy, pad)) return true;
+  
+  // Check continent-level rivers (blocked unless near a bridge)
+  const riverCheck = isPointOnContinentRiver(wx, wy, pad);
+  if (riverCheck && !riverCheck.nearBridge) return true;
+  
+  // Check per-chunk terrain (lakes, local mountains)
   for (const t of terrainFeatures) {
     if (t.type === 'mountain') {
       if (isPointInEllipse(wx, wy, t.x, t.y, t.width / 2 + pad, t.height / 2 + pad)) return true;
     }
     if (t.type === 'lake') {
       if (isPointInEllipse(wx, wy, t.x, t.y, t.width / 2 + pad, t.height / 2 + pad)) return true;
-    }
-    if (t.type === 'river' && t.points && t.points.length > 1) {
-      const riverW = (t.width || 1000) + pad;
-      // Check if near river but NOT near a bridge
-      for (let i = 0; i < t.points.length - 1; i++) {
-        if (isPointNearRiverSegment(wx, wy, t.points[i], t.points[i + 1], riverW)) {
-          if (t.bridgeAt && isPointNearBridge(wx, wy, t.bridgeAt, riverW * 2)) return false; // bridge crossing OK
-          return true;
-        }
-      }
     }
   }
   return false;
@@ -405,17 +409,40 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
   const rng = seededRandom(seed);
   const worldBaseX = chunkX * CHUNK_SIZE;
   const worldBaseY = chunkY * CHUNK_SIZE;
+  const chunkCenterX = worldBaseX + CHUNK_SIZE / 2;
+  const chunkCenterY = worldBaseY + CHUNK_SIZE / 2;
 
-  // Distance from origin affects difficulty
-  const dist = Math.sqrt(chunkX * chunkX + chunkY * chunkY);
-  const difficultyMult = 1 + dist * 0.15;
+  // ── Determine continent/ocean/island ──
+  const region = getWorldRegion(chunkCenterX, chunkCenterY);
+  const isOceanChunk = region.type === 'ocean';
+  const isIslandChunk = region.type === 'island';
 
-  // Generate region name for this chunk
-  const regionName = generateRegionName(rng);
-  const regionBiome = BIOME_TYPES[Math.floor(rng() * BIOME_TYPES.length)];
+  const dist = Math.sqrt((chunkCenterX - WORLD_SIZE / 2) ** 2 + (chunkCenterY - WORLD_SIZE / 2) ** 2) / (WORLD_SIZE / 2);
+  const difficultyMult = 1 + dist * 0.6;
 
-  // 0-1 realms per chunk (reduced density for cleaner map)
-  const realmCount = rng() < 0.45 ? 0 : 1;
+  // Biome determination
+  let regionBiome: string;
+  if (region.type === 'continent') {
+    const subBiomes = CONTINENT_SUB_BIOMES[region.continent.biome] || [region.continent.biome];
+    regionBiome = subBiomes[Math.floor(rng() * subBiomes.length)];
+  } else if (region.type === 'island') {
+    regionBiome = region.island.biome;
+  } else {
+    regionBiome = 'Coast';
+  }
+
+  const regionName = isOceanChunk
+    ? `${BIOME_ADJECTIVES[Math.floor(rng() * BIOME_ADJECTIVES.length)]} Sea`
+    : generateRegionName(rng);
+
+  // Ocean chunks get nothing
+  if (isOceanChunk && !isIslandChunk) {
+    return { realms: [], events: [], terrain: [], steelMines: [], decorations: [], regionName, regionBiome: 'Coast' };
+  }
+
+  // Realms
+  const realmChance = isIslandChunk ? 0.15 : 0.55;
+  const realmCount = rng() < realmChance ? 0 : 1;
   const realms: ProceduralRealm[] = [];
   for (let i = 0; i < realmCount; i++) {
     const emojiIdx = Math.floor(rng() * REALM_EMOJIS.length);
@@ -431,15 +458,15 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
       y: worldBaseY + 15000 + rng() * (CHUNK_SIZE - 30000),
       emoji: REALM_EMOJIS[emojiIdx],
       type,
-      desc: `A ${type} kingdom in the ${dist < 3 ? 'heartlands' : dist < 8 ? 'frontier' : 'deep wilds'}. Power grows with distance from the center.`,
+      desc: `A ${type} kingdom in ${region.type === 'continent' ? region.continent.name : region.type === 'island' ? region.island.name : 'the wilds'}.`,
       territory: 8000 + Math.floor(rng() * 16000),
     });
   }
 
-  // 1-4 events per chunk — use time-based seed rotation so events change periodically
-  const timeSeed = Math.floor(Date.now() / (1000 * 60 * 30)); // rotates every 30 minutes
+  // Events
+  const timeSeed = Math.floor(Date.now() / (1000 * 60 * 30));
   const eventRng = seededRandom(hashCoords(chunkX, chunkY, timeSeed + 99));
-  const eventCount = 1 + Math.floor(eventRng() * 2); // reduced from 4 to 2 max extras
+  const eventCount = isIslandChunk ? 1 : (1 + Math.floor(eventRng() * 2));
   const events: ProceduralEvent[] = [];
   for (let i = 0; i < eventCount; i++) {
     const baseIdx = Math.floor(eventRng() * EVENT_BASES.length);
@@ -447,16 +474,13 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
     const nameIdx = Math.floor(eventRng() * base.names.length);
     const descIdx = Math.floor(eventRng() * base.descs.length);
     let eventName = base.names[nameIdx];
-    const adjRoll = eventRng();
-    if (adjRoll < 0.3) {
+    if (eventRng() < 0.3) {
       eventName = `${EVENT_ADJECTIVES[Math.floor(eventRng() * EVENT_ADJECTIVES.length)]} ${eventName}`;
     }
     let eventDesc = `${eventName} ${base.descs[descIdx]}`;
-    const locRoll = eventRng();
-    if (locRoll < 0.5) {
+    if (eventRng() < 0.5) {
       eventDesc += ` ${EVENT_LOCATIONS[Math.floor(eventRng() * EVENT_LOCATIONS.length)]}`;
     }
-    const rewardMult = difficultyMult;
     events.push({
       id: `event-${chunkX}-${chunkY}-${i}-${timeSeed}`,
       name: eventName,
@@ -467,106 +491,34 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
       x: worldBaseX + 10000 + eventRng() * (CHUNK_SIZE - 20000),
       y: worldBaseY + 10000 + eventRng() * (CHUNK_SIZE - 20000),
       reward: {
-        gold: Math.floor((50 + eventRng() * 200) * rewardMult),
-        wood: base.type === 'opportunity' ? Math.floor((30 + eventRng() * 100) * rewardMult) : 0,
-        stone: base.type === 'mystery' ? Math.floor((40 + eventRng() * 120) * rewardMult) : 0,
-        food: base.type === 'opportunity' ? Math.floor((30 + eventRng() * 80) * rewardMult) : 0,
+        gold: Math.floor((50 + eventRng() * 200) * difficultyMult),
+        wood: base.type === 'opportunity' ? Math.floor((30 + eventRng() * 100) * difficultyMult) : 0,
+        stone: base.type === 'mystery' ? Math.floor((40 + eventRng() * 120) * difficultyMult) : 0,
+        food: base.type === 'opportunity' ? Math.floor((30 + eventRng() * 80) * difficultyMult) : 0,
       },
     });
   }
 
-  // ── Terrain features ──
+  // ── Terrain (lakes only — rivers & mountains are continent-level now) ──
   const LAKE_NAMES = ['Mirror Lake', 'Lake Sorrow', 'Azure Pool', 'Dead Mere', 'Crystal Waters', 'Shadow Pond', 'Moonwell', 'Serpent Lake', 'Frozen Tarn', 'Emerald Basin'];
-  const MTN_NAMES = ['Mt. Dread', 'Frostpeak', 'Ironjaw Summit', 'The Spire', 'Ashcrown', 'Thunder Ridge', 'Skullcap Peak', 'Dragonspine', 'The Anvil', 'Stormbreak'];
-  const RIVER_NAMES = ['River Styx', 'Goldrun', 'Silvervein', 'The Serpent', 'Whitewater', 'Blackflow', 'Crimson Creek', 'Mistbrook', 'Thornstream', 'Deepchannel'];
-  const ISLAND_NAMES = ['Isle of Bones', 'Verdant Atoll', 'Skull Rock', 'Trader\'s Rest', 'Phantom Isle', 'Coral Haven', 'Driftwood Key', 'Ember Isle', 'Windward Cay', 'Smuggler\'s Den'];
-
   const terrain: TerrainFeature[] = [];
-
-  // Lakes (0-2 per chunk, more in Coast/Marsh/Jungle biomes)
-  const lakeChance = regionBiome === 'Coast' || regionBiome === 'Marsh' || regionBiome === 'Jungle' ? 0.8 : 0.35;
+  const lakeChance = regionBiome === 'Coast' || regionBiome === 'Marsh' || regionBiome === 'Jungle' ? 0.8 : regionBiome === 'Desert' ? 0.1 : 0.35;
   const lakeCount = rng() < lakeChance ? (rng() < 0.4 ? 2 : 1) : 0;
   for (let i = 0; i < lakeCount; i++) {
+    const isOasis = regionBiome === 'Desert';
     terrain.push({
       type: 'lake',
       x: worldBaseX + 8000 + rng() * (CHUNK_SIZE - 16000),
       y: worldBaseY + 8000 + rng() * (CHUNK_SIZE - 16000),
-      width: 4000 + rng() * 10000,
-      height: 3000 + rng() * 7000,
+      width: isOasis ? 2000 + rng() * 4000 : 4000 + rng() * 10000,
+      height: isOasis ? 1500 + rng() * 3000 : 3000 + rng() * 7000,
       rotation: rng() * 360,
-      name: LAKE_NAMES[Math.floor(rng() * LAKE_NAMES.length)],
+      name: isOasis ? 'Oasis' : LAKE_NAMES[Math.floor(rng() * LAKE_NAMES.length)],
     });
   }
 
-  // Mountains (0-3 per chunk, more in Highlands/Tundra/Badlands)
-  const mtnChance = regionBiome === 'Highlands' || regionBiome === 'Tundra' || regionBiome === 'Badlands' ? 0.9 : 0.3;
-  const mtnCount = rng() < mtnChance ? 1 + Math.floor(rng() * 3) : 0;
-  for (let i = 0; i < mtnCount; i++) {
-    terrain.push({
-      type: 'mountain',
-      x: worldBaseX + 5000 + rng() * (CHUNK_SIZE - 10000),
-      y: worldBaseY + 5000 + rng() * (CHUNK_SIZE - 10000),
-      width: 3000 + rng() * 8000,
-      height: 3000 + rng() * 8000,
-      name: MTN_NAMES[Math.floor(rng() * MTN_NAMES.length)],
-    });
-  }
-
-  // Rivers (0-1 per chunk, with bridges)
-  if (rng() < 0.45) {
-    const riverPoints: { x: number; y: number }[] = [];
-    const segments = 5 + Math.floor(rng() * 4);
-    const startEdge = Math.floor(rng() * 4); // 0=top, 1=right, 2=bottom, 3=left
-    let rx = worldBaseX, ry = worldBaseY;
-    if (startEdge === 0) { rx = worldBaseX + rng() * CHUNK_SIZE; ry = worldBaseY; }
-    else if (startEdge === 1) { rx = worldBaseX + CHUNK_SIZE; ry = worldBaseY + rng() * CHUNK_SIZE; }
-    else if (startEdge === 2) { rx = worldBaseX + rng() * CHUNK_SIZE; ry = worldBaseY + CHUNK_SIZE; }
-    else { rx = worldBaseX; ry = worldBaseY + rng() * CHUNK_SIZE; }
-    riverPoints.push({ x: rx, y: ry });
-    for (let s = 1; s <= segments; s++) {
-      const t = s / segments;
-      const targetX = startEdge === 1 ? worldBaseX : startEdge === 3 ? worldBaseX + CHUNK_SIZE : worldBaseX + rng() * CHUNK_SIZE;
-      const targetY = startEdge === 0 ? worldBaseY + CHUNK_SIZE : startEdge === 2 ? worldBaseY : worldBaseY + rng() * CHUNK_SIZE;
-      rx = rx + (targetX - rx) * t + (rng() - 0.5) * 8000;
-      ry = ry + (targetY - ry) * t + (rng() - 0.5) * 8000;
-      rx = Math.max(worldBaseX, Math.min(worldBaseX + CHUNK_SIZE, rx));
-      ry = Math.max(worldBaseY, Math.min(worldBaseY + CHUNK_SIZE, ry));
-      riverPoints.push({ x: rx, y: ry });
-    }
-    // Place 1-2 bridges along the river
-    const bridges: { x: number; y: number }[] = [];
-    const bridgeCount = 1 + Math.floor(rng() * 2);
-    for (let b = 0; b < bridgeCount; b++) {
-      const idx = 1 + Math.floor(rng() * (riverPoints.length - 2));
-      bridges.push(riverPoints[idx]);
-    }
-    terrain.push({
-      type: 'river',
-      x: riverPoints[0].x,
-      y: riverPoints[0].y,
-      width: 800 + rng() * 1500,
-      height: 0,
-      points: riverPoints,
-      bridgeAt: bridges,
-      name: RIVER_NAMES[Math.floor(rng() * RIVER_NAMES.length)],
-    });
-  }
-
-  // Islands (only in Coast biome or near lakes, 0-1)
-  if (regionBiome === 'Coast' || (lakeCount > 0 && rng() < 0.4)) {
-    terrain.push({
-      type: 'island',
-      x: worldBaseX + 10000 + rng() * (CHUNK_SIZE - 20000),
-      y: worldBaseY + 10000 + rng() * (CHUNK_SIZE - 20000),
-      width: 3000 + rng() * 6000,
-      height: 2000 + rng() * 4000,
-      rotation: rng() * 360,
-      name: ISLAND_NAMES[Math.floor(rng() * ISLAND_NAMES.length)],
-    });
-  }
-
-  // Steel mines (0-1 per chunk, more common in Highlands/Badlands)
-  const MINE_NAMES = ['Iron Vein', 'Deep Forge', 'Obsidian Pit', 'Steelcrag Mine', 'The Black Seam', 'Titan\'s Quarry', 'Shadowsteel Delve', 'Ore Hollow', 'Molten Core', 'The Crucible'];
+  // Steel mines
+  const MINE_NAMES = ['Iron Vein', 'Deep Forge', 'Obsidian Pit', 'Steelcrag Mine', 'The Black Seam', "Titan's Quarry", 'Shadowsteel Delve', 'Ore Hollow', 'Molten Core', 'The Crucible'];
   const steelMines: SteelMine[] = [];
   const mineChance = regionBiome === 'Highlands' || regionBiome === 'Badlands' ? 0.5 : regionBiome === 'Tundra' ? 0.3 : 0.12;
   if (rng() < mineChance) {
@@ -580,7 +532,7 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
     });
   }
 
-  // ── Decorations (trees, grass, rocks) — sparse scatter for clean look ──
+  // Decorations
   const decorations: Decoration[] = [];
   const decoTypes: Decoration['type'][] = 
     regionBiome === 'Forest' || regionBiome === 'Jungle' ? ['trees', 'trees', 'grass'] :
@@ -605,13 +557,12 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
   return { realms, events, terrain, steelMines, decorations, regionName, regionBiome };
 }
 
-// ── Chunk cache (time-keyed so events rotate) ──
+// ── Chunk cache ──
 const chunkCache = new Map<string, ChunkData>();
 let chunkCacheTimeSeed = Math.floor(Date.now() / (1000 * 60 * 30));
 
 function getChunk(cx: number, cy: number): ChunkData {
   const currentTimeSeed = Math.floor(Date.now() / (1000 * 60 * 30));
-  // Invalidate cache when time seed changes (events rotate every 30min)
   if (currentTimeSeed !== chunkCacheTimeSeed) {
     chunkCache.clear();
     chunkCacheTimeSeed = currentTimeSeed;
@@ -627,7 +578,6 @@ function getChunk(cx: number, cy: number): ChunkData {
   return chunkCache.get(key)!;
 }
 
-const TYPE_COLORS = { hostile: 'bg-destructive', neutral: 'bg-muted-foreground', friendly: 'bg-food' };
 const EVENT_COLORS = { danger: 'border-destructive/60 bg-destructive/20', opportunity: 'border-primary/60 bg-primary/20', mystery: 'border-accent/60 bg-accent/20' };
 
 type SelectedItem =
@@ -852,13 +802,19 @@ export default function WorldMap() {
     return () => clearInterval(interval);
   }, [tradeContracts.length]);
 
-  const DEFAULT_CAMERA = { cx: 100000, cy: 100000, ppu: 0.003 };
+  const DEFAULT_CAMERA = { cx: 420_000, cy: 470_000, ppu: 0.003 }; // Heartlands center
   const initializedCamera = useRef(false);
   const [camera, setCamera] = useState(DEFAULT_CAMERA);
   const safeSetCamera = useCallback((updater: (prev: typeof DEFAULT_CAMERA) => typeof DEFAULT_CAMERA) => {
     setCamera(prev => {
       const safe = prev ?? DEFAULT_CAMERA;
-      return updater(safe);
+      const result = updater(safe);
+      // Clamp camera to world bounds
+      return {
+        ...result,
+        cx: Math.max(0, Math.min(WORLD_SIZE, result.cx)),
+        cy: Math.max(0, Math.min(WORLD_SIZE, result.cy)),
+      };
     });
   }, []);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1329,7 +1285,7 @@ export default function WorldMap() {
       <div
         ref={containerRef}
         className="flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing touch-none"
-        style={{ background: 'linear-gradient(135deg, hsl(var(--map-bg-1)), hsl(var(--map-bg-2)), hsl(var(--map-bg-3)))' }}
+        style={{ background: 'linear-gradient(180deg, hsl(210 60% 12%), hsl(215 65% 18%), hsl(210 55% 14%))' }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -1371,7 +1327,188 @@ export default function WorldMap() {
           })()}
         </svg>
 
-        {/* ── Terrain Features ── */}
+        {/* ── Continent Landmasses (rendered as filled shapes over ocean) ── */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible', zIndex: 1 }}>
+          {CONTINENTS.map(cont => {
+            // Generate ellipse boundary points with coast noise
+            const points: string[] = [];
+            const steps = cont.coastNoise.length;
+            for (let i = 0; i < steps; i++) {
+              const angle = (i / steps) * Math.PI * 2 - Math.PI;
+              const r = cont.coastNoise[i];
+              const wx = cont.centerX + Math.cos(angle) * cont.radiusX * r;
+              const wy = cont.centerY + Math.sin(angle) * cont.radiusY * r;
+              const { sx, sy } = worldToScreen(wx, wy);
+              points.push(`${sx},${sy}`);
+            }
+            // Check if any point is on screen
+            const screenPts = points.map(p => p.split(',').map(Number));
+            const anyVisible = screenPts.some(([x, y]) => x > -500 && x < containerSize.w + 500 && y > -500 && y < containerSize.h + 500);
+            if (!anyVisible) return null;
+
+            const biomeColors: Record<string, string> = {
+              Tundra: 'hsl(200 15% 35% / 0.85)',
+              Desert: 'hsl(38 50% 40% / 0.85)',
+              Plains: 'hsl(100 25% 30% / 0.85)',
+              Jungle: 'hsl(140 35% 25% / 0.85)',
+              Marsh: 'hsl(160 20% 28% / 0.85)',
+            };
+            const fillColor = biomeColors[cont.biome] || 'hsl(100 20% 30% / 0.85)';
+            const coastColor = 'hsl(45 40% 55% / 0.3)';
+
+            return (
+              <g key={cont.name}>
+                {/* Coastline glow */}
+                <polygon points={points.join(' ')} fill="none" stroke={coastColor} strokeWidth={3} />
+                {/* Land fill */}
+                <polygon points={points.join(' ')} fill={fillColor} stroke="none" />
+              </g>
+            );
+          })}
+
+          {/* Ocean Islands */}
+          {OCEAN_ISLANDS.map(isle => {
+            const { sx, sy } = worldToScreen(isle.x, isle.y);
+            const rx = isle.radiusX * camera.ppu;
+            const ry = isle.radiusY * camera.ppu;
+            if (rx < 3 && ry < 3) return null;
+            if (sx < -rx - 50 || sx > containerSize.w + rx + 50 || sy < -ry - 50 || sy > containerSize.h + ry + 50) return null;
+            return (
+              <g key={isle.name}>
+                <ellipse cx={sx} cy={sy} rx={rx * 1.3} ry={ry * 1.3} fill="hsl(200 50% 35% / 0.3)" />
+                <ellipse cx={sx} cy={sy} rx={rx} ry={ry} fill="hsl(100 30% 35% / 0.8)" stroke="hsl(45 40% 55% / 0.25)" strokeWidth={1} />
+                {rx > 15 && (
+                  <text x={sx} y={sy + ry + 12} textAnchor="middle" fill="hsl(45 40% 70% / 0.5)" fontSize={Math.max(8, Math.min(12, rx / 2))} fontFamily="var(--font-display)">
+                    🏝️ {isle.name}
+                  </text>
+                )}
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* ── Continent-Level Rivers ── */}
+        {CONTINENTS.map(cont => cont.rivers.map((river, ri) => {
+          const screenPoints = river.points.map(p => worldToScreen(p.x, p.y));
+          const anyVisible = screenPoints.some(p => p.sx > -300 && p.sx < containerSize.w + 300 && p.sy > -300 && p.sy < containerSize.h + 300);
+          if (!anyVisible) return null;
+          const strokeW = Math.max(3, river.width * camera.ppu);
+          let d = `M ${screenPoints[0].sx} ${screenPoints[0].sy}`;
+          for (let i = 1; i < screenPoints.length; i++) {
+            const prev = screenPoints[i - 1];
+            const cur = screenPoints[i];
+            const cpx = (prev.sx + cur.sx) / 2 + (i % 2 === 0 ? 10 : -10);
+            const cpy = (prev.sy + cur.sy) / 2;
+            d += ` Q ${cpx} ${cpy} ${cur.sx} ${cur.sy}`;
+          }
+          const midIdx = Math.floor(screenPoints.length / 2);
+          const midPt = screenPoints[midIdx];
+          const labelSize = Math.max(8, Math.min(14, strokeW * 1.5));
+          return (
+            <div key={`cont-river-${cont.name}-${ri}`} className="absolute inset-0 pointer-events-none" style={{ overflow: 'visible', zIndex: 3 }}>
+              <svg className="absolute inset-0 w-full h-full" style={{ overflow: 'visible' }}>
+                <path d={d} fill="none" stroke="hsl(200 70% 50% / 0.15)" strokeWidth={strokeW * 3} strokeLinecap="round" strokeLinejoin="round" />
+                <path d={d} fill="none" stroke="hsl(205 75% 45% / 0.55)" strokeWidth={strokeW} strokeLinecap="round" strokeLinejoin="round" />
+                <path d={d} fill="none" stroke="hsl(195 80% 65% / 0.25)" strokeWidth={strokeW * 0.4} strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              {strokeW > 4 && (
+                <span className="absolute font-display whitespace-nowrap" style={{ left: midPt.sx, top: midPt.sy - strokeW - 6, fontSize: labelSize, transform: 'translateX(-50%)', color: 'hsl(200 60% 70% / 0.5)' }}>
+                  {river.name}
+                </span>
+              )}
+              {/* Bridges */}
+              {river.bridges.map((bp, bi) => {
+                const { sx: bsx, sy: bsy } = worldToScreen(bp.x, bp.y);
+                const bridgeW = Math.max(14, strokeW * 2.5);
+                if (bridgeW < 10) return null;
+                return (
+                  <div key={`bridge-${bi}`} className="absolute flex flex-col items-center" style={{ left: bsx, top: bsy, transform: 'translate(-50%, -50%)', zIndex: 5 }}>
+                    <div style={{
+                      width: bridgeW,
+                      height: bridgeW * 0.5,
+                      background: 'linear-gradient(180deg, hsl(30 40% 50% / 0.8), hsl(25 35% 35% / 0.7))',
+                      borderRadius: `${bridgeW * 0.5}px ${bridgeW * 0.5}px 2px 2px`,
+                      border: '1px solid hsl(30 30% 60% / 0.5)',
+                      boxShadow: '0 2px 8px hsl(0 0% 0% / 0.4)',
+                    }} />
+                    {bridgeW > 18 && <span style={{ fontSize: 9 }} className="mt-0.5" role="img">🌉</span>}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        }))}
+
+        {/* ── Continent-Level Mountain Ranges ── */}
+        {CONTINENTS.map(cont => cont.mountainRanges.map((range, mi) => {
+          const screenSpine = range.spine.map(p => worldToScreen(p.x, p.y));
+          const anyVisible = screenSpine.some(p => p.sx > -200 && p.sx < containerSize.w + 200 && p.sy > -200 && p.sy < containerSize.h + 200);
+          if (!anyVisible) return null;
+          const rangeW = range.width * camera.ppu;
+          if (rangeW < 8) return null;
+
+          // Render mountain range as a series of overlapping mountain sprites along the spine
+          const elements: React.ReactNode[] = [];
+          for (let i = 0; i < range.spine.length; i++) {
+            const p = range.spine[i];
+            const { sx, sy } = worldToScreen(p.x, p.y);
+            const mtnSize = Math.max(20, rangeW * 0.8);
+            elements.push(
+              <img key={`mtn-${i}`} src={mapMountain} alt="" loading="lazy" className="absolute pointer-events-none"
+                style={{ left: sx, top: sy, width: mtnSize, height: mtnSize * 0.8, transform: 'translate(-50%, -50%)', objectFit: 'contain', opacity: 0.9 }} />
+            );
+            // Fill between spine points with additional mountains
+            if (i < range.spine.length - 1) {
+              const next = range.spine[i + 1];
+              const dist = Math.hypot(next.x - p.x, next.y - p.y);
+              const fillCount = Math.min(5, Math.max(1, Math.floor(dist / (range.width * 0.8))));
+              for (let f = 1; f <= fillCount; f++) {
+                const t = f / (fillCount + 1);
+                const fx = p.x + (next.x - p.x) * t;
+                const fy = p.y + (next.y - p.y) * t;
+                const { sx: fsx, sy: fsy } = worldToScreen(fx, fy);
+                const fillSize = mtnSize * (0.6 + Math.random() * 0.4);
+                elements.push(
+                  <img key={`mtn-fill-${i}-${f}`} src={mapMountain} alt="" loading="lazy" className="absolute pointer-events-none"
+                    style={{ left: fsx, top: fsy, width: fillSize, height: fillSize * 0.8, transform: 'translate(-50%, -50%)', objectFit: 'contain', opacity: 0.75 }} />
+                );
+              }
+            }
+          }
+          // Range label
+          const midSpine = screenSpine[Math.floor(screenSpine.length / 2)];
+          const rangeLabelSize = Math.max(9, Math.min(14, rangeW / 4));
+          return (
+            <div key={`range-${cont.name}-${mi}`} className="absolute inset-0 pointer-events-none" style={{ zIndex: 2 }}>
+              {elements}
+              {rangeW > 30 && (
+                <span className="absolute font-display whitespace-nowrap tracking-widest uppercase" style={{ left: midSpine.sx, top: midSpine.sy + rangeW * 0.5, fontSize: rangeLabelSize, transform: 'translateX(-50%)', color: 'hsl(30 20% 60% / 0.5)' }}>
+                  ⛰️ {range.name}
+                </span>
+              )}
+            </div>
+          );
+        }))}
+
+        {/* ── Continent Labels (visible when zoomed out) ── */}
+        {CONTINENTS.map(cont => {
+          const { sx, sy } = worldToScreen(cont.centerX, cont.centerY);
+          const contScreenW = cont.radiusX * 2 * camera.ppu;
+          if (contScreenW < 80) return null; // Too zoomed out
+          const labelSize = Math.max(12, Math.min(24, contScreenW / 15));
+          return (
+            <div key={`clabel-${cont.name}`} className="absolute pointer-events-none flex flex-col items-center" style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', zIndex: 2, opacity: 0.35 }}>
+              <span className="font-display tracking-[0.3em] uppercase text-foreground/50" style={{ fontSize: labelSize }}>
+                {cont.name}
+              </span>
+              <span className="text-muted-foreground/40" style={{ fontSize: labelSize * 0.6 }}>
+                {cont.biome}
+              </span>
+            </div>
+          );
+        })}
+
+        {/* ── Terrain Features (lakes only — rivers/mountains are continent-level) ── */}
         {visibleChunks.map(chunk => chunk.data.terrain.map((t, ti) => {
           if (t.type === 'lake') {
             const { sx, sy } = worldToScreen(t.x, t.y);
@@ -1392,103 +1529,7 @@ export default function WorldMap() {
               </div>
             );
           }
-          if (t.type === 'mountain') {
-            const { sx, sy } = worldToScreen(t.x, t.y);
-            const w = t.width * camera.ppu;
-            const h = t.height * camera.ppu;
-            if (w < 6) return null;
-            const labelSize = Math.max(7, Math.min(12, w / 5));
-            return (
-              <div key={`mtn-${chunk.cx}-${chunk.cy}-${ti}`} className="absolute pointer-events-none"
-                style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
-                <img src={mapMountain} alt={t.name} loading="lazy"
-                  style={{ width: w, height: h, objectFit: 'contain', opacity: 0.85 }} />
-                {w > 25 && (
-                  <span className="absolute left-1/2 whitespace-nowrap font-display text-foreground/50" style={{ fontSize: labelSize, bottom: -labelSize - 2, transform: 'translateX(-50%)' }}>
-                    ⛰️ {t.name}
-                  </span>
-                )}
-              </div>
-            );
-          }
-          if (t.type === 'island') {
-            const { sx, sy } = worldToScreen(t.x, t.y);
-            const w = t.width * camera.ppu;
-            const h = t.height * camera.ppu;
-            if (w < 8) return null;
-            const labelSize = Math.max(7, Math.min(11, w / 5));
-            return (
-              <div key={`isle-${chunk.cx}-${chunk.cy}-${ti}`} className="absolute pointer-events-none"
-                style={{ left: sx, top: sy, transform: `translate(-50%, -50%) rotate(${t.rotation || 0}deg)` }}>
-                {/* Water around island */}
-                <div style={{ width: w * 1.5, height: h * 1.5, borderRadius: '50%', background: 'radial-gradient(ellipse, hsl(200 65% 40% / 0.35), transparent 70%)', position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }} />
-                {/* Island mass */}
-                <div style={{ width: w, height: h, borderRadius: '45% 55% 60% 40% / 50% 45% 55% 50%', background: 'radial-gradient(ellipse, hsl(100 35% 40% / 0.6), hsl(80 30% 30% / 0.4))', border: '1px solid hsl(50 40% 55% / 0.2)', position: 'relative', zIndex: 1 }} />
-                {w > 25 && (
-                  <span className="absolute left-1/2 whitespace-nowrap font-display text-emerald-200/50"
-                    style={{ fontSize: labelSize, bottom: -labelSize - 4, transform: `translateX(-50%) rotate(${-(t.rotation || 0)}deg)`, zIndex: 2 }}>
-                    🏝️ {t.name}
-                  </span>
-                )}
-              </div>
-            );
-          }
-          if (t.type === 'river' && t.points && t.points.length > 1) {
-            const screenPoints = t.points.map(p => worldToScreen(p.x, p.y));
-            // Check if any point is visible
-            const anyVisible = screenPoints.some(p => p.sx > -200 && p.sx < containerSize.w + 200 && p.sy > -200 && p.sy < containerSize.h + 200);
-            if (!anyVisible) return null;
-            const strokeW = Math.max(2, t.width * camera.ppu);
-            // Build SVG path
-            let d = `M ${screenPoints[0].sx} ${screenPoints[0].sy}`;
-            for (let i = 1; i < screenPoints.length; i++) {
-              const prev = screenPoints[i - 1];
-              const cur = screenPoints[i];
-              const cpx = (prev.sx + cur.sx) / 2 + (i % 2 === 0 ? 10 : -10);
-              const cpy = (prev.sy + cur.sy) / 2;
-              d += ` Q ${cpx} ${cpy} ${cur.sx} ${cur.sy}`;
-            }
-            const labelSize = Math.max(8, Math.min(12, strokeW * 2));
-            const midIdx = Math.floor(screenPoints.length / 2);
-            const midPt = screenPoints[midIdx];
-            return (
-              <div key={`river-${chunk.cx}-${chunk.cy}-${ti}`} className="absolute inset-0 pointer-events-none" style={{ overflow: 'visible' }}>
-                <svg className="absolute inset-0 w-full h-full" style={{ overflow: 'visible' }}>
-                  {/* River glow */}
-                  <path d={d} fill="none" stroke="hsl(200 70% 50% / 0.15)" strokeWidth={strokeW * 3} strokeLinecap="round" strokeLinejoin="round" />
-                  {/* River body */}
-                  <path d={d} fill="none" stroke="hsl(205 75% 45% / 0.45)" strokeWidth={strokeW} strokeLinecap="round" strokeLinejoin="round" />
-                  {/* River highlight */}
-                  <path d={d} fill="none" stroke="hsl(195 80% 65% / 0.2)" strokeWidth={strokeW * 0.4} strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                {/* River name */}
-                {strokeW > 3 && (
-                  <span className="absolute font-display text-sky-300/40 whitespace-nowrap" style={{ left: midPt.sx, top: midPt.sy - strokeW - 4, fontSize: labelSize, transform: 'translateX(-50%)' }}>
-                    {t.name}
-                  </span>
-                )}
-                {/* Bridges */}
-                {t.bridgeAt?.map((bp, bi) => {
-                  const { sx: bsx, sy: bsy } = worldToScreen(bp.x, bp.y);
-                  const bridgeW = Math.max(12, strokeW * 2.5);
-                  if (bridgeW < 8) return null;
-                  return (
-                    <div key={`bridge-${bi}`} className="absolute flex flex-col items-center" style={{ left: bsx, top: bsy, transform: 'translate(-50%, -50%)', zIndex: 5 }}>
-                      <div style={{
-                        width: bridgeW,
-                        height: bridgeW * 0.5,
-                        background: 'linear-gradient(180deg, hsl(30 40% 50% / 0.7), hsl(25 35% 35% / 0.6))',
-                        borderRadius: `${bridgeW * 0.5}px ${bridgeW * 0.5}px 2px 2px`,
-                        border: '1px solid hsl(30 30% 60% / 0.4)',
-                        boxShadow: '0 2px 6px hsl(0 0% 0% / 0.3)',
-                      }} />
-                      {bridgeW > 15 && <span style={{ fontSize: 7 }} className="text-amber-200/50 mt-0.5">🌉</span>}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          }
+          // Mountains, islands, and rivers are now rendered at continent level — skip per-chunk
           return null;
         }))}
 
