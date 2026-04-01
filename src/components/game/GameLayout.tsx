@@ -66,6 +66,13 @@ export default function GameLayout() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeMarches, setActiveMarches] = useState<{ id: string; target_name: string; march_type: string; arrives_at: string; started_at: string }[]>([]);
   const [vassalPopup, setVassalPopup] = useState(false);
+  // Ally defense modal state
+  const [allyDefenseData, setAllyDefenseData] = useState<{
+    attackerName: string; allyName: string; allyVillageId?: string;
+    targetX: number; targetY: number; attackEta: string;
+  } | null>(null);
+  // Gratitude modal state
+  const [gratitudeData, setGratitudeData] = useState<{ allyUserId: string; allyName: string } | null>(null);
   const totalTroops = Object.values(army).reduce((s, v) => s + v, 0);
 
   // Check if player is vassalized
