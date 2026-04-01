@@ -1061,7 +1061,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
     currentHouses,
   }), [populationBase, maxPopulation, totalWorkers, totalSoldiers, armyCap, happiness, housingCapacity, maxHouses, currentHouses]);
 
-  // Settlement type — loaded from DB, upgraded explicitly
+  // === SPY MISSIONS HOOK ===
+  const spyMissions = useSpyMissions({
+    user, villageId, resources, setResources, canAfford, buildings, population,
+  });
+  const { spies, setSpies, spyTrainingQueue, activeSpyMissions, intelReports,
+    trainSpies, sendSpyMission, getSpyGuildLevel, getWatchtowerLevel, hydrateSpyData } = spyMissions;
+
+  // Bridge refs for loadVillageData (defined before this hook)
+  useEffect(() => {
+    hydrateSpyDataRef.current = hydrateSpyData;
+    setSpiesRef.current = setSpies;
+  }, [hydrateSpyData, setSpies]);
+
   const settlementTypeRef = useRef<'village' | 'town' | 'city'>('village');
   const [settlementType, setSettlementType] = useState<'village' | 'town' | 'city'>('village');
   const [settlementUpgradeFinishTime, setSettlementUpgradeFinishTime] = useState<number | null>(null);
