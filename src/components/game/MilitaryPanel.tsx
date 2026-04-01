@@ -714,7 +714,7 @@ function EspionagePanel({
                     <p className="text-muted-foreground font-display">Troops Spotted:</p>
                     <div className="flex gap-2 text-foreground">
                       {Object.entries(report.data.troops).filter(([, v]) => (v as number) > 0).map(([type, count]) => (
-                        <span key={type}>{TROOP_INFO[type as TroopType].emoji}{count as number}</span>
+                        <span key={type} className="flex items-center gap-0.5"><TroopIcon type={type as TroopType} size={10} />{count as number}</span>
                       ))}
                     </div>
                   </div>
