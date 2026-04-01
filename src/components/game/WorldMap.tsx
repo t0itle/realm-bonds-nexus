@@ -1116,7 +1116,7 @@ export default function WorldMap() {
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [marches, user]);
+  }, [marches, user, returnTroops]);
 
   // createMarch is defined below after getMyPos
 
