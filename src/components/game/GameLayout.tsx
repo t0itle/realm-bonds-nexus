@@ -56,6 +56,7 @@ const TABS: { id: Tab; icon: string; label: string }[] = [
 
 export default function GameLayout() {
   const [activeTab, setActiveTab] = useState<Tab>('village');
+  const [hasOpenedMap, setHasOpenedMap] = useState(false);
   const [dmTarget, setDmTarget] = useState<{ userId: string; name: string } | null>(null);
   const { villageName, playerLevel, loading, displayName, army, trainingQueue, vassalages } = useGame();
   const { user } = useAuth();
@@ -149,6 +150,12 @@ export default function GameLayout() {
     return () => window.removeEventListener('switch-tab', handler);
   }, []);
 
+  useEffect(() => {
+    if (activeTab === 'map' && !hasOpenedMap) {
+      setHasOpenedMap(true);
+    }
+  }, [activeTab, hasOpenedMap]);
+
   if (loading) {
     return (
       <div className="fixed inset-0 bg-background flex flex-col items-center justify-center gap-3">
@@ -238,22 +245,31 @@ export default function GameLayout() {
       )}
 
       <div className="flex-1 overflow-hidden relative">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.15 }}
-            className="absolute inset-0 flex flex-col overflow-y-auto"
-          >
+        {(hasOpenedMap || activeTab === 'map') && (
+          <div className={activeTab === 'map' ? 'absolute inset-0 flex flex-col overflow-y-auto' : 'hidden'}>
             <Suspense fallback={<TabFallback />}>
-              {activeTab === 'village' && <VillageGrid />}
-              {activeTab === 'map' && <WorldMap />}
-              {activeTab === 'social' && <SocialPanel initialDm={dmTarget} onDmHandled={() => setDmTarget(null)} />}
-              {activeTab === 'profile' && <ProfilePanel />}
+              <WorldMap />
             </Suspense>
-          </motion.div>
+          </div>
+        )}
+
+        <AnimatePresence mode="wait">
+          {activeTab !== 'map' && (
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.15 }}
+              className="absolute inset-0 flex flex-col overflow-y-auto"
+            >
+              <Suspense fallback={<TabFallback />}>
+                {activeTab === 'village' && <VillageGrid />}
+                {activeTab === 'social' && <SocialPanel initialDm={dmTarget} onDmHandled={() => setDmTarget(null)} />}
+                {activeTab === 'profile' && <ProfilePanel />}
+              </Suspense>
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
 
