@@ -125,11 +125,11 @@ function OracleWidget() {
       <AnimatePresence>
         {expanded && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-            <div className="game-panel border border-border/50 rounded-b-xl px-4 py-3 space-y-2">
+            <div className="parchment-panel rounded-b-xl px-4 py-3 space-y-2">
               <div ref={scrollRef} className="max-h-32 overflow-y-auto space-y-1.5">
                 {messages.map((msg, i) => (
                   <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed ${msg.role === 'user' ? 'wood-btn-primary' : 'bg-muted/50'}`}>
+                    <div className={`max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed ${msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-white/40'}`}>
                       {msg.role === 'assistant' && <Scroll className="w-2.5 h-2.5 text-primary inline mr-0.5 mb-0.5" />}
                       <span className="whitespace-pre-wrap">{msg.content}</span>
                     </div>

@@ -273,7 +273,7 @@ export default function MilitaryPanel() {
             <div className="space-y-2">
               <h3 className="font-display text-sm text-foreground">Battle Reports</h3>
               {battleLogs.slice(0, 5).map(log => (
-                <div key={log.id} className={`game-panel rounded-xl p-2.5 border ${
+                <div key={log.id} className={`parchment-panel rounded-xl p-2.5 ${
                   log.result === 'victory' ? 'border-food/30' : 'border-destructive/30'
                 }`}>
                   <div className="flex items-center justify-between">

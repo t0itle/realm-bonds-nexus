@@ -178,7 +178,7 @@ export default function DungeonMasterPanel() {
   };
 
   return (
-    <div className="flex flex-col h-full p-2 gap-3">
+    <div className="flex flex-col h-full p-2 gap-3 parchment-panel rounded-xl">
       {/* Event Banner */}
       <AnimatePresence>
         {eventBanner && (
@@ -211,7 +211,7 @@ export default function DungeonMasterPanel() {
             <div className={`max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
               msg.role === 'user'
                 ? 'bg-primary text-primary-foreground'
-                : 'game-panel border border-border/50'
+                : 'bg-white/40 border border-border/20'
             }`}>
               {msg.role === 'assistant' && <Scroll className="w-3 h-3 text-primary inline mr-1 mb-0.5" />}
               <span className="whitespace-pre-wrap">{msg.content}</span>
