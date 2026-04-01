@@ -430,6 +430,7 @@ interface GameContextType {
   upgradeSettlement: () => Promise<boolean>;
   isSettlementUpgrading: boolean;
   settlementUpgradeFinishTime: number | null;
+  disbandTroops: (type: TroopType, count: number) => boolean;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
