@@ -2341,8 +2341,85 @@ export default function WorldMap() {
           return elements;
         })()}
 
+        {/* ── Bridge sprites over rivers ── */}
+        {outposts.filter(o => o.outpost_type === 'bridge').map(bridge => {
+          if (!isVisible(bridge.x, bridge.y, 80)) return null;
+          const { sx, sy } = worldToScreen(bridge.x, bridge.y);
+          const bridgeSize = Math.max(30, Math.min(80, camera.ppu * 12000));
+          if (bridgeSize < 8) return null;
+          // Find the nearest river to determine bridge angle
+          let riverAngle = 0;
+          let nearestDist = Infinity;
+          for (const chunk of visibleChunks) {
+            for (const t of chunk.data.terrain) {
+              if (t.type !== 'river' || !t.points || t.points.length < 2) continue;
+              for (let i = 0; i < t.points.length - 1; i++) {
+                const p1 = t.points[i], p2 = t.points[i + 1];
+                const dx = p2.x - p1.x, dy = p2.y - p1.y;
+                const lenSq = dx * dx + dy * dy;
+                if (lenSq === 0) continue;
+                const tt = Math.max(0, Math.min(1, ((bridge.x - p1.x) * dx + (bridge.y - p1.y) * dy) / lenSq));
+                const cx = p1.x + tt * dx, cy = p1.y + tt * dy;
+                const d = Math.hypot(bridge.x - cx, bridge.y - cy);
+                if (d < nearestDist) {
+                  nearestDist = d;
+                  riverAngle = Math.atan2(dy, dx) * 180 / Math.PI;
+                }
+              }
+            }
+          }
+          // Bridge goes perpendicular to the river
+          const bridgeRotation = riverAngle + 90;
+          const isOwn = bridge.user_id === user?.id;
+          const labelSize = Math.max(7, Math.min(11, bridgeSize / 5));
+          return (
+            <button
+              key={`bridge-sprite-${bridge.id}`}
+              type="button"
+              data-map-item
+              aria-label={`Open ${bridge.name}`}
+              className="absolute z-[43] flex flex-col items-center justify-center cursor-pointer touch-manipulation"
+              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}
+              onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'outpost', data: bridge }); }}
+            >
+              <div className="relative" style={{ transform: `rotate(${bridgeRotation}deg)` }}>
+                {/* Bridge planks */}
+                <svg width={bridgeSize} height={bridgeSize * 0.5} viewBox="0 0 100 50" className="drop-shadow-lg">
+                  {/* Bridge railings */}
+                  <rect x="5" y="2" width="90" height="4" rx="2" fill={isOwn ? 'hsl(30, 50%, 35%)' : 'hsl(0, 30%, 35%)'} />
+                  <rect x="5" y="44" width="90" height="4" rx="2" fill={isOwn ? 'hsl(30, 50%, 35%)' : 'hsl(0, 30%, 35%)'} />
+                  {/* Bridge deck */}
+                  <rect x="8" y="8" width="84" height="34" rx="1" fill={isOwn ? 'hsl(30, 40%, 45%)' : 'hsl(0, 20%, 40%)'} />
+                  {/* Planks */}
+                  {[0, 1, 2, 3, 4, 5, 6].map(i => (
+                    <rect key={i} x={12 + i * 11} y="8" width="2" height="34" fill={isOwn ? 'hsl(30, 30%, 30%)' : 'hsl(0, 15%, 30%)'} opacity="0.5" />
+                  ))}
+                  {/* Support pillars */}
+                  <rect x="15" y="0" width="6" height="50" rx="2" fill={isOwn ? 'hsl(30, 25%, 28%)' : 'hsl(0, 15%, 28%)'} />
+                  <rect x="79" y="0" width="6" height="50" rx="2" fill={isOwn ? 'hsl(30, 25%, 28%)' : 'hsl(0, 15%, 28%)'} />
+                  {/* Railing posts */}
+                  {[25, 40, 55, 70].map(px => (
+                    <g key={px}>
+                      <rect x={px} y="0" width="3" height="8" rx="1" fill={isOwn ? 'hsl(30, 35%, 32%)' : 'hsl(0, 20%, 32%)'} />
+                      <rect x={px} y="42" width="3" height="8" rx="1" fill={isOwn ? 'hsl(30, 35%, 32%)' : 'hsl(0, 20%, 32%)'} />
+                    </g>
+                  ))}
+                </svg>
+              </div>
+              {bridgeSize > 25 && (
+                <div className={`backdrop-blur-sm rounded px-1 py-0.5 text-center mt-0.5 border ${isOwn ? 'bg-background/70 border-sky-400/30' : 'bg-background/50 border-destructive/20'}`}
+                  style={{ transform: `rotate(0deg)` }}>
+                  <p className="text-foreground/80 font-display whitespace-nowrap" style={{ fontSize: labelSize }}>
+                    🌉 {bridge.name}
+                  </p>
+                </div>
+              )}
+            </button>
+          );
+        })}
+
         {/* ── Outpost markers on the map ── */}
-        {outposts.map(outpost => {
+        {outposts.filter(o => o.outpost_type !== 'bridge').map(outpost => {
           if (!isWithinVision(outpost.x, outpost.y, 6000)) return null;
           if (!isVisible(outpost.x, outpost.y, 60)) return null;
           const { sx, sy } = worldToScreen(outpost.x, outpost.y);
