@@ -2048,10 +2048,13 @@ export default function WorldMap() {
     return { visibleRealms: realms, visibleEvents: events };
   }, [visibleChunks, isVisible, claimedEvents]);
 
+  // ── LOD tiers based on zoom level ──
+  const lodTier = camera.ppu > 0.005 ? 'close' : camera.ppu >= 0.001 ? 'medium' : 'far';
+
   // Cap rendered items when very zoomed out
   const maxItems = 30;
   const renderRealms = useMemo(() => visibleRealms.slice(0, maxItems), [visibleRealms]);
-  const renderEvents = useMemo(() => visibleEvents.slice(0, maxItems), [visibleEvents]);
+  const renderEvents = useMemo(() => lodTier !== 'far' ? visibleEvents.slice(0, maxItems) : [], [visibleEvents, lodTier]);
 
   // ── Memoized collision-nudged player positions ──
   const nudgedPlayerPositions = useMemo(() => {
