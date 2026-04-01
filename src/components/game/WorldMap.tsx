@@ -689,12 +689,23 @@ export default function WorldMap() {
   // Get TH level for dynamic sprite
   const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
   const factionTownhall = getBuildingSprite('townhall');
-  const getSettlementSprite = (thLevel: number, isMe: boolean) => {
+
+  const SETTLEMENT_TIER_SPRITES: Record<string, string> = {
+    village: mapVillageTier,
+    town: mapTownTier,
+    city: mapCityTier,
+  };
+
+  const getSettlementSprite = (settlementTier: string, isMe: boolean) => {
     // If the current player has a faction skin, use the faction townhall sprite
     if (isMe && activeSkin.id !== 'default') return factionTownhall;
-    if (thLevel >= 7) return isMe ? mapCastleFriendly : mapCastleNeutral;
-    if (thLevel >= 5) return mapCastleNeutral;
-    return mapVillage;
+    return SETTLEMENT_TIER_SPRITES[settlementTier] || mapVillageTier;
+  };
+
+  const SETTLEMENT_LABELS: Record<string, string> = {
+    village: '🏠 Village',
+    town: '🏘️ Town',
+    city: '🏰 City',
   };
 
   // Steel production from captured mines
