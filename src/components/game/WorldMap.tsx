@@ -2302,11 +2302,8 @@ export default function WorldMap() {
             {selected.kind === 'empty' && (() => {
               const thLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
               const outpostCost = { gold: 300, wood: 200, stone: 150, food: 100 };
-              const settlementCost = { gold: 1000, wood: 600, stone: 400, food: 300 };
               const canAffordOp = resources.gold >= outpostCost.gold && resources.wood >= outpostCost.wood && resources.stone >= outpostCost.stone && resources.food >= outpostCost.food;
-              const canAffordSettlement = resources.gold >= settlementCost.gold && resources.wood >= settlementCost.wood && resources.stone >= settlementCost.stone && resources.food >= settlementCost.food;
               const canBuildOutpost = thLevel >= 3;
-              const canBuildSettlement = thLevel >= 5;
               const inRange = isInRange(selected.data.x, selected.data.y);
               const coordLabel = `${(selected.data.x / 1000).toFixed(1)}k, ${(selected.data.y / 1000).toFixed(1)}k`;
               return (
