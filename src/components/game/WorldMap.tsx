@@ -2246,17 +2246,20 @@ export default function WorldMap() {
                 toast(`${isSettlement ? '🏘️' : '🏕️'} Upgrading ${op.name} to Lv.${newLevel}... (${Math.floor(upgradeTimeSec / 60)}:${(upgradeTimeSec % 60).toString().padStart(2, '0')})`);
               };
 
+              // Find nearby outposts that could connect via wall
+              const WALL_CONNECT_DIST = 50000;
+              const nearbyOwnOutposts = outposts.filter(other =>
+                other.id !== op.id && other.user_id === user?.id && other.outpost_type !== 'mine' &&
+                Math.hypot(other.x - op.x, other.y - op.y) <= WALL_CONNECT_DIST
+              );
+              const wallConnections = nearbyOwnOutposts.filter(n => n.has_wall);
+              const potentialConnections = nearbyOwnOutposts.filter(n => !n.has_wall);
+
               const handleWall = async () => {
                 if (!canAffordWall) { toast.error('Not enough resources!'); return; }
                 if (isBuildingWall) { toast.error('Already building wall!'); return; }
-                // Check wall territory overlap — walls shouldn't overlap with nearby walled outposts
-                const walledNeighbor = outposts.find(other => {
-                  if (other.id === op.id || !other.has_wall) return false;
-                  const dist = Math.hypot(other.x - op.x, other.y - op.y);
-                  return dist < (op.territory_radius + other.territory_radius) * 0.85;
-                });
-                if (walledNeighbor) {
-                  toast.error(`Wall would overlap with ${walledNeighbor.name}'s walls! Outposts must be further apart to build walls.`);
+                if (!op.has_wall && nearbyOwnOutposts.length === 0) {
+                  toast.error('No nearby outposts to connect! Build outposts within range first.');
                   return;
                 }
                 addResources({ gold: -wallCost.gold, wood: -wallCost.wood, stone: -wallCost.stone, food: -wallCost.food });
@@ -2264,11 +2267,15 @@ export default function WorldMap() {
                 const newGarrison = op.garrison_power + 30;
                 const finishTime = Date.now() + wallTimeSec * 1000;
                 setOutpostBuildQueue(prev => [...prev, { outpostId: op.id, action: 'wall', finishTime, targetLevel: newWallLevel, newGarrison }]);
-                // Persist to build_queue table
                 if (user) {
                   supabase.from('build_queue').insert({ user_id: user.id, building_id: op.id, building_type: 'outpost_wall', target_level: newWallLevel, finish_time: new Date(finishTime).toISOString() } as any).then();
                 }
-                toast(`🧱 ${op.has_wall ? 'Upgrading wall' : 'Building wall'} at ${op.name}... (${Math.floor(wallTimeSec / 60)}:${(wallTimeSec % 60).toString().padStart(2, '0')})`);
+                const connectMsg = wallConnections.length > 0
+                  ? ` Connecting to ${wallConnections.map(c => c.name).join(', ')}!`
+                  : potentialConnections.length > 0
+                    ? ` Wall nearby outposts to complete the border.`
+                    : '';
+                toast(`🧱 ${op.has_wall ? 'Reinforcing' : 'Building'} wall at ${op.name}...${connectMsg} (${Math.floor(wallTimeSec / 60)}:${(wallTimeSec % 60).toString().padStart(2, '0')})`);
               };
 
 
