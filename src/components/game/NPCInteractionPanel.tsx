@@ -59,8 +59,8 @@ interface Props {
 export default function NPCInteractionPanel({
   realm, biome, onClose, onAttack, onEnvoy,
   playerRelation, townState, townRelations, allRealmNames,
-  onUpdateSentiment, onSetRelationStatus, onHireMercenaries,
-  isInRange, travelTime, hasActiveTrade,
+  onUpdateSentiment, onSetRelationStatus, onHireMercenaries, onDeductNPCStock,
+  isInRange, travelTime, hasActiveTrade, isScouted,
 }: Props) {
   const { resources, addResources } = useGame();
   const [tab, setTab] = useState<'info' | 'trade' | 'talk' | 'mercs'>('info');
