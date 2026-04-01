@@ -368,11 +368,10 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
 }) {
   const [confirmDemolish, setConfirmDemolish] = useState(false);
   const [steelPopup, setSteelPopup] = useState(false);
-  const { getSpriteFilter } = useTroopSkins();
-  const spriteFilter = getSpriteFilter();
+  const { getBuildingSprite } = useTroopSkins();
   const type = building.type as Exclude<BuildingType, 'empty'>;
   const info = BUILDING_INFO[type];
-  const sprite = BUILDING_SPRITES[type];
+  const sprite = getBuildingSprite(type);
   const upgradeCost = getUpgradeCost(type, building.level);
   const production = getProduction(type, building.level);
   const steelProd = getSteelProduction(type, building.level);
