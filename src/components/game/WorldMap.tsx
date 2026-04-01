@@ -3092,7 +3092,7 @@ export default function WorldMap() {
                   </div>
                   <motion.button whileTap={{ scale: 0.95 }}
                     onClick={() => handleInvestigate(selected.data)}
-                    className="bg-primary text-primary-foreground font-display text-[11px] py-2.5 px-4 rounded-lg glow-gold-sm active:scale-95 transition-transform whitespace-nowrap">
+                    className="wood-btn-primary font-display text-[11px] py-2.5 px-4 rounded-lg glow-gold-sm active:scale-95 transition-transform whitespace-nowrap">
                     {selected.data.power > 0 ? '⚔️ Fight & Claim' : '✋ Claim'}
                   </motion.button>
                 </div>
@@ -3375,7 +3375,7 @@ export default function WorldMap() {
                         });
                       }}
                       disabled={!isInRange(selected.data.x, selected.data.y)}
-                      className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2.5 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
+                      className="w-full wood-btn-primary font-display text-[11px] py-2.5 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
                       {!isInRange(selected.data.x, selected.data.y) ? '⚠️ Out of Range' : `⚔️ Clear Garrison & Build Outpost (⚔️${selected.data.power})`}
                     </motion.button>
                   </div>
@@ -3517,7 +3517,7 @@ export default function WorldMap() {
                           </div>
                         ) : (
                           <motion.button whileTap={{ scale: 0.95 }} onClick={handleUpgrade} disabled={!canAffordUpgrade}
-                            className="w-full bg-primary text-primary-foreground font-display text-[11px] py-3 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
+                            className="w-full wood-btn-primary font-display text-[11px] py-3 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
                             ⬆️ Upgrade Outpost ({Math.floor(upgradeTimeSec / 60)}:{(upgradeTimeSec % 60).toString().padStart(2, '0')})
                           </motion.button>
                         )}
@@ -3704,7 +3704,7 @@ export default function WorldMap() {
                               toast.success(`🏘️ ${settleName} is now a full settlement!`);
                               setSelected(null);
                             }}
-                            className="w-full bg-primary text-primary-foreground font-display text-[11px] py-3 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
+                            className="w-full wood-btn-primary font-display text-[11px] py-3 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
                             🏘️ Convert to Settlement
                           </motion.button>
                         </div>
@@ -3865,7 +3865,7 @@ export default function WorldMap() {
                         });
                         setSelected(null);
                       }}
-                      className="w-full bg-primary text-primary-foreground font-display text-[11px] py-3 rounded-lg glow-gold-sm disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform">
+                      className="w-full wood-btn-primary font-display text-[11px] py-3 rounded-lg glow-gold-sm disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform">
                       {!inRange ? '⚠️ Out of Range' : '🏕️ Found Outpost'}
                     </motion.button>
                   </div>

@@ -240,7 +240,7 @@ export default function TroopTransferPanel({
           onClick={() => { setDirection('to-outpost'); setSending({}); }}
           className={`flex-1 text-sm py-2.5 rounded-lg font-display transition-colors ${
             direction === 'to-outpost'
-              ? 'bg-primary text-primary-foreground'
+              ? 'wood-btn-primary'
               : 'bg-muted text-muted-foreground'
           }`}
         >
@@ -250,7 +250,7 @@ export default function TroopTransferPanel({
           onClick={() => { setDirection('from-outpost'); setSending({}); setSelectedTarget('village'); }}
           className={`flex-1 text-sm py-2.5 rounded-lg font-display transition-colors ${
             direction === 'from-outpost'
-              ? 'bg-primary text-primary-foreground'
+              ? 'wood-btn-primary'
               : 'bg-muted text-muted-foreground'
           }`}
         >
@@ -269,7 +269,7 @@ export default function TroopTransferPanel({
                 onClick={() => setSelectedTarget(t.id)}
                 className={`text-sm px-3 py-2 rounded-lg transition-colors ${
                   (selectedTarget || 'village') === t.id
-                    ? 'bg-primary text-primary-foreground'
+                    ? 'wood-btn-primary'
                     : 'bg-muted text-muted-foreground'
                 }`}
               >
@@ -342,7 +342,7 @@ export default function TroopTransferPanel({
         whileTap={{ scale: 0.95 }}
         onClick={handleTransfer}
         disabled={totalSending === 0}
-        className="w-full bg-primary text-primary-foreground font-display text-[11px] py-3 rounded-lg disabled:opacity-40 active:scale-95 transition-transform"
+        className="w-full wood-btn-primary font-display text-[11px] py-3 rounded-lg disabled:opacity-40 active:scale-95 transition-transform"
       >
         🔄 Transfer Troops
       </motion.button>

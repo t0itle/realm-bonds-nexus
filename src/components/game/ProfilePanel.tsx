@@ -261,7 +261,7 @@ export default function ProfilePanel() {
                     <div className="flex items-center gap-2.5">
                       <span className="text-sm">{skin.icon}</span>
                       <span className="font-display text-sm text-foreground">{skin.name}</span>
-                      {isActive && <span className="text-[11px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-bold">ACTIVE</span>}
+                      {isActive && <span className="text-[11px] wood-btn-primary px-1.5 py-0.5 rounded-full font-bold">ACTIVE</span>}
                       {owned && !isActive && <span className="text-[11px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">OWNED</span>}
                     </div>
                     <p className="text-sm text-muted-foreground truncate">{skin.description}</p>
@@ -279,7 +279,7 @@ export default function ProfilePanel() {
                       <motion.button whileTap={{ scale: 0.95 }}
                         onClick={() => purchaseSkin(skin.id)}
                         disabled={!canAffordSkin}
-                        className={`font-display text-sm py-2.5 px-4 rounded-lg whitespace-nowrap ${canAffordSkin ? 'bg-primary text-primary-foreground glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
+                        className={`font-display text-sm py-2.5 px-4 rounded-lg whitespace-nowrap ${canAffordSkin ? 'wood-btn-primary glow-gold-sm' : 'bg-muted text-muted-foreground'}`}>
                         🪙 {skin.cost.toLocaleString()}
                       </motion.button>
                     )}
@@ -313,7 +313,7 @@ export default function ProfilePanel() {
               className={`w-full font-display text-sm py-3 rounded-lg transition-colors ${
                 isSubscribed 
                   ? 'bg-destructive/20 text-destructive' 
-                  : 'bg-primary text-primary-foreground glow-gold-sm'
+                  : 'wood-btn-primary glow-gold-sm'
               }`}>
               {isSubscribed ? '🔕 Disable Notifications' : '🔔 Enable Notifications'}
             </motion.button>

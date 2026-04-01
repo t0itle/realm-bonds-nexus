@@ -143,7 +143,7 @@ export default function AuthPage() {
             whileTap={{ scale: 0.95 }}
             type="submit"
             disabled={loading}
-            className="w-full bg-primary text-primary-foreground font-display font-bold py-3 rounded-lg glow-gold disabled:opacity-50"
+            className="w-full wood-btn-primary font-display font-bold py-3 rounded-lg glow-gold disabled:opacity-50"
           >
             {loading ? '...' : isSignUp ? 'Forge Kingdom' : 'Enter Realm'}
           </motion.button>

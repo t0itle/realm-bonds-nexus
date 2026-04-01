@@ -129,7 +129,7 @@ export default function GuildContracts({ allianceId, isLeader }: GuildContractsP
         <h3 className="font-display text-sm text-foreground">📜 Guild Contracts</h3>
         {isLeader && !creating && (
           <motion.button whileTap={{ scale: 0.95 }} onClick={() => setCreating(true)}
-            className="text-sm bg-primary text-primary-foreground px-3 py-2 rounded-lg font-display">+ New</motion.button>
+            className="text-sm wood-btn-primary px-3 py-2 rounded-lg font-display">+ New</motion.button>
         )}
       </div>
 
@@ -149,7 +149,7 @@ export default function GuildContracts({ allianceId, isLeader }: GuildContractsP
             </div>
             <div className="flex gap-3">
               <motion.button whileTap={{ scale: 0.95 }} onClick={createContract}
-                className="flex-1 bg-primary text-primary-foreground text-sm py-2.5 rounded-lg font-display">Post Contract</motion.button>
+                className="flex-1 wood-btn-primary text-sm py-2.5 rounded-lg font-display">Post Contract</motion.button>
               <motion.button whileTap={{ scale: 0.95 }} onClick={() => setCreating(false)}
                 className="flex-1 bg-muted text-muted-foreground text-sm py-2.5 rounded-lg">Cancel</motion.button>
             </div>

@@ -208,7 +208,7 @@ export default function CaravanPanel({ onClose }: { onClose: () => void }) {
                 whileTap={{ scale: 0.95 }}
                 onClick={handleSend}
                 disabled={sending || sendAmounts.gold + sendAmounts.wood + sendAmounts.stone + sendAmounts.food <= 0}
-                className="w-full bg-primary text-primary-foreground font-display text-[11px] py-3 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform"
+                className="w-full wood-btn-primary font-display text-[11px] py-3 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform"
               >
                 🐴 Send Caravan ({calcTravelTime(selectedDest)}s travel) ⚠️ Can be raided!
               </motion.button>

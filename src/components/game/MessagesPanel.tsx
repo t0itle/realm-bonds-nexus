@@ -316,7 +316,7 @@ export default function MessagesPanel({ initialDm, onDmHandled }: MessagesPanelP
             {trade.status === 'pending' && isReceiver && (
               <div className="flex gap-3 mt-2">
                 <motion.button whileTap={{ scale: 0.95 }} onClick={() => respondToTrade(msg.id, trade, true)}
-                  className="flex-1 bg-primary text-primary-foreground text-sm py-2.5 rounded-lg font-display">✅ Accept</motion.button>
+                  className="flex-1 wood-btn-primary text-sm py-2.5 rounded-lg font-display">✅ Accept</motion.button>
                 <motion.button whileTap={{ scale: 0.95 }} onClick={() => respondToTrade(msg.id, trade, false)}
                   className="flex-1 bg-destructive/20 text-destructive text-sm py-2.5 rounded-lg font-display">❌ Decline</motion.button>
               </div>
@@ -350,7 +350,7 @@ export default function MessagesPanel({ initialDm, onDmHandled }: MessagesPanelP
             {invite.status === 'pending' && isReceiver && (
               <div className="flex gap-3 mt-2">
                 <motion.button whileTap={{ scale: 0.95 }} onClick={() => respondToGuildInvite(msg.id, invite, true)}
-                  className="flex-1 bg-primary text-primary-foreground text-sm py-2.5 rounded-lg font-display">✅ Join</motion.button>
+                  className="flex-1 wood-btn-primary text-sm py-2.5 rounded-lg font-display">✅ Join</motion.button>
                 <motion.button whileTap={{ scale: 0.95 }} onClick={() => respondToGuildInvite(msg.id, invite, false)}
                   className="flex-1 bg-destructive/20 text-destructive text-sm py-2.5 rounded-lg font-display">❌ Decline</motion.button>
               </div>
@@ -372,7 +372,7 @@ export default function MessagesPanel({ initialDm, onDmHandled }: MessagesPanelP
     return (
       <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
         <div className={`max-w-[75%] rounded-xl px-4 py-3 ${
-          isMine ? 'bg-primary text-primary-foreground rounded-br-sm' : 'bg-secondary text-foreground rounded-bl-sm'
+          isMine ? 'wood-btn-primary rounded-br-sm' : 'bg-secondary text-foreground rounded-bl-sm'
         }`}>
           <p className="text-sm">{msg.content}</p>
           <p className={`text-sm mt-0.5 ${isMine ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
@@ -430,7 +430,7 @@ export default function MessagesPanel({ initialDm, onDmHandled }: MessagesPanelP
               onKeyDown={e => e.key === 'Enter' && sendMessage()}
               className="flex-1 bg-secondary border border-border rounded-lg px-4 py-3 text-sm text-foreground" />
             <motion.button whileTap={{ scale: 0.95 }} onClick={() => sendMessage()}
-              className="bg-primary text-primary-foreground px-4 py-3 rounded-lg text-sm font-display">Send</motion.button>
+              className="wood-btn-primary px-4 py-3 rounded-lg text-sm font-display">Send</motion.button>
           </div>
           <motion.button whileTap={{ scale: 0.95 }} onClick={() => setComposing(false)}
             className="text-sm text-muted-foreground">Cancel</motion.button>
@@ -455,7 +455,7 @@ export default function MessagesPanel({ initialDm, onDmHandled }: MessagesPanelP
                   {new Date(convo.lastMsg.created_at).toLocaleDateString()}
                 </span>
                 {convo.unread > 0 && (
-                  <span className="bg-primary text-primary-foreground text-sm rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                  <span className="wood-btn-primary text-sm rounded-full w-5 h-5 flex items-center justify-center font-bold">
                     {convo.unread}
                   </span>
                 )}
@@ -481,7 +481,7 @@ export default function MessagesPanel({ initialDm, onDmHandled }: MessagesPanelP
                 <ResourceInput label="You want:" values={tradeRequest} onChange={setTradeRequest} />
                 <div className="flex gap-3">
                   <motion.button whileTap={{ scale: 0.95 }} onClick={sendTradeOffer}
-                    className="flex-1 bg-primary text-primary-foreground text-sm py-2.5 rounded-lg font-display">Send Offer</motion.button>
+                    className="flex-1 wood-btn-primary text-sm py-2.5 rounded-lg font-display">Send Offer</motion.button>
                   <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowTradeForm(false)}
                     className="text-sm text-muted-foreground px-4 py-2.5">Cancel</motion.button>
                 </div>
@@ -492,7 +492,7 @@ export default function MessagesPanel({ initialDm, onDmHandled }: MessagesPanelP
           {/* Action bar */}
           <div className="flex gap-2.5 mb-1">
             <motion.button whileTap={{ scale: 0.95 }} onClick={() => { setShowTradeForm(!showTradeForm); setShowGuildInvite(false); }}
-              className={`text-sm px-3 py-2 rounded-lg font-display ${showTradeForm ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground border border-border'}`}>
+              className={`text-sm px-3 py-2 rounded-lg font-display ${showTradeForm ? 'wood-btn-primary' : 'bg-secondary text-foreground border border-border'}`}>
               📦 Trade
             </motion.button>
             <motion.button whileTap={{ scale: 0.95 }} onClick={() => { setShowGuildInvite(false); sendGuildInvite(); }}
@@ -507,7 +507,7 @@ export default function MessagesPanel({ initialDm, onDmHandled }: MessagesPanelP
               onKeyDown={e => e.key === 'Enter' && sendMessage()}
               className="flex-1 bg-secondary border border-border rounded-lg px-4 py-3 text-sm text-foreground" />
             <motion.button whileTap={{ scale: 0.95 }} onClick={() => sendMessage()}
-              className="bg-primary text-primary-foreground px-4 py-3 rounded-lg text-sm font-display">Send</motion.button>
+              className="wood-btn-primary px-4 py-3 rounded-lg text-sm font-display">Send</motion.button>
           </div>
         </>
       )}

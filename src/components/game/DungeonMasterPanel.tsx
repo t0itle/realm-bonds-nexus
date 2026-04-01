@@ -210,7 +210,7 @@ export default function DungeonMasterPanel() {
           >
             <div className={`max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
               msg.role === 'user'
-                ? 'bg-primary text-primary-foreground'
+                ? 'wood-btn-primary'
                 : 'game-panel border border-border/50'
             }`}>
               {msg.role === 'assistant' && <Scroll className="w-3 h-3 text-primary inline mr-1 mb-0.5" />}
@@ -254,7 +254,7 @@ export default function DungeonMasterPanel() {
         <button
           onClick={() => sendMessage()}
           disabled={isLoading || !input.trim()}
-          className="p-2 rounded-lg bg-primary text-primary-foreground disabled:opacity-50 hover:bg-primary/90 transition-colors"
+          className="p-2 rounded-lg wood-btn-primary disabled:opacity-50 hover:bg-primary/90 transition-colors"
         >
           <Send className="w-4 h-4" />
         </button>
