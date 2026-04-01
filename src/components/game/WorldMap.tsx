@@ -629,7 +629,7 @@ export default function WorldMap() {
   const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, resources, getWatchtowerLevel, getSpyGuildLevel, refreshVillages, myVillages } = useGame();
   const { user } = useAuth();
   const npcState = useNPCState();
-  const { getBuildingSprite, getSpriteFilter } = useTroopSkins();
+  const { activeSkin, getBuildingSprite, getSpriteFilter } = useTroopSkins();
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
   const [capturedMines, setCapturedMines] = useState<Set<string>>(new Set());
