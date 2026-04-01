@@ -104,11 +104,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setPopTaxRateLocal(rate);
     if (villageId) supabase.from('villages').update({ pop_tax_rate: rate } as any).eq('id', villageId).then();
   }, [villageId, setPopTaxRateLocal]);
-
   const { setVillageName, setDisplayName, setAvatarUrl } = useProfile({
     villageId, user, setVillageNameLocal, setDisplayNameLocal, setAvatarUrlLocal,
   });
-
   const canAfford = useCallback((cost: Resources) =>
     resources.gold >= cost.gold && resources.wood >= cost.wood && resources.stone >= cost.stone && resources.food >= cost.food,
   [resources]);
