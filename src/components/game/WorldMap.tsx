@@ -1632,9 +1632,9 @@ export default function WorldMap() {
           const sorted = playerPositions.sort((a, b) => (a.isMe ? 1 : 0) - (b.isMe ? 1 : 0));
 
           return sorted.map(({ pv, sx, sy, isMe }) => {
-            const pvThLevel = isMe ? townhallLevel : pv.village.level;
-            const sprite = getSettlementSprite(pvThLevel, isMe);
-            const settlementLabel = pvThLevel >= 7 ? '🏰 Castle' : pvThLevel >= 5 ? '🏘️ Town' : '🏠 Village';
+            const pvSettlementType = isMe ? settlementType : (pv.village.settlement_type || 'village');
+            const sprite = getSettlementSprite(pvSettlementType, isMe);
+            const settlementLabel = SETTLEMENT_LABELS[pvSettlementType] || '🏠 Village';
             const skinFilter = isMe ? getSpriteFilter() : undefined;
             return (
               <button key={pv.village.id} data-map-item
