@@ -183,7 +183,7 @@ function CollapsibleSection({ icon, title, defaultOpen, children }: {
 }
 
 export default function VillageGrid() {
-  const { buildings, upgradeBuilding, demolishBuilding, canAfford, canAffordSteel, isBuildingUpgrading, getBuildTime, resources, steel, settlementType, upgradeSettlement, isSettlementUpgrading, settlementUpgradeFinishTime, workerAssignments, assignWorker, unassignWorker, getMaxWorkers, population } = useGame();
+  const { buildings, upgradeBuilding, demolishBuilding, canAfford, canAffordSteel, isBuildingUpgrading, getBuildTime, resources, steel, settlementType, upgradeSettlement, isSettlementUpgrading, settlementUpgradeFinishTime, workerAssignments, assignWorker, unassignWorker, getMaxWorkers, population, army } = useGame();
   const { getBuildingSprite } = useTroopSkins();
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [buildPosition, setBuildPosition] = useState<number | null>(null);
