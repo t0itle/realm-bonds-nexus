@@ -501,7 +501,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [happinessBase, setHappinessBase] = useState(50);
   const [rations, setRationsLocal] = useState<RationsLevel>('normal');
   const [popTaxRate, setPopTaxRateLocal] = useState(5);
-  // Spy state is managed by useSpyMissions hook (initialized after population is computed)
+  // Spy state managed by useSpyMissions — hydrateSpyDataRef bridges the gap with loadVillageData
+  const hydrateSpyDataRef = useRef<((data: import('./useSpyMissions').SpyDataPayload) => void) | null>(null);
+  const setSpiesRef = useRef<React.Dispatch<React.SetStateAction<number>>>(() => {});
   const [vassalages, setVassalages] = useState<Vassalage[]>([]);
   const [injuredTroops, setInjuredTroops] = useState<InjuredArmy>({ ...EMPTY_INJURED });
   const [poisons, setPoisons] = useState(0);
