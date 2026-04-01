@@ -406,6 +406,11 @@ interface GameContextType {
   switchVillage: (villageId: string) => void;
   refreshVillages: () => Promise<void>;
   abandonSettlement: (villageId: string) => Promise<boolean>;
+  // Settlement upgrade
+  settlementType: 'village' | 'town' | 'city';
+  upgradeSettlement: () => Promise<boolean>;
+  isSettlementUpgrading: boolean;
+  settlementUpgradeFinishTime: number | null;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
