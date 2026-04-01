@@ -1671,7 +1671,7 @@ export default function WorldMap() {
               </svg>
               {/* Moving soldier sprite */}
               <div className="absolute z-40 flex flex-col items-center pointer-events-none"
-                style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', transition: 'left 0.4s linear, top 0.4s linear' }}>
+                style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
                 <img src={mapSoldier} alt="Army" className="drop-shadow-lg"
                   style={{ width: marchSize, height: marchSize, objectFit: 'contain', transform: facingLeft ? 'scaleX(-1)' : undefined }} loading="lazy" />
                 <div className="bg-background/90 rounded px-1.5 py-0.5 text-center mt-0.5 border border-primary/30 shadow-md">
