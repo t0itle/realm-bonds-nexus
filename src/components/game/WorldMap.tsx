@@ -1239,12 +1239,13 @@ export default function WorldMap() {
     const startCx = drag.cx;
     const startCy = drag.cy;
 
-    safeSetCamera(prev => ({
+    // Use RAF-throttled setter during drag for smooth panning
+    rafSetCamera(prev => ({
       ...prev,
       cx: startCx - dx / prev.ppu,
       cy: startCy - dy / prev.ppu,
     }));
-  }, [safeSetCamera]);
+  }, [rafSetCamera]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     const drag = dragStart.current;
