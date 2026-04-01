@@ -32,8 +32,10 @@ function CrownAvatar({ avatarUrl, emoji, size = 64 }: { avatarUrl?: string | nul
 }
 
 export default function ProfilePanel() {
-  const { villageName, playerLevel, buildings, totalProduction, steelProduction, displayName, avatarUrl, army, totalArmyPower, setDisplayName, setVillageName, setAvatarUrl } = useGame();
+  const { villageName, playerLevel, buildings, totalProduction, steelProduction, displayName, avatarUrl, army, totalArmyPower, setDisplayName, setVillageName, setAvatarUrl, resources } = useGame();
   const { signOut, user } = useAuth();
+  const { activeSkin, ownedSkins, purchaseSkin, setActiveSkin, getTroopDisplay, getSpriteFilter } = useTroopSkins();
+  const spriteFilter = getSpriteFilter();
   const { isSupported, isSubscribed, subscribe, unsubscribe, permission } = usePushNotifications();
   const totalBuildingLevels = buildings.reduce((sum, b) => sum + b.level, 0);
   const power = totalArmyPower();
