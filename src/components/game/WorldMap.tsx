@@ -2191,6 +2191,16 @@ export default function WorldMap() {
               const handleWall = async () => {
                 if (!canAffordWall) { toast.error('Not enough resources!'); return; }
                 if (isBuildingWall) { toast.error('Already building wall!'); return; }
+                // Check wall territory overlap — walls shouldn't overlap with nearby walled outposts
+                const walledNeighbor = outposts.find(other => {
+                  if (other.id === op.id || !other.has_wall) return false;
+                  const dist = Math.hypot(other.x - op.x, other.y - op.y);
+                  return dist < (op.territory_radius + other.territory_radius) * 0.85;
+                });
+                if (walledNeighbor) {
+                  toast.error(`Wall would overlap with ${walledNeighbor.name}'s walls! Outposts must be further apart to build walls.`);
+                  return;
+                }
                 addResources({ gold: -wallCost.gold, wood: -wallCost.wood, stone: -wallCost.stone, food: -wallCost.food });
                 const newWallLevel = op.wall_level + 1;
                 const newGarrison = op.garrison_power + 30;
