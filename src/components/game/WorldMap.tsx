@@ -2125,6 +2125,7 @@ export default function WorldMap() {
                         <span className="text-muted-foreground">⚔️{op.garrison_power} defense</span>
                         {op.has_wall && <span className="text-accent-foreground bg-accent/20 px-1.5 rounded-full">🧱 Wall Lv.{op.wall_level}</span>}
                         {isSettlement && <span className="text-primary bg-primary/10 px-1.5 rounded-full">Settlement</span>}
+                        {op.outpost_type === 'fort' && <span className="text-accent-foreground bg-accent/20 px-1.5 rounded-full">🏰 Fort</span>}
                       </div>
                     </div>
                   </div>
