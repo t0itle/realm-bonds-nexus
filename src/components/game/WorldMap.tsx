@@ -2466,6 +2466,16 @@ export default function WorldMap() {
                         if (!canBuildOutpost) { toast.error('Town Hall level 3 required!'); return; }
                         if (!canAffordOp) { toast.error('Not enough resources!'); return; }
                         if (!inRange) { toast.error('Out of range! Train scouts to extend reach.'); return; }
+                        // Enforce minimum distance between outposts to prevent territory overlap
+                        const MIN_OUTPOST_DISTANCE = 25000; // Must be > territory_radius * 2 (15000 * 2 = 30000 but allow some closeness)
+                        const tooCloseOutpost = outposts.find(op => {
+                          const dist = Math.hypot(op.x - selected.data.x, op.y - selected.data.y);
+                          return dist < MIN_OUTPOST_DISTANCE;
+                        });
+                        if (tooCloseOutpost) {
+                          toast.error(`Too close to ${tooCloseOutpost.name}! Outposts must be at least ${Math.round(MIN_OUTPOST_DISTANCE / 1000)}k units apart to avoid territory overlap.`);
+                          return;
+                        }
                         const travelSec = calcTravelTime(selected.data.x, selected.data.y);
                         const targetData = selected.data;
                         toast(`🏗️ Settlers heading out... ETA ${travelSec}s`);
