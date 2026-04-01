@@ -1257,6 +1257,25 @@ export function GameProvider({ children }: { children: ReactNode }) {
     });
   }, [persistArmyToVillage]);
 
+  // Disband troops: convert soldiers back to civilians
+  const disbandTroops = useCallback((type: TroopType, count: number): boolean => {
+    const current = armyRef.current[type] || 0;
+    if (count <= 0 || count > current) return false;
+    const popToReturn = TROOP_INFO[type].popCost * count;
+    setArmy(prev => {
+      const next = { ...prev, [type]: prev[type] - count };
+      persistArmyToVillage(next);
+      return next;
+    });
+    setPopulationBase(prev => {
+      const newPop = prev + popToReturn;
+      if (villageId) supabase.from('villages').update({ population: newPop } as any).eq('id', villageId).then();
+      return newPop;
+    });
+    toast.success(`Disbanded ${count} ${TROOP_INFO[type].name}${count > 1 ? 's' : ''} → +${popToReturn} civilians`);
+    return true;
+  }, [persistArmyToVillage, villageId]);
+
   // Return troops: add surviving troops back to village after march completes
   const returnTroops = useCallback((survivors: Partial<Army>) => {
     setArmy(prev => {
