@@ -1031,8 +1031,75 @@ export default function WorldMap() {
     onAttack: (sentArmy: Partial<import('@/hooks/useGameState').Army>) => void;
     showEspionage: boolean;
   } | null>(null);
+  const [worldBossDefeated, setWorldBossDefeated] = useState(false);
 
-  // ── Subscribe to other players' marches in realtime ──
+  // ── World Boss (one per week, deterministic) ──
+  const worldBoss = useMemo(() => getWorldBoss(), []);
+
+  // Check if player already defeated this week's boss
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('world_boss_defeats' as any)
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('boss_week_seed', worldBoss.weekSeed)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setWorldBossDefeated(true);
+      });
+  }, [user, worldBoss.weekSeed]);
+
+  // ── World Boss daily raid logic ──
+  useEffect(() => {
+    if (!user || worldBossDefeated) return;
+    const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const daySeed = Math.floor(Date.now() / DAY_MS);
+    const raidKey = `worldboss-raid-${daySeed}`;
+    // Only fire once per day per session
+    if (sessionStorage.getItem(raidKey)) return;
+
+    // Find most powerful player village nearby (within 5 chunks)
+    const bossRange = CHUNK_SIZE * 5;
+    const nearbyVillages = allVillages.filter(v => {
+      const dx = v.village.map_x - worldBoss.x;
+      const dy = v.village.map_y - worldBoss.y;
+      return Math.sqrt(dx * dx + dy * dy) <= bossRange && v.village.user_id === user.id;
+    });
+
+    if (nearbyVillages.length === 0) return;
+
+    // Pick the strongest village
+    const target = nearbyVillages.sort((a, b) => b.village.level - a.village.level)[0];
+    const raidRng = seededRandom(daySeed * 7919 + worldBoss.weekSeed);
+    // Only raid with ~50% chance per day to keep it unpredictable
+    if (raidRng() > 0.5) { sessionStorage.setItem(raidKey, '1'); return; }
+
+    const totalRaidTroops = worldBoss.troops.reduce((s, t) => s + Math.floor(t.count * 0.3), 0);
+    const raidArmy: Record<string, number> = {};
+    worldBoss.troops.forEach(t => { raidArmy[t.name] = Math.floor(t.count * 0.3); });
+
+    const arrivalSec = 120 + Math.floor(raidRng() * 180); // 2-5 min arrival
+    const arrivesAt = new Date(Date.now() + arrivalSec * 1000).toISOString();
+
+    supabase.from('active_marches').insert({
+      user_id: '00000000-0000-0000-0000-000000000000', // NPC marker
+      player_name: `${worldBoss.emoji} ${worldBoss.name}`,
+      start_x: worldBoss.x,
+      start_y: worldBoss.y,
+      target_x: target.village.map_x,
+      target_y: target.village.map_y,
+      target_name: target.village.name,
+      target_user_id: user.id,
+      arrives_at: arrivesAt,
+      march_type: 'attack',
+      sent_army: raidArmy,
+    } as any).then(() => {
+      sessionStorage.setItem(raidKey, '1');
+    });
+  }, [user, worldBoss, worldBossDefeated, allVillages]);
+
+
   useEffect(() => {
     if (!user) return;
     // Load existing active marches
