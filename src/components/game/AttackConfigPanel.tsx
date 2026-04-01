@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useGame } from '@/hooks/useGameState';
-import { TROOP_INFO, SPY_MISSION_INFO } from '@/lib/gameConstants';
+import { TROOP_INFO, SPY_MISSION_INFO, TROOP_COUNTERS } from '@/lib/gameConstants';
 import type { TroopType, Army, SpyMission } from '@/lib/gameTypes';
 import TroopIcon from './TroopIcon';
 
