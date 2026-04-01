@@ -1064,14 +1064,38 @@ export default function WorldMap() {
     return visionSources.some(source => Math.hypot(wx - source.x, wy - source.y) <= source.radius + padding);
   }, [visionSources]);
 
-  // Collect all terrain for pathfinding
-  const allTerrain = useMemo(() => {
+  // Collect all terrain for pathfinding — includes visible chunks
+  const visibleTerrain = useMemo(() => {
     const terrain: TerrainFeature[] = [];
     for (const chunk of visibleChunks) {
       terrain.push(...chunk.data.terrain);
     }
     return terrain;
   }, [visibleChunks]);
+
+  // Gather terrain along a march path (visible + all chunks between start and target)
+  const getTerrainForPath = useCallback((startX: number, startY: number, endX: number, endY: number): TerrainFeature[] => {
+    const terrain: TerrainFeature[] = [...visibleTerrain];
+    const loadedKeys = new Set(visibleChunks.map(c => `${c.cx},${c.cy}`));
+
+    // Determine all chunk coords along the bounding box of the path (with padding)
+    const pad = CHUNK_SIZE;
+    const minCX = Math.floor((Math.min(startX, endX) - pad) / CHUNK_SIZE);
+    const maxCX = Math.floor((Math.max(startX, endX) + pad) / CHUNK_SIZE);
+    const minCY = Math.floor((Math.min(startY, endY) - pad) / CHUNK_SIZE);
+    const maxCY = Math.floor((Math.max(startY, endY) + pad) / CHUNK_SIZE);
+
+    for (let cx = minCX; cx <= maxCX; cx++) {
+      for (let cy = minCY; cy <= maxCY; cy++) {
+        const key = `${cx},${cy}`;
+        if (loadedKeys.has(key)) continue;
+        loadedKeys.add(key);
+        const chunk = getChunk(cx, cy);
+        terrain.push(...chunk.terrain);
+      }
+    }
+    return terrain;
+  }, [visibleTerrain, visibleChunks]);
 
   // Bridge outpost positions for pathfinding — outposts with type 'bridge' allow crossing rivers
   const bridgeOutpostPositions = useMemo(() => {
