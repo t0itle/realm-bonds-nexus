@@ -569,8 +569,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const loadVillageData = useCallback(async (targetVillageId?: string) => {
-    if (!user) return;
-    const loadData = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+
+    try {
       // --- Phase 1: parallel fetch of profile, user villages, mine outposts ---
       const [profileRes, userVillagesRes, mineRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('user_id', user.id).single(),
@@ -610,8 +616,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setPopulationBase((village as any).population ?? 10);
         setMaxPopBase((village as any).max_population ?? 20);
         setHappinessBase((village as any).happiness ?? 50);
-        setRations(((village as any).rations as RationsLevel) ?? 'normal');
-        setPopTaxRate((village as any).pop_tax_rate ?? 5);
+        setRationsLocal(((village as any).rations as RationsLevel) ?? 'normal');
+        setPopTaxRateLocal((village as any).pop_tax_rate ?? 5);
         setSpies((village as any).spies ?? 0);
         setPoisons((village as any).poisons ?? 0);
         setInjuredTroops({
@@ -632,15 +638,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
         });
 
         // --- Phase 3: parallel fetch of buildings, queues, missions, villages list, vassalages, alliance ---
-        const [bldRes, bqRes, tqRes, stqRes, asmRes, irRes, villagesRes, profilesRes, vassalRes, memberRes] = await Promise.all([
+        const [bldRes, bqRes, tqRes, stqRes, asmRes, irRes, villagesRes, vassalRes, memberRes] = await Promise.all([
           supabase.from('buildings').select('*').eq('village_id', village.id),
           supabase.from('build_queue').select('*').eq('user_id', user.id),
           supabase.from('training_queue').select('*').eq('user_id', user.id),
           supabase.from('spy_training_queue').select('*').eq('user_id', user.id),
           supabase.from('active_spy_missions').select('*').eq('user_id', user.id),
           supabase.from('intel_reports').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(30),
-          supabase.from('villages').select('*').limit(50),
-          supabase.from('profiles').select('*'),
+          supabase.from('villages').select('id, user_id, name, gold, wood, stone, food, level, map_x, map_y, settlement_type').limit(50),
           supabase.from('vassalages').select('*').or(`lord_id.eq.${user.id},vassal_id.eq.${user.id}`).eq('status', 'active'),
           supabase.from('alliance_members').select('alliance_id').eq('user_id', user.id).limit(1),
         ]);
@@ -785,7 +790,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
         // Process all villages for world map
         const villages = villagesRes.data;
         if (villages) {
-          const profileMap = new Map((profilesRes.data || []).map(p => [p.user_id, { display_name: p.display_name, avatar_emoji: p.avatar_emoji }]));
+          const villageUserIds = [...new Set(villages.map(v => v.user_id).filter(Boolean))];
+          const { data: visibleProfiles } = villageUserIds.length > 0
+            ? await supabase
+                .from('profiles')
+                .select('user_id, display_name, avatar_emoji')
+                .in('user_id', villageUserIds)
+            : { data: [] as { user_id: string; display_name: string; avatar_emoji: string }[] };
+
+          const profileMap = new Map((visibleProfiles || []).map(p => [p.user_id, { display_name: p.display_name, avatar_emoji: p.avatar_emoji }]));
           setAllVillages(villages.map(v => ({
             village: { id: v.id, user_id: v.user_id, name: v.name, gold: Number(v.gold), wood: Number(v.wood), stone: Number(v.stone), food: Number(v.food), level: v.level, map_x: v.map_x, map_y: v.map_y, settlement_type: (v as any).settlement_type || 'village' },
             profile: profileMap.get(v.user_id) || { display_name: 'Unknown', avatar_emoji: '🛡️' },
@@ -808,9 +821,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }
       }
 
+    } catch (error) {
+      console.error('Failed to load village data.', error);
+      toast.error('Could not load your realm. Please try again.');
+    } finally {
       setLoading(false);
-    };
-    loadData();
+    }
   }, [user]);
 
   // Initial load
