@@ -25,6 +25,7 @@ export default function MilitaryPanel() {
     injuredTroops, poisons, healTroops, craftPoison, getApothecaryLevel, resources,
   } = useGame();
   const [trainCount, setTrainCount] = useState<Record<TroopType, number>>({ militia: 1, archer: 1, knight: 1, cavalry: 1, siege: 1, scout: 1 });
+  const [disbandCount, setDisbandCount] = useState<Record<TroopType, number>>({ militia: 1, archer: 1, knight: 1, cavalry: 1, siege: 1, scout: 1 });
   const [spyTrainCount, setSpyTrainCount] = useState(1);
   const [tab, setTab] = useState<'troops' | 'espionage' | 'apothecary' | 'warlog'>('troops');
   const { getTroopDisplay } = useTroopSkins();
