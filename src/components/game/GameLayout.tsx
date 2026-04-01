@@ -266,7 +266,7 @@ export default function GameLayout() {
         </div>
       )}
 
-      <div className="flex-1 overflow-hidden relative">
+      <div className="flex-1 overflow-hidden relative pb-16">
         {(hasOpenedMap || activeTab === 'map') && (
           <div className={activeTab === 'map' ? 'absolute inset-0 flex flex-col overflow-y-auto' : 'hidden'}>
             <Suspense fallback={<TabFallback />}>
