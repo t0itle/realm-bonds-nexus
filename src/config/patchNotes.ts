@@ -1,5 +1,5 @@
 // Patch notes configuration — update this when pushing new versions
-export const CURRENT_VERSION = '0.6.0';
+export const CURRENT_VERSION = '0.7.0';
 
 export interface PatchNote {
   version: string;
@@ -9,6 +9,19 @@ export interface PatchNote {
 }
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: '0.7.0',
+    date: '2026-04-01',
+    title: 'New World & Exotic Continents',
+    changes: [
+      '🌍 Exotic continents beyond the ocean — Desert, Jungle, Lava, Islands & more',
+      '🌊 Rebalanced ocean size — shorter crossing to reach new lands',
+      '🌉 Bridge outposts now render as wooden bridge sprites over rivers',
+      '🏜️ Unique terrain & events per exotic biome (volcanoes, temples, sandstorms)',
+      '🗺️ Players spread further apart for better early-game exploration',
+      '🧭 Discover 7 new continents: Scorchlands, Jade Wilds, Ashforge & more',
+    ],
+  },
   {
     version: '0.6.0',
     date: '2026-04-01',
