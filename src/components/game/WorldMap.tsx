@@ -2358,68 +2358,9 @@ export default function WorldMap() {
                     </motion.button>
                   </div>
 
-                  {/* Found Settlement */}
-                  <div className="bg-muted/30 rounded-lg p-2.5 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <p className="font-display text-[11px] text-foreground">🏘️ Found Settlement</p>
-                      {!canBuildSettlement && <span className="text-[8px] text-destructive">TH Lv.5+</span>}
-                    </div>
-                    <p className="text-[9px] text-muted-foreground">Establish a new village with wider borders and independent resource production.</p>
-                    <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
-                      <span className={resources.gold >= settlementCost.gold ? '' : 'text-destructive'}>🪙{settlementCost.gold}</span>
-                      <span className={resources.wood >= settlementCost.wood ? '' : 'text-destructive'}>🪵{settlementCost.wood}</span>
-                      <span className={resources.stone >= settlementCost.stone ? '' : 'text-destructive'}>🪨{settlementCost.stone}</span>
-                      <span className={resources.food >= settlementCost.food ? '' : 'text-destructive'}>🌾{settlementCost.food}</span>
-                    </div>
-                    <motion.button whileTap={{ scale: 0.95 }}
-                      disabled={!canBuildSettlement || !canAffordSettlement || !inRange}
-                      onClick={() => {
-                        if (!canBuildSettlement) { toast.error('Town Hall level 5 required!'); return; }
-                        if (!canAffordSettlement) { toast.error('Not enough resources!'); return; }
-                        if (!inRange) { toast.error('Out of range!'); return; }
-                        const travelSec = calcTravelTime(selected.data.x, selected.data.y);
-                        const targetData = selected.data;
-                        toast(`🏘️ Settlers marching... ETA ${travelSec}s`);
-                        addResources({ gold: -settlementCost.gold, wood: -settlementCost.wood, stone: -settlementCost.stone, food: -settlementCost.food });
-                        createMarch(`settle-${Date.now()}`, 'New Settlement', targetData.x, targetData.y, travelSec, async () => {
-                          // Create new village in DB
-                          if (user) {
-                            const settleName = `Settlement ${Math.floor(Math.random() * 100)}`;
-                            const { data: newVillage, error } = await supabase.from('villages').insert({
-                              user_id: user.id,
-                              name: settleName,
-                              map_x: targetData.x,
-                              map_y: targetData.y,
-                              settlement_type: 'village',
-                              gold: 100, wood: 100, stone: 50, food: 50,
-                              population: 5, max_population: 15,
-                            }).select().single();
-                            if (error || !newVillage) { console.error('Settlement error:', error); toast.error(`Failed to found settlement: ${error?.message || 'Unknown error'}`); return; }
-                            
-                            // Create starter buildings for the new village
-                            await supabase.from('buildings').insert([
-                              { village_id: newVillage.id, user_id: user.id, type: 'townhall', level: 1, position: 4 },
-                              { village_id: newVillage.id, user_id: user.id, type: 'farm', level: 1, position: 7 },
-                              { village_id: newVillage.id, user_id: user.id, type: 'lumbermill', level: 1, position: 3 },
-                            ]);
-
-                            // Also persist as vision source
-                            const { data: opData } = await supabase.from('outposts').insert({
-                              user_id: user!.id, x: targetData.x, y: targetData.y, name: settleName, outpost_type: 'settlement',
-                            }).select().single();
-                            if (opData) setOutposts(prev => [...prev, { id: opData.id, x: opData.x, y: opData.y, name: opData.name, user_id: user!.id, level: 1, garrison_power: 0, has_wall: false, wall_level: 0, territory_radius: 15000, outpost_type: 'settlement' }]);
-                            
-                            // Refresh village list so switcher shows the new settlement
-                            await refreshVillages();
-                            
-                            toast.success(`🏘️ ${settleName} founded! Switch to it from the village selector to start building.`);
-                          }
-                        });
-                        setSelected(null);
-                      }}
-                      className="w-full bg-accent text-accent-foreground font-display text-[11px] py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform">
-                      {!inRange ? '⚠️ Out of Range' : '🏘️ Found Settlement'}
-                    </motion.button>
+                  {/* Hint about settlement path */}
+                  <div className="bg-muted/20 rounded-lg p-2 text-center">
+                    <p className="text-[9px] text-muted-foreground">💡 Upgrade an outpost to Lv.5 to convert it into a full settlement with its own village and resources.</p>
                   </div>
                 </div>
               );
