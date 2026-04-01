@@ -1094,7 +1094,7 @@ export default function WorldMap() {
       start_x: worldBoss.x, start_y: worldBoss.y,
       target_x: target.village.map_x, target_y: target.village.map_y,
       target_name: target.village.name,
-      target_user_id: user.id,
+      target_user_id: targetUserId,
       arrives_at: arrivesAt,
       march_type: 'attack',
       sent_army: raidArmy,
