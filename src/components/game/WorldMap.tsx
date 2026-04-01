@@ -1183,6 +1183,12 @@ export default function WorldMap() {
   }, [worldToScreen, containerSize]);
 
   // ── Determine visible chunks ──
+  // Quantize camera position so chunk list only recalculates when we cross chunk boundaries
+  const quantizedCameraKey = useMemo(() => {
+    const q = CHUNK_SIZE * 0.25; // quarter-chunk quantization
+    return `${Math.floor(camera.cx / q)},${Math.floor(camera.cy / q)},${camera.ppu.toFixed(6)},${containerSize.w},${containerSize.h}`;
+  }, [camera.cx, camera.cy, camera.ppu, containerSize.w, containerSize.h]);
+
   const visibleChunks = useMemo(() => {
     const { w, h } = containerSize;
     if (w === 0 || h === 0) return [];
@@ -1193,11 +1199,9 @@ export default function WorldMap() {
     const minCY = Math.floor((camera.cy - halfH) / CHUNK_SIZE);
     const maxCY = Math.floor((camera.cy + halfH) / CHUNK_SIZE);
 
-    // Cap to max ~30 visible chunks to avoid rendering too many elements
     const rangeX = maxCX - minCX + 1;
     const rangeY = maxCY - minCY + 1;
-    if (rangeX * rangeY > 30) {
-      // Too zoomed out — show only nearby chunks
+    if (rangeX * rangeY > 20) {
       const r = 2;
       const ccx = Math.floor(camera.cx / CHUNK_SIZE);
       const ccy = Math.floor(camera.cy / CHUNK_SIZE);
@@ -1217,7 +1221,8 @@ export default function WorldMap() {
       }
     }
     return chunks;
-  }, [camera.cx, camera.cy, camera.ppu, containerSize]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quantizedCameraKey]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if ((e.target as HTMLElement).closest('[data-map-item]')) return;
