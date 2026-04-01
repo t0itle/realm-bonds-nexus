@@ -1,81 +1,57 @@
 
 
-# Plan: Fix Worker Production Bug + Map System Overhaul
+# Plan: Fix Battle Calculation Bugs
 
-## Bug Fix: Workers Only Increase Food
+## Problems Found
 
-**Root cause**: When a worker is assigned to ANY building, it reduces the `civilians` count, which reduces `popFoodCost` (civilian food consumption). This food savings (~1 food/min per worker reassigned) is much more visible than the small 15% production bonus per worker on the building's actual resource. The production logic itself is correct — the issue is that the food savings side-effect dominates.
+There are **three bugs** in `resolveCombat()` (line 231, `src/hooks/useGameState.tsx`):
 
-**Fix**: Increase the worker production bonus from 15% to 30-40% per worker so the target resource boost is more noticeable than the food savings. Also display per-building production rates in the worker assignment UI so players can see the actual impact.
+### Bug 1: Attacker score uses only attack; defender score uses attack + 50% defense (asymmetric formula)
+**Line 276-277:**
+```
+attackerScore = atkPower.attack * (0.85 + Math.random() * 0.3)
+defenderScore = defPower.attack + defPower.defense * 0.5
+```
+The attacker's defense stat is completely ignored, while the defender gets both attack AND defense contributing to their score. This means a massive army's defensive strength counts for nothing offensively. An army of 100 knights (high defense) attacking 10 militia could lose because the attacker's defense is thrown away.
 
----
+### Bug 2: Counter bonus stacks incorrectly — multiplied per enemy TYPE presence, not per unit
+**Lines 254-261:** The counter bonus adds `info.attack * count * 0.3` for each enemy type that exists, regardless of how many enemy units there are. If the enemy has even 1 archer and 1 militia, and your troop counters both, you get the full bonus twice. But more importantly, the bonus doesn't scale with enemy composition — it's all-or-nothing per type.
 
-## Map System Overhaul
+### Bug 3: PvP passes attacker's wall level as the attacker wall bonus
+**Line 1623:** `resolveCombat(attackingArmy, defArmy, getWallLevel(), defWallLevel)` — the attacker's wall level is passed as the 3rd argument, but walls should only benefit defenders. The function itself ignores the attacker wall param (only applies wall bonus to `isDefender`), so this is cosmetic but confusing.
 
-### 1. Visible Army Movement on Map
-Currently marches are just timers with toast notifications. We'll render animated troop sprites moving across the map grid in real-time.
+## Fix
 
-- Add a `March` interface with `startPos`, `endPos`, `startTime`, `arrivalTime`, `troopComposition`, `purpose` (attack/scout/collect/settle)
-- Render an animated sprite on the map that interpolates position between start and end based on elapsed time
-- Use the existing `mapPlayer` sprite for army movement, show troop count badge
-- Draw a dotted line from origin to destination showing the march path
+### Rewrite `resolveCombat` with a balanced formula:
 
-### 2. Scouts Must Physically Travel to Locations
-Currently events can be claimed instantly if in range. Change so that:
-- Scouts must physically march to locations (already partially implemented via `marches` state)
-- Scouting reveals fog-of-war — areas near your village and where scouts have traveled are visible, rest is dimmed
-- Scout speed determines travel time (already in TROOP_INFO: speed 25)
+1. **Both sides use attack + defense** — Attacker total = `attack * 1.0 + defense * 0.3`, Defender total = `attack * 0.7 + defense * 1.0 + wallBonus`. This gives attackers an offensive edge while defenders benefit more from defense stats and walls.
 
-### 3. Settlement Expansion System
-Allow players to found new settlements when Town Hall reaches certain levels.
+2. **Fix counter scaling** — Counter bonuses should scale based on the proportion of countered units in the enemy army, not just their presence.
 
-- **Database**: Add `settlement_type` column to `villages` table (`village` | `town` | `castle` | `outpost`)
-- **Founding outposts**: Town Hall Lv.5+ can send settlers (costs resources + population) to a map location to establish an outpost
-- Outposts have a limited building grid (6 slots) and serve as forward bases
-- Player can switch between settlements in the UI
+3. **Remove attacker wall param** — Pass `0` for attacker wall in all calls since walls only help defenders.
 
-### 4. Town Hall → Castle Upgrade
-When Town Hall reaches level 7+, it visually becomes a Castle.
-
-- Add a `castle` sprite (or reuse existing castle sprites)
-- Change the building name display from "Town Hall" to "Castle" at Lv.7+
-- Update the player's map sprite to reflect: village (Lv.1-4), town (Lv.5-6), castle (Lv.7+)
-- The `settlement_type` in the DB tracks this progression
-
-### 5. Dynamic Player Map Sprite
-Currently all players use `mapVillage` sprite. Change to use different sprites based on Town Hall level:
-
-- Lv.1-4: Small village sprite (current `mapVillage`)
-- Lv.5-6: Larger town sprite (use `mapCastleNeutral` or new asset)
-- Lv.7+: Castle sprite (use `mapCastleFriendly` or new asset)
-- Player's own settlement gets the golden glow treatment (already exists)
-
----
+4. **Reduce randomness** — Change from ±15% to ±10% to prevent upsets when power difference is large.
 
 ## Technical Details
 
-### Files to modify:
-1. **`src/hooks/useGameState.tsx`** — Increase worker bonus from 0.15 to 0.35; add settlement type tracking; add `foundOutpost` action
-2. **`supabase/functions/resource-tick/index.ts`** — Mirror the worker bonus increase server-side
-3. **`src/components/game/WorldMap.tsx`** — Render animated march sprites on map; change player sprite based on TH level; add settlement founding UI; add fog-of-war overlay
-4. **`src/components/game/VillageGrid.tsx`** — Show "Castle" name when TH ≥ 7
-5. **`src/components/game/StatSheet.tsx`** — Show per-building production with worker impact
-6. **Database migration** — Add `settlement_type` column to `villages` table
+### File: `src/hooks/useGameState.tsx`
 
-### March rendering approach:
-```text
-Player Village ----→ [🗡️ 15 troops] ----→ Target
-  (startPos)      (interpolated pos)     (endPos)
-                  dotted line path
+**`resolveCombat` function (lines 231-304):** Rewrite the scoring formula:
+```
+// Both sides get a combined score
+attackerTotal = atkPower.attack + atkPower.defense * 0.3
+defenderTotal = defPower.attack * 0.7 + defPower.defense + wallBonus
+
+// Smaller randomness window
+attackerScore = attackerTotal * (0.9 + Math.random() * 0.2)
+defenderScore = defenderTotal * (0.9 + Math.random() * 0.2)
 ```
 
-The march sprite position is calculated each frame as:
-`pos = lerp(startPos, endPos, (now - startTime) / (arrivalTime - startTime))`
+**Counter bonus fix (lines 254-261):** Scale by proportion of countered units:
+```
+// Calculate enemy army total count once
+// Bonus = 0.3 * (enemyCounteredUnits / totalEnemyUnits)
+```
 
-### Settlement founding flow:
-1. Player opens map, clicks empty area
-2. "Found Outpost" button appears (requires TH Lv.5+, 500g/300w/200s/100f + 5 population)
-3. Settlers march to location (visible on map)
-4. On arrival, new village row created in DB at that position
-5. Player can switch between settlements via a dropdown
+**Line 1623:** Change `getWallLevel()` to `0` for the attacker wall parameter.
 
