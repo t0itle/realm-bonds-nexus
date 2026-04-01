@@ -890,7 +890,7 @@ export default function WorldMap() {
   const [outposts, setOutposts] = useState<{ id: string; x: number; y: number; name: string; user_id: string; level: number; garrison_power: number; has_wall: boolean; wall_level: number; territory_radius: number; outpost_type: string }[]>([]);
   const [wallSegments, setWallSegments] = useState<{ id: string; user_id: string; outpost_a_id: string; outpost_b_id: string; wall_level: number; health: number; max_health: number }[]>([]);
   const [outpostBuildQueue, setOutpostBuildQueue] = useState<{ outpostId: string; action: 'upgrade' | 'wall'; finishTime: number; targetLevel: number; newGarrison: number; newRadius?: number; targetOutpostId?: string }[]>([]);
-  const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; startTime: number; startX: number; startY: number; targetX: number; targetY: number; waypoints: { x: number; y: number }[]; action: () => void }[]>([]);
+  const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; startTime: number; startX: number; startY: number; targetX: number; targetY: number; waypoints: { x: number; y: number }[]; action: () => void; sentArmy?: Partial<Record<string, number>> }[]>([]);
   const [otherMarches, setOtherMarches] = useState<{ id: string; user_id: string; player_name: string; start_x: number; start_y: number; target_x: number; target_y: number; target_name: string; started_at: string; arrives_at: string; march_type: string }[]>([]);
   const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
   const [legendOpen, setLegendOpen] = useState(false);
