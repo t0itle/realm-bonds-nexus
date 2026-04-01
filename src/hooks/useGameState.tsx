@@ -1184,6 +1184,30 @@ export function GameProvider({ children }: { children: ReactNode }) {
     } as any).eq('id', villageId).then();
   }, [villageId]);
 
+  // Deploy troops: subtract sent troops from village immediately when march begins
+  const deployTroops = useCallback((sentArmy: Partial<Army>) => {
+    setArmy(prev => {
+      const next = { ...prev };
+      for (const [type, count] of Object.entries(sentArmy) as [TroopType, number][]) {
+        if (count > 0) next[type] = Math.max(0, (next[type] || 0) - count);
+      }
+      persistArmyToVillage(next);
+      return next;
+    });
+  }, [persistArmyToVillage]);
+
+  // Return troops: add surviving troops back to village after march completes
+  const returnTroops = useCallback((survivors: Partial<Army>) => {
+    setArmy(prev => {
+      const next = { ...prev };
+      for (const [type, count] of Object.entries(survivors) as [TroopType, number][]) {
+        if (count > 0) next[type] = (next[type] || 0) + count;
+      }
+      persistArmyToVillage(next);
+      return next;
+    });
+  }, [persistArmyToVillage]);
+
   useEffect(() => {
     if (!villageId || !user) return;
 
