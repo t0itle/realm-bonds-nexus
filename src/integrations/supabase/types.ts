@@ -820,6 +820,7 @@ export type Database = {
         Row: {
           created_at: string
           garrison_power: number
+          garrison_troops: Json
           has_wall: boolean
           id: string
           level: number
@@ -834,6 +835,7 @@ export type Database = {
         Insert: {
           created_at?: string
           garrison_power?: number
+          garrison_troops?: Json
           has_wall?: boolean
           id?: string
           level?: number
@@ -848,6 +850,7 @@ export type Database = {
         Update: {
           created_at?: string
           garrison_power?: number
+          garrison_troops?: Json
           has_wall?: boolean
           id?: string
           level?: number
