@@ -184,11 +184,11 @@ export default function MilitaryPanel() {
                         <div className="flex items-center gap-1">
                           <motion.button whileTap={{ scale: 0.9 }}
                             onClick={() => setTrainCount(p => ({ ...p, [type]: Math.max(1, p[type] - 1) }))}
-                            className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">−</motion.button>
-                          <span className="text-xs text-foreground w-6 text-center font-bold">{count}</span>
+                            className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">−</motion.button>
+                          <span className="text-sm text-foreground w-8 text-center font-bold">{count}</span>
                           <motion.button whileTap={{ scale: 0.9 }}
                             onClick={() => setTrainCount(p => ({ ...p, [type]: Math.min(50, p[type] + 1) }))}
-                            className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">+</motion.button>
+                            className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">+</motion.button>
                           <motion.button whileTap={{ scale: 0.9 }}
                             onClick={() => setTrainCount(p => ({ ...p, [type]: 10 }))}
                             className="text-[9px] text-muted-foreground px-1">x10</motion.button>
@@ -243,11 +243,11 @@ export default function MilitaryPanel() {
                       <div className="flex items-center gap-1">
                         <motion.button whileTap={{ scale: 0.9 }}
                           onClick={() => setDisbandCount(p => ({ ...p, [type]: Math.max(1, p[type] - 1) }))}
-                          className="w-5 h-5 rounded bg-muted text-foreground text-[10px] flex items-center justify-center">−</motion.button>
-                        <span className="text-[10px] text-foreground w-5 text-center font-bold">{count}</span>
+                          className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">−</motion.button>
+                        <span className="text-sm text-foreground w-8 text-center font-bold">{count}</span>
                         <motion.button whileTap={{ scale: 0.9 }}
                           onClick={() => setDisbandCount(p => ({ ...p, [type]: Math.min(army[type], p[type] + 1) }))}
-                          className="w-5 h-5 rounded bg-muted text-foreground text-[10px] flex items-center justify-center">+</motion.button>
+                          className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">+</motion.button>
                         <motion.button whileTap={{ scale: 0.9 }}
                           onClick={() => setDisbandCount(p => ({ ...p, [type]: army[type] }))}
                           className="text-[8px] text-muted-foreground px-1">All</motion.button>
@@ -538,11 +538,11 @@ function EspionagePanel({
           <div className="flex items-center gap-1">
             <motion.button whileTap={{ scale: 0.9 }}
               onClick={() => setSpyTrainCount(Math.max(1, spyTrainCount - 1))}
-              className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">−</motion.button>
-            <span className="text-xs text-foreground w-6 text-center font-bold">{spyTrainCount}</span>
+              className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">−</motion.button>
+            <span className="text-sm text-foreground w-8 text-center font-bold">{spyTrainCount}</span>
             <motion.button whileTap={{ scale: 0.9 }}
               onClick={() => setSpyTrainCount(Math.min(10, spyTrainCount + 1))}
-              className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">+</motion.button>
+              className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">+</motion.button>
           </div>
           <div className="flex-1 text-[9px] text-muted-foreground">
             <ResourceIcon type="gold" size={10} />{40 * spyTrainCount} <ResourceIcon type="food" size={10} />{20 * spyTrainCount} <ResourceIcon type="population" size={10} />{spyTrainCount} · <ResourceIcon type="timer" size={10} />{20 * spyTrainCount}s
@@ -848,11 +848,11 @@ function ApothecaryPanel({ apothecaryLevel, injuredTroops, poisons, healTroops, 
                     <div className="flex items-center gap-1">
                       <motion.button whileTap={{ scale: 0.9 }}
                         onClick={() => setHealCounts(p => ({ ...p, [type]: Math.max(1, p[type] - 1) }))}
-                        className="w-5 h-5 rounded bg-muted text-foreground text-[10px] flex items-center justify-center">−</motion.button>
-                      <span className="text-[10px] text-foreground w-5 text-center font-bold">{count}</span>
+                        className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">−</motion.button>
+                      <span className="text-sm text-foreground w-8 text-center font-bold">{count}</span>
                       <motion.button whileTap={{ scale: 0.9 }}
                         onClick={() => setHealCounts(p => ({ ...p, [type]: Math.min(injured, p[type] + 1) }))}
-                        className="w-5 h-5 rounded bg-muted text-foreground text-[10px] flex items-center justify-center">+</motion.button>
+                        className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">+</motion.button>
                     </div>
                     <div className="flex-1 text-[9px] text-muted-foreground flex items-center gap-1 flex-wrap">
                       <span className="flex items-center gap-px"><ResourceIcon type="gold" size={9} />{healGold}</span>
@@ -886,11 +886,11 @@ function ApothecaryPanel({ apothecaryLevel, injuredTroops, poisons, healTroops, 
             <div className="flex items-center gap-1">
               <motion.button whileTap={{ scale: 0.9 }}
                 onClick={() => setPoisonCount(Math.max(1, poisonCount - 1))}
-                className="w-5 h-5 rounded bg-muted text-foreground text-[10px] flex items-center justify-center">−</motion.button>
-              <span className="text-[10px] text-foreground w-5 text-center font-bold">{poisonCount}</span>
+                className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">−</motion.button>
+              <span className="text-sm text-foreground w-8 text-center font-bold">{poisonCount}</span>
               <motion.button whileTap={{ scale: 0.9 }}
                 onClick={() => setPoisonCount(Math.min(10, poisonCount + 1))}
-                className="w-5 h-5 rounded bg-muted text-foreground text-[10px] flex items-center justify-center">+</motion.button>
+                className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">+</motion.button>
             </div>
             <div className="flex-1 text-[9px] text-muted-foreground flex items-center gap-1">
               <span className="flex items-center gap-px"><ResourceIcon type="gold" size={9} />{60 * poisonCount}</span>

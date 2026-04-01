@@ -132,7 +132,7 @@ export default function AttackConfigPanel({
                   <div className="flex items-center gap-2">
                     <motion.button whileTap={{ scale: 0.9 }}
                       onClick={() => setCount(type, count - 1)}
-                      className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">−</motion.button>
+                      className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">−</motion.button>
                     <input
                       type="range" min={0} max={available} value={count}
                       onChange={e => setCount(type, Number(e.target.value))}
@@ -140,7 +140,7 @@ export default function AttackConfigPanel({
                     />
                     <motion.button whileTap={{ scale: 0.9 }}
                       onClick={() => setCount(type, count + 1)}
-                      className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">+</motion.button>
+                      className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">+</motion.button>
                   </div>
                   <div className="flex gap-2 text-[8px] text-muted-foreground mt-0.5">
                     <span>⚔️{info.attack * count}</span>
@@ -198,11 +198,11 @@ export default function AttackConfigPanel({
             <span className="text-[10px] text-foreground">Operatives:</span>
             <motion.button whileTap={{ scale: 0.9 }}
               onClick={() => setSpyCount(Math.max(1, spyCount - 1))}
-              className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">−</motion.button>
-            <span className="text-xs text-foreground font-bold w-6 text-center">{spyCount}</span>
+              className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">−</motion.button>
+            <span className="text-sm text-foreground font-bold w-8 text-center">{spyCount}</span>
             <motion.button whileTap={{ scale: 0.9 }}
               onClick={() => setSpyCount(Math.min(maxSpyOperatives, spyCount + 1))}
-              className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">+</motion.button>
+              className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">+</motion.button>
             <span className="text-[9px] text-muted-foreground ml-auto">Cost: 💰{missionInfo.goldCost * spyCount}</span>
           </div>
 
