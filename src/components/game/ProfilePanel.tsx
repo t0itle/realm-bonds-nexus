@@ -1,9 +1,11 @@
 import { useState, useRef } from 'react';
 import { useGame, BUILDING_INFO, BuildingType, TROOP_INFO, TroopType } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
+import { useTroopSkins, FACTION_SKINS } from '@/hooks/useTroopSkins';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
+import { BUILDING_SPRITES } from './sprites';
 import crownOverlay from '@/assets/sprites/crown-overlay.png';
 import ResourceIcon from './ResourceIcon';
 
