@@ -2059,6 +2059,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       arrivalTime: now + travelSec * 1000,
       returnTime: now + (travelSec * 2 + operateSec) * 1000,
       phase: 'traveling',
+      targetX,
+      targetY,
     };
     setActiveSpyMissions(prev => [...prev, missionObj]);
     // Persist to DB and update spies count
