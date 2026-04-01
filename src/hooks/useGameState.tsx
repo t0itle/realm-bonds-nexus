@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useAuth } from './useAuth';
 import { getMineSteelPerMinuteFromMineIds, getMineSteelPerTickFromMineId } from '@/lib/mineProduction';
 import { useSpyMissions } from './useSpyMissions';
+import { useProfile } from './useProfile';
 
 // Re-export all types from gameTypes
 export type {
