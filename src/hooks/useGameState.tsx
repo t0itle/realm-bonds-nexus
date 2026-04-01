@@ -627,7 +627,22 @@ export function GameProvider({ children }: { children: ReactNode }) {
       // Build queue
       const { data: bqData } = await supabase.from('build_queue').select('*').eq('user_id', user.id);
       if (bqData && bqData.length > 0) {
-        const villageBuilds = bqData.filter((q: any) => q.building_type !== 'outpost_upgrade' && q.building_type !== 'outpost_wall');
+        const villageBuilds = bqData.filter((q: any) => q.building_type !== 'outpost_upgrade' && q.building_type !== 'outpost_wall' && q.building_type !== 'settlement_upgrade');
+        // Settlement upgrade
+        const settlementUpgrade = bqData.find((q: any) => q.building_type === 'settlement_upgrade');
+        if (settlementUpgrade) {
+          const ft = new Date(settlementUpgrade.finish_time).getTime();
+          if (ft > now) {
+            setSettlementUpgradeFinishTime(ft);
+          } else {
+            // Complete it now
+            const newType = settlementUpgrade.target_level === 2 ? 'town' : 'city';
+            setSettlementType(newType as any);
+            settlementTypeRef.current = newType as any;
+            if (village) await supabase.from('villages').update({ settlement_type: newType } as any).eq('id', village.id);
+            await supabase.from('build_queue').delete().eq('id', settlementUpgrade.id);
+          }
+        }
         const completed = villageBuilds.filter((q: any) => new Date(q.finish_time).getTime() <= now);
         const active = villageBuilds.filter((q: any) => new Date(q.finish_time).getTime() > now);
         // Process completed items
