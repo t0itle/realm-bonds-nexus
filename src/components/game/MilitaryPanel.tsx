@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTroopSkins } from '@/hooks/useTroopSkins';
 import { supabase } from '@/integrations/supabase/client';
 import ResourceIcon, { getResourceType } from './ResourceIcon';
+import TroopIcon from './TroopIcon';
 import VassalPanel from './VassalPanel';
 
 const TROOP_TYPES: TroopType[] = ['militia', 'archer', 'knight', 'cavalry', 'siege', 'scout'];
@@ -62,15 +63,15 @@ export default function MilitaryPanel() {
           <div>
             <p className="text-[10px] text-muted-foreground font-display">Total Army</p>
             <div className="flex gap-2 mt-1">
-              {TROOP_TYPES.map(type => army[type] > 0 && (
-                <span key={type} className="text-xs text-foreground">
-                  {getTroopDisplay(type).emoji}{army[type]}
+            {TROOP_TYPES.map(type => army[type] > 0 && (
+                <span key={type} className="text-xs text-foreground flex items-center gap-0.5">
+                  <TroopIcon type={type} size={14} />{army[type]}
                 </span>
               ))}
               {Object.values(army).every(v => v === 0) && (
                 <span className="text-xs text-muted-foreground">No troops</span>
               )}
-              {spies > 0 && <span className="text-xs text-foreground">🕵️{spies}</span>}
+              {spies > 0 && <span className="text-xs text-foreground flex items-center gap-0.5"><TroopIcon type="spy" size={14} />{spies}</span>}
             </div>
           </div>
           <div className="text-right">
@@ -131,7 +132,7 @@ export default function MilitaryPanel() {
                 const skinDisplay = getTroopDisplay(q.type);
                 return (
                   <div key={i} className="flex items-center justify-between text-xs">
-                    <span className="text-foreground">{skinDisplay.emoji} {skinDisplay.name} x{q.count}</span>
+                    <span className="text-foreground flex items-center gap-1"><TroopIcon type={q.type} size={14} /> {skinDisplay.name} x{q.count}</span>
                     <span className="text-primary font-mono">{formatTime(remaining)}</span>
                   </div>
                 );
@@ -159,7 +160,7 @@ export default function MilitaryPanel() {
               return (
                 <div key={type} className={`game-panel rounded-xl p-3 ${unlocked ? 'border-glow' : 'opacity-40'}`}>
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">{getTroopDisplay(type).emoji}</span>
+                    <TroopIcon type={type} size={32} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <span className="font-display text-xs text-foreground">{getTroopDisplay(type).name}</span>
@@ -237,7 +238,7 @@ export default function MilitaryPanel() {
                 return (
                   <div key={type} className="game-panel rounded-xl p-2.5 border border-destructive/20">
                     <div className="flex items-center gap-2">
-                      <span className="text-lg">{getTroopDisplay(type).emoji}</span>
+                      <TroopIcon type={type} size={20} />
                       <span className="font-display text-xs text-foreground flex-1">{getTroopDisplay(type).name} <span className="text-muted-foreground">({army[type]})</span></span>
                       <div className="flex items-center gap-1">
                         <motion.button whileTap={{ scale: 0.9 }}
@@ -284,14 +285,14 @@ export default function MilitaryPanel() {
                   <div className="flex gap-2 text-[9px] text-muted-foreground mt-1">
                     <span className="text-destructive/70">Your losses:</span>
                     {Object.entries(log.troopsLost).filter(([, v]) => v && v > 0).map(([type, count]) => (
-                      <span key={type}>-{count} {TROOP_INFO[type as TroopType].emoji}</span>
+                      <span key={type} className="flex items-center gap-0.5">-{count} <TroopIcon type={type as TroopType} size={10} /></span>
                     ))}
                   </div>
                   {log.defenderTroopsLost && Object.values(log.defenderTroopsLost).some(v => v && v > 0) && (
                     <div className="flex gap-2 text-[9px] text-muted-foreground mt-0.5">
                       <span className="text-food/70">Enemy losses:</span>
                       {Object.entries(log.defenderTroopsLost).filter(([, v]) => v && v > 0).map(([type, count]) => (
-                        <span key={type}>-{count} {TROOP_INFO[type as TroopType].emoji}</span>
+                        <span key={type} className="flex items-center gap-0.5">-{count} <TroopIcon type={type as TroopType} size={10} /></span>
                       ))}
                     </div>
                   )}
@@ -471,10 +472,10 @@ function WarLogPanel() {
             {/* Troop losses */}
             <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[9px]">
               {isSent && r.attacker_troops_lost && Object.entries(r.attacker_troops_lost).filter(([, v]) => v && (v as number) > 0).map(([type, count]) => (
-                <span key={type} className="text-destructive">-{count as number} {TROOP_INFO[type as TroopType]?.emoji || type}</span>
+                <span key={type} className="text-destructive flex items-center gap-0.5">-{count as number} <TroopIcon type={type as TroopType} size={10} /></span>
               ))}
               {!isSent && r.defender_troops_lost && Object.entries(r.defender_troops_lost).filter(([, v]) => v && (v as number) > 0).map(([type, count]) => (
-                <span key={type} className="text-destructive">-{count as number} {TROOP_INFO[type as TroopType]?.emoji || type}</span>
+                <span key={type} className="text-destructive flex items-center gap-0.5">-{count as number} <TroopIcon type={type as TroopType} size={10} /></span>
               ))}
             </div>
 
@@ -713,7 +714,7 @@ function EspionagePanel({
                     <p className="text-muted-foreground font-display">Troops Spotted:</p>
                     <div className="flex gap-2 text-foreground">
                       {Object.entries(report.data.troops).filter(([, v]) => (v as number) > 0).map(([type, count]) => (
-                        <span key={type}>{TROOP_INFO[type as TroopType].emoji}{count as number}</span>
+                        <span key={type} className="flex items-center gap-0.5"><TroopIcon type={type as TroopType} size={10} />{count as number}</span>
                       ))}
                     </div>
                   </div>
@@ -840,7 +841,7 @@ function ApothecaryPanel({ apothecaryLevel, injuredTroops, poisons, healTroops, 
               return (
                 <div key={type} className="game-panel rounded-lg p-2 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-foreground">{info.emoji} {info.name}</span>
+                    <span className="text-xs text-foreground flex items-center gap-1"><TroopIcon type={type} size={14} /> {info.name}</span>
                     <span className="text-xs text-destructive font-bold">{injured} injured</span>
                   </div>
                   <div className="flex items-center gap-2">

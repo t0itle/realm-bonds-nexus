@@ -3,6 +3,7 @@ import { useGame } from '@/hooks/useGameState';
 import { TROOP_INFO, BUILDING_INFO, RATIONS_INFO, getProduction, getSteelProduction } from '@/lib/gameConstants';
 import type { TroopType, BuildingType, RationsLevel } from '@/lib/gameTypes';
 import ResourceIcon from './ResourceIcon';
+import TroopIcon from './TroopIcon';
 
 const NotificationsPanel = lazy(() => import('./NotificationsPanel'));
 
@@ -180,7 +181,7 @@ export default function StatSheet() {
               const info = TROOP_INFO[type];
               return (
                 <div key={type} className="flex items-center justify-between text-xs">
-                  <span className="text-foreground">{info.emoji} {info.name} x{count}</span>
+                  <span className="text-foreground flex items-center gap-1"><TroopIcon type={type} size={14} /> {info.name} x{count}</span>
                   <span className="text-destructive">🌾-{info.foodUpkeep * count}/min {info.goldUpkeep > 0 ? `💰-${info.goldUpkeep * count}/min` : ''}</span>
                 </div>
               );
