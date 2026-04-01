@@ -498,21 +498,22 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
     });
   }
 
-  // Mountains (0-3 per chunk, more in Highlands/Tundra/Badlands)
+  // Mountains (0-3 per chunk, more in Highlands/Tundra/Badlands) — vast and impassable
   const mtnChance = regionBiome === 'Highlands' || regionBiome === 'Tundra' || regionBiome === 'Badlands' ? 0.9 : 0.3;
   const mtnCount = rng() < mtnChance ? 1 + Math.floor(rng() * 3) : 0;
   for (let i = 0; i < mtnCount; i++) {
     terrain.push({
       type: 'mountain',
-      x: worldBaseX + 5000 + rng() * (CHUNK_SIZE - 10000),
-      y: worldBaseY + 5000 + rng() * (CHUNK_SIZE - 10000),
-      width: 3000 + rng() * 8000,
-      height: 3000 + rng() * 8000,
+      x: worldBaseX + 10000 + rng() * (CHUNK_SIZE - 20000),
+      y: worldBaseY + 10000 + rng() * (CHUNK_SIZE - 20000),
+      width: 12000 + rng() * 20000,
+      height: 10000 + rng() * 18000,
       name: MTN_NAMES[Math.floor(rng() * MTN_NAMES.length)],
     });
   }
 
-  // Rivers (0-1 per chunk, with bridges)
+  // Rivers (0-1 per chunk) — wide and impassable, NO auto-bridges
+  // Bridges can only be built by upgrading an outpost near a river
   if (rng() < 0.45) {
     const riverPoints: { x: number; y: number }[] = [];
     const segments = 5 + Math.floor(rng() * 4);
@@ -533,21 +534,14 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
       ry = Math.max(worldBaseY, Math.min(worldBaseY + CHUNK_SIZE, ry));
       riverPoints.push({ x: rx, y: ry });
     }
-    // Place 1-2 bridges along the river
-    const bridges: { x: number; y: number }[] = [];
-    const bridgeCount = 1 + Math.floor(rng() * 2);
-    for (let b = 0; b < bridgeCount; b++) {
-      const idx = 1 + Math.floor(rng() * (riverPoints.length - 2));
-      bridges.push(riverPoints[idx]);
-    }
     terrain.push({
       type: 'river',
       x: riverPoints[0].x,
       y: riverPoints[0].y,
-      width: 800 + rng() * 1500,
+      width: 3000 + rng() * 3000,
       height: 0,
       points: riverPoints,
-      bridgeAt: bridges,
+      bridgeAt: [], // No auto-bridges — only player-built bridge outposts
       name: RIVER_NAMES[Math.floor(rng() * RIVER_NAMES.length)],
     });
   }
