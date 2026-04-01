@@ -331,6 +331,24 @@ export default function NPCInteractionPanel({
               <span className="text-primary">Wants: {profile.wants.map(r => RESOURCE_ICONS[r]).join(' ')}</span>
             </div>
 
+            {/* NPC Stock levels — only visible if scouted */}
+            {isScouted && townState ? (
+              <div className="bg-muted/30 rounded-lg p-1.5">
+                <p className="text-[9px] font-display text-foreground mb-1">📦 {realm.name} Stock</p>
+                <div className="flex gap-2 text-[9px]">
+                  <span className={townState.stock_gold > 0 ? 'text-foreground' : 'text-destructive'}>💰{townState.stock_gold}</span>
+                  <span className={townState.stock_wood > 0 ? 'text-foreground' : 'text-destructive'}>🪵{townState.stock_wood}</span>
+                  <span className={townState.stock_stone > 0 ? 'text-foreground' : 'text-destructive'}>🪨{townState.stock_stone}</span>
+                  <span className={townState.stock_food > 0 ? 'text-foreground' : 'text-destructive'}>🌾{townState.stock_food}</span>
+                  <span className={townState.stock_steel > 0 ? 'text-foreground' : 'text-destructive'}>⚙️{townState.stock_steel}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-muted/20 rounded-lg p-1.5">
+                <p className="text-[9px] text-muted-foreground italic">🕵️ Stock levels unknown — scout this kingdom to reveal</p>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-1.5">
               {availableTrades.map((trade, i) => {
                 const receiveAmt = Math.floor(tradeAmount * trade.rate);
