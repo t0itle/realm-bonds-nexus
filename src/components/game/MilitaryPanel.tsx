@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useGame, TROOP_INFO, TroopType, SPY_MISSION_INFO, SpyMission } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
+import { useTroopSkins, FACTION_SKINS } from '@/hooks/useTroopSkins';
 import { supabase } from '@/integrations/supabase/client';
 import ResourceIcon, { getResourceType } from './ResourceIcon';
 import VassalPanel from './VassalPanel';
