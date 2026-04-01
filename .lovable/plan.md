@@ -1,105 +1,93 @@
 
-
-# Incoming Attack Warnings, Allied Defense, and Gratitude System
+# World Boss Events
 
 ## Overview
-Three interconnected features: (1) notify defenders when an attack march begins targeting them, (2) notify alliance members and let them send reinforcements, (3) post-battle gratitude resource sharing.
+Add three rare, powerful "world boss" events to the map that persist for one week, have tiered armies, gain resources and troops over time, and attack nearby powerful players daily.
 
----
+## New Concepts
 
-## Feature 1: Incoming Attack Notification
+**World Boss Events** differ from regular events:
+- Only ONE exists on the entire map at a time
+- Rotates weekly (not every 30 minutes)
+- Much higher power level (500-1500+ base)
+- Has 3 tiers of custom soldiers with flavor names
+- Gains resources and recruits troops over time
+- Sends attack marches to nearby powerful players once per day
+- Uses a unique `'worldboss'` event type and distinct visual treatment
 
-**Problem**: When a player launches a PvP attack, the march is saved to `active_marches` but the defender has no idea until troops arrive.
+## The Three Bosses
 
-**Approach**:
-- Add `target_user_id` column to `active_marches` so we know who's being attacked
-- Subscribe defenders to realtime changes on `active_marches` where they are the target
-- Show a toast + persistent alert in `NotificationsPanel` with attacker name, ETA, and troop count estimate
-- In `GameLayout.tsx`, listen for incoming attacks and display an urgent banner/toast
+| Boss | Emoji | Weak | Average | Elite |
+|------|-------|------|---------|-------|
+| Necromancer's Tower | 🏚️ | Skeletons | Zombies | Death Knights |
+| Demonic Portal | 🌀 | Imps | Succubi | Demon Warriors |
+| Dreadkeep | 🧛 | Thralls | Blood Knights | Nosferatus |
 
-**Database change**:
-- Migration: `ALTER TABLE active_marches ADD COLUMN target_user_id uuid;`
-- Add `sent_army jsonb DEFAULT '{}'` to `active_marches` so defenders (and allies) can see approximate threat level
-- Update the PvP march insert in `WorldMap.tsx` to include `target_user_id` and `sent_army`
+Each boss has:
+- **Base army**: starts with weak troops, recruits more each tick
+- **Resource stockpile**: grows over time, awarded on defeat
+- **Power scaling**: grows stronger the longer it exists (days alive)
 
-**UI**: A red pulsing toast: "⚠️ {attacker} is marching on your village! ETA: {time}" with option to switch to map tab.
+## Implementation Plan
 
----
+### 1. Add world boss constants and types (WorldMap.tsx)
 
-## Feature 2: Alliance Defense Coordination
+Add a `WORLD_BOSS_BASES` array with the 3 bosses. Each entry defines:
+- name, emoji, description, lore
+- troop tiers (weak/average/elite) with names, counts, attack/defense stats
+- base power, growth rate, reward multiplier
 
-**Approach**:
-- When an incoming attack targets an alliance member, all online alliance members get notified via the same realtime subscription on `active_marches`
-- In `GameLayout.tsx` or a new `IncomingAttackAlert` component, check if the target is an alliance mate
-- Show a dialog: "Your ally {name} is under attack! ETA: {time}. Send reinforcements?" with the existing `AttackConfigPanel` troop selector
-- Calculate if the player's troops can reach the ally's village before the attacker arrives — display feasibility
-- If troops are sent, create a new march of type `reinforce` targeting the ally's village
-- Add `reinforcements` column (jsonb) to `villages` or track in a new lightweight approach: when reinforcement march arrives, temporarily add those troops to the defender's army counts for the duration of the battle
+Add a `ProceduralWorldBoss` interface extending `ProceduralEvent` with extra fields: `bossType`, `troops` (per tier), `daysAlive`, `threatLevel`.
 
-**Database change**:
-- Add march_type `'reinforce'` support (already a text column, no schema change needed)
-- New table `active_reinforcements` to track allied troops stationed at another player's village:
-  ```sql
-  CREATE TABLE active_reinforcements (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    owner_id uuid NOT NULL,
-    host_village_id uuid NOT NULL,
-    troops jsonb NOT NULL DEFAULT '{}',
-    created_at timestamptz DEFAULT now(),
-    expires_at timestamptz -- auto-recall after X hours
-  );
-  ```
-- RLS: owner and host can view; owner can insert/delete; host can view
+### 2. Deterministic single-boss spawning (WorldMap.tsx)
 
-**Battle resolution change**: When a player is attacked, also fetch `active_reinforcements` for their village and add those troops to their defense power. After battle, subtract losses from reinforcements first.
+In the chunk generation or at a higher level, use a **weekly time seed** (`Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7))`) to:
+- Pick which boss type spawns (index into the 3 bosses)
+- Pick which chunk it spawns in (seeded from weekly seed, within a reasonable range of origin)
+- Calculate days alive within the current week for power scaling
 
----
+This is purely client-side and deterministic — all players see the same boss in the same location.
 
-## Feature 3: Post-Battle Gratitude (Resource Sharing)
+### 3. Visual rendering on map (WorldMap.tsx)
 
-**Approach**:
-- After a successful defense where `active_reinforcements` were present, show a modal dialog to the defender
-- Dialog: "You successfully defended with help from {ally}! Would you like to send them a thank-you gift?"
-- For each resource (gold, wood, stone, food, steel), show a slider from 0 to current amount
-- On confirm, deduct resources from defender and add to the ally via a direct Supabase update (similar to `AllianceResourceSharing`)
-- Log the transfer in `alliance_resource_transfers` with a special message
+- Give world bosses a larger icon size (1.5x normal events)
+- Add a pulsing red/purple glow effect
+- Show troop tier breakdown in the selection tooltip
+- Use a distinct sprite or colored border to differentiate from regular events
 
-**UI Component**: New `GratitudeModal.tsx`
-- Slider for each resource type (using existing `Slider` component)
-- Shows current balance next to each slider
-- "Send Thanks" button that transfers resources
-- "Skip" button to dismiss
+### 4. Combat interaction (WorldMap.tsx handleInvestigate)
 
----
+When a player attacks a world boss:
+- The boss power scales with days alive: `basePower + daysAlive * growthRate`
+- Victory awards scaled resources (much higher than normal events)
+- Defeating the boss marks it as claimed (disappears for that player)
+- The boss remains for other players until the weekly rotation
 
-## Technical Details
+### 5. Daily attack marches (new edge function or client-side)
 
-### Files to create:
-- `src/components/game/IncomingAttackAlert.tsx` — realtime listener + alert UI for incoming attacks (own + ally)
-- `src/components/game/AllyDefenseModal.tsx` — troop selector dialog for sending reinforcements to allies
-- `src/components/game/GratitudeModal.tsx` — post-battle resource sharing modal
+**Client-side approach** (simpler, no new infra):
+- When the world boss chunk loads, calculate if a "raid" is due based on the current day
+- Use deterministic seeding to pick the target (highest-level village within a radius)
+- Create an incoming attack alert (using existing `IncomingAttackAlert` system)
+- The raid army scales with the boss's current troop count
 
-### Files to modify:
-- `src/components/game/WorldMap.tsx` — update PvP `createMarch` to include `target_user_id` and `sent_army` in `active_marches` insert; handle `reinforce` march arrival; integrate reinforcement troops into defense calculations
-- `src/components/game/GameLayout.tsx` — mount `IncomingAttackAlert` component; show gratitude modal after successful allied defense
-- `src/components/game/NotificationsPanel.tsx` — show incoming attack warnings and allied defense events
-- `src/hooks/useGameState.tsx` — add helper to fetch active reinforcements for defense calculation; update `attackPlayer` to account for reinforcements
+This uses the existing `active_marches` table to create NPC attack marches.
 
-### Database migrations:
-1. Add columns to `active_marches`: `target_user_id uuid`, `sent_army jsonb DEFAULT '{}'`
-2. Create `active_reinforcements` table with RLS policies
-3. Enable realtime on `active_marches` (if not already via the existing publication)
+### 6. Database changes
 
-### Flow summary:
-```text
-Player A attacks Player B
-  → active_marches INSERT with target_user_id = B, sent_army = {...}
-  → B gets realtime notification: "Incoming attack! ETA: Xs"
-  → B's alliance members get notification: "Ally B under attack!"
-  → Ally C opens defense modal, selects troops, sends reinforcement march
-  → Reinforcement arrives → stored in active_reinforcements
-  → Attack arrives → defense calc includes reinforcements
-  → If defense succeeds → B sees GratitudeModal to thank C
-  → Resources transferred via slider selection
-```
+**New table: `world_boss_defeats`** — tracks which players have defeated the current week's boss:
+- `id`, `user_id`, `boss_week_seed` (integer), `boss_type` (text), `defeated_at` (timestamp)
+- RLS: users can insert/select own records
 
+This prevents the same player from farming the boss repeatedly in the same week.
+
+### Files Modified
+- `src/components/game/WorldMap.tsx` — boss definitions, spawning logic, rendering, combat handling
+- New migration for `world_boss_defeats` table
+- Possibly a small edge function or cron job for daily attack marches (can also be client-side)
+
+### Technical Notes
+- The weekly seed ensures all clients agree on boss location without server coordination
+- Power scaling: `basePower * (1 + 0.15 * daysAlive)` — grows ~15% per day
+- Troop recruitment: `baseTroops * (1 + 0.1 * daysAlive)` per tier
+- Rewards: 5-10x normal event rewards, plus bonus steel
