@@ -117,6 +117,21 @@ export function useNPCState() {
         })));
       }
 
+      // Build set of scouted NPCs from intel reports + traded NPCs
+      const scouted = new Set<string>();
+      if (intelRes.data) {
+        for (const r of intelRes.data) {
+          scouted.add(r.target_name);
+        }
+      }
+      // Also count NPCs you've traded with
+      if (relRes.data) {
+        for (const r of relRes.data) {
+          if (r.trades_completed > 0) scouted.add(r.npc_town_id);
+        }
+      }
+      setScoutedNPCs(scouted);
+
       setLoading(false);
     };
     load();
