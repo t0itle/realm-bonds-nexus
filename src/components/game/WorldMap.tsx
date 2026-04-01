@@ -88,9 +88,9 @@ function isCellBlocked(wx: number, wy: number, terrainFeatures: TerrainFeature[]
   // Check continent-level mountain ranges
   if (isPointInMountainRange(wx, wy, pad)) return true;
   
-  // Check continent-level rivers (blocked unless near a bridge)
+  // Check continent-level rivers (always blocked — players must build bridges)
   const riverCheck = isPointOnContinentRiver(wx, wy, pad);
-  if (riverCheck && !riverCheck.nearBridge) return true;
+  if (riverCheck) return true;
   
   // Check per-chunk terrain (lakes, local mountains)
   for (const t of terrainFeatures) {
