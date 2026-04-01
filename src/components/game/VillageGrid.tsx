@@ -493,7 +493,7 @@ export default function VillageGrid() {
   );
 }
 
-function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordSteel, resources, steel, isBuildingUpgrading, getBuildTime }: {
+function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordSteel, resources, steel, isBuildingUpgrading, getBuildTime, workerAssignments, assignWorker, unassignWorker, getMaxWorkers, population }: {
   building: Building;
   onUpgrade: () => void;
   onDemolish: () => void;
@@ -503,6 +503,11 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
   steel: number;
   isBuildingUpgrading: (id: string) => any;
   getBuildTime: (type: Exclude<BuildingType, 'empty'>, level: number) => number;
+  workerAssignments: Record<string, number>;
+  assignWorker: (buildingId: string) => void;
+  unassignWorker: (buildingId: string) => void;
+  getMaxWorkers: (building: Building) => number;
+  population: { civilians: number; current: number; max: number; happiness: number };
 }) {
   const [confirmDemolish, setConfirmDemolish] = useState(false);
   const [steelPopup, setSteelPopup] = useState(false);
@@ -517,6 +522,11 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
   const maxed = building.level >= info.maxLevel;
   const upgrading = isBuildingUpgrading(building.id);
   const buildTime = getBuildTime(type, building.level);
+
+  // Worker data
+  const supportsWorkers = info.workersPerLevel > 0;
+  const currentWorkers = workerAssignments[building.id] || 0;
+  const maxWorkers = getMaxWorkers(building);
 
   // Per-resource affordability for highlighting
   const resourceCheck: Record<string, boolean> = {
