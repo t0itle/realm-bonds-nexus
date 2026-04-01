@@ -1615,9 +1615,10 @@ export default function WorldMap() {
           const sorted = playerPositions.sort((a, b) => (a.isMe ? 1 : 0) - (b.isMe ? 1 : 0));
 
           return sorted.map(({ pv, sx, sy, isMe }) => {
-            const pvThLevel = isMe ? townhallLevel : pv.village.level; // approximate TH level from village level for others
+            const pvThLevel = isMe ? townhallLevel : pv.village.level;
             const sprite = getSettlementSprite(pvThLevel, isMe);
             const settlementLabel = pvThLevel >= 7 ? '🏰 Castle' : pvThLevel >= 5 ? '🏘️ Town' : '🏠 Village';
+            const skinFilter = isMe ? getSpriteFilter() : undefined;
             return (
               <button key={pv.village.id} data-map-item
                 onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'player', data: pv }); }}
@@ -1628,7 +1629,7 @@ export default function WorldMap() {
                   alt={pv.profile.display_name}
                   loading="lazy"
                   className={`drop-shadow-lg ${isMe ? 'brightness-110 saturate-110' : 'brightness-75 grayscale-[20%]'}`}
-                  style={{ width: iconSize * 1.2, height: iconSize * 1.2, imageRendering: 'auto', objectFit: 'contain' }}
+                  style={{ width: iconSize * 1.2, height: iconSize * 1.2, imageRendering: 'auto', objectFit: 'contain', filter: skinFilter }}
                 />
                 {isMe && (
                   <div className="absolute -inset-2 rounded-full pointer-events-none"
