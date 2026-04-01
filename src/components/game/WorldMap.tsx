@@ -929,6 +929,39 @@ export default function WorldMap() {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
+  // ── Restore own active marches from DB on mount (survives tab switches) ──
+  useEffect(() => {
+    if (!user) return;
+    const restoreOwnMarches = async () => {
+      const { data } = await supabase.from('active_marches')
+        .select('*')
+        .eq('user_id', user.id)
+        .gt('arrives_at', new Date().toISOString());
+      if (!data || data.length === 0) return;
+      setMarches(prev => {
+        const existingIds = new Set(prev.map(m => m.id));
+        const restored = data
+          .filter((m: any) => !existingIds.has(m.id))
+          .map((m: any) => ({
+            id: m.id,
+            targetName: m.target_name || 'Unknown',
+            arrivalTime: new Date(m.arrives_at).getTime(),
+            startTime: new Date(m.started_at).getTime(),
+            startX: m.start_x,
+            startY: m.start_y,
+            targetX: m.target_x,
+            targetY: m.target_y,
+            waypoints: [{ x: m.start_x, y: m.start_y }, { x: m.target_x, y: m.target_y }],
+            action: () => {
+              // Restored march — arrival toast only; attack resolution already handled or needs server-side processing
+            },
+          }));
+        return [...prev, ...restored];
+      });
+    };
+    restoreOwnMarches();
+  }, [user]);
+
   // Clean up expired other marches
   useEffect(() => {
     if (otherMarches.length === 0) return;
