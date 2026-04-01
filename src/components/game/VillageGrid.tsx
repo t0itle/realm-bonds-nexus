@@ -406,6 +406,11 @@ export default function VillageGrid() {
               steel={steel}
               isBuildingUpgrading={isBuildingUpgrading}
               getBuildTime={getBuildTime}
+              workerAssignments={workerAssignments}
+              assignWorker={assignWorker}
+              unassignWorker={unassignWorker}
+              getMaxWorkers={getMaxWorkers}
+              population={population}
             />
           </motion.div>
         )}
