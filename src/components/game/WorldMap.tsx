@@ -3175,7 +3175,7 @@ export default function WorldMap() {
                                 } else {
                                   toast.error(`Defeated! ${outpostData.name}'s garrison held.`);
                                 }
-                              });
+                              }, sentArmy);
                               setAttackConfig(null);
                               setSelected(null);
                             },
