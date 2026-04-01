@@ -98,6 +98,22 @@ export const FACTION_SKINS: FactionSkin[] = [
       scout: { name: 'Explorator', emoji: '👁️' },
     },
   },
+  {
+    id: 'pirate',
+    name: 'Pirate Fleet',
+    description: 'Tropical cove buildings with docks, cannons, and skull flags.',
+    icon: '🏴‍☠️',
+    cost: 3500,
+    accentHue: 200,
+    troops: {
+      militia: { name: 'Buccaneer', emoji: '🏴‍☠️' },
+      archer: { name: 'Gunner', emoji: '🔫' },
+      knight: { name: 'Corsair', emoji: '⚓' },
+      cavalry: { name: 'Boarder', emoji: '🦜' },
+      siege: { name: 'Cannon', emoji: '💣' },
+      scout: { name: 'Lookout', emoji: '🔭' },
+    },
+  },
 ];
 
 interface TroopSkinContextType {
