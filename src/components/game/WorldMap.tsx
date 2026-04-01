@@ -1995,6 +1995,7 @@ export default function WorldMap() {
                               targetId: targetData.village.user_id,
                               onAttack: (sentArmy) => {
                                 toast(`⚔️ Troops marching... ETA ${travelSec}s`);
+                                deployTroops(sentArmy);
                                 createMarch(`pvp-${Date.now()}`, targetData.village.name, targetPos.x, targetPos.y, travelSec, async () => {
                                   const log = await attackPlayer(targetData.village.user_id, targetData.profile.display_name, targetData.village.id, sentArmy);
                                   if (!log) { toast.error('Attack failed — they may be your vassal!'); return; }
