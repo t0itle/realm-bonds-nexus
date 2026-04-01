@@ -54,10 +54,7 @@ export function useBuildingManagement({
     return barracks?.level || 0;
   }, [buildings]);
 
-  const getWatchtowerLevel = useCallback(() => {
-    const wt = buildings.find(b => b.type === 'watchtower');
-    return wt?.level || 0;
-  }, [buildings]);
+
 
   const addResources = useCallback((r: Partial<Resources>) => {
     setResources(prev => ({
