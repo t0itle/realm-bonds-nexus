@@ -1502,6 +1502,12 @@ export default function WorldMap() {
   const containerRef = useRef<HTMLDivElement>(null);
   const dragStart = useRef<{ x: number; y: number; cx: number; cy: number } | null>(null);
   const lastTouchDist = useRef<number | null>(null);
+  // ── rAF throttling refs ──
+  const panRafId = useRef<number | null>(null);
+  const pendingPan = useRef<{ dx: number; dy: number; startCx: number; startCy: number } | null>(null);
+  const zoomRafId = useRef<number | null>(null);
+  const pendingZoomFactor = useRef<number>(1);
+
   const [containerSize, setContainerSize] = useState({ w: 400, h: 600 });
 
   useEffect(() => {
