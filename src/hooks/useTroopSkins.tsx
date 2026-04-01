@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { TroopType } from './useGameState';
+import { TroopType, BuildingType } from './useGameState';
 import { toast } from 'sonner';
+import { BUILDING_SPRITES } from '@/components/game/sprites';
+import { FACTION_BUILDING_SPRITES } from '@/components/game/factionSprites';
 
 export interface FactionSkin {
   id: string;
@@ -10,8 +12,6 @@ export interface FactionSkin {
   description: string;
   icon: string;
   cost: number;
-  /** CSS filter applied to building & troop sprites */
-  spriteFilter: string;
   /** Optional accent color for UI tinting */
   accentHue: number;
   troops: Record<TroopType, { name: string; emoji: string }>;
@@ -24,7 +24,6 @@ export const FACTION_SKINS: FactionSkin[] = [
     description: 'Standard kingdom troops and buildings.',
     icon: '🏰',
     cost: 0,
-    spriteFilter: 'none',
     accentHue: 0,
     troops: {
       militia: { name: 'Militia', emoji: '🗡️' },
@@ -38,10 +37,9 @@ export const FACTION_SKINS: FactionSkin[] = [
   {
     id: 'viking',
     name: 'Viking Horde',
-    description: 'Cold northern aesthetic. Buildings gain a frosty blue-steel tint.',
+    description: 'Cold northern aesthetic with longhouses and Norse architecture.',
     icon: '🪓',
     cost: 2000,
-    spriteFilter: 'hue-rotate(190deg) saturate(1.3) brightness(0.95)',
     accentHue: 190,
     troops: {
       militia: { name: 'Berserker', emoji: '🪓' },
@@ -55,10 +53,9 @@ export const FACTION_SKINS: FactionSkin[] = [
   {
     id: 'samurai',
     name: 'Shogunate',
-    description: 'Elegant eastern design. Cherry-blossom pink tint on all structures.',
+    description: 'Elegant Japanese architecture with pagodas and dojos.',
     icon: '⛩️',
     cost: 3000,
-    spriteFilter: 'hue-rotate(320deg) saturate(1.2) brightness(1.05)',
     accentHue: 320,
     troops: {
       militia: { name: 'Ashigaru', emoji: '🥷' },
@@ -72,10 +69,9 @@ export const FACTION_SKINS: FactionSkin[] = [
   {
     id: 'undead',
     name: 'Undead Legion',
-    description: 'Dark necromantic palette. Eerie green glow on all sprites.',
+    description: 'Dark necromantic buildings with eerie green glow.',
     icon: '💀',
     cost: 4000,
-    spriteFilter: 'hue-rotate(100deg) saturate(0.6) brightness(0.75) contrast(1.3)',
     accentHue: 100,
     troops: {
       militia: { name: 'Skeleton', emoji: '💀' },
@@ -89,10 +85,9 @@ export const FACTION_SKINS: FactionSkin[] = [
   {
     id: 'roman',
     name: 'Imperial Legion',
-    description: 'Warm golden Roman architecture. Gilded warmth across all buildings.',
+    description: 'Grand Roman architecture with marble columns and red banners.',
     icon: '🦅',
     cost: 2500,
-    spriteFilter: 'sepia(0.4) saturate(1.4) brightness(1.05)',
     accentHue: 40,
     troops: {
       militia: { name: 'Legionary', emoji: '🏛️' },
@@ -111,7 +106,7 @@ interface TroopSkinContextType {
   purchaseSkin: (skinId: string) => Promise<boolean>;
   setActiveSkin: (skinId: string) => Promise<void>;
   getTroopDisplay: (type: TroopType) => { name: string; emoji: string };
-  getSpriteFilter: () => string;
+  getBuildingSprite: (type: Exclude<BuildingType, 'empty'>) => string;
   loading: boolean;
 }
 
@@ -183,12 +178,16 @@ export function TroopSkinProvider({ children }: { children: ReactNode }) {
     return activeSkin.troops[type];
   }, [activeSkin]);
 
-  const getSpriteFilter = useCallback(() => {
-    return activeSkin.spriteFilter;
+  const getBuildingSprite = useCallback((type: Exclude<BuildingType, 'empty'>): string => {
+    const skinId = activeSkin.id;
+    if (skinId !== 'default' && FACTION_BUILDING_SPRITES[skinId]) {
+      return FACTION_BUILDING_SPRITES[skinId][type] || BUILDING_SPRITES[type];
+    }
+    return BUILDING_SPRITES[type];
   }, [activeSkin]);
 
   return (
-    <TroopSkinContext.Provider value={{ activeSkin, ownedSkins, purchaseSkin, setActiveSkin: setActiveSkinFn, getTroopDisplay, getSpriteFilter, loading }}>
+    <TroopSkinContext.Provider value={{ activeSkin, ownedSkins, purchaseSkin, setActiveSkin: setActiveSkinFn, getTroopDisplay, getBuildingSprite, loading }}>
       {children}
     </TroopSkinContext.Provider>
   );
