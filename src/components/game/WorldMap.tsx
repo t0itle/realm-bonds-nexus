@@ -2328,8 +2328,20 @@ export default function WorldMap() {
                               toast(`⚔️ Troops marching to ${outpostData.name}... ETA ${travelSec}s`);
                               createMarch(`atk-op-${Date.now()}`, outpostData.name, outpostData.x, outpostData.y, travelSec, async () => {
                                 const log = attackTarget(outpostData.name, totalDefense, sentArmy);
+                                // Save outpost battle report to DB
+                                if (user) {
+                                  supabase.from('battle_reports').insert({
+                                    attacker_id: user.id,
+                                    defender_id: outpostData.user_id,
+                                    attacker_name: displayName,
+                                    defender_name: outpostData.name,
+                                    result: log.result,
+                                    attacker_troops_lost: log.troopsLost as any,
+                                    defender_troops_lost: log.defenderTroopsLost as any || {},
+                                    resources_raided: log.resourcesGained as any || {},
+                                  } as any).then();
+                                }
                                 if (log.result === 'victory') {
-                                  // Raze the enemy outpost
                                   await supabase.rpc('raze_outpost', { p_outpost_id: outpostData.id });
                                   setOutposts(prev => prev.filter(o => o.id !== outpostData.id));
                                   toast.success(`🔥 ${outpostData.name} razed! Enemy outpost destroyed.`);
