@@ -55,11 +55,12 @@ export function useNPCState() {
     if (!user) return;
     const load = async () => {
       setLoading(true);
-      const [relRes, townRelRes, stateRes, mercRes] = await Promise.all([
+      const [relRes, townRelRes, stateRes, mercRes, intelRes] = await Promise.all([
         supabase.from('npc_player_relations').select('*').eq('user_id', user.id),
         supabase.from('npc_town_relations').select('*'),
         supabase.from('npc_town_state').select('*'),
         supabase.from('npc_mercenary_contracts').select('*').eq('user_id', user.id),
+        supabase.from('intel_reports').select('target_name').eq('user_id', user.id),
       ]);
 
       if (relRes.data) {
