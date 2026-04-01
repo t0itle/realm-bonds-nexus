@@ -95,6 +95,11 @@ export function useNPCState() {
             available_mercenaries: (s.available_mercenaries as Record<string, number>) || {},
             last_action: s.last_action,
             last_action_at: s.last_action_at,
+            stock_gold: (s as any).stock_gold ?? 1000,
+            stock_wood: (s as any).stock_wood ?? 800,
+            stock_stone: (s as any).stock_stone ?? 600,
+            stock_food: (s as any).stock_food ?? 900,
+            stock_steel: (s as any).stock_steel ?? 50,
           });
         }
         setTownStates(map);
