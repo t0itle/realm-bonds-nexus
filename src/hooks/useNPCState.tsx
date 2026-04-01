@@ -47,6 +47,7 @@ export function useNPCState() {
   const [townRelations, setTownRelations] = useState<NPCTownRelation[]>([]);
   const [townStates, setTownStates] = useState<Map<string, NPCTownState>>(new Map());
   const [mercContracts, setMercContracts] = useState<MercenaryContract[]>([]);
+  const [scoutedNPCs, setScoutedNPCs] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   // Load all NPC data
