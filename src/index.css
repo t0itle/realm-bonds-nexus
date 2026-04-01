@@ -163,7 +163,12 @@
 
   .game-panel {
     @apply bg-card border border-border rounded-lg;
-    background: linear-gradient(180deg, hsl(var(--game-panel-from)) 0%, hsl(var(--game-panel-to)) 100%);
+    background: 
+      linear-gradient(180deg, hsl(var(--game-panel-from) / 0.85) 0%, hsl(var(--game-panel-to) / 0.9) 100%),
+      url('/ui/wood-grain.png');
+    background-size: cover, cover;
+    background-position: center, center;
+    image-rendering: pixelated;
   }
 
   .resource-icon {

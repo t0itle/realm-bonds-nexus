@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CURRENT_VERSION, PATCH_NOTES } from '@/config/patchNotes';
+import { parchmentStyle } from './uiSprites';
 
 const SEEN_VERSION_KEY = 'patch_notes_seen_version';
 
@@ -39,16 +40,17 @@ export default function PatchNotesModal() {
             transition={{ type: 'spring', damping: 25, stiffness: 350 }}
             onClick={e => e.stopPropagation()}
             className="game-panel border border-primary/40 rounded-2xl p-5 max-w-sm w-full space-y-3 max-h-[80vh] overflow-y-auto"
+            style={parchmentStyle}
           >
             <div className="text-center space-y-1">
               <span className="text-2xl">📜</span>
-              <h3 className="font-display text-lg text-foreground">{latest.title}</h3>
-              <p className="text-sm text-muted-foreground">v{latest.version} · {latest.date}</p>
+              <h3 className="font-display text-lg text-amber-900 dark:text-foreground">{latest.title}</h3>
+              <p className="text-sm text-amber-800/70 dark:text-muted-foreground">v{latest.version} · {latest.date}</p>
             </div>
 
             <ul className="space-y-1.5">
               {latest.changes.map((change, i) => (
-                <li key={i} className="text-sm text-foreground/90 leading-relaxed">
+                <li key={i} className="text-sm text-amber-900/90 dark:text-foreground/90 leading-relaxed">
                   {change}
                 </li>
               ))}
