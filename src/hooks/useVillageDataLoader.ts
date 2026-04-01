@@ -453,6 +453,17 @@ export function useVillageDataLoader(user: { id: string } | null) {
     supabase.from('villages').update({ poisons } as any).eq('id', villageId).then();
   }, [poisons, villageId]);
 
+  // Player level = Town Hall level
+  useEffect(() => {
+    const th = buildings.find(b => b.type === 'townhall');
+    if (th) {
+      setPlayerLevel(th.level);
+      if (villageId) {
+        supabase.from('villages').update({ level: th.level }).eq('id', villageId).then();
+      }
+    }
+  }, [buildings, villageId]);
+
   return {
     // State values
     resources, steel, buildings, villageId, villageName: villageNameLocal, playerLevel,
