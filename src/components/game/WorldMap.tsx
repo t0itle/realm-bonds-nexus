@@ -2551,6 +2551,48 @@ export default function WorldMap() {
                           <p className="text-[8px] text-muted-foreground italic">No nearby outposts within range. Build outposts closer together to connect walls.</p>
                         )}
                       </div>
+                      {/* Convert to Bridge — only for outposts near a river */}
+                      {op.outpost_type === 'outpost' && (() => {
+                        // Check if this outpost is near any river
+                        const BRIDGE_RIVER_DIST = 8000;
+                        const nearRiver = allTerrain.some(t => {
+                          if (t.type !== 'river' || !t.points) return false;
+                          for (let i = 0; i < t.points.length - 1; i++) {
+                            if (isPointNearRiverSegment(op.x, op.y, t.points[i], t.points[i + 1], (t.width || 3000) + BRIDGE_RIVER_DIST)) return true;
+                          }
+                          return false;
+                        });
+                        if (!nearRiver) return null;
+                        const bridgeCost = { gold: 500, wood: 400, stone: 300, food: 100 };
+                        const canAffordBridge = resources.gold >= bridgeCost.gold && resources.wood >= bridgeCost.wood && resources.stone >= bridgeCost.stone && resources.food >= bridgeCost.food;
+                        return (
+                          <div className="bg-sky-500/10 rounded-lg p-2 space-y-1 border border-sky-400/20">
+                            <p className="text-[10px] font-semibold text-sky-300">🌉 Convert to Bridge</p>
+                            <p className="text-[8px] text-muted-foreground">This outpost is near a river. Convert it into a bridge to allow troops to cross here.</p>
+                            <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+                              <span className={resources.gold >= bridgeCost.gold ? '' : 'text-destructive'}>🪙{bridgeCost.gold}</span>
+                              <span className={resources.wood >= bridgeCost.wood ? '' : 'text-destructive'}>🪵{bridgeCost.wood}</span>
+                              <span className={resources.stone >= bridgeCost.stone ? '' : 'text-destructive'}>🪨{bridgeCost.stone}</span>
+                              <span className={resources.food >= bridgeCost.food ? '' : 'text-destructive'}>🌾{bridgeCost.food}</span>
+                            </div>
+                            <motion.button whileTap={{ scale: 0.95 }}
+                              disabled={!canAffordBridge}
+                              onClick={async () => {
+                                if (!user) return;
+                                if (!window.confirm(`Convert ${op.name} into a bridge? Troops will be able to cross the river here.`)) return;
+                                addResources({ gold: -bridgeCost.gold, wood: -bridgeCost.wood, stone: -bridgeCost.stone, food: -bridgeCost.food });
+                                const bridgeName = `Bridge at ${op.name.replace(/^Outpost\s*/, '')}`.trim() || `River Bridge`;
+                                await supabase.from('outposts').update({ outpost_type: 'bridge', name: bridgeName } as any).eq('id', op.id);
+                                setOutposts(prev => prev.map(o => o.id === op.id ? { ...o, outpost_type: 'bridge', name: bridgeName } : o));
+                                toast.success(`🌉 ${bridgeName} has been built! Troops can now cross the river here.`);
+                                setSelected(null);
+                              }}
+                              className="w-full bg-sky-600/80 text-white font-display text-[11px] py-2 rounded-lg disabled:opacity-40 active:scale-95 transition-transform">
+                              🌉 Build Bridge
+                            </motion.button>
+                          </div>
+                        );
+                      })()}
                       {/* Convert to Fort at Lv.5+ */}
                       {op.outpost_type === 'outpost' && op.level >= 5 && (
                         <div className="bg-accent/20 rounded-lg p-2 space-y-1">
