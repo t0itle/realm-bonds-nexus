@@ -1686,7 +1686,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       attacker_name: displayName,
       defender_name: targetName,
       result: log.result,
-      attacker_troops_sent: army,
+      attacker_troops_sent: attackingArmy,
       attacker_troops_lost: result.attackerLosses,
       defender_troops_lost: result.defenderLosses,
       resources_raided: resourcesRaided || {},
@@ -1696,7 +1696,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     } as any);
     
     return log;
-  }, [army, user, villageId, addResources, displayName, getWallLevel, vassalages, persistArmyToVillage]);
+  }, [army, user, villageId, addResources, displayName, getWallLevel, vassalages, returnTroops]);
 
   // Vassal: pay ransom to break free
   const payRansom = useCallback(async (vassalageId: string): Promise<boolean> => {
