@@ -7,6 +7,7 @@ import { useProfile } from './useProfile';
 import { usePopulation } from './usePopulation';
 import { useProduction } from './useProduction';
 import { useWorkerManagement } from './useWorkerManagement';
+import { useTroopManagement } from './useTroopManagement';
 
 // Re-export all types from gameTypes
 export type {
