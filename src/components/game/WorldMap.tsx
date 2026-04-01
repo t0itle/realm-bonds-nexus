@@ -1151,7 +1151,7 @@ export default function WorldMap() {
     }, arrivalMs);
 
     return () => clearTimeout(raidTimer);
-  }, [user, worldBoss, worldBossDefeated, allVillages, addResources]);
+  }, [user, worldBoss, worldBossDefeated, allVillages, addResources, vassalages]);
 
 
   useEffect(() => {
