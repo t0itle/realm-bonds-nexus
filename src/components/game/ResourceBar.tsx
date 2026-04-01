@@ -13,8 +13,41 @@ const RESOURCE_CONFIG = [
   { key: 'food' as const, label: 'Food', color: 'text-food' },
 ];
 
+function BudgetTooltip({ lines, label, net }: { lines: { icon: string; label: string; value: number }[]; label: string; net: number }) {
+  const visible = lines.filter(l => l.value !== 0);
+  return (
+    <div className="space-y-0.5 min-w-[140px]">
+      <div className="font-bold text-[11px] text-foreground mb-1">{label} Budget</div>
+      {visible.length === 0 ? (
+        <div className="text-[10px] text-muted-foreground">No production</div>
+      ) : (
+        <>
+          {visible.map((l, i) => (
+            <div key={i} className="flex justify-between gap-3 text-[10px] tabular-nums">
+              <span className="text-muted-foreground">{l.icon} {l.label}</span>
+              <span className={l.value > 0 ? 'text-emerald-500' : 'text-destructive'}>
+                {l.value > 0 ? '+' : ''}{l.value}/min
+              </span>
+            </div>
+          ))}
+          <div className="border-t border-border/50 mt-1 pt-1 flex justify-between text-[10px] tabular-nums font-bold">
+            <span className="text-foreground">Net</span>
+            <span className={net > 0 ? 'text-emerald-500' : net < 0 ? 'text-destructive' : 'text-muted-foreground'}>
+              {net > 0 ? '+' : ''}{net}/min
+            </span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function ResourceBar() {
-  const { resources, totalProduction, steel, steelProduction, population, storageCapacity, myVillages, switchVillage, villageId, villageName, abandonSettlement } = useGame();
+  const {
+    resources, totalProduction, steel, steelProduction, population, storageCapacity,
+    myVillages, switchVillage, villageId, villageName, abandonSettlement,
+    grossProduction, armyUpkeep, popFoodCost, popTaxIncome,
+  } = useGame();
   const [showCaravan, setShowCaravan] = useState(false);
   const [showVillageSwitcher, setShowVillageSwitcher] = useState(false);
   const [confirmAbandon, setConfirmAbandon] = useState<string | null>(null);
@@ -25,6 +58,41 @@ export default function ResourceBar() {
   const foodDeclining = totalProduction.food < 0;
   const foodLow = foodDeclining && resources.food < 200;
   const foodCritical = foodDeclining && resources.food < 50;
+
+  const upkeep = armyUpkeep();
+
+  // Compute alliance tax amounts (difference between gross and what's kept)
+  const allianceTax = {
+    gold: grossProduction.gold - Math.floor(grossProduction.gold * (1 - ((grossProduction.gold > 0 && totalProduction.gold !== grossProduction.gold - upkeep.gold + popTaxIncome) ? ((grossProduction.gold - (totalProduction.gold + upkeep.gold - popTaxIncome)) / grossProduction.gold) : 0))),
+    wood: grossProduction.wood - Math.floor(grossProduction.wood * (1 - ((grossProduction.wood > 0 && totalProduction.wood !== grossProduction.wood) ? ((grossProduction.wood - totalProduction.wood) / grossProduction.wood) : 0))),
+    stone: grossProduction.stone - Math.floor(grossProduction.stone * (1 - ((grossProduction.stone > 0 && totalProduction.stone !== grossProduction.stone) ? ((grossProduction.stone - totalProduction.stone) / grossProduction.stone) : 0))),
+    food: grossProduction.food - Math.floor(grossProduction.food * (1 - ((grossProduction.food > 0 && totalProduction.food !== grossProduction.food - upkeep.food - popFoodCost) ? ((grossProduction.food - (totalProduction.food + upkeep.food + popFoodCost)) / grossProduction.food) : 0))),
+  };
+
+  function getBreakdown(key: 'gold' | 'wood' | 'stone' | 'food'): { icon: string; label: string; value: number }[] {
+    const lines: { icon: string; label: string; value: number }[] = [];
+    if (grossProduction[key] !== 0) {
+      const icons = { gold: '🪙', wood: '🪵', stone: '⛏️', food: '🌾' };
+      const labels = { gold: 'Buildings', wood: 'Buildings', stone: 'Buildings', food: 'Farms/Buildings' };
+      lines.push({ icon: icons[key], label: labels[key], value: grossProduction[key] });
+    }
+    if (allianceTax[key] > 0) {
+      lines.push({ icon: '🏛️', label: 'Alliance Tax', value: -allianceTax[key] });
+    }
+    if (key === 'gold' && popTaxIncome > 0) {
+      lines.push({ icon: '👥', label: 'Pop Tax', value: popTaxIncome });
+    }
+    if (key === 'gold' && upkeep.gold > 0) {
+      lines.push({ icon: '⚔️', label: 'Army Upkeep', value: -upkeep.gold });
+    }
+    if (key === 'food' && upkeep.food > 0) {
+      lines.push({ icon: '⚔️', label: 'Army Upkeep', value: -upkeep.food });
+    }
+    if (key === 'food' && popFoodCost > 0) {
+      lines.push({ icon: '🍞', label: 'Pop Rations', value: -popFoodCost });
+    }
+    return lines;
+  }
 
   return (
     <>
@@ -95,61 +163,83 @@ export default function ResourceBar() {
       )}
 
       <div className={`game-panel px-2 py-1.5 mx-2 ${myVillages.length <= 1 ? 'mt-2' : 'mt-1'} border-glow space-y-1 ${foodCritical ? 'border-destructive/60' : foodLow ? 'border-destructive/40' : ''}`}>
-        <div className="flex items-center justify-between gap-1">
-          {RESOURCE_CONFIG.map(({ key, color }) => {
-            const isFood = key === 'food';
-            const foodValueColor = isFood && foodCritical
-              ? 'text-destructive font-bold animate-pulse'
-              : isFood && foodLow
-                ? 'text-destructive font-bold'
-                : isFood && foodDeclining
-                  ? 'text-amber-500'
-                  : color;
-            const prodColor = isFood && foodCritical
-              ? 'text-destructive font-bold animate-pulse'
-              : isFood && foodLow
+        <TooltipProvider delayDuration={200}>
+          <div className="flex items-center justify-between gap-1">
+            {RESOURCE_CONFIG.map(({ key, label, color }) => {
+              const isFood = key === 'food';
+              const foodValueColor = isFood && foodCritical
                 ? 'text-destructive font-bold animate-pulse'
-                : isFood && foodDeclining
-                  ? 'text-amber-500 font-semibold'
-                  : 'text-muted-foreground';
-            return (
-              <motion.div
-                key={key}
-                className="flex items-center gap-1 min-w-0"
-                whileTap={{ scale: 0.95 }}
-              >
-                <ResourceIcon type={key} size={14} />
-                <div className="flex flex-col min-w-0">
-                  <span className={`text-xs font-semibold tabular-nums ${foodValueColor} truncate`}>
-                    {Math.floor(resources[key]).toLocaleString()}{isFood && foodDeclining && ' ▼'}
-                  </span>
-                  <span className={`text-[9px] ${prodColor}`}>
-                    {totalProduction[key] >= 0 ? '+' : ''}{totalProduction[key]}/min
-                  </span>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
+                : isFood && foodLow
+                  ? 'text-destructive font-bold'
+                  : isFood && foodDeclining
+                    ? 'text-amber-500'
+                    : color;
+              const prodColor = isFood && foodCritical
+                ? 'text-destructive font-bold animate-pulse'
+                : isFood && foodLow
+                  ? 'text-destructive font-bold animate-pulse'
+                  : isFood && foodDeclining
+                    ? 'text-amber-500 font-semibold'
+                    : 'text-muted-foreground';
+              const breakdown = getBreakdown(key);
+              return (
+                <Tooltip key={key}>
+                  <TooltipTrigger asChild>
+                    <motion.div
+                      className="flex items-center gap-1 min-w-0 cursor-default"
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <ResourceIcon type={key} size={14} />
+                      <div className="flex flex-col min-w-0">
+                        <span className={`text-xs font-semibold tabular-nums ${foodValueColor} truncate`}>
+                          {Math.floor(resources[key]).toLocaleString()}{isFood && foodDeclining && ' ▼'}
+                        </span>
+                        <span className={`text-[9px] ${prodColor}`}>
+                          {totalProduction[key] >= 0 ? '+' : ''}{totalProduction[key]}/min
+                        </span>
+                      </div>
+                    </motion.div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs max-w-[220px]">
+                    <BudgetTooltip lines={breakdown} label={label} net={totalProduction[key]} />
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </div>
+        </TooltipProvider>
         {foodCritical && (
           <div className="text-[9px] text-destructive font-bold text-center animate-pulse">
             ⚠️ Famine! Troops will desert if food reaches 0!
           </div>
         )}
-        <div className="flex items-center justify-between text-[9px] border-t border-border/50 pt-1">
-          <span className="text-muted-foreground flex items-center gap-0.5">
-            <ResourceIcon type="steel" size={10} /> Steel: <strong className="text-foreground">{steel}</strong>{steelProduction > 0 && <span className="text-primary"> +{steelProduction}/min</span>}
-          </span>
-          <button
-            onClick={() => setShowCaravan(prev => !prev)}
-            className={`flex items-center gap-0.5 active:scale-95 transition-transform ${storageNearFull ? 'text-destructive font-bold' : 'text-muted-foreground'}`}
-          >
-            🏪 {Math.floor(storagePct)}%
-          </button>
-          <span className="text-muted-foreground flex items-center gap-0.5">
-            <ResourceIcon type="population" size={10} /> {population.current}/{population.max}
-          </span>
-          <TooltipProvider delayDuration={200}>
+        <TooltipProvider delayDuration={200}>
+          <div className="flex items-center justify-between text-[9px] border-t border-border/50 pt-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-muted-foreground flex items-center gap-0.5 cursor-default">
+                  <ResourceIcon type="steel" size={10} /> Steel: <strong className="text-foreground">{steel}</strong>{steelProduction > 0 && <span className="text-primary"> +{steelProduction}/min</span>}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs max-w-[200px]">
+                <BudgetTooltip
+                  lines={[
+                    ...(steelProduction > 0 ? [{ icon: '⚒️', label: 'Production', value: steelProduction }] : []),
+                  ]}
+                  label="Steel"
+                  net={steelProduction}
+                />
+              </TooltipContent>
+            </Tooltip>
+            <button
+              onClick={() => setShowCaravan(prev => !prev)}
+              className={`flex items-center gap-0.5 active:scale-95 transition-transform ${storageNearFull ? 'text-destructive font-bold' : 'text-muted-foreground'}`}
+            >
+              🏪 {Math.floor(storagePct)}%
+            </button>
+            <span className="text-muted-foreground flex items-center gap-0.5">
+              <ResourceIcon type="population" size={10} /> {population.current}/{population.max}
+            </span>
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="flex items-center gap-0.5 cursor-default">
@@ -163,8 +253,8 @@ export default function ResourceBar() {
                 Happiness: {population.happiness}/100 — Affects population growth and rebellion risk. Build Temples and adjust Rations to improve it.
               </TooltipContent>
             </Tooltip>
-          </TooltipProvider>
-        </div>
+          </div>
+        </TooltipProvider>
       </div>
       <AnimatePresence>
         {showCaravan && (
