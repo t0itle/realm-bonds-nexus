@@ -5,7 +5,7 @@ import { useAuth } from './useAuth';
 import { getMineSteelPerMinuteFromMineIds, getMineSteelPerTickFromMineId } from '@/lib/mineProduction';
 import { useSpyMissions } from './useSpyMissions';
 import { useProfile } from './useProfile';
-import { useHousing } from './useHousing';
+import { usePopulation } from './usePopulation';
 
 // Re-export all types from gameTypes
 export type {
