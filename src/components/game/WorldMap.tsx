@@ -630,7 +630,7 @@ type SelectedItem =
   | null;
 
 export default function WorldMap() {
-  const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, resources, getWatchtowerLevel, getSpyGuildLevel, refreshVillages, myVillages, settlementType } = useGame();
+  const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, resources, getWatchtowerLevel, getSpyGuildLevel, refreshVillages, myVillages, settlementType, deployTroops, returnTroops } = useGame();
   const { user } = useAuth();
   const npcState = useNPCState();
   const { activeSkin, getBuildingSprite, getSpriteFilter } = useTroopSkins();
