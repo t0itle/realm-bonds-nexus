@@ -2052,6 +2052,88 @@ export default function WorldMap() {
   const renderRealms = useMemo(() => visibleRealms.slice(0, maxItems), [visibleRealms]);
   const renderEvents = useMemo(() => visibleEvents.slice(0, maxItems), [visibleEvents]);
 
+  // ── Memoized collision-nudged player positions ──
+  const nudgedPlayerPositions = useMemo(() => {
+    const playerPositions = allVillages.map(pv => {
+      const pos = getPlayerPos(pv.village.id);
+      const { sx, sy } = worldToScreen(pos.x, pos.y);
+      const isMe = pv.village.user_id === user?.id;
+      return { pv, pos, sx, sy, isMe };
+    }).filter(p => {
+      if (!isWithinVision(p.pos.x, p.pos.y, 5000)) return false;
+      const margin = 80;
+      return p.sx > -margin && p.sx < containerSize.w + margin && p.sy > -margin && p.sy < containerSize.h + margin;
+    });
+
+    // Skip nudging if too many villages visible (labels unreadable at that zoom)
+    if (playerPositions.length <= 50) {
+      const minDist = Math.max(50, iconSize * 1.8);
+      const cellSize = minDist;
+
+      // Spatial hash: bucket villages into grid cells
+      const grid = new Map<string, number[]>();
+      for (let i = 0; i < playerPositions.length; i++) {
+        const p = playerPositions[i];
+        const cx = Math.floor(p.sx / cellSize);
+        const cy = Math.floor(p.sy / cellSize);
+        const key = `${cx},${cy}`;
+        const bucket = grid.get(key);
+        if (bucket) bucket.push(i);
+        else grid.set(key, [i]);
+      }
+
+      // Check collisions only within same or adjacent cells
+      const checked = new Set<string>();
+      for (const [key, indices] of grid) {
+        const [gx, gy] = key.split(',').map(Number);
+        // Gather indices from this cell and 8 neighbors
+        const nearby: number[] = [];
+        for (let dx = -1; dx <= 1; dx++) {
+          for (let dy = -1; dy <= 1; dy++) {
+            const nk = `${gx + dx},${gy + dy}`;
+            const bucket = grid.get(nk);
+            if (bucket) nearby.push(...bucket);
+          }
+        }
+        // Deduplicate and check pairs
+        for (let ii = 0; ii < indices.length; ii++) {
+          const i = indices[ii];
+          for (const j of nearby) {
+            if (j <= i) continue;
+            const pairKey = `${i},${j}`;
+            if (checked.has(pairKey)) continue;
+            checked.add(pairKey);
+            const a = playerPositions[i];
+            const b = playerPositions[j];
+            const ddx = b.sx - a.sx;
+            const ddy = b.sy - a.sy;
+            const dist = Math.sqrt(ddx * ddx + ddy * ddy);
+            if (dist < minDist && dist > 0) {
+              const overlap = (minDist - dist) / 2;
+              const nx = ddx / dist;
+              const ny = ddy / dist;
+              if (a.isMe) {
+                b.sx += nx * overlap * 2;
+                b.sy += ny * overlap * 2;
+              } else if (b.isMe) {
+                a.sx -= nx * overlap * 2;
+                a.sy -= ny * overlap * 2;
+              } else {
+                a.sx -= nx * overlap;
+                a.sy -= ny * overlap;
+                b.sx += nx * overlap;
+                b.sy += ny * overlap;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Sort so "me" renders on top
+    return playerPositions.sort((a, b) => (a.isMe ? 1 : 0) - (b.isMe ? 1 : 0));
+  }, [allVillages, camera.cx, camera.cy, camera.ppu, containerSize, iconSize, user?.id]);
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="px-3 pt-2 pb-1.5 flex items-center justify-between border-b border-border/30">
@@ -2419,54 +2501,8 @@ export default function WorldMap() {
           );
         }))}
 
-        {/* Player settlements with collision nudging */}
-        {(() => {
-          // Compute positions first, then nudge overlapping ones apart
-          const playerPositions = allVillages.map(pv => {
-            const pos = getPlayerPos(pv.village.id);
-            const { sx, sy } = worldToScreen(pos.x, pos.y);
-            const isMe = pv.village.user_id === user?.id;
-            return { pv, pos, sx, sy, isMe };
-          }).filter(p => {
-            if (!isWithinVision(p.pos.x, p.pos.y, 5000)) return false;
-            const margin = 80;
-            return p.sx > -margin && p.sx < containerSize.w + margin && p.sy > -margin && p.sy < containerSize.h + margin;
-          });
-
-          // Simple collision nudge: push overlapping labels apart
-          const minDist = Math.max(50, iconSize * 1.8);
-          for (let i = 0; i < playerPositions.length; i++) {
-            for (let j = i + 1; j < playerPositions.length; j++) {
-              const a = playerPositions[i];
-              const b = playerPositions[j];
-              const dx = b.sx - a.sx;
-              const dy = b.sy - a.sy;
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              if (dist < minDist && dist > 0) {
-                const overlap = (minDist - dist) / 2;
-                const nx = dx / dist;
-                const ny = dy / dist;
-                // Don't nudge "me" — nudge others
-                if (a.isMe) {
-                  b.sx += nx * overlap * 2;
-                  b.sy += ny * overlap * 2;
-                } else if (b.isMe) {
-                  a.sx -= nx * overlap * 2;
-                  a.sy -= ny * overlap * 2;
-                } else {
-                  a.sx -= nx * overlap;
-                  a.sy -= ny * overlap;
-                  b.sx += nx * overlap;
-                  b.sy += ny * overlap;
-                }
-              }
-            }
-          }
-
-          // Sort so "me" renders on top
-          const sorted = playerPositions.sort((a, b) => (a.isMe ? 1 : 0) - (b.isMe ? 1 : 0));
-
-          return sorted.map(({ pv, sx, sy, isMe }) => {
+        {/* Player settlements with memoized collision nudging */}
+        {nudgedPlayerPositions.map(({ pv, sx, sy, isMe }) => {
             const pvSettlementType = isMe ? settlementType : (pv.village.settlement_type || 'village');
             const sprite = getSettlementSprite(pvSettlementType, isMe);
             const settlementLabel = SETTLEMENT_LABELS[pvSettlementType] || '🏠 Village';
@@ -2502,8 +2538,7 @@ export default function WorldMap() {
                 )}
               </button>
             );
-          });
-        })()}
+        })}
 
         {/* ── Animated March Sprites with waypoint paths ── */}
         {marches.map(march => (
