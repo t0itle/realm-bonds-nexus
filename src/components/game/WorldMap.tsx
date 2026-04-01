@@ -1082,6 +1082,8 @@ const MarchPathRenderer = React.memo(function MarchPathRenderer({
   const progress = Math.min(1, Math.max(0, elapsed / totalDuration));
   const wp = march.waypoints;
   const currentPos = interpolateAlongPath(wp, progress);
+  const screenWaypoints = useMemo(() => wp.map(p => worldToScreen(p.x, p.y)), [wp, worldToScreen]);
+  const polylinePoints = useMemo(() => screenWaypoints.map(p => `${p.sx},${p.sy}`).join(' '), [screenWaypoints]);
   const { sx, sy } = worldToScreen(currentPos.x, currentPos.y);
   // Skip rendering if the current march position is off-screen
   if (sx < -200 || sx > containerSize.w + 200 || sy < -200 || sy > containerSize.h + 200) return null;
@@ -1089,8 +1091,6 @@ const MarchPathRenderer = React.memo(function MarchPathRenderer({
   const facingLeft = aheadPos.x < currentPos.x;
   const marchSize = Math.max(16, Math.min(36, cameraPpu * 5000));
   const remainingSec = Math.max(0, Math.ceil((march.arrivalTime - now) / 1000));
-  const screenWaypoints = useMemo(() => wp.map(p => worldToScreen(p.x, p.y)), [wp, worldToScreen]);
-  const polylinePoints = useMemo(() => screenWaypoints.map(p => `${p.sx},${p.sy}`).join(' '), [screenWaypoints]);
   return (
     <div key={march.id}>
       <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible', zIndex: 35 }}>
