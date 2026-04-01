@@ -12,16 +12,15 @@ import { lazy, Suspense } from 'react';
 const MilitaryPanel = lazy(() => import('./MilitaryPanel'));
 const StatSheet = lazy(() => import('./StatSheet'));
 
-function getGridSize(townhallLevel: number): number {
-  if (townhallLevel >= 7) return 16;
-  if (townhallLevel >= 5) return 12;
-  if (townhallLevel >= 3) return 9;
+function getGridSize(settlementType: string): number {
+  if (settlementType === 'city') return 25;
+  if (settlementType === 'town') return 16;
   return 9;
 }
 
 function getGridCols(gridSize: number): number {
+  if (gridSize >= 25) return 5;
   if (gridSize >= 16) return 4;
-  if (gridSize >= 12) return 4;
   return 3;
 }
 
