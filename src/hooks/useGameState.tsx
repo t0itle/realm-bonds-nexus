@@ -5,6 +5,7 @@ import { useAuth } from './useAuth';
 import { getMineSteelPerMinuteFromMineIds, getMineSteelPerTickFromMineId } from '@/lib/mineProduction';
 import { useSpyMissions } from './useSpyMissions';
 import { useProfile } from './useProfile';
+import { useHousing } from './useHousing';
 
 // Re-export all types from gameTypes
 export type {
@@ -599,29 +600,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const canAffordSteel = useCallback((amount: number) => steel >= amount, [steel]);
 
   // === HOUSING ===
-  // Max houses you can build = townhall level * 2
-  const townhallLevel = useMemo(() => {
-    const th = buildings.find(b => b.type === 'townhall');
-    return th?.level || 1;
-  }, [buildings]);
-
-  const maxHouses = useMemo(() => townhallLevel * 2, [townhallLevel]);
-
-  const currentHouses = useMemo(() => buildings.filter(b => b.type === 'house').length, [buildings]);
-
-  // Housing capacity = sum of all house levels * housingPerLevel
-  const housingCapacity = useMemo(() => {
-    let cap = 10; // base housing from townhall
-    for (const b of buildings) {
-      if (b.type === 'house') {
-        cap += (BUILDING_INFO.house.housingPerLevel || 0) * b.level;
-      }
-      if (b.type === 'townhall') {
-        cap += b.level * 5; // townhall also provides some housing
-      }
-    }
-    return cap;
-  }, [buildings]);
+  const { townhallLevel, maxHouses, currentHouses, housingCapacity } = useHousing(buildings);
 
   // === HAPPINESS ===
   // Base 50 + temple bonus + rations bonus - overcrowding penalty - high tax penalty
