@@ -78,15 +78,10 @@ function ResourceList({ resources, label, color }: { resources: any; label: stri
 
 function BattleDetail({ battle, isDefender }: { battle: BattleAlert; isDefender: boolean }) {
   const attackerWon = battle.result === 'victory';
-  const totalSent = battle.attacker_troops_sent
-    ? Object.values(battle.attacker_troops_sent).reduce((s: number, v) => s + ((v as number) || 0), 0)
-    : 0;
-  const totalAtkLost = battle.attacker_troops_lost
-    ? Object.values(battle.attacker_troops_lost).reduce((s: number, v) => s + ((v as number) || 0), 0)
-    : 0;
-  const totalDefLost = battle.defender_troops_lost
-    ? Object.values(battle.defender_troops_lost).reduce((s: number, v) => s + ((v as number) || 0), 0)
-    : 0;
+  const sumValues = (obj: any) => obj ? Object.values(obj).reduce((s: number, v: any) => s + (Number(v) || 0), 0) as number : 0;
+  const totalSent = sumValues(battle.attacker_troops_sent);
+  const totalAtkLost = sumValues(battle.attacker_troops_lost);
+  const totalDefLost = sumValues(battle.defender_troops_lost);
 
   return (
     <motion.div
