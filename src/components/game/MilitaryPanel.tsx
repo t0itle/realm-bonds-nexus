@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useGameTicker } from '@/hooks/useGameTicker';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { useGame, TROOP_INFO, TroopType, SPY_MISSION_INFO, SpyMission } from '@/hooks/useGameState';
@@ -36,12 +37,8 @@ export default function MilitaryPanel() {
   const power = totalArmyPower();
   const upkeep = armyUpkeep();
 
-  // Force re-render for timers
-  useEffect(() => {
-    if (trainingQueue.length === 0 && activeSpyMissions.length === 0 && spyTrainingQueue.length === 0) return;
-    const t = setInterval(() => forceUpdate(x => x + 1), 1000);
-    return () => clearInterval(t);
-  }, [trainingQueue.length, activeSpyMissions.length]);
+  // Shared ticker for countdown timers
+  const tick = useGameTicker();
 
   if (barracksLevel === 0) {
     return (
@@ -507,13 +504,7 @@ function EspionagePanel({
 }: any) {
   const [selectedTarget, setSelectedTarget] = useState<string>('');
   const [selectedMission, setSelectedMission] = useState<SpyMission>('scout');
-  const [, forceUpdate] = useState(0);
-
-  useEffect(() => {
-    if (activeSpyMissions.length === 0) return;
-    const t = setInterval(() => forceUpdate(x => x + 1), 1000);
-    return () => clearInterval(t);
-  }, [activeSpyMissions.length]);
+  const tick = useGameTicker();
 
   const canTrainSpy = barracksLevel >= 1 && resources.gold >= 40 * spyTrainCount && resources.food >= 20 * spyTrainCount && population.civilians >= spyTrainCount;
   const missionInfo = SPY_MISSION_INFO[selectedMission];

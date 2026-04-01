@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useGameTicker } from '@/hooks/useGameTicker';
 import { useGame, BUILDING_INFO, getUpgradeCost, getProduction, getSteelProduction, BuildingType, Building } from '@/hooks/useGameState';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BUILDING_SPRITES, WORKERS_SPRITE, WORKER_FOR_BUILDING } from './sprites';
@@ -185,13 +186,7 @@ export default function VillageGrid() {
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [buildPosition, setBuildPosition] = useState<number | null>(null);
   const [workerBuilding, setWorkerBuilding] = useState<Building | null>(null);
-  const [, forceUpdate] = useState(0);
-
-  // Force re-render every second for countdown timers
-  useEffect(() => {
-    const interval = setInterval(() => forceUpdate(v => v + 1), 1000);
-    return () => clearInterval(interval);
-  }, []);
+  const tick = useGameTicker();
 
   const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
   const gridSize = getGridSize(settlementType);
@@ -467,7 +462,7 @@ export default function VillageGrid() {
                   <motion.button
                     whileTap={{ scale: 0.9 }}
                     onClick={() => {
-                      if (unassignWorker(workerBuilding.id)) forceUpdate(v => v + 1);
+                      unassignWorker(workerBuilding.id);
                     }}
                     disabled={assigned <= 0}
                     className={`w-10 h-10 rounded-xl font-display text-lg flex items-center justify-center ${
@@ -481,7 +476,7 @@ export default function VillageGrid() {
                   <motion.button
                     whileTap={{ scale: 0.9 }}
                     onClick={() => {
-                      if (assignWorker(workerBuilding.id)) forceUpdate(v => v + 1);
+                      assignWorker(workerBuilding.id);
                     }}
                     disabled={assigned >= maxW || population.civilians <= 0}
                     className={`w-10 h-10 rounded-xl font-display text-lg flex items-center justify-center ${
