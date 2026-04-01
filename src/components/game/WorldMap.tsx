@@ -1123,7 +1123,8 @@ export default function WorldMap() {
   const createMarch = useCallback((id: string, targetName: string, targetX: number, targetY: number, _travelSec: number, action: () => void) => {
     const myPos = getMyPos();
     const now = Date.now();
-    const waypoints = findPath(myPos.x, myPos.y, targetX, targetY, allTerrain, bridgeOutpostPositions);
+    const pathTerrain = getTerrainForPath(myPos.x, myPos.y, targetX, targetY);
+    const waypoints = findPath(myPos.x, myPos.y, targetX, targetY, pathTerrain, bridgeOutpostPositions);
 
     // Check if march path crosses any enemy wall
     let pathBlocked = false;
