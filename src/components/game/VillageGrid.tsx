@@ -406,6 +406,11 @@ export default function VillageGrid() {
               steel={steel}
               isBuildingUpgrading={isBuildingUpgrading}
               getBuildTime={getBuildTime}
+              workerAssignments={workerAssignments}
+              assignWorker={assignWorker}
+              unassignWorker={unassignWorker}
+              getMaxWorkers={getMaxWorkers}
+              population={population}
             />
           </motion.div>
         )}
@@ -488,7 +493,7 @@ export default function VillageGrid() {
   );
 }
 
-function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordSteel, resources, steel, isBuildingUpgrading, getBuildTime }: {
+function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordSteel, resources, steel, isBuildingUpgrading, getBuildTime, workerAssignments, assignWorker, unassignWorker, getMaxWorkers, population }: {
   building: Building;
   onUpgrade: () => void;
   onDemolish: () => void;
@@ -498,6 +503,11 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
   steel: number;
   isBuildingUpgrading: (id: string) => any;
   getBuildTime: (type: Exclude<BuildingType, 'empty'>, level: number) => number;
+  workerAssignments: Record<string, number>;
+  assignWorker: (buildingId: string) => void;
+  unassignWorker: (buildingId: string) => void;
+  getMaxWorkers: (building: Building) => number;
+  population: { civilians: number; current: number; max: number; happiness: number };
 }) {
   const [confirmDemolish, setConfirmDemolish] = useState(false);
   const [steelPopup, setSteelPopup] = useState(false);
@@ -512,6 +522,11 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
   const maxed = building.level >= info.maxLevel;
   const upgrading = isBuildingUpgrading(building.id);
   const buildTime = getBuildTime(type, building.level);
+
+  // Worker data
+  const supportsWorkers = info.workersPerLevel > 0;
+  const currentWorkers = workerAssignments[building.id] || 0;
+  const maxWorkers = getMaxWorkers(building);
 
   // Per-resource affordability for highlighting
   const resourceCheck: Record<string, boolean> = {
@@ -546,6 +561,77 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
               +{steelProd} <ResourceIcon type="steel" size={12} />/min
             </span>
           )}
+        </div>
+      )}
+
+      {/* Worker assignment section */}
+      {supportsWorkers && building.level > 0 && (
+        <div className="bg-secondary/30 border border-border/50 rounded-lg p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-display text-foreground">👷 Workers</span>
+            <span className="text-sm text-muted-foreground">{currentWorkers} / {maxWorkers}</span>
+          </div>
+          <div className="flex items-center justify-center gap-4">
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => unassignWorker(building.id)}
+              disabled={currentWorkers <= 0}
+              className={`w-10 h-10 rounded-xl font-display text-lg flex items-center justify-center ${
+                currentWorkers > 0 ? 'bg-destructive/20 text-destructive hover:bg-destructive/30' : 'bg-muted text-muted-foreground'
+              }`}
+            >−</motion.button>
+            <span className="w-8 text-center text-sm font-bold text-foreground">{currentWorkers}</span>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => assignWorker(building.id)}
+              disabled={currentWorkers >= maxWorkers || population.civilians <= 0}
+              className={`w-10 h-10 rounded-xl font-display text-lg flex items-center justify-center ${
+                currentWorkers < maxWorkers && population.civilians > 0 ? 'bg-primary/20 text-primary hover:bg-primary/30' : 'bg-muted text-muted-foreground'
+              }`}
+            >+</motion.button>
+          </div>
+          <p className="text-sm text-center text-muted-foreground">{population.civilians} civilians available</p>
+          {/* Worker benefit display */}
+          {(() => {
+            if (['farm', 'lumbermill', 'quarry', 'goldmine'].includes(type)) {
+              const prodWithWorkers = getProduction(type, building.level, currentWorkers);
+              const prodWithout = getProduction(type, building.level, 0);
+              const entries = Object.entries(prodWithWorkers);
+              if (entries.length > 0) {
+                const [resKey, totalVal] = entries[0];
+                const baseVal = prodWithout[resKey as keyof typeof prodWithout] || 0;
+                const bonus = (totalVal || 0) - baseVal;
+                if (bonus > 0) {
+                  return <p className="text-sm text-center text-primary">+{bonus} {resKey}/min from workers</p>;
+                }
+              }
+              return null;
+            }
+            if (type === 'barracks') {
+              const baseCap = building.level * 20;
+              const workerBonus = currentWorkers * 10;
+              return <p className="text-sm text-center text-primary">Army cap: {baseCap + workerBonus} (+{workerBonus} from workers)</p>;
+            }
+            if (type === 'temple') {
+              const baseHappy = building.level * 3;
+              const workerBonus = currentWorkers * 2;
+              return <p className="text-sm text-center text-primary">Happiness: +{baseHappy + workerBonus} (+{workerBonus} from workers)</p>;
+            }
+            if (type === 'watchtower') {
+              const baseDet = building.level * 10;
+              const workerBonus = currentWorkers * 5;
+              return <p className="text-sm text-center text-primary">Detection: +{baseDet + workerBonus}% (+{workerBonus}% from workers)</p>;
+            }
+            if (type === 'apothecary') {
+              const baseRec = building.level * 5;
+              const workerBonus = currentWorkers * 3;
+              return <p className="text-sm text-center text-primary">Recovery: {baseRec + workerBonus}% (+{workerBonus}% from workers)</p>;
+            }
+            if (type === 'spyguild') {
+              return <p className="text-sm text-center text-primary">Training speed bonus + concurrent missions</p>;
+            }
+            return null;
+          })()}
         </div>
       )}
 
