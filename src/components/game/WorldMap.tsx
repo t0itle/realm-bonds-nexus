@@ -53,6 +53,15 @@ function isPointInEllipse(px: number, py: number, cx: number, cy: number, rw: nu
   return dx * dx + dy * dy <= 1;
 }
 
+// Line segment intersection test (for wall blocking)
+function segmentsIntersect(ax: number, ay: number, bx: number, by: number, cx: number, cy: number, dx: number, dy: number): boolean {
+  const det = (bx - ax) * (dy - cy) - (by - ay) * (dx - cx);
+  if (Math.abs(det) < 1e-10) return false;
+  const t = ((cx - ax) * (dy - cy) - (cy - ay) * (dx - cx)) / det;
+  const u = ((cx - ax) * (by - ay) - (cy - ay) * (bx - ax)) / det;
+  return t > 0.01 && t < 0.99 && u > 0.01 && u < 0.99;
+}
+
 function isPointNearRiverSegment(px: number, py: number, p1: { x: number; y: number }, p2: { x: number; y: number }, riverWidth: number): boolean {
   const dx = p2.x - p1.x;
   const dy = p2.y - p1.y;
