@@ -46,7 +46,7 @@ export default function BuildModal({ position, onClose }: { position: number; on
           exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           onClick={e => e.stopPropagation()}
-          className="w-full game-panel border-t border-glow rounded-t-2xl p-4 pb-20 max-h-[70vh] overflow-y-auto"
+          className="w-full parchment-panel border-t border-glow rounded-t-2xl p-4 pb-20 max-h-[70vh] overflow-y-auto"
         >
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-display text-lg text-foreground">Build Structure</h3>
@@ -76,8 +76,8 @@ export default function BuildModal({ position, onClose }: { position: number; on
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleBuild(type)}
                   disabled={!affordable && !needsSteel}
-                  className={`game-panel p-3 rounded-xl text-left transition-all ${
-                    affordable ? 'border-glow hover:glow-gold-sm' : 'opacity-50'
+                  className={`bg-white/30 border border-amber-800/20 p-3 rounded-xl text-left transition-all ${
+                    affordable ? 'hover:bg-white/40 glow-gold-sm' : 'opacity-50'
                   }`}
                 >
                   <div className="flex items-center gap-3 mb-1">
