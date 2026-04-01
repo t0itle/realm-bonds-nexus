@@ -23,6 +23,9 @@ import mapTrees from '@/assets/sprites/map-trees.png';
 import mapGrass from '@/assets/sprites/map-grass.png';
 import mapRocks from '@/assets/sprites/map-rocks.png';
 import mapVillage from '@/assets/sprites/map-village.png';
+import mapVillageTier from '@/assets/sprites/map-village-tier.png';
+import mapTownTier from '@/assets/sprites/map-town-tier.png';
+import mapCityTier from '@/assets/sprites/map-city-tier.png';
 import mapRuins from '@/assets/sprites/map-ruins.png';
 import mapSoldier from '@/assets/sprites/map-soldier.png';
 import mapMountain from '@/assets/sprites/map-mountain.png';
@@ -626,7 +629,7 @@ type SelectedItem =
   | null;
 
 export default function WorldMap() {
-  const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, resources, getWatchtowerLevel, getSpyGuildLevel, refreshVillages, myVillages } = useGame();
+  const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, resources, getWatchtowerLevel, getSpyGuildLevel, refreshVillages, myVillages, settlementType } = useGame();
   const { user } = useAuth();
   const npcState = useNPCState();
   const { activeSkin, getBuildingSprite, getSpriteFilter } = useTroopSkins();
@@ -686,12 +689,23 @@ export default function WorldMap() {
   // Get TH level for dynamic sprite
   const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
   const factionTownhall = getBuildingSprite('townhall');
-  const getSettlementSprite = (thLevel: number, isMe: boolean) => {
+
+  const SETTLEMENT_TIER_SPRITES: Record<string, string> = {
+    village: mapVillageTier,
+    town: mapTownTier,
+    city: mapCityTier,
+  };
+
+  const getSettlementSprite = (settlementTier: string, isMe: boolean) => {
     // If the current player has a faction skin, use the faction townhall sprite
     if (isMe && activeSkin.id !== 'default') return factionTownhall;
-    if (thLevel >= 7) return isMe ? mapCastleFriendly : mapCastleNeutral;
-    if (thLevel >= 5) return mapCastleNeutral;
-    return mapVillage;
+    return SETTLEMENT_TIER_SPRITES[settlementTier] || mapVillageTier;
+  };
+
+  const SETTLEMENT_LABELS: Record<string, string> = {
+    village: '🏠 Village',
+    town: '🏘️ Town',
+    city: '🏰 City',
   };
 
   // Steel production from captured mines
@@ -1618,9 +1632,9 @@ export default function WorldMap() {
           const sorted = playerPositions.sort((a, b) => (a.isMe ? 1 : 0) - (b.isMe ? 1 : 0));
 
           return sorted.map(({ pv, sx, sy, isMe }) => {
-            const pvThLevel = isMe ? townhallLevel : pv.village.level;
-            const sprite = getSettlementSprite(pvThLevel, isMe);
-            const settlementLabel = pvThLevel >= 7 ? '🏰 Castle' : pvThLevel >= 5 ? '🏘️ Town' : '🏠 Village';
+            const pvSettlementType = isMe ? settlementType : (pv.village.settlement_type || 'village');
+            const sprite = getSettlementSprite(pvSettlementType, isMe);
+            const settlementLabel = SETTLEMENT_LABELS[pvSettlementType] || '🏠 Village';
             const skinFilter = isMe ? getSpriteFilter() : undefined;
             return (
               <button key={pv.village.id} data-map-item

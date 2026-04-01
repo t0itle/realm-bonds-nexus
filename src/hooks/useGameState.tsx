@@ -312,6 +312,7 @@ export interface Village {
   level: number;
   map_x: number;
   map_y: number;
+  settlement_type: string;
 }
 
 export interface PlayerVillage {
@@ -749,7 +750,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         const { data: profiles } = await supabase.from('profiles').select('*');
         const profileMap = new Map((profiles || []).map(p => [p.user_id, { display_name: p.display_name, avatar_emoji: p.avatar_emoji }]));
         setAllVillages(villages.map(v => ({
-          village: { id: v.id, user_id: v.user_id, name: v.name, gold: Number(v.gold), wood: Number(v.wood), stone: Number(v.stone), food: Number(v.food), level: v.level, map_x: v.map_x, map_y: v.map_y },
+          village: { id: v.id, user_id: v.user_id, name: v.name, gold: Number(v.gold), wood: Number(v.wood), stone: Number(v.stone), food: Number(v.food), level: v.level, map_x: v.map_x, map_y: v.map_y, settlement_type: (v as any).settlement_type || 'village' },
           profile: profileMap.get(v.user_id) || { display_name: 'Unknown', avatar_emoji: '🛡️' },
         })));
       }
