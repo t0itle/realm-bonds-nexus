@@ -184,10 +184,10 @@ export default function ProfilePanel() {
           </div>
           <div className="space-y-1">
             {Object.entries(army).filter(([, v]) => v > 0).map(([type, count]) => {
-              const info = TROOP_INFO[type as TroopType];
+              const skinDisplay = getTroopDisplay(type as TroopType);
               return (
                 <div key={type} className="flex items-center justify-between text-xs">
-                  <span className="text-foreground">{info.emoji} {info.name}</span>
+                  <span className="text-foreground">{skinDisplay.emoji} {skinDisplay.name}</span>
                   <span className="text-primary font-bold">x{count}</span>
                 </div>
               );
