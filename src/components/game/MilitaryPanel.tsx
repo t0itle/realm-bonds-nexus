@@ -71,7 +71,7 @@ export default function MilitaryPanel() {
               {Object.values(army).every(v => v === 0) && (
                 <span className="text-xs text-muted-foreground">No troops</span>
               )}
-              {spies > 0 && <span className="text-xs text-foreground">🕵️{spies}</span>}
+              {spies > 0 && <span className="text-xs text-foreground flex items-center gap-0.5"><TroopIcon type="spy" size={14} />{spies}</span>}
             </div>
           </div>
           <div className="text-right">
