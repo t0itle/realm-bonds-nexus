@@ -1552,17 +1552,18 @@ export default function WorldMap() {
     const minCY = Math.floor((camera.cy - halfH) / CHUNK_SIZE);
     const maxCY = Math.floor((camera.cy + halfH) / CHUNK_SIZE);
 
-    // Cap to max ~30 visible chunks to avoid rendering too many elements
+    // Cap visible chunks based on zoom LOD
     const rangeX = maxCX - minCX + 1;
     const rangeY = maxCY - minCY + 1;
-    if (rangeX * rangeY > 30) {
-      // Too zoomed out — show only nearby chunks
-      const r = 2;
+    const farZoom = camera.ppu < 0.001;
+    const maxChunks = farZoom ? 9 : 30; // 3x3 at far zoom, ~5x5 otherwise
+    const fallbackR = farZoom ? 1 : 2;
+    if (rangeX * rangeY > maxChunks) {
       const ccx = Math.floor(camera.cx / CHUNK_SIZE);
       const ccy = Math.floor(camera.cy / CHUNK_SIZE);
       const chunks: { cx: number; cy: number; data: ChunkData }[] = [];
-      for (let x = ccx - r; x <= ccx + r; x++) {
-        for (let y = ccy - r; y <= ccy + r; y++) {
+      for (let x = ccx - fallbackR; x <= ccx + fallbackR; x++) {
+        for (let y = ccy - fallbackR; y <= ccy + fallbackR; y++) {
           chunks.push({ cx: x, cy: y, data: getChunk(x, y) });
         }
       }
