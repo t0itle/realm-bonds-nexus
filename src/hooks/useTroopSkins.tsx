@@ -107,6 +107,8 @@ interface TroopSkinContextType {
   setActiveSkin: (skinId: string) => Promise<void>;
   getTroopDisplay: (type: TroopType) => { name: string; emoji: string };
   getBuildingSprite: (type: Exclude<BuildingType, 'empty'>) => string;
+  /** CSS filter string for tinting map sprites (army, outposts) to match faction */
+  getSpriteFilter: () => string | undefined;
   loading: boolean;
 }
 
