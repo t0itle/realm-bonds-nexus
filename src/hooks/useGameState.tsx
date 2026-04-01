@@ -831,9 +831,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
     trainingQueue, setTrainingQueue, buildQueue, setBuildQueue,
     army, setArmy, setBuildings, persistArmyToVillage, user, villageId,
   });
-
-
-
+  const {
+    getBuildTime, isBuildingUpgrading, getBarracksLevel,
+    buildAt, upgradeBuilding, demolishBuilding, addResources, addSteel,
+  } = useBuildingManagement({
+    buildings, setBuildings, buildQueue, setBuildQueue, resources, setResources,
+    steel, setSteel, villageId, user, canAfford, canAffordSteel, storageCapacity,
+    currentHouses, maxHouses, setWorkerAssignments,
+  });
+  const { trainTroops, totalArmyPower } = useTroopTraining({
+    trainingQueue, setTrainingQueue, army, resources, setResources, steel, setSteel,
+    villageId, user, canAfford, canAffordSteel, getBarracksLevel, totalSoldiers, armyCap, population,
+  });
 
   useEffect(() => {
     if (!user || !villageId || mineSteelPerTick <= 0) return;
