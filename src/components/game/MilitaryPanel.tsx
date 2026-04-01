@@ -538,11 +538,11 @@ function EspionagePanel({
           <div className="flex items-center gap-1">
             <motion.button whileTap={{ scale: 0.9 }}
               onClick={() => setSpyTrainCount(Math.max(1, spyTrainCount - 1))}
-              className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">−</motion.button>
-            <span className="text-xs text-foreground w-6 text-center font-bold">{spyTrainCount}</span>
+              className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">−</motion.button>
+            <span className="text-sm text-foreground w-8 text-center font-bold">{spyTrainCount}</span>
             <motion.button whileTap={{ scale: 0.9 }}
               onClick={() => setSpyTrainCount(Math.min(10, spyTrainCount + 1))}
-              className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center">+</motion.button>
+              className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">+</motion.button>
           </div>
           <div className="flex-1 text-[9px] text-muted-foreground">
             <ResourceIcon type="gold" size={10} />{40 * spyTrainCount} <ResourceIcon type="food" size={10} />{20 * spyTrainCount} <ResourceIcon type="population" size={10} />{spyTrainCount} · <ResourceIcon type="timer" size={10} />{20 * spyTrainCount}s
