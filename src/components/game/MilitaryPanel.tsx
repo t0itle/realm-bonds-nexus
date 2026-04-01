@@ -243,11 +243,11 @@ export default function MilitaryPanel() {
                       <div className="flex items-center gap-1">
                         <motion.button whileTap={{ scale: 0.9 }}
                           onClick={() => setDisbandCount(p => ({ ...p, [type]: Math.max(1, p[type] - 1) }))}
-                          className="w-5 h-5 rounded bg-muted text-foreground text-[10px] flex items-center justify-center">−</motion.button>
-                        <span className="text-[10px] text-foreground w-5 text-center font-bold">{count}</span>
+                          className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">−</motion.button>
+                        <span className="text-sm text-foreground w-8 text-center font-bold">{count}</span>
                         <motion.button whileTap={{ scale: 0.9 }}
                           onClick={() => setDisbandCount(p => ({ ...p, [type]: Math.min(army[type], p[type] + 1) }))}
-                          className="w-5 h-5 rounded bg-muted text-foreground text-[10px] flex items-center justify-center">+</motion.button>
+                          className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">+</motion.button>
                         <motion.button whileTap={{ scale: 0.9 }}
                           onClick={() => setDisbandCount(p => ({ ...p, [type]: army[type] }))}
                           className="text-[8px] text-muted-foreground px-1">All</motion.button>
