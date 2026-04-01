@@ -1,5 +1,5 @@
 // Patch notes configuration — update this when pushing new versions
-export const CURRENT_VERSION = '0.4.0';
+export const CURRENT_VERSION = '0.5.0';
 
 export interface PatchNote {
   version: string;
@@ -9,6 +9,22 @@ export interface PatchNote {
 }
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: '0.5.0',
+    date: '2026-04-01',
+    title: 'Faction Skins & War Balance',
+    changes: [
+      '🎨 Faction skins — Viking, Samurai, Undead & Roman themes',
+      '🏯 Unique building sprites per faction culture',
+      '⚔️ War Log tracks all battles & outpost conflicts',
+      '🛡️ Raids now capped at actual defender resources',
+      '🚫 Over-recruiting prevention with queue awareness',
+      '🍖 Army starvation — troops desert when food runs out',
+      '⚖️ Server & client upkeep costs synced properly',
+      '🗺️ Cleaner army movement on world map',
+      '⛏️ Iron mine claiming fixes',
+    ],
+  },
   {
     version: '0.4.0',
     date: '2026-03-31',
