@@ -278,7 +278,7 @@ export default function VillageGrid() {
                       if (assigned <= 0) return null;
                       return (
                         <div className="absolute bottom-0 left-0 bg-background/70 backdrop-blur-sm px-1 py-px rounded-tr-md">
-                          <span className="text-[7px] font-bold text-primary">👷{assigned}</span>
+                          <span className="text-[7px] font-bold text-primary flex items-center gap-px"><img src={WORKER_BADGE_SPRITE} alt="worker" className="w-2.5 h-2.5 inline-block" />{assigned}</span>
                         </div>
                       );
                     })()}

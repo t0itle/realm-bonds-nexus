@@ -134,8 +134,8 @@ export default function AllyDefenseModal({
             troopTypes.map(type => (
               <div key={type} className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-foreground">
-                    {TROOP_INFO[type].emoji} {TROOP_INFO[type].name}
+                  <span className="text-xs text-foreground flex items-center gap-1">
+                    <TroopIcon type={type} size={14} /> {TROOP_INFO[type].name}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {sending[type] || 0} / {army[type]}

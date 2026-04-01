@@ -841,7 +841,7 @@ function ApothecaryPanel({ apothecaryLevel, injuredTroops, poisons, healTroops, 
               return (
                 <div key={type} className="game-panel rounded-lg p-2 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-foreground">{info.emoji} {info.name}</span>
+                    <span className="text-xs text-foreground flex items-center gap-1"><TroopIcon type={type} size={14} /> {info.name}</span>
                     <span className="text-xs text-destructive font-bold">{injured} injured</span>
                   </div>
                   <div className="flex items-center gap-2">

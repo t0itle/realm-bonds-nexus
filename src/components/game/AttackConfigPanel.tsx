@@ -126,7 +126,7 @@ export default function AttackConfigPanel({
               return (
                 <div key={type} className="game-panel rounded-lg p-2">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-foreground">{info.emoji} {info.name}</span>
+                    <span className="text-xs text-foreground flex items-center gap-1"><TroopIcon type={type} size={14} /> {info.name}</span>
                     <span className="text-[10px] text-muted-foreground">{count}/{available}</span>
                   </div>
                   <div className="flex items-center gap-2">
