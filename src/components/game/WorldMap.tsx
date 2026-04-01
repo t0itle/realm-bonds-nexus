@@ -640,7 +640,7 @@ type SelectedItem =
   | null;
 
 export default function WorldMap() {
-  const { allVillages, addResources, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, resources, getWatchtowerLevel, getSpyGuildLevel, refreshVillages, refreshMineOutposts, myVillages, settlementType, deployTroops, returnTroops } = useGame();
+  const { allVillages, addResources, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, activeSpyMissions, resources, getWatchtowerLevel, getSpyGuildLevel, refreshVillages, refreshMineOutposts, myVillages, settlementType, deployTroops, returnTroops } = useGame();
   const { user } = useAuth();
   const npcState = useNPCState();
   const { activeSkin, getBuildingSprite, getSpriteFilter } = useTroopSkins();
@@ -1812,6 +1812,63 @@ export default function WorldMap() {
           );
         })}
 
+
+        {/* ── Spy Agents on Map (visible only to sender) ── */}
+        {activeSpyMissions.map(spy => {
+          const now = Date.now();
+          const myPos = getMyPos();
+          let currentX: number, currentY: number;
+          
+          if (spy.phase === 'traveling') {
+            const progress = Math.min(1, Math.max(0, (now - spy.departTime) / (spy.arrivalTime - spy.departTime)));
+            currentX = myPos.x + (spy.targetX - myPos.x) * progress;
+            currentY = myPos.y + (spy.targetY - myPos.y) * progress;
+          } else if (spy.phase === 'returning') {
+            const returnStart = spy.arrivalTime + (spy.arrivalTime - spy.departTime) * 0.1; // small operate window
+            const progress = Math.min(1, Math.max(0, (now - returnStart) / (spy.returnTime - returnStart)));
+            currentX = spy.targetX + (myPos.x - spy.targetX) * progress;
+            currentY = spy.targetY + (myPos.y - spy.targetY) * progress;
+          } else {
+            // Operating at target
+            currentX = spy.targetX;
+            currentY = spy.targetY;
+          }
+
+          const { sx, sy } = worldToScreen(currentX, currentY);
+          if (sx < -60 || sx > containerSize.w + 60 || sy < -60 || sy > containerSize.h + 60) return null;
+          
+          const spySize = Math.max(12, Math.min(24, camera.ppu * 3000));
+          const facingLeft = spy.phase === 'returning' ? spy.targetX > myPos.x : spy.targetX < myPos.x;
+          const remainingSec = spy.phase === 'traveling' 
+            ? Math.max(0, Math.ceil((spy.arrivalTime - now) / 1000))
+            : spy.phase === 'returning'
+              ? Math.max(0, Math.ceil((spy.returnTime - now) / 1000))
+              : 0;
+          
+          const missionEmoji = spy.mission === 'scout' ? '🔍' : spy.mission === 'sabotage' ? '💣' : '😈';
+          const phaseLabel = spy.phase === 'traveling' ? `→ ${spy.targetName}` : spy.phase === 'operating' ? `Operating...` : `← Returning`;
+
+          return (
+            <div key={spy.id} className="absolute z-[44] pointer-events-none" style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
+              <div className="flex flex-col items-center animate-pulse">
+                <span style={{ fontSize: spySize, transform: facingLeft ? 'scaleX(-1)' : undefined, display: 'inline-block' }}>🕵️</span>
+                {spySize > 14 && (
+                  <div className="bg-background/80 backdrop-blur-sm rounded px-1 py-0.5 text-center mt-0.5 border border-accent/30 shadow-sm">
+                    <p className="text-foreground font-display whitespace-nowrap" style={{ fontSize: Math.max(6, spySize / 4) }}>
+                      {missionEmoji} {phaseLabel}
+                    </p>
+                    {remainingSec > 0 && (
+                      <p className="text-muted-foreground whitespace-nowrap" style={{ fontSize: Math.max(5, spySize / 5) }}>
+                        {remainingSec}s
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
         {/* ── Fog of War — fully obscures anything outside vision ── */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 45 }}>
           <defs>
@@ -2106,65 +2163,86 @@ export default function WorldMap() {
                   </div>
                 </div>
                 {selected.data.village.user_id !== user?.id && (
-                  <div className="flex gap-2">
-                    <motion.button whileTap={{ scale: 0.95 }}
-                      onClick={() => {
-                        const targetId = selected.data.village.user_id;
-                        const targetName = selected.data.profile.display_name;
-                        setSelected(null);
-                        window.dispatchEvent(new CustomEvent('open-dm', { detail: { userId: targetId, name: targetName } }));
-                      }}
-                      className="flex-1 bg-primary/20 text-primary font-display text-[11px] py-2.5 rounded-lg active:bg-primary/30 transition-colors">
-                      📨 Message
-                    </motion.button>
-                    {(() => {
-                      const isMyVassal = vassalages.some(v => v.lord_id === user?.id && v.vassal_id === selected.data.village.user_id && v.status === 'active');
-                      return isMyVassal ? (
-                        <div className="flex-1 bg-muted text-muted-foreground font-display text-[11px] py-2.5 rounded-lg text-center">
-                          👑 Your Vassal
-                        </div>
-                      ) : (
-                        <motion.button whileTap={{ scale: 0.95 }}
-                          onClick={() => {
-                            const hasTroops = Object.values(army).some(v => v > 0);
-                            if (!hasTroops) { toast.error('You need troops to attack!'); return; }
-                            const targetPos = getPlayerPos(selected.data.village.id);
-                            const travelSec = calcTravelTime(targetPos.x, targetPos.y);
-                            const targetData = selected.data;
-                            setAttackConfig({
-                              targetName: targetData.profile.display_name,
-                              targetX: targetPos.x, targetY: targetPos.y,
-                              travelTime: travelSec, showEspionage: getSpyGuildLevel() >= 1,
-                              targetId: targetData.village.user_id,
-                              onAttack: (sentArmy) => {
-                                toast(`⚔️ Troops marching... ETA ${travelSec}s`);
-                                deployTroops(sentArmy);
-                                createMarch(`pvp-${Date.now()}`, targetData.village.name, targetPos.x, targetPos.y, travelSec, async () => {
-                                  const log = await attackPlayer(targetData.village.user_id, targetData.profile.display_name, targetData.village.id, sentArmy);
-                                  if (!log) { toast.error('Attack failed — they may be your vassal!'); return; }
-                                  if (log.result === 'victory') {
-                                    let msg = `⚔️ Victory against ${targetData.profile.display_name}!`;
-                                    if (log.resourcesGained) {
-                                      const r = log.resourcesGained;
-                                      msg += ` Raided: ${r.gold || 0}💰 ${r.wood || 0}🪵 ${r.stone || 0}🪨 ${r.food || 0}🌾`;
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <motion.button whileTap={{ scale: 0.95 }}
+                        onClick={() => {
+                          const targetId = selected.data.village.user_id;
+                          const targetName = selected.data.profile.display_name;
+                          setSelected(null);
+                          window.dispatchEvent(new CustomEvent('open-dm', { detail: { userId: targetId, name: targetName } }));
+                        }}
+                        className="flex-1 bg-primary/20 text-primary font-display text-[11px] py-2.5 rounded-lg active:bg-primary/30 transition-colors">
+                        📨 Message
+                      </motion.button>
+                      {(() => {
+                        const isMyVassal = vassalages.some(v => v.lord_id === user?.id && v.vassal_id === selected.data.village.user_id && v.status === 'active');
+                        return isMyVassal ? (
+                          <div className="flex-1 bg-muted text-muted-foreground font-display text-[11px] py-2.5 rounded-lg text-center">
+                            👑 Your Vassal
+                          </div>
+                        ) : (
+                          <motion.button whileTap={{ scale: 0.95 }}
+                            onClick={() => {
+                              const hasTroops = Object.values(army).some(v => v > 0);
+                              if (!hasTroops) { toast.error('You need troops to attack!'); return; }
+                              const targetPos = getPlayerPos(selected.data.village.id);
+                              const travelSec = calcTravelTime(targetPos.x, targetPos.y);
+                              const targetData = selected.data;
+                              setAttackConfig({
+                                targetName: targetData.profile.display_name,
+                                targetX: targetPos.x, targetY: targetPos.y,
+                                travelTime: travelSec, showEspionage: getSpyGuildLevel() >= 1,
+                                targetId: targetData.village.user_id,
+                                onAttack: (sentArmy) => {
+                                  toast(`⚔️ Troops marching... ETA ${travelSec}s`);
+                                  deployTroops(sentArmy);
+                                  createMarch(`pvp-${Date.now()}`, targetData.village.name, targetPos.x, targetPos.y, travelSec, async () => {
+                                    const log = await attackPlayer(targetData.village.user_id, targetData.profile.display_name, targetData.village.id, sentArmy);
+                                    if (!log) { toast.error('Attack failed — they may be your vassal!'); return; }
+                                    if (log.result === 'victory') {
+                                      let msg = `⚔️ Victory against ${targetData.profile.display_name}!`;
+                                      if (log.resourcesGained) {
+                                        const r = log.resourcesGained;
+                                        msg += ` Raided: ${r.gold || 0}💰 ${r.wood || 0}🪵 ${r.stone || 0}🪨 ${r.food || 0}🌾`;
+                                      }
+                                      if (log.buildingDamaged) msg += ` Damaged their ${log.buildingDamaged}!`;
+                                      if (log.vassalized) msg += ` 👑 They are now your vassal!`;
+                                      toast.success(msg);
+                                    } else {
+                                      toast.error(`Defeated by ${targetData.profile.display_name}!`);
                                     }
-                                    if (log.buildingDamaged) msg += ` Damaged their ${log.buildingDamaged}!`;
-                                    if (log.vassalized) msg += ` 👑 They are now your vassal!`;
-                                    toast.success(msg);
-                                  } else {
-                                    toast.error(`Defeated by ${targetData.profile.display_name}!`);
-                                  }
-                                });
-                                setAttackConfig(null);
-                                setSelected(null);
-                              },
-                            });
-                          }}
-                          className="flex-1 bg-destructive/20 text-destructive font-display text-[11px] py-2.5 rounded-lg active:bg-destructive/30 transition-colors">
-                          ⚔️ Attack
-                        </motion.button>
-                      );
-                    })()}
+                                  });
+                                  setAttackConfig(null);
+                                  setSelected(null);
+                                },
+                              });
+                            }}
+                            className="flex-1 bg-destructive/20 text-destructive font-display text-[11px] py-2.5 rounded-lg active:bg-destructive/30 transition-colors">
+                            ⚔️ Attack
+                          </motion.button>
+                        );
+                      })()}
+                    </div>
+                    {/* Espionage button */}
+                    {getSpyGuildLevel() >= 1 && spies > 0 && (
+                      <motion.button whileTap={{ scale: 0.95 }}
+                        onClick={() => {
+                          const targetPos = getPlayerPos(selected.data.village.id);
+                          const travelSec = calcTravelTime(targetPos.x, targetPos.y);
+                          const targetData = selected.data;
+                          setAttackConfig({
+                            targetName: targetData.profile.display_name,
+                            targetX: targetPos.x, targetY: targetPos.y,
+                            travelTime: travelSec, showEspionage: true,
+                            targetId: targetData.village.user_id,
+                            onAttack: () => {},
+                          });
+                        }}
+                        className="w-full bg-accent/20 text-accent-foreground font-display text-[11px] py-2.5 rounded-lg active:bg-accent/30 transition-colors border border-accent/30">
+                        🕵️ Send Spies ({spies} available)
+                      </motion.button>
+                    )}
                   </div>
                 )}
               </div>

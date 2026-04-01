@@ -187,6 +187,8 @@ export interface ActiveSpyMission {
   arrivalTime: number;
   returnTime: number;
   phase: 'traveling' | 'operating' | 'returning';
+  targetX: number;
+  targetY: number;
 }
 
 export interface BattleLog {
@@ -745,8 +747,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
           spiesCount: m.spies_count,
           departTime: new Date(m.depart_time).getTime(),
           arrivalTime: new Date(m.arrival_time).getTime(),
-          returnTime: new Date(m.arrival_time).getTime() + 15000, // reconstruct return time
+          returnTime: new Date(m.arrival_time).getTime() + 15000,
           phase: new Date(m.arrival_time).getTime() <= now ? 'operating' : 'traveling',
+          targetX: m.target_x || 0,
+          targetY: m.target_y || 0,
         })));
       }
 
@@ -2055,6 +2059,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       arrivalTime: now + travelSec * 1000,
       returnTime: now + (travelSec * 2 + operateSec) * 1000,
       phase: 'traveling',
+      targetX,
+      targetY,
     };
     setActiveSpyMissions(prev => [...prev, missionObj]);
     // Persist to DB and update spies count
