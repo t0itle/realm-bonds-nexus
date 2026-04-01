@@ -49,7 +49,7 @@ export default function PatchNotesModal() {
 
             <ul className="space-y-1.5">
               {latest.changes.map((change, i) => (
-                <li key={i} className="text-sm text-amber-900/90 dark:text-foreground/90 leading-relaxed">
+                <li key={i} className="text-sm text-amber-900/90 leading-relaxed">
                   {change}
                 </li>
               ))}
