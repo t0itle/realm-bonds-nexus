@@ -176,7 +176,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   return (
     <GameContext.Provider value={{
-      resources, steel, buildings, villageName, villageId, playerLevel, displayName, avatarUrl,
+      resources, steel, buildings, villageName, villageId, playerLevel, displayName, avatarUrl, grossProduction,
       setDisplayName, setVillageName, setAvatarUrl,
       demolishBuilding, buildAt, upgradeBuilding, canAfford, canAffordSteel, totalProduction, steelProduction, allVillages, loading,
       army, trainingQueue, buildQueue, battleLogs, trainTroops, getBarracksLevel, totalArmyPower, addResources, addSteel, attackTarget, armyUpkeep, deployTroops, returnTroops, disbandTroops,
