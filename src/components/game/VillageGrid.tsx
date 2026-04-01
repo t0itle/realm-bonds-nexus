@@ -200,8 +200,8 @@ export default function VillageGrid() {
 
   return (
     <>
-      <div className="flex-1 flex flex-col items-center justify-center px-3 py-3">
-        <div className={`grid gap-2.5 w-full max-w-xs`} style={{ gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))` }}>
+      <div className="flex-1 flex flex-col items-center justify-center px-1 py-1">
+        <div className={`grid gap-1.5 w-full`} style={{ gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))` }}>
           {grid.map((building, i) => {
             const type = building?.type as Exclude<BuildingType, 'empty'> | undefined;
             const sprite = type ? getBuildingSprite(type) : null;
@@ -229,7 +229,7 @@ export default function VillageGrid() {
                     <img
                       src={sprite}
                       alt={BUILDING_INFO[type!].name}
-                      className={`w-16 h-16 object-contain drop-shadow-lg ${(upgrading || isUnderConstruction) ? 'opacity-50 grayscale' : ''}`}
+                      className={`w-3/4 h-3/4 object-contain drop-shadow-lg ${(upgrading || isUnderConstruction) ? 'opacity-50 grayscale' : ''}`}
                       loading="lazy"
                     />
                     {/* Build/upgrade timer overlay */}
