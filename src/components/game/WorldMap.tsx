@@ -531,7 +531,6 @@ function getWorldBoss(): ProceduralWorldBoss {
     weekSeed,
   };
 }
-];
 
 // Adjective modifiers for extra name variety
 const EVENT_ADJECTIVES = ['Ancient', 'Fearsome', 'Legendary', 'Mysterious', 'Forgotten', 'Cursed', 'Hidden', 'Burning', 'Frozen', 'Savage', 'Haunted', 'Sacred', 'Dire', 'Grand', 'Lesser', 'Greater', 'Elder', 'Young', 'Spectral', 'Corrupted'];
