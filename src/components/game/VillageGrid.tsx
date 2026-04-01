@@ -635,6 +635,7 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
         </div>
       )}
 
+      {upgrading && (
         <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 text-center space-y-1">
           <p className="text-sm font-display text-primary animate-pulse">🔨 Upgrading to Level {upgrading.targetLevel}...</p>
           <p className="text-sm font-bold text-foreground">{formatTime(upgrading.finishTime - Date.now())}</p>
