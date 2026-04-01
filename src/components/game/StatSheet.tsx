@@ -225,13 +225,13 @@ export default function StatSheet() {
                   <button
                     onClick={() => unassignWorker(b.id)}
                     disabled={current <= 0}
-                    className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center disabled:opacity-30"
+                    className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center disabled:opacity-30"
                   >−</button>
-                  <span className="text-xs font-bold text-foreground w-4 text-center">{current}</span>
+                  <span className="text-sm font-bold text-foreground w-8 text-center">{current}</span>
                   <button
                     onClick={() => assignWorker(b.id)}
                     disabled={current >= max || population.civilians <= 0}
-                    className="w-6 h-6 rounded bg-muted text-foreground text-xs flex items-center justify-center disabled:opacity-30"
+                    className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center disabled:opacity-30"
                   >+</button>
                 </div>
               </div>

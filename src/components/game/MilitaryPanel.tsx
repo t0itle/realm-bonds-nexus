@@ -886,11 +886,11 @@ function ApothecaryPanel({ apothecaryLevel, injuredTroops, poisons, healTroops, 
             <div className="flex items-center gap-1">
               <motion.button whileTap={{ scale: 0.9 }}
                 onClick={() => setPoisonCount(Math.max(1, poisonCount - 1))}
-                className="w-5 h-5 rounded bg-muted text-foreground text-[10px] flex items-center justify-center">−</motion.button>
-              <span className="text-[10px] text-foreground w-5 text-center font-bold">{poisonCount}</span>
+                className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">−</motion.button>
+              <span className="text-sm text-foreground w-8 text-center font-bold">{poisonCount}</span>
               <motion.button whileTap={{ scale: 0.9 }}
                 onClick={() => setPoisonCount(Math.min(10, poisonCount + 1))}
-                className="w-5 h-5 rounded bg-muted text-foreground text-[10px] flex items-center justify-center">+</motion.button>
+                className="w-10 h-10 rounded bg-muted text-foreground text-sm flex items-center justify-center">+</motion.button>
             </div>
             <div className="flex-1 text-[9px] text-muted-foreground flex items-center gap-1">
               <span className="flex items-center gap-px"><ResourceIcon type="gold" size={9} />{60 * poisonCount}</span>
