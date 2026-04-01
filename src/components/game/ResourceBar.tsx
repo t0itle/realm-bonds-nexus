@@ -94,27 +94,44 @@ export default function ResourceBar() {
         </div>
       )}
 
-      <div className={`game-panel px-2 py-1.5 mx-2 ${myVillages.length <= 1 ? 'mt-2' : 'mt-1'} border-glow space-y-1 ${foodLow ? 'border-destructive/60' : ''}`}>
+      <div className={`game-panel px-2 py-1.5 mx-2 ${myVillages.length <= 1 ? 'mt-2' : 'mt-1'} border-glow space-y-1 ${foodCritical ? 'border-destructive/60' : foodLow ? 'border-destructive/40' : ''}`}>
         <div className="flex items-center justify-between gap-1">
-          {RESOURCE_CONFIG.map(({ key, color }) => (
-            <motion.div
-              key={key}
-              className="flex items-center gap-1 min-w-0"
-              whileTap={{ scale: 0.95 }}
-            >
-              <ResourceIcon type={key} size={14} />
-              <div className="flex flex-col min-w-0">
-                <span className={`text-xs font-semibold tabular-nums ${color} truncate`}>
-                  {Math.floor(resources[key]).toLocaleString()}
-                </span>
-                <span className={`text-[9px] ${key === 'food' && foodCritical ? 'text-destructive font-bold animate-pulse' : 'text-muted-foreground'}`}>
-                  {totalProduction[key] >= 0 ? '+' : ''}{totalProduction[key]}/min
-                </span>
-              </div>
-            </motion.div>
-          ))}
+          {RESOURCE_CONFIG.map(({ key, color }) => {
+            const isFood = key === 'food';
+            const foodValueColor = isFood && foodCritical
+              ? 'text-destructive font-bold animate-pulse'
+              : isFood && foodLow
+                ? 'text-destructive font-bold'
+                : isFood && foodDeclining
+                  ? 'text-amber-500'
+                  : color;
+            const prodColor = isFood && foodCritical
+              ? 'text-destructive font-bold animate-pulse'
+              : isFood && foodLow
+                ? 'text-destructive font-bold animate-pulse'
+                : isFood && foodDeclining
+                  ? 'text-amber-500 font-semibold'
+                  : 'text-muted-foreground';
+            return (
+              <motion.div
+                key={key}
+                className="flex items-center gap-1 min-w-0"
+                whileTap={{ scale: 0.95 }}
+              >
+                <ResourceIcon type={key} size={14} />
+                <div className="flex flex-col min-w-0">
+                  <span className={`text-xs font-semibold tabular-nums ${foodValueColor} truncate`}>
+                    {Math.floor(resources[key]).toLocaleString()}{isFood && foodDeclining && ' ▼'}
+                  </span>
+                  <span className={`text-[9px] ${prodColor}`}>
+                    {totalProduction[key] >= 0 ? '+' : ''}{totalProduction[key]}/min
+                  </span>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
-        {foodLow && (
+        {foodCritical && (
           <div className="text-[9px] text-destructive font-bold text-center animate-pulse">
             ⚠️ Famine! Troops will desert if food reaches 0!
           </div>
