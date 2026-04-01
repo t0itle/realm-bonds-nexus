@@ -911,13 +911,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval);
   }, [user, villageId, mineSteelPerTick, addSteel]);
 
-  const { getWallLevel, attackTarget, attackPlayer } = useCombat({
-    army, setArmy, buildings, resources, setResources, steel, setSteel,
-    injuredTroops, setInjuredTroops, vassalages, setVassalages, villageId, user,
-    displayName, getApothecaryLevel, returnTroops, deployTroops, addResources,
-    setBattleLogs, setPopulationBase,
-  });
-
   const { getMaxWorkers, assignWorker, unassignWorker } = useWorkerManagement({
     buildings, workerAssignments, setWorkerAssignments, population, villageId,
   });
@@ -925,6 +918,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const { getApothecaryLevel, healTroops, craftPoison } = useApothecary({
     buildings, injuredTroops, setInjuredTroops, army, setArmy, resources, setResources,
     poisons, setPoisons, setTrainingQueue, villageId, user, canAfford,
+  });
+
+  const { getWallLevel, attackTarget, attackPlayer } = useCombat({
+    army, setArmy, buildings, resources, setResources, steel, setSteel,
+    injuredTroops, setInjuredTroops, vassalages, setVassalages, villageId, user,
+    displayName, getApothecaryLevel, returnTroops, deployTroops, addResources,
+    setBattleLogs, setPopulationBase,
   });
 
   const { payRansom, attemptRebellion, setVassalTributeRate, releaseVassal } = useVassalage({
