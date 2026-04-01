@@ -264,17 +264,28 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // ── NPC Autonomy Simulation ──
+    // Parse optional user_id from request body to scope the tick
+    let targetUserId: string | null = null;
     try {
-      await simulateNPCAutonomy(supabase);
-    } catch (npcErr) {
-      console.error("NPC simulation error (non-fatal):", npcErr);
+      const body = await req.json();
+      targetUserId = body?.user_id || null;
+    } catch { /* no body is fine */ }
+
+    // ── NPC Autonomy Simulation — only run if no specific user (i.e. a cron job) ──
+    if (!targetUserId) {
+      try {
+        await simulateNPCAutonomy(supabase);
+      } catch (npcErr) {
+        console.error("NPC simulation error (non-fatal):", npcErr);
+      }
     }
 
-    // Fetch all villages
-    const { data: villages, error: vErr } = await supabase
-      .from("villages")
-      .select("*");
+    // Fetch villages — scoped to one user if provided
+    let villageQuery = supabase.from("villages").select("*");
+    if (targetUserId) {
+      villageQuery = villageQuery.eq("user_id", targetUserId);
+    }
+    const { data: villages, error: vErr } = await villageQuery;
     if (vErr) throw vErr;
     if (!villages || villages.length === 0) {
       return new Response(JSON.stringify({ ticked: 0 }), {
@@ -282,10 +293,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch all buildings
+    // Fetch buildings — scoped to relevant villages only
+    const villageIds = villages.map((v: any) => v.id);
     const { data: allBuildings, error: bErr } = await supabase
       .from("buildings")
-      .select("*");
+      .select("*")
+      .in("village_id", villageIds);
     if (bErr) throw bErr;
 
     // Group buildings by village_id
