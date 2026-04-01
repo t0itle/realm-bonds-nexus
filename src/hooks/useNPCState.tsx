@@ -25,6 +25,12 @@ export interface NPCTownState {
   available_mercenaries: Record<string, number>;
   last_action: string | null;
   last_action_at: string | null;
+  // Finite trade resources
+  stock_gold: number;
+  stock_wood: number;
+  stock_stone: number;
+  stock_food: number;
+  stock_steel: number;
 }
 
 export interface MercenaryContract {
@@ -41,6 +47,7 @@ export function useNPCState() {
   const [townRelations, setTownRelations] = useState<NPCTownRelation[]>([]);
   const [townStates, setTownStates] = useState<Map<string, NPCTownState>>(new Map());
   const [mercContracts, setMercContracts] = useState<MercenaryContract[]>([]);
+  const [scoutedNPCs, setScoutedNPCs] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   // Load all NPC data
@@ -48,11 +55,12 @@ export function useNPCState() {
     if (!user) return;
     const load = async () => {
       setLoading(true);
-      const [relRes, townRelRes, stateRes, mercRes] = await Promise.all([
+      const [relRes, townRelRes, stateRes, mercRes, intelRes] = await Promise.all([
         supabase.from('npc_player_relations').select('*').eq('user_id', user.id),
         supabase.from('npc_town_relations').select('*'),
         supabase.from('npc_town_state').select('*'),
         supabase.from('npc_mercenary_contracts').select('*').eq('user_id', user.id),
+        supabase.from('intel_reports').select('target_name').eq('user_id', user.id),
       ]);
 
       if (relRes.data) {
@@ -89,6 +97,11 @@ export function useNPCState() {
             available_mercenaries: (s.available_mercenaries as Record<string, number>) || {},
             last_action: s.last_action,
             last_action_at: s.last_action_at,
+            stock_gold: (s as any).stock_gold ?? 1000,
+            stock_wood: (s as any).stock_wood ?? 800,
+            stock_stone: (s as any).stock_stone ?? 600,
+            stock_food: (s as any).stock_food ?? 900,
+            stock_steel: (s as any).stock_steel ?? 50,
           });
         }
         setTownStates(map);
@@ -103,6 +116,21 @@ export function useNPCState() {
           expires_at: m.expires_at,
         })));
       }
+
+      // Build set of scouted NPCs from intel reports + traded NPCs
+      const scouted = new Set<string>();
+      if (intelRes.data) {
+        for (const r of intelRes.data) {
+          scouted.add(r.target_name);
+        }
+      }
+      // Also count NPCs you've traded with
+      if (relRes.data) {
+        for (const r of relRes.data) {
+          if (r.trades_completed > 0) scouted.add(r.npc_town_id);
+        }
+      }
+      setScoutedNPCs(scouted);
 
       setLoading(false);
     };
@@ -208,6 +236,29 @@ export function useNPCState() {
     ) || null;
   }, [townRelations]);
 
+  // Deduct resources from NPC town stock after a trade
+  const deductNPCStock = useCallback(async (npcTownId: string, resource: string, amount: number) => {
+    const state = townStates.get(npcTownId);
+    if (!state) return;
+    const stockKey = `stock_${resource}` as keyof NPCTownState;
+    const current = (state[stockKey] as number) || 0;
+    const newVal = Math.max(0, current - amount);
+
+    await supabase.from('npc_town_state').update({
+      [stockKey]: newVal,
+      updated_at: new Date().toISOString(),
+    } as any).eq('npc_town_id', npcTownId);
+
+    setTownStates(prev => {
+      const next = new Map(prev);
+      const existing = next.get(npcTownId);
+      if (existing) {
+        next.set(npcTownId, { ...existing, [stockKey]: newVal });
+      }
+      return next;
+    });
+  }, [townStates]);
+
   // Get total hired mercenary power
   const getMercenaryPower = useCallback(() => {
     const MERC_POWER: Record<string, number> = { militia: 5, archer: 8, knight: 15, cavalry: 14, siege: 25 };
@@ -234,5 +285,7 @@ export function useNPCState() {
     hireMercenaries,
     getTownRelation,
     getMercenaryPower,
+    deductNPCStock,
+    scoutedNPCs,
   };
 }

@@ -49,16 +49,18 @@ interface Props {
   onUpdateSentiment: (npcTownId: string, delta: number, status?: NPCPlayerRelation['status']) => Promise<void>;
   onSetRelationStatus: (npcTownId: string, status: NPCPlayerRelation['status'], tributeRate?: number) => Promise<void>;
   onHireMercenaries: (npcTownId: string, troops: Record<string, number>, goldCost: number) => Promise<boolean>;
+  onDeductNPCStock: (npcTownId: string, resource: string, amount: number) => Promise<void>;
   isInRange: boolean;
   travelTime: number;
   hasActiveTrade: boolean;
+  isScouted: boolean;
 }
 
 export default function NPCInteractionPanel({
   realm, biome, onClose, onAttack, onEnvoy,
   playerRelation, townState, townRelations, allRealmNames,
-  onUpdateSentiment, onSetRelationStatus, onHireMercenaries,
-  isInRange, travelTime, hasActiveTrade,
+  onUpdateSentiment, onSetRelationStatus, onHireMercenaries, onDeductNPCStock,
+  isInRange, travelTime, hasActiveTrade, isScouted,
 }: Props) {
   const { resources, addResources } = useGame();
   const [tab, setTab] = useState<'info' | 'trade' | 'talk' | 'mercs'>('info');
@@ -118,7 +120,17 @@ export default function NPCInteractionPanel({
     if (!isInRange) { toast.error('Out of range!'); return; }
     const rate = getTradeRate(give, receive);
     const received = Math.floor(amount * rate);
+    // Check NPC stock
+    if (townState) {
+      const stockKey = `stock_${receive}` as keyof NPCTownState;
+      const npcStock = (townState[stockKey] as number) || 0;
+      if (received > npcStock) {
+        toast.error(`${realm.name} only has ${npcStock} ${receive} in stock!`);
+        return;
+      }
+    }
     addResources({ [give]: -amount, [receive]: received });
+    await onDeductNPCStock(realm.id, receive, received);
     await onUpdateSentiment(realm.id, Math.floor(amount / 50));
     toast.success(`Traded ${amount} ${RESOURCE_ICONS[give]} for ${received} ${RESOURCE_ICONS[receive]}`);
   };
@@ -319,10 +331,29 @@ export default function NPCInteractionPanel({
               <span className="text-primary">Wants: {profile.wants.map(r => RESOURCE_ICONS[r]).join(' ')}</span>
             </div>
 
+            {/* NPC Stock levels — only visible if scouted */}
+            {isScouted && townState ? (
+              <div className="bg-muted/30 rounded-lg p-1.5">
+                <p className="text-[9px] font-display text-foreground mb-1">📦 {realm.name} Stock</p>
+                <div className="flex gap-2 text-[9px]">
+                  <span className={townState.stock_gold > 0 ? 'text-foreground' : 'text-destructive'}>💰{townState.stock_gold}</span>
+                  <span className={townState.stock_wood > 0 ? 'text-foreground' : 'text-destructive'}>🪵{townState.stock_wood}</span>
+                  <span className={townState.stock_stone > 0 ? 'text-foreground' : 'text-destructive'}>🪨{townState.stock_stone}</span>
+                  <span className={townState.stock_food > 0 ? 'text-foreground' : 'text-destructive'}>🌾{townState.stock_food}</span>
+                  <span className={townState.stock_steel > 0 ? 'text-foreground' : 'text-destructive'}>⚙️{townState.stock_steel}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-muted/20 rounded-lg p-1.5">
+                <p className="text-[9px] text-muted-foreground italic">🕵️ Stock levels unknown — scout this kingdom to reveal</p>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-1.5">
               {availableTrades.map((trade, i) => {
                 const receiveAmt = Math.floor(tradeAmount * trade.rate);
-                const canDo = resources[trade.give] >= tradeAmount && isInRange;
+                const npcStock = townState ? ((townState[`stock_${trade.receive}` as keyof NPCTownState] as number) || 0) : Infinity;
+                const canDo = resources[trade.give] >= tradeAmount && isInRange && receiveAmt <= npcStock;
                 return (
                   <motion.button key={i} whileTap={{ scale: 0.95 }}
                     disabled={!canDo}
@@ -336,7 +367,7 @@ export default function NPCInteractionPanel({
                         ×{trade.rate}
                       </span>
                     </div>
-                    <p className="text-[9px] text-muted-foreground">{tradeAmount} → {receiveAmt}</p>
+                    <p className="text-[9px] text-muted-foreground">{tradeAmount} → {receiveAmt}{isScouted && npcStock !== Infinity ? ` (stock: ${npcStock})` : ''}</p>
                   </motion.button>
                 );
               })}
