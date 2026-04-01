@@ -941,7 +941,7 @@ export default function WorldMap() {
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     const factor = e.deltaY > 0 ? 0.85 : 1.18;
-    safeSetCamera(prev => ({ ...prev, ppu: Math.max(0.00005, Math.min(0.05, prev.ppu * factor)) }));
+    safeSetCamera(prev => ({ ...prev, ppu: Math.max(0.0000005, Math.min(0.005, prev.ppu * factor)) }));
   }, [safeSetCamera]);
 
   const getPlayerPos = (id: string) => {
