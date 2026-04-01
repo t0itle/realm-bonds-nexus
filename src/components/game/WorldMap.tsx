@@ -2187,25 +2187,52 @@ export default function WorldMap() {
                           </motion.button>
                         )}
                       </div>
-                      {/* Convert to Settlement at Lv.5+ */}
-                      {!isSettlement && op.level >= 5 && (
+                      {/* Convert to Fort at Lv.5+ */}
+                      {op.outpost_type === 'outpost' && op.level >= 5 && (
                         <div className="bg-accent/20 rounded-lg p-2 space-y-1">
-                          <p className="text-[10px] font-semibold text-accent-foreground">🏘️ Convert to Settlement</p>
-                          <p className="text-[8px] text-muted-foreground">This outpost is developed enough to become a full settlement with its own village, buildings, and resource production.</p>
+                          <p className="text-[10px] font-semibold text-accent-foreground">🏰 Convert to Fort</p>
+                          <p className="text-[8px] text-muted-foreground">Upgrade this outpost into a fort. Forts can garrison armies and have stronger defenses. At Lv.10, forts can become full settlements.</p>
                           <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
-                            <span className={resources.gold >= 500 ? '' : 'text-destructive'}>🪙500</span>
-                            <span className={resources.wood >= 300 ? '' : 'text-destructive'}>🪵300</span>
-                            <span className={resources.stone >= 200 ? '' : 'text-destructive'}>🪨200</span>
+                            <span className={resources.gold >= 400 ? '' : 'text-destructive'}>🪙400</span>
+                            <span className={resources.wood >= 250 ? '' : 'text-destructive'}>🪵250</span>
+                            <span className={resources.stone >= 300 ? '' : 'text-destructive'}>🪨300</span>
                             <span className={resources.food >= 100 ? '' : 'text-destructive'}>🌾100</span>
                           </div>
                           <motion.button whileTap={{ scale: 0.95 }}
-                            disabled={resources.gold < 500 || resources.wood < 300 || resources.stone < 200 || resources.food < 100}
+                            disabled={resources.gold < 400 || resources.wood < 250 || resources.stone < 300 || resources.food < 100}
                             onClick={async () => {
                               if (!user) return;
-                              if (!window.confirm(`Convert ${op.name} into a full settlement? This costs 500 gold, 300 wood, 200 stone, 100 food.`)) return;
-                              addResources({ gold: -500, wood: -300, stone: -200, food: -100 });
-                              // Create new village at outpost location
-                              const settleName = op.name || `Settlement ${Math.floor(Math.random() * 100)}`;
+                              if (!window.confirm(`Convert ${op.name} into a fort? This costs 400 gold, 250 wood, 300 stone, 100 food.`)) return;
+                              addResources({ gold: -400, wood: -250, stone: -300, food: -100 });
+                              const fortName = op.name.replace(/^Outpost/, 'Fort') || `Fort ${Math.floor(Math.random() * 100)}`;
+                              await supabase.from('outposts').update({ outpost_type: 'fort', name: fortName, garrison_power: op.garrison_power + 50 } as any).eq('id', op.id);
+                              setOutposts(prev => prev.map(o => o.id === op.id ? { ...o, outpost_type: 'fort', name: fortName, garrison_power: o.garrison_power + 50 } : o));
+                              toast.success(`🏰 ${fortName} has been established!`);
+                              setSelected(null);
+                            }}
+                            className="w-full bg-accent text-accent-foreground font-display text-[11px] py-2 rounded-lg disabled:opacity-40 active:scale-95 transition-transform">
+                            🏰 Convert to Fort
+                          </motion.button>
+                        </div>
+                      )}
+                      {/* Convert Fort to Settlement at Lv.10+ */}
+                      {op.outpost_type === 'fort' && op.level >= 10 && (
+                        <div className="bg-primary/20 rounded-lg p-2 space-y-1">
+                          <p className="text-[10px] font-semibold text-primary">🏘️ Convert to Settlement</p>
+                          <p className="text-[8px] text-muted-foreground">This fort is powerful enough to become a full settlement with its own village, buildings, and resource production.</p>
+                          <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+                            <span className={resources.gold >= 800 ? '' : 'text-destructive'}>🪙800</span>
+                            <span className={resources.wood >= 500 ? '' : 'text-destructive'}>🪵500</span>
+                            <span className={resources.stone >= 400 ? '' : 'text-destructive'}>🪨400</span>
+                            <span className={resources.food >= 200 ? '' : 'text-destructive'}>🌾200</span>
+                          </div>
+                          <motion.button whileTap={{ scale: 0.95 }}
+                            disabled={resources.gold < 800 || resources.wood < 500 || resources.stone < 400 || resources.food < 200}
+                            onClick={async () => {
+                              if (!user) return;
+                              if (!window.confirm(`Convert ${op.name} into a full settlement? This costs 800 gold, 500 wood, 400 stone, 200 food.`)) return;
+                              addResources({ gold: -800, wood: -500, stone: -400, food: -200 });
+                              const settleName = op.name.replace(/^Fort/, 'Settlement') || `Settlement ${Math.floor(Math.random() * 100)}`;
                               const { data: newVillage, error } = await supabase.from('villages').insert({
                                 user_id: user.id,
                                 name: settleName,
@@ -2216,20 +2243,18 @@ export default function WorldMap() {
                                 population: 5, max_population: 15,
                               }).select().single();
                               if (error || !newVillage) { toast.error(`Failed: ${error?.message || 'Unknown'}`); return; }
-                              // Create starter buildings
                               await supabase.from('buildings').insert([
                                 { village_id: newVillage.id, user_id: user.id, type: 'townhall', level: 1, position: 4 },
                                 { village_id: newVillage.id, user_id: user.id, type: 'farm', level: 1, position: 7 },
                                 { village_id: newVillage.id, user_id: user.id, type: 'lumbermill', level: 1, position: 3 },
                               ]);
-                              // Convert outpost type to settlement
                               await supabase.from('outposts').update({ outpost_type: 'settlement', name: settleName } as any).eq('id', op.id);
                               setOutposts(prev => prev.map(o => o.id === op.id ? { ...o, outpost_type: 'settlement', name: settleName } : o));
                               await refreshVillages();
                               toast.success(`🏘️ ${settleName} is now a full settlement!`);
                               setSelected(null);
                             }}
-                            className="w-full bg-accent text-accent-foreground font-display text-[11px] py-2 rounded-lg disabled:opacity-40 active:scale-95 transition-transform">
+                            className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
                             🏘️ Convert to Settlement
                           </motion.button>
                         </div>
