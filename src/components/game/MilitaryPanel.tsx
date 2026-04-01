@@ -162,10 +162,10 @@ export default function MilitaryPanel() {
               return (
                 <div key={type} className={`game-panel rounded-xl p-3 ${unlocked ? 'border-glow' : 'opacity-40'}`}>
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">{info.emoji}</span>
+                    <span className="text-2xl">{getTroopDisplay(type).emoji}</span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <span className="font-display text-xs text-foreground">{info.name}</span>
+                        <span className="font-display text-xs text-foreground">{getTroopDisplay(type).name}</span>
                         {!unlocked && <span className="text-[9px] text-destructive">Req. Barracks Lv.{info.requiredBarracksLevel}</span>}
                       </div>
                       <p className="text-[9px] text-muted-foreground truncate">{info.description}</p>
