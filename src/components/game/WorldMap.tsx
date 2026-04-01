@@ -714,6 +714,11 @@ export default function WorldMap() {
     supabase.from('outposts').select('*').then(({ data }) => {
       if (data && data.length > 0) {
         setOutposts(data.map((o: any) => ({ id: o.id, x: o.x, y: o.y, name: o.name, user_id: o.user_id, level: o.level || 1, garrison_power: o.garrison_power || 0, has_wall: o.has_wall || false, wall_level: o.wall_level || 0, territory_radius: o.territory_radius || 15000, outpost_type: o.outpost_type || 'outpost' })));
+        // Initialize captured mines from outposts with type 'mine'
+        const mineOutposts = data.filter((o: any) => o.outpost_type === 'mine');
+        if (mineOutposts.length > 0) {
+          setCapturedMines(new Set(mineOutposts.map((o: any) => o.name)));
+        }
       }
     });
     // Load persisted outpost build queue entries
@@ -1671,7 +1676,7 @@ export default function WorldMap() {
               </svg>
               {/* Moving soldier sprite */}
               <div className="absolute z-40 flex flex-col items-center pointer-events-none"
-                style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', transition: 'left 0.4s linear, top 0.4s linear' }}>
+                style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
                 <img src={mapSoldier} alt="Army" className="drop-shadow-lg"
                   style={{ width: marchSize, height: marchSize, objectFit: 'contain', transform: facingLeft ? 'scaleX(-1)' : undefined }} loading="lazy" />
                 <div className="bg-background/90 rounded px-1.5 py-0.5 text-center mt-0.5 border border-primary/30 shadow-md">
@@ -1717,8 +1722,8 @@ export default function WorldMap() {
                 <line x1={startScreen.sx} y1={startScreen.sy} x2={endScreen.sx} y2={endScreen.sy}
                   stroke={marchColor} strokeWidth={1.5} strokeDasharray="4 3" opacity={0.6} />
               </svg>
-              <div className="absolute z-35 flex flex-col items-center pointer-events-none"
-                style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', transition: 'left 0.8s linear, top 0.8s linear' }}>
+               <div className="absolute z-35 flex flex-col items-center pointer-events-none"
+                style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
                 <img src={mapSoldier} alt="Troops" className="drop-shadow-md opacity-70"
                   style={{ width: marchSize, height: marchSize, objectFit: 'contain', transform: facingLeft ? 'scaleX(-1)' : undefined }} loading="lazy" />
                 {marchSize > 16 && (
@@ -2029,6 +2034,7 @@ export default function WorldMap() {
                         const hasTroops = Object.values(army).some(v => v > 0);
                         if (!hasTroops) { toast.error('You need troops to clear the garrison!'); return; }
                         if (!canAffordOutpost) { toast.error('Not enough resources to build a mining outpost!'); return; }
+                        if (!isInRange(selected.data.x, selected.data.y)) { toast.error('Out of range! Train scouts to extend reach.'); return; }
                         const travelSec = calcTravelTime(selected.data.x, selected.data.y);
                         const mineData = selected.data;
                         setAttackConfig({
@@ -2037,12 +2043,33 @@ export default function WorldMap() {
                           showEspionage: false,
                           onAttack: (sentArmy) => {
                             toast(`⚔️ Troops marching to ${mineData.name}... ETA ${travelSec}s`);
-                            createMarch(`mine-${Date.now()}`, mineData.name, mineData.x, mineData.y, travelSec, () => {
+                            createMarch(`atk-mine-${Date.now()}`, mineData.name, mineData.x, mineData.y, travelSec, async () => {
                               const log = attackTarget(mineData.name, mineData.power, sentArmy);
+                              // Save battle report to DB
+                              if (user) {
+                                supabase.from('battle_reports').insert({
+                                  attacker_id: user.id,
+                                  defender_id: user.id,
+                                  attacker_name: displayName,
+                                  defender_name: mineData.name,
+                                  result: log.result,
+                                  attacker_troops_lost: log.troopsLost as any,
+                                  defender_troops_lost: log.defenderTroopsLost as any || {},
+                                  resources_raided: log.resourcesGained as any || {},
+                                } as any).then();
+                              }
                               if (log.result === 'victory') {
-                                // Deduct outpost building costs
                                 addResources({ gold: -outpostCost.gold, wood: -outpostCost.wood, stone: -outpostCost.stone, food: -outpostCost.food });
                                 setCapturedMines(prev => new Set([...prev, mineData.id]));
+                                // Persist captured mine as outpost in DB
+                                if (user) {
+                                  const { data: opData } = await supabase.from('outposts').insert({
+                                    user_id: user.id, x: mineData.x, y: mineData.y, name: mineData.id, outpost_type: 'mine',
+                                  }).select().single();
+                                  if (opData) {
+                                    setOutposts(prev => [...prev, { id: opData.id, x: mineData.x, y: mineData.y, name: mineData.id, user_id: user.id, level: 1, garrison_power: 0, has_wall: false, wall_level: 0, territory_radius: 5000, outpost_type: 'mine' }]);
+                                  }
+                                }
                                 toast.success(`⛏️ Mining outpost built at ${mineData.name}! Producing steel.`);
                               } else {
                                 toast.error('Defeat! The garrison held.');
@@ -2053,8 +2080,9 @@ export default function WorldMap() {
                           },
                         });
                       }}
-                      className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2.5 rounded-lg glow-gold-sm active:scale-95 transition-transform">
-                      ⚔️ Clear Garrison & Build Outpost (⚔️{selected.data.power})
+                      disabled={!isInRange(selected.data.x, selected.data.y)}
+                      className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2.5 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
+                      {!isInRange(selected.data.x, selected.data.y) ? '⚠️ Out of Range' : `⚔️ Clear Garrison & Build Outpost (⚔️${selected.data.power})`}
                     </motion.button>
                   </div>
                 )}
@@ -2300,8 +2328,20 @@ export default function WorldMap() {
                               toast(`⚔️ Troops marching to ${outpostData.name}... ETA ${travelSec}s`);
                               createMarch(`atk-op-${Date.now()}`, outpostData.name, outpostData.x, outpostData.y, travelSec, async () => {
                                 const log = attackTarget(outpostData.name, totalDefense, sentArmy);
+                                // Save outpost battle report to DB
+                                if (user) {
+                                  supabase.from('battle_reports').insert({
+                                    attacker_id: user.id,
+                                    defender_id: outpostData.user_id,
+                                    attacker_name: displayName,
+                                    defender_name: outpostData.name,
+                                    result: log.result,
+                                    attacker_troops_lost: log.troopsLost as any,
+                                    defender_troops_lost: log.defenderTroopsLost as any || {},
+                                    resources_raided: log.resourcesGained as any || {},
+                                  } as any).then();
+                                }
                                 if (log.result === 'victory') {
-                                  // Raze the enemy outpost
                                   await supabase.rpc('raze_outpost', { p_outpost_id: outpostData.id });
                                   setOutposts(prev => prev.filter(o => o.id !== outpostData.id));
                                   toast.success(`🔥 ${outpostData.name} razed! Enemy outpost destroyed.`);
