@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useGameTicker } from '@/hooks/useGameTicker';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { useGame, TROOP_INFO, TroopType, SPY_MISSION_INFO, SpyMission } from '@/hooks/useGameState';
