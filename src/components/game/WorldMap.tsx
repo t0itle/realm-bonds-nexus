@@ -802,7 +802,7 @@ export default function WorldMap() {
     return () => clearInterval(interval);
   }, [tradeContracts.length]);
 
-  const DEFAULT_CAMERA = { cx: 420_000, cy: 470_000, ppu: 0.003 }; // Heartlands center
+  const DEFAULT_CAMERA = { cx: 42_000_000, cy: 47_000_000, ppu: 0.00003 }; // Heartlands center (100x world)
   const initializedCamera = useRef(false);
   const [camera, setCamera] = useState(DEFAULT_CAMERA);
   const safeSetCamera = useCallback((updater: (prev: typeof DEFAULT_CAMERA) => typeof DEFAULT_CAMERA) => {
