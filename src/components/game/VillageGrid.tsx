@@ -9,6 +9,7 @@ import { useTroopSkins } from '@/hooks/useTroopSkins';
 import BuildModal from './BuildModal';
 import ResourceIcon, { getResourceType } from './ResourceIcon';
 import { Send, Scroll } from 'lucide-react';
+import { WORKER_BADGE_SPRITE } from './troopSprites';
 import { toast } from 'sonner';
 
 import { lazy, Suspense } from 'react';
