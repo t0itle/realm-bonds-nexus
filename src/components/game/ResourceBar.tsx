@@ -184,7 +184,7 @@ export default function ResourceBar() {
                   ? 'text-destructive font-bold animate-pulse'
                   : isFood && foodDeclining
                     ? 'text-amber-500 font-semibold'
-                    : 'text-muted-foreground';
+                    : 'text-foreground/70';
               const breakdown = getBreakdown(key);
               return (
                 <Tooltip key={key}>
