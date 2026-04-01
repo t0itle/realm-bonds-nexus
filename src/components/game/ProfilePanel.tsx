@@ -261,7 +261,7 @@ export default function ProfilePanel() {
                     <div className="flex items-center gap-2.5">
                       <span className="text-sm">{skin.icon}</span>
                       <span className="font-display text-sm text-foreground">{skin.name}</span>
-                      {isActive && <span className="text-[11px] wood-btn-primary px-1.5 py-0.5 rounded-full font-bold">ACTIVE</span>}
+                      {isActive && <span className="text-[11px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-bold">ACTIVE</span>}
                       {owned && !isActive && <span className="text-[11px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">OWNED</span>}
                     </div>
                     <p className="text-sm text-muted-foreground truncate">{skin.description}</p>
