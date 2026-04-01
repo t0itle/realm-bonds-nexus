@@ -175,29 +175,29 @@ export default function GameLayout() {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <h1 className="truncate font-display text-sm font-bold text-foreground text-shadow-gold">{villageName || displayName}</h1>
-            <div className="mt-1 flex flex-wrap items-center gap-1.5">
-              <span className="text-[10px] text-primary font-semibold">Level {playerLevel}</span>
+            <div className="mt-1 flex flex-wrap items-center gap-2.5">
+              <span className="text-sm text-primary font-semibold">Level {playerLevel}</span>
               {myVassalage ? (
                 <button
                   onClick={() => setVassalPopup(true)}
-                  className="text-[9px] font-bold text-destructive bg-destructive/15 px-2 py-0.5 rounded-full animate-pulse"
+                  className="text-sm font-bold text-destructive bg-destructive/15 px-3 py-0.5 rounded-full animate-pulse"
                 >
                   ⛓️ Vassalized
                 </button>
               ) : myVassalCount > 0 ? (
-                <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                <span className="text-sm font-bold text-primary bg-primary/10 px-3 py-0.5 rounded-full">
                   👑 {myVassalCount} Vassal{myVassalCount > 1 ? 's' : ''}
                 </span>
               ) : (
-                <span className="text-[9px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                <span className="text-sm font-bold text-muted-foreground bg-muted px-3 py-0.5 rounded-full">
                   🛡️ Sovereign
                 </span>
               )}
               {totalTroops > 0 && (
-                <span className="text-[10px] text-foreground bg-secondary px-2 py-0.5 rounded-full">⚔️ {totalTroops} troops</span>
+                <span className="text-sm text-foreground bg-secondary px-3 py-0.5 rounded-full">⚔️ {totalTroops} troops</span>
               )}
               {trainingQueue.length > 0 && (
-                <span className="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full animate-pulse">🔨 Training</span>
+                <span className="text-sm text-primary bg-primary/10 px-3 py-0.5 rounded-full animate-pulse">🔨 Training</span>
               )}
             </div>
           </div>
@@ -229,7 +229,7 @@ export default function GameLayout() {
 
       {/* Active marches banner */}
       {activeMarches.length > 0 && (
-        <div className="px-3 py-1.5 max-h-24 overflow-y-auto scrollbar-thin">
+        <div className="px-4 py-2.5 max-h-24 overflow-y-auto scrollbar-thin">
           {activeMarches.map(march => {
             const now = Date.now();
             const arrival = new Date(march.arrives_at).getTime();
@@ -244,15 +244,15 @@ export default function GameLayout() {
               <button
                 key={march.id}
                 onClick={() => setActiveTab('map')}
-                className="w-full flex items-center gap-2 game-panel border border-primary/30 rounded-lg px-3 py-1.5 mb-1 hover:border-primary/60 transition-colors"
+                className="w-full flex items-center gap-3 game-panel border border-primary/30 rounded-lg px-4 py-2.5 mb-1 hover:border-primary/60 transition-colors"
               >
                 <span className="text-sm animate-pulse">{emoji}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-display text-foreground truncate">
+                    <span className="text-sm font-display text-foreground truncate">
                       {march.march_type === 'attack' ? 'Attacking' : march.march_type === 'scout' ? 'Scouting' : 'Marching to'} {march.target_name || 'target'}
                     </span>
-                    <span className="text-[10px] font-bold text-primary ml-2 shrink-0">
+                    <span className="text-sm font-bold text-primary ml-2 shrink-0">
                       {remaining > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : 'Arriving...'}
                     </span>
                   </div>
@@ -296,25 +296,25 @@ export default function GameLayout() {
       </div>
 
       <nav className="game-panel border-t border-glow safe-bottom">
-        <div className="flex items-center justify-around py-1.5">
+        <div className="flex items-center justify-around py-2.5">
           {TABS.map(tab => (
             <motion.button
               key={tab.id}
               whileTap={{ scale: 0.9 }}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center gap-0 px-2 py-0.5 rounded-lg transition-colors relative ${
+              className={`flex flex-col items-center gap-0 px-3 py-0.5 rounded-lg transition-colors relative ${
                 activeTab === tab.id ? 'text-primary' : 'text-muted-foreground'
               }`}
             >
               <span className="text-base relative">
                 {tab.icon}
                 {tab.id === 'social' && unreadCount > 0 && (
-                  <span className="absolute -top-1.5 -right-2.5 bg-destructive text-destructive-foreground text-[8px] font-bold rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5">
+                  <span className="absolute -top-1.5 -right-2.5 bg-destructive text-destructive-foreground text-sm font-bold rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5">
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}
               </span>
-              <span className={`text-[9px] font-semibold ${activeTab === tab.id ? 'font-display' : ''}`}>
+              <span className={`text-sm font-semibold ${activeTab === tab.id ? 'font-display' : ''}`}>
                 {tab.label}
               </span>
             </motion.button>
@@ -380,12 +380,12 @@ export default function GameLayout() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Rebellion Available</span>
-                  <span className="text-foreground text-xs">
+                  <span className="text-foreground text-sm">
                     {new Date(myVassalage.rebellion_available_at) <= new Date() ? '✅ Now' : new Date(myVassalage.rebellion_available_at).toLocaleDateString()}
                   </span>
                 </div>
               </div>
-              <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
+              <p className="text-sm text-muted-foreground text-center leading-relaxed">
                 A portion of your resources goes to your lord. Pay the ransom or attempt a rebellion from the Military → Troops tab to break free.
               </p>
               <button onClick={() => setVassalPopup(false)}

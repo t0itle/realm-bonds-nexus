@@ -21,7 +21,7 @@ export default function NPCDiplomacyInfo({ realmId, realmName, townRelations, al
 
   if (relations.length === 0) {
     return (
-      <div className="text-[9px] text-muted-foreground italic py-1">
+      <div className="text-sm text-muted-foreground italic py-2">
         No known diplomatic ties with other realms.
       </div>
     );
@@ -29,13 +29,13 @@ export default function NPCDiplomacyInfo({ realmId, realmName, townRelations, al
 
   return (
     <div className="space-y-1">
-      <p className="text-[9px] text-muted-foreground font-bold">🏛️ Diplomatic Relations</p>
+      <p className="text-sm text-muted-foreground font-bold">🏛️ Diplomatic Relations</p>
       {relations.slice(0, 5).map((rel, i) => {
         const otherId = rel.town_a_id === realmId ? rel.town_b_id : rel.town_a_id;
         const otherName = allRealmNames.get(otherId) || 'Unknown Realm';
         const style = RELATION_STYLES[rel.relation_type] || RELATION_STYLES.neutral;
         return (
-          <div key={i} className="flex items-center gap-1.5 text-[9px]">
+          <div key={i} className="flex items-center gap-2.5 text-sm">
             <span>{style.emoji}</span>
             <span className={style.color}>{style.label}</span>
             <span className="text-foreground truncate">{otherName}</span>
@@ -48,7 +48,7 @@ export default function NPCDiplomacyInfo({ realmId, realmName, townRelations, al
         );
       })}
       {relations.length > 5 && (
-        <p className="text-[8px] text-muted-foreground">+{relations.length - 5} more relations</p>
+        <p className="text-sm text-muted-foreground">+{relations.length - 5} more relations</p>
       )}
     </div>
   );

@@ -223,27 +223,27 @@ export default function NPCInteractionPanel({
   return (
     <div className="space-y-2">
       {/* Header */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <span className="text-3xl">{realm.emoji}</span>
         <div className="flex-1 min-w-0">
           <h3 className="font-display text-sm text-foreground truncate">{realm.name}</h3>
-          <p className="text-[10px] text-muted-foreground">Ruled by {realm.ruler}</p>
+          <p className="text-sm text-muted-foreground">Ruled by {realm.ruler}</p>
         </div>
         <div className="flex flex-col items-end gap-0.5">
-          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+          <span className={`text-sm font-bold px-3 py-0.5 rounded-full ${
             status === 'vassal' ? 'bg-primary/20 text-primary' :
             realm.type === 'hostile' ? 'bg-destructive/20 text-destructive' :
             realm.type === 'friendly' ? 'bg-food/20 text-food' : 'bg-muted text-muted-foreground'
           }`}>{statusLabel}</span>
-          <span className={`text-[8px] ${sentimentColor}`}>❤️ {sentiment > 0 ? '+' : ''}{sentiment}</span>
+          <span className={`text-sm ${sentimentColor}`}>❤️ {sentiment > 0 ? '+' : ''}{sentiment}</span>
         </div>
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-1 bg-muted/30 rounded-lg p-0.5">
+      <div className="flex gap-2 bg-muted/30 rounded-lg p-0.5">
         {(['info', 'trade', 'mercs', 'talk'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
-            className={`flex-1 font-display text-[10px] py-1.5 rounded-md transition-colors ${
+            className={`flex-1 font-display text-sm py-2.5 rounded-md transition-colors ${
               tab === t ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'
             }`}>
             {t === 'info' ? '📋 Info' : t === 'trade' ? '💱 Trade' : t === 'mercs' ? '⚔️ Mercs' : '💬 Talk'}
@@ -255,8 +255,8 @@ export default function NPCInteractionPanel({
         {/* INFO TAB */}
         {tab === 'info' && (
           <motion.div key="info" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-2">
-            <p className="text-[10px] text-muted-foreground">{realm.desc}</p>
-            <div className="flex items-center gap-2 text-[10px] flex-wrap">
+            <p className="text-sm text-muted-foreground">{realm.desc}</p>
+            <div className="flex items-center gap-3 text-sm flex-wrap">
               <span className="text-foreground font-bold">⚔️ Power: {effectivePower}</span>
               <span className="text-muted-foreground">·</span>
               <span className="text-muted-foreground">🌍 {biome}</span>
@@ -267,9 +267,9 @@ export default function NPCInteractionPanel({
             {/* NPC Town autonomous actions */}
             {townState?.last_action && (
               <div className="bg-muted/30 rounded-lg p-1.5">
-                <p className="text-[9px] text-foreground">📰 Recent: <span className="text-primary">{townState.last_action}</span></p>
+                <p className="text-sm text-foreground">📰 Recent: <span className="text-primary">{townState.last_action}</span></p>
                 {townState.claimed_regions.length > 0 && (
-                  <p className="text-[8px] text-muted-foreground">🏴 Controls {townState.claimed_regions.length} region(s)</p>
+                  <p className="text-sm text-muted-foreground">🏴 Controls {townState.claimed_regions.length} region(s)</p>
                 )}
               </div>
             )}
@@ -282,30 +282,30 @@ export default function NPCInteractionPanel({
               allRealmNames={allRealmNames}
             />
 
-            <p className="text-[9px] text-muted-foreground italic">{profile.desc}</p>
-            {hasActiveTrade && <span className="text-[9px] text-food font-bold block">📜 Active Trade Contract</span>}
+            <p className="text-sm text-muted-foreground italic">{profile.desc}</p>
+            {hasActiveTrade && <span className="text-sm text-food font-bold block">📜 Active Trade Contract</span>}
 
-            <div className="flex gap-1.5 mt-1.5">
+            <div className="flex gap-2.5 mt-1.5">
               {status !== 'vassal' && realm.type !== 'hostile' && (
                 <motion.button whileTap={{ scale: 0.95 }} onClick={() => onEnvoy(realm)}
-                  className="flex-1 bg-primary/20 text-primary font-display text-[10px] py-2 rounded-lg">
+                  className="flex-1 bg-primary/20 text-primary font-display text-sm py-3 rounded-lg">
                   📜 Envoy 💰{Math.floor(effectivePower * 0.3)}
                 </motion.button>
               )}
               {status !== 'vassal' && (
                 <motion.button whileTap={{ scale: 0.95 }} onClick={() => onAttack(realm)}
-                  className="flex-1 bg-destructive/20 text-destructive font-display text-[10px] py-2 rounded-lg">
+                  className="flex-1 bg-destructive/20 text-destructive font-display text-sm py-3 rounded-lg">
                   ⚔️ Attack
                 </motion.button>
               )}
               {status !== 'vassal' && (sentiment >= 60 || realm.type === 'friendly') && (
                 <motion.button whileTap={{ scale: 0.95 }} onClick={vassalizeNPC}
-                  className="flex-1 bg-food/20 text-food font-display text-[10px] py-2 rounded-lg">
+                  className="flex-1 bg-food/20 text-food font-display text-sm py-3 rounded-lg">
                   👑 Vassalize
                 </motion.button>
               )}
               {status === 'vassal' && (
-                <div className="flex-1 bg-primary/10 text-primary font-display text-[10px] py-2 rounded-lg text-center">
+                <div className="flex-1 bg-primary/10 text-primary font-display text-sm py-3 rounded-lg text-center">
                   👑 Tribute: {playerRelation?.tribute_rate || 10}% • +{Math.floor(effectivePower * 0.02)}/min
                 </div>
               )}
@@ -318,13 +318,13 @@ export default function NPCInteractionPanel({
           <motion.div key="trade" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-2">
             {isHostileAndUnfriendly && (
               <div className="bg-destructive/15 border border-destructive/30 rounded-lg p-2 space-y-1">
-                <p className="text-[10px] text-destructive font-bold">⚠️ Hostile Territory — Trade Refused</p>
-                <p className="text-[9px] text-destructive/80">
+                <p className="text-sm text-destructive font-bold">⚠️ Hostile Territory — Trade Refused</p>
+                <p className="text-sm text-destructive/80">
                   {realm.ruler} refuses all trade with you. Improve relations through diplomacy (Talk tab) or envoys before they'll consider commerce. Current sentiment: {sentiment}/100 (need 20+).
                 </p>
               </div>
             )}
-            <div className="text-[9px] text-muted-foreground flex items-center gap-1">
+            <div className="text-sm text-muted-foreground flex items-center gap-2">
               <span>🌍 {biome} market</span>
               <span>·</span>
               <span className="text-food">Sells: {profile.sells.map(r => RESOURCE_ICONS[r]).join(' ')}</span>
@@ -335,8 +335,8 @@ export default function NPCInteractionPanel({
             {/* NPC Stock levels — only visible if scouted */}
             {isScouted && townState ? (
               <div className="bg-muted/30 rounded-lg p-1.5">
-                <p className="text-[9px] font-display text-foreground mb-1">📦 {realm.name} Stock</p>
-                <div className="flex gap-2 text-[9px]">
+                <p className="text-sm font-display text-foreground mb-1">📦 {realm.name} Stock</p>
+                <div className="flex gap-3 text-sm">
                   <span className={townState.stock_gold > 0 ? 'text-foreground' : 'text-destructive'}>💰{townState.stock_gold}</span>
                   <span className={townState.stock_wood > 0 ? 'text-foreground' : 'text-destructive'}>🪵{townState.stock_wood}</span>
                   <span className={townState.stock_stone > 0 ? 'text-foreground' : 'text-destructive'}>🪨{townState.stock_stone}</span>
@@ -346,11 +346,11 @@ export default function NPCInteractionPanel({
               </div>
             ) : (
               <div className="bg-muted/20 rounded-lg p-1.5">
-                <p className="text-[9px] text-muted-foreground italic">🕵️ Stock levels unknown — scout this kingdom to reveal</p>
+                <p className="text-sm text-muted-foreground italic">🕵️ Stock levels unknown — scout this kingdom to reveal</p>
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-2 gap-2.5">
               {availableTrades.map((trade, i) => {
                 const receiveAmt = Math.floor(tradeAmount * trade.rate);
                 const npcStock = townState ? ((townState[`stock_${trade.receive}` as keyof NPCTownState] as number) || 0) : Infinity;
@@ -363,26 +363,26 @@ export default function NPCInteractionPanel({
                       canDo ? 'bg-muted/50 hover:bg-muted/80 border border-border/50' : 'bg-muted/20 opacity-50'
                     }`}>
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px]">{RESOURCE_ICONS[trade.give]} → {RESOURCE_ICONS[trade.receive]}</span>
-                      <span className={`text-[8px] font-bold ${trade.rate >= 1.5 ? 'text-food' : trade.rate >= 1 ? 'text-primary' : 'text-destructive'}`}>
+                      <span className="text-sm">{RESOURCE_ICONS[trade.give]} → {RESOURCE_ICONS[trade.receive]}</span>
+                      <span className={`text-sm font-bold ${trade.rate >= 1.5 ? 'text-food' : trade.rate >= 1 ? 'text-primary' : 'text-destructive'}`}>
                         ×{trade.rate}
                       </span>
                     </div>
-                    <p className="text-[9px] text-muted-foreground">{tradeAmount} → {receiveAmt}{isScouted && npcStock !== Infinity ? ` (stock: ${npcStock})` : ''}</p>
+                    <p className="text-sm text-muted-foreground">{tradeAmount} → {receiveAmt}{isScouted && npcStock !== Infinity ? ` (stock: ${npcStock})` : ''}</p>
                   </motion.button>
                 );
               })}
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-[9px] text-muted-foreground">Amount:</span>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">Amount:</span>
               <input type="range" min={10} max={500} step={10} value={tradeAmount}
                 onChange={e => setTradeAmount(Number(e.target.value))}
                 className="flex-1 accent-primary h-1.5" />
-              <span className="text-[10px] font-bold text-foreground w-10 text-right">{tradeAmount}</span>
+              <span className="text-sm font-bold text-foreground w-10 text-right">{tradeAmount}</span>
             </div>
 
-            {!isInRange && <p className="text-[9px] text-destructive text-center">Out of range — train scouts to extend reach</p>}
+            {!isInRange && <p className="text-sm text-destructive text-center">Out of range — train scouts to extend reach</p>}
           </motion.div>
         )}
 
@@ -405,43 +405,43 @@ export default function NPCInteractionPanel({
           <motion.div key="talk" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-2">
             <div className="bg-muted/30 rounded-lg p-2 max-h-[140px] overflow-y-auto space-y-1.5">
               {chatMessages.length === 0 && (
-                <p className="text-[9px] text-muted-foreground italic text-center py-3">
+                <p className="text-sm text-muted-foreground italic text-center py-3">
                   Speak with {realm.ruler} of {realm.name}...
                 </p>
               )}
               {chatMessages.map((msg, i) => (
-                <div key={i} className={`text-[10px] rounded-lg px-2 py-1.5 ${
+                <div key={i} className={`text-sm rounded-lg px-3 py-2.5 ${
                   msg.role === 'user' ? 'bg-primary/20 text-foreground ml-6' : 'bg-muted/60 text-foreground mr-6'
                 }`}>
-                  <span className="font-bold text-[8px] text-muted-foreground block mb-0.5">
+                  <span className="font-bold text-sm text-muted-foreground block mb-0.5">
                     {msg.role === 'user' ? 'You' : realm.ruler}
                   </span>
                   {msg.content}
                 </div>
               ))}
               {chatLoading && (
-                <div className="text-[9px] text-muted-foreground italic animate-pulse">
+                <div className="text-sm text-muted-foreground italic animate-pulse">
                   {realm.ruler} is thinking...
                 </div>
               )}
               <div ref={chatEndRef} />
             </div>
 
-            <div className="flex gap-1.5">
+            <div className="flex gap-2.5">
               <input
                 value={chatInput}
                 onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && sendChat()}
                 placeholder={`Speak to ${realm.ruler}...`}
-                className="flex-1 bg-muted/40 rounded-lg px-2.5 py-1.5 text-[10px] text-foreground placeholder:text-muted-foreground outline-none border border-border/50 focus:border-primary/50"
+                className="flex-1 bg-muted/40 rounded-lg px-2.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none border border-border/50 focus:border-primary/50"
               />
               <motion.button whileTap={{ scale: 0.95 }} onClick={sendChat} disabled={chatLoading || !chatInput.trim()}
-                className="bg-primary/20 text-primary font-display text-[10px] px-3 py-1.5 rounded-lg disabled:opacity-50">
+                className="bg-primary/20 text-primary font-display text-sm px-4 py-2.5 rounded-lg disabled:opacity-50">
                 Send
               </motion.button>
             </div>
 
-            <div className="flex gap-1 flex-wrap">
+            <div className="flex gap-2 flex-wrap">
               {[
                 'Greetings, what do you trade?',
                 'I seek an alliance.',
@@ -449,7 +449,7 @@ export default function NPCInteractionPanel({
                 'Tell me about your lands.',
               ].map((q, i) => (
                 <button key={i} onClick={() => { setChatInput(q); }}
-                  className="text-[8px] text-muted-foreground bg-muted/30 rounded px-1.5 py-0.5 hover:bg-muted/50 transition-colors">
+                  className="text-sm text-muted-foreground bg-muted/30 rounded px-1.5 py-0.5 hover:bg-muted/50 transition-colors">
                   {q}
                 </button>
               ))}

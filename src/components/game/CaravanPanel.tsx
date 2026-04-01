@@ -153,7 +153,7 @@ export default function CaravanPanel({ onClose }: { onClose: () => void }) {
 
       {/* Storage overview */}
       <div className="space-y-1">
-        <div className="flex items-center justify-between text-[10px]">
+        <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Storage</span>
           <span className="text-foreground font-semibold">{totalStored.toLocaleString()} / {(storageCapacity * 4).toLocaleString()}</span>
         </div>
@@ -163,7 +163,7 @@ export default function CaravanPanel({ onClose }: { onClose: () => void }) {
             style={{ width: `${Math.min(100, (totalStored / (storageCapacity * 4)) * 100)}%` }}
           />
         </div>
-        <p className="text-[8px] text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Each resource caps at {storageCapacity.toLocaleString()}. Build warehouses to increase capacity.
           {totalStored > storageCapacity * 3.4 && ' ⚠️ Storage nearly full — excess production will be lost!'}
         </p>
@@ -172,7 +172,7 @@ export default function CaravanPanel({ onClose }: { onClose: () => void }) {
       {/* Send caravan */}
       {otherSettlements.length > 0 ? (
         <div className="space-y-2 border-t border-border/50 pt-2">
-          <p className="text-[10px] text-muted-foreground font-semibold">Send Resources to Settlement</p>
+          <p className="text-sm text-muted-foreground font-semibold">Send Resources to Settlement</p>
           <select
             value={selectedDest}
             onChange={e => setSelectedDest(e.target.value)}
@@ -188,9 +188,9 @@ export default function CaravanPanel({ onClose }: { onClose: () => void }) {
 
           {selectedDest && (
             <>
-              <div className="grid grid-cols-2 gap-1.5">
+              <div className="grid grid-cols-2 gap-2.5">
                 {(['gold', 'wood', 'stone', 'food'] as const).map(res => (
-                  <div key={res} className="flex items-center gap-1 bg-muted/30 rounded-lg p-1.5">
+                  <div key={res} className="flex items-center gap-2 bg-muted/30 rounded-lg p-1.5">
                     <ResourceIcon type={res} size={12} />
                     <input
                       type="number"
@@ -208,7 +208,7 @@ export default function CaravanPanel({ onClose }: { onClose: () => void }) {
                 whileTap={{ scale: 0.95 }}
                 onClick={handleSend}
                 disabled={sending || sendAmounts.gold + sendAmounts.wood + sendAmounts.stone + sendAmounts.food <= 0}
-                className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform"
+                className="w-full bg-primary text-primary-foreground font-display text-[11px] py-3 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform"
               >
                 🐴 Send Caravan ({calcTravelTime(selectedDest)}s travel) ⚠️ Can be raided!
               </motion.button>
@@ -216,7 +216,7 @@ export default function CaravanPanel({ onClose }: { onClose: () => void }) {
           )}
         </div>
       ) : (
-        <p className="text-[10px] text-muted-foreground text-center py-2 border-t border-border/50">
+        <p className="text-sm text-muted-foreground text-center py-3 border-t border-border/50">
           Found a second settlement on the map to enable caravan transfers.
         </p>
       )}
@@ -224,7 +224,7 @@ export default function CaravanPanel({ onClose }: { onClose: () => void }) {
       {/* Active caravans */}
       {caravans.length > 0 && (
         <div className="space-y-1.5 border-t border-border/50 pt-2">
-          <p className="text-[10px] text-muted-foreground font-semibold">Active Caravans</p>
+          <p className="text-sm text-muted-foreground font-semibold">Active Caravans</p>
           {caravans.map(c => {
             const dest = settlements.find(s => s.id === c.to_village_id);
             const totalSec = (new Date(c.arrives_at).getTime() - new Date(c.departed_at).getTime()) / 1000;
@@ -233,14 +233,14 @@ export default function CaravanPanel({ onClose }: { onClose: () => void }) {
             const remaining = Math.max(0, Math.ceil(totalSec - elapsed));
             return (
               <div key={c.id} className="bg-muted/30 rounded-lg p-2 space-y-1">
-                <div className="flex items-center justify-between text-[9px]">
+                <div className="flex items-center justify-between text-sm">
                   <span className="text-foreground">→ {dest?.name || 'Unknown'}</span>
                   <span className="text-muted-foreground">{remaining}s remaining</span>
                 </div>
                 <div className="h-1 bg-muted rounded-full overflow-hidden">
                   <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
                 </div>
-                <div className="flex gap-1.5 text-[8px] text-muted-foreground">
+                <div className="flex gap-2.5 text-sm text-muted-foreground">
                   {c.gold > 0 && <span>🪙{c.gold}</span>}
                   {c.wood > 0 && <span>🪵{c.wood}</span>}
                   {c.stone > 0 && <span>🪨{c.stone}</span>}

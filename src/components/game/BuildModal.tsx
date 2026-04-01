@@ -53,7 +53,7 @@ export default function BuildModal({ position, onClose }: { position: number; on
             <button onClick={onClose} className="text-muted-foreground text-sm">✕</button>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-3">
             {BUILDABLE.map(type => {
               const info = BUILDING_INFO[type];
               const cost = getUpgradeCost(type, 0);
@@ -80,11 +80,11 @@ export default function BuildModal({ position, onClose }: { position: number; on
                     affordable ? 'border-glow hover:glow-gold-sm' : 'opacity-50'
                   }`}
                 >
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-3 mb-1">
                     <img src={sprite} alt={info.name} className="w-10 h-10 object-contain" loading="lazy" />
-                    <span className="font-display text-xs text-foreground">{info.name}</span>
+                    <span className="font-display text-sm text-foreground">{info.name}</span>
                   </div>
-                  <div className="flex flex-wrap gap-1.5 text-[10px] text-muted-foreground">
+                  <div className="flex flex-wrap gap-2.5 text-sm text-muted-foreground">
                     {Object.entries(cost).filter(([, v]) => v > 0).map(([key, val]) => {
                       const rType = getResourceType(key);
                       const canAffordThis = resourceCheck[key] !== false;
@@ -96,7 +96,7 @@ export default function BuildModal({ position, onClose }: { position: number; on
                       );
                     })}
                   </div>
-                  <p className="text-[9px] text-muted-foreground mt-1 flex items-center gap-0.5">
+                  <p className="text-sm text-muted-foreground mt-1 flex items-center gap-0.5">
                     <ResourceIcon type="timer" size={10} /> {formatTime(buildTime)}
                   </p>
                 </motion.button>

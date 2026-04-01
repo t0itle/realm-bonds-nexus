@@ -2197,9 +2197,9 @@ export default function WorldMap() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="px-3 pt-2 pb-1.5 flex items-center justify-between border-b border-border/30">
+      <div className="px-4 pt-2 pb-1.5 flex items-center justify-between border-b border-border/30">
         <h2 className="font-display text-sm text-foreground/90 tracking-wide">World Map</h2>
-        <div className="flex items-center gap-3 text-[9px] text-muted-foreground/70">
+        <div className="flex items-center gap-3 text-sm text-muted-foreground/70">
           {marches.length > 0 && <span className="text-primary/80 animate-pulse">🚶 {marches.length}</span>}
           {tradeContracts.length > 0 && <span className="text-food/80">📜 {tradeContracts.length}</span>}
           <span className="font-mono">⚔️{power.attack} 🛡️{power.defense}</span>
@@ -2455,7 +2455,7 @@ export default function WorldMap() {
                 style={{ width: iconSize, height: iconSize, imageRendering: 'auto' }}
               />
               {iconSize > 30 && (
-                <div className={`text-center rounded-md mt-1 px-2 py-0.5 backdrop-blur-sm shadow-sm ${isVassal ? 'bg-primary/15 border border-primary/25' : 'bg-background/70 border border-border/30'}`}>
+                <div className={`text-center rounded-md mt-1 px-3 py-0.5 backdrop-blur-sm shadow-sm ${isVassal ? 'bg-primary/15 border border-primary/25' : 'bg-background/70 border border-border/30'}`}>
                   <p className="font-display text-foreground leading-tight whitespace-nowrap" style={{ fontSize: Math.max(8, fontSize - 1) }}>
                     {isVassal ? '👑 ' : ''}{realm.name}
                   </p>
@@ -2527,7 +2527,7 @@ export default function WorldMap() {
               />
               {bossSize > 30 && (
                 <div className="absolute left-1/2 -translate-x-1/2 text-center z-10" style={{ top: bossSize + 4 }}>
-                  <div className="bg-destructive/90 backdrop-blur-sm rounded-md px-2 py-0.5 border border-destructive/60 shadow-lg">
+                  <div className="bg-destructive/90 backdrop-blur-sm rounded-md px-3 py-0.5 border border-destructive/60 shadow-lg">
                     <p className="font-display text-destructive-foreground whitespace-nowrap leading-tight" style={{ fontSize: Math.max(8, bossSize / 5) }}>
                       {worldBoss.emoji} {worldBoss.name}
                     </p>
@@ -2978,13 +2978,13 @@ export default function WorldMap() {
             </button>
           );
         })}
-        <div className="absolute bottom-4 right-3 flex flex-col gap-1 z-50">
+        <div className="absolute bottom-4 right-3 flex flex-col gap-2 z-50">
           <button onClick={() => safeSetCamera(prev => ({ ...prev, ppu: Math.min(0.05, prev.ppu * 1.5) }))}
             className="w-9 h-9 bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-sm font-medium active:scale-90 transition-all hover:bg-background/95 shadow-sm">+</button>
           <button onClick={() => safeSetCamera(prev => ({ ...prev, ppu: Math.max(0.00005, prev.ppu / 1.5) }))}
             className="w-9 h-9 bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-sm font-medium active:scale-90 transition-all hover:bg-background/95 shadow-sm">−</button>
           <button onClick={goHome}
-            className="w-9 h-9 bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-xs active:scale-90 transition-all hover:bg-background/95 shadow-sm mt-0.5">⌂</button>
+            className="w-9 h-9 bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-sm active:scale-90 transition-all hover:bg-background/95 shadow-sm mt-0.5">⌂</button>
         </div>
 
         {/* ── Boss March Countdown Timer ── */}
@@ -2994,7 +2994,7 @@ export default function WorldMap() {
           const bossMarches = otherMarches.filter(m => m.user_id === BOSS_UUID && m.target_user_id === user?.id);
           if (bossMarches.length === 0) return null;
           return (
-            <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-1.5">
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2.5">
               {bossMarches.map(bm => {
                 const endT = new Date(bm.arrives_at).getTime();
                 const remaining = Math.max(0, Math.ceil((endT - Date.now()) / 1000));
@@ -3005,10 +3005,10 @@ export default function WorldMap() {
                 const urgency = remaining < 60 ? 'animate-pulse' : '';
                 const bossName = bm.player_name || 'World Boss';
                 return (
-                  <div key={bm.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg border border-destructive/60 bg-destructive/20 backdrop-blur-md shadow-lg ${urgency}`}>
+                  <div key={bm.id} className={`flex items-center gap-3 px-4 py-3 rounded-lg border border-destructive/60 bg-destructive/20 backdrop-blur-md shadow-lg ${urgency}`}>
                     <span className="text-base">{bossName.split(' ')[0]}</span>
                     <div className="flex flex-col">
-                      <span className="text-xs text-destructive font-display uppercase tracking-wider">Incoming Raid</span>
+                      <span className="text-sm text-destructive font-display uppercase tracking-wider">Incoming Raid</span>
                       <span className="text-lg font-bold font-display text-destructive tabular-nums">{timeStr}</span>
                     </div>
                   </div>
@@ -3021,22 +3021,22 @@ export default function WorldMap() {
         <div className="absolute bottom-3 left-3 z-50">
           <button
             onClick={() => setLegendOpen(prev => !prev)}
-            className="game-panel border-glow rounded-lg px-2 py-1.5 text-[9px] text-foreground font-display flex items-center gap-1 sm:hidden active:scale-95 transition-transform"
+            className="game-panel border-glow rounded-lg px-3 py-2.5 text-sm text-foreground font-display flex items-center gap-2 sm:hidden active:scale-95 transition-transform"
           >
             🗺️ Legend {legendOpen ? '▾' : '▸'}
           </button>
-          <div className={`${legendOpen ? 'flex' : 'hidden'} sm:flex flex-col bg-background/90 backdrop-blur-sm rounded-lg p-2 space-y-1 text-[8px] border border-border mt-1 sm:mt-0`}>
-            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-destructive" /><span className="text-foreground">Hostile</span></div>
-            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-muted-foreground" /><span className="text-foreground">Neutral</span></div>
-            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-food" /><span className="text-foreground">Friendly</span></div>
-            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full border border-primary bg-primary/20" /><span className="text-foreground">Event</span></div>
-            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-lg bg-secondary" /><span className="text-foreground">Player</span></div>
-            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: 'hsl(200 70% 45% / 0.5)' }} /><span className="text-foreground">Water</span></div>
-            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5" style={{ background: 'hsl(30 20% 35% / 0.6)', clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }} /><span className="text-foreground">Mountain</span></div>
-            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: 'hsl(100 35% 40% / 0.6)' }} /><span className="text-foreground">Island</span></div>
-            <div className="flex items-center gap-1.5"><div className="w-2.5 h-1" style={{ background: 'hsl(205 75% 45% / 0.6)', borderRadius: 2 }} /><span className="text-foreground">River</span></div>
-            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded border border-muted-foreground/40 bg-muted/60 flex items-center justify-center text-[6px]">⚙️</div><span className="text-foreground">Steel Mine</span></div>
-            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-destructive animate-pulse" /><span className="text-foreground">World Boss</span></div>
+          <div className={`${legendOpen ? 'flex' : 'hidden'} sm:flex flex-col bg-background/90 backdrop-blur-sm rounded-lg p-2 space-y-1 text-sm border border-border mt-1 sm:mt-0`}>
+            <div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full bg-destructive" /><span className="text-foreground">Hostile</span></div>
+            <div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full bg-muted-foreground" /><span className="text-foreground">Neutral</span></div>
+            <div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full bg-food" /><span className="text-foreground">Friendly</span></div>
+            <div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full border border-primary bg-primary/20" /><span className="text-foreground">Event</span></div>
+            <div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-lg bg-secondary" /><span className="text-foreground">Player</span></div>
+            <div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: 'hsl(200 70% 45% / 0.5)' }} /><span className="text-foreground">Water</span></div>
+            <div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5" style={{ background: 'hsl(30 20% 35% / 0.6)', clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }} /><span className="text-foreground">Mountain</span></div>
+            <div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: 'hsl(100 35% 40% / 0.6)' }} /><span className="text-foreground">Island</span></div>
+            <div className="flex items-center gap-2.5"><div className="w-2.5 h-1" style={{ background: 'hsl(205 75% 45% / 0.6)', borderRadius: 2 }} /><span className="text-foreground">River</span></div>
+            <div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded border border-muted-foreground/40 bg-muted/60 flex items-center justify-center text-[6px]">⚙️</div><span className="text-foreground">Steel Mine</span></div>
+            <div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full bg-destructive animate-pulse" /><span className="text-foreground">World Boss</span></div>
           </div>
         </div>
       </div>
@@ -3073,19 +3073,19 @@ export default function WorldMap() {
 
             {selected.kind === 'event' && (
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <span className="text-3xl">{selected.data.emoji}</span>
                   <div className="flex-1">
                     <h3 className="font-display text-sm text-foreground">{selected.data.name}</h3>
-                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                    <span className={`text-sm font-bold px-3 py-0.5 rounded-full ${
                       selected.data.type === 'danger' ? 'bg-destructive/20 text-destructive' :
                       selected.data.type === 'opportunity' ? 'bg-primary/20 text-primary' : 'bg-accent/20 text-accent-foreground'
                     }`}>{selected.data.type}{selected.data.power > 0 ? ` ⚔️${selected.data.power}` : ''}</span>
                   </div>
                 </div>
-                <p className="text-[10px] text-muted-foreground">{selected.data.description}</p>
+                <p className="text-sm text-muted-foreground">{selected.data.description}</p>
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex gap-1.5 text-[10px] text-primary font-bold flex-wrap">
+                  <div className="flex gap-2.5 text-sm text-primary font-bold flex-wrap">
                     {Object.entries(selected.data.reward).filter(([, v]) => v && v > 0).map(([k, v]) => (
                       <span key={k}>+{v} {k}</span>
                     ))}
@@ -3105,26 +3105,26 @@ export default function WorldMap() {
               const steelReward = Math.floor(50 + boss.daysAlive * 15 * bossBase.rewardMultiplier / 6);
               return (
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <span className="text-3xl">{boss.emoji}</span>
                     <div className="flex-1">
                       <h3 className="font-display text-sm text-foreground">{boss.name}</h3>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-destructive/20 text-destructive">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-bold px-3 py-0.5 rounded-full bg-destructive/20 text-destructive">
                           WORLD BOSS ⚔️{boss.scaledPower}
                         </span>
-                        <span className="text-[9px] text-muted-foreground">Day {boss.daysAlive + 1}/7</span>
+                        <span className="text-sm text-muted-foreground">Day {boss.daysAlive + 1}/7</span>
                       </div>
                     </div>
                   </div>
-                  <p className="text-[10px] text-muted-foreground">{boss.description}</p>
-                  <p className="text-[9px] text-muted-foreground/70 italic">{bossBase.lore}</p>
+                  <p className="text-sm text-muted-foreground">{boss.description}</p>
+                  <p className="text-sm text-muted-foreground/70 italic">{bossBase.lore}</p>
 
                   {/* Troop Tiers */}
                   <div className="bg-muted/30 rounded-lg p-2 space-y-1">
-                    <p className="text-[10px] font-semibold text-foreground">🪖 Army Composition</p>
+                    <p className="text-sm font-semibold text-foreground">🪖 Army Composition</p>
                     {boss.troops.map(t => (
-                      <div key={t.name} className="flex items-center justify-between text-[9px]">
+                      <div key={t.name} className="flex items-center justify-between text-sm">
                         <span className={`font-display ${t.tier === 'elite' ? 'text-destructive' : t.tier === 'average' ? 'text-primary' : 'text-muted-foreground'}`}>
                           {t.tier === 'elite' ? '💀' : t.tier === 'average' ? '⚔️' : '🦴'} {t.name}
                           <span className="text-muted-foreground/60 ml-1">({t.tier})</span>
@@ -3137,7 +3137,7 @@ export default function WorldMap() {
                   </div>
 
                   {/* Rewards */}
-                  <div className="flex items-center gap-1.5 text-[10px] text-primary font-bold flex-wrap">
+                  <div className="flex items-center gap-2.5 text-sm text-primary font-bold flex-wrap">
                     {Object.entries(boss.reward).filter(([, v]) => v && v > 0).map(([k, v]) => (
                       <span key={k}>+{v} {k}</span>
                     ))}
@@ -3197,16 +3197,16 @@ export default function WorldMap() {
 
             {selected.kind === 'player' && (
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <span className="text-3xl">🏰</span>
                   <div>
                     <h3 className="font-display text-sm text-foreground">{selected.data.village.name}</h3>
-                    <p className="text-[10px] text-muted-foreground">{selected.data.profile.display_name} • Lv.{selected.data.village.level}</p>
+                    <p className="text-sm text-muted-foreground">{selected.data.profile.display_name} • Lv.{selected.data.village.level}</p>
                   </div>
                 </div>
                 {selected.data.village.user_id !== user?.id && (
                   <div className="space-y-2">
-                    <div className="flex gap-2">
+                    <div className="flex gap-3">
                       <motion.button whileTap={{ scale: 0.95 }}
                         onClick={() => {
                           const targetId = selected.data.village.user_id;
@@ -3297,24 +3297,24 @@ export default function WorldMap() {
               const canAffordOutpost = resources.gold >= outpostCost.gold && resources.wood >= outpostCost.wood && resources.stone >= outpostCost.stone && resources.food >= outpostCost.food;
               return (
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <span className="text-3xl">⛏️</span>
                   <div className="flex-1">
                     <h3 className="font-display text-sm text-foreground">{selected.data.name}</h3>
-                    <p className="text-[10px] text-muted-foreground">Iron Ore Deposit · Yields ⚙️{selected.data.steelPerTick} steel/tick</p>
+                    <p className="text-sm text-muted-foreground">Iron Ore Deposit · Yields ⚙️{selected.data.steelPerTick} steel/tick</p>
                   </div>
                   {isCaptured && (
-                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary">⛏️ Mining</span>
+                    <span className="text-sm font-bold px-3 py-0.5 rounded-full bg-primary/20 text-primary">⛏️ Mining</span>
                   )}
                 </div>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   {isCaptured
                     ? 'Your mining outpost here is producing steel.'
                     : `Defeat the garrison (⚔️${selected.data.power}), then build a mining outpost to extract steel.`}
                 </p>
                 {!isCaptured && (
                   <div className="space-y-1.5">
-                    <div className="text-[9px] text-muted-foreground">
+                    <div className="text-sm text-muted-foreground">
                       <span className="font-semibold text-foreground">Outpost cost:</span>{' '}
                       <span className={resources.gold >= outpostCost.gold ? '' : 'text-destructive'}>🪙{outpostCost.gold}</span>{' '}
                       <span className={resources.wood >= outpostCost.wood ? '' : 'text-destructive'}>🪵{outpostCost.wood}</span>{' '}
@@ -3470,11 +3470,11 @@ export default function WorldMap() {
 
               return (
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <span className="text-3xl">{isSettlement ? '🏘️' : (op.outpost_type === 'fort' ? '🏰' : (op.outpost_type === 'bridge' ? '🌉' : (isOwn ? '🏕️' : '⚑')))}</span>
                     <div className="flex-1">
                       <h3 className="font-display text-sm text-foreground">{op.name}</h3>
-                      <div className="flex items-center gap-2 text-[9px]">
+                      <div className="flex items-center gap-3 text-sm">
                         <span className="text-primary font-semibold">Lv.{op.level}</span>
                         <span className="text-muted-foreground">⚔️{op.garrison_power} defense</span>
                         {existingWalls.length > 0 && <span className="text-accent-foreground bg-accent/20 px-1.5 rounded-full">🧱 {existingWalls.length} wall{existingWalls.length !== 1 ? 's' : ''}</span>}
@@ -3484,7 +3484,7 @@ export default function WorldMap() {
                       </div>
                     </div>
                   </div>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     {isOwn
                       ? (isSettlement
                         ? 'Your settlement. Switch to it from the resource bar to manage buildings and resources independently.'
@@ -3499,25 +3499,25 @@ export default function WorldMap() {
                     <div className="space-y-2">
                       {/* Upgrade */}
                       <div className="bg-muted/30 rounded-lg p-2 space-y-1">
-                        <p className="text-[10px] font-semibold text-foreground">⬆️ Upgrade to Lv.{op.level + 1}</p>
-                        <p className="text-[8px] text-muted-foreground">+5k vision, +3k territory, +20 garrison</p>
-                        <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+                        <p className="text-sm font-semibold text-foreground">⬆️ Upgrade to Lv.{op.level + 1}</p>
+                        <p className="text-sm text-muted-foreground">+5k vision, +3k territory, +20 garrison</p>
+                        <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
                           <span className={resources.gold >= upgradeCost.gold ? '' : 'text-destructive'}>🪙{upgradeCost.gold}</span>
                           <span className={resources.wood >= upgradeCost.wood ? '' : 'text-destructive'}>🪵{upgradeCost.wood}</span>
                           <span className={resources.stone >= upgradeCost.stone ? '' : 'text-destructive'}>🪨{upgradeCost.stone}</span>
                           <span className={resources.food >= upgradeCost.food ? '' : 'text-destructive'}>🌾{upgradeCost.food}</span>
                         </div>
                         {isUpgrading ? (
-                          <div className="w-full bg-muted rounded-lg py-2 text-center space-y-1">
+                          <div className="w-full bg-muted rounded-lg py-3 text-center space-y-1">
                             <p className="font-display text-[11px] text-primary">⏳ Upgrading...</p>
                             <div className="bg-background rounded-full h-1.5 mx-2 overflow-hidden">
                               <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${Math.max(0, 100 - ((isUpgrading.finishTime - Date.now()) / (upgradeTimeSec * 1000)) * 100)}%` }} />
                             </div>
-                            <p className="text-[9px] text-muted-foreground">{Math.max(0, Math.ceil((isUpgrading.finishTime - Date.now()) / 1000))}s remaining</p>
+                            <p className="text-sm text-muted-foreground">{Math.max(0, Math.ceil((isUpgrading.finishTime - Date.now()) / 1000))}s remaining</p>
                           </div>
                         ) : (
                           <motion.button whileTap={{ scale: 0.95 }} onClick={handleUpgrade} disabled={!canAffordUpgrade}
-                            className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
+                            className="w-full bg-primary text-primary-foreground font-display text-[11px] py-3 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
                             ⬆️ Upgrade Outpost ({Math.floor(upgradeTimeSec / 60)}:{(upgradeTimeSec % 60).toString().padStart(2, '0')})
                           </motion.button>
                         )}
@@ -3525,30 +3525,30 @@ export default function WorldMap() {
 
                       {/* ── Build Wall Segments ── */}
                       <div className="bg-muted/30 rounded-lg p-2 space-y-1.5">
-                        <p className="text-[10px] font-semibold text-foreground">🧱 Wall Connections</p>
-                        <p className="text-[8px] text-muted-foreground">
+                        <p className="text-sm font-semibold text-foreground">🧱 Wall Connections</p>
+                        <p className="text-sm text-muted-foreground">
                           Build walls between outposts to block enemy troops. Walls can be destroyed by siege weapons or espionage.
                         </p>
 
                         {/* Existing walls from this outpost */}
                         {existingWalls.length > 0 && (
                           <div className="space-y-1">
-                            <p className="text-[8px] text-muted-foreground font-semibold">Connected walls:</p>
+                            <p className="text-sm text-muted-foreground font-semibold">Connected walls:</p>
                             {existingWalls.map(ws => {
                               const otherId = ws.outpost_a_id === op.id ? ws.outpost_b_id : ws.outpost_a_id;
                               const otherOp = outposts.find(o => o.id === otherId);
                               const healthPct = ws.health / ws.max_health;
                               return (
-                                <div key={ws.id} className="flex items-center gap-1.5 bg-accent/10 rounded p-1.5">
-                                  <span className="text-[9px] text-foreground flex-1">🧱 → {otherOp?.name || 'Unknown'}</span>
-                                  <span className="text-[8px] text-muted-foreground">Lv.{ws.wall_level}</span>
+                                <div key={ws.id} className="flex items-center gap-2.5 bg-accent/10 rounded p-1.5">
+                                  <span className="text-sm text-foreground flex-1">🧱 → {otherOp?.name || 'Unknown'}</span>
+                                  <span className="text-sm text-muted-foreground">Lv.{ws.wall_level}</span>
                                   <div className="w-10 h-1.5 bg-muted rounded-full overflow-hidden">
                                     <div className="h-full rounded-full transition-all" style={{
                                       width: `${healthPct * 100}%`,
                                       backgroundColor: healthPct > 0.5 ? 'hsl(var(--primary))' : 'hsl(var(--destructive))',
                                     }} />
                                   </div>
-                                  <span className="text-[7px] text-muted-foreground">{ws.health}/{ws.max_health}</span>
+                                  <span className="text-[11px] text-muted-foreground">{ws.health}/{ws.max_health}</span>
                                 </div>
                               );
                             })}
@@ -3558,8 +3558,8 @@ export default function WorldMap() {
                         {/* Available connections */}
                         {availableToConnect.length > 0 && (
                           <div className="space-y-1">
-                            <p className="text-[8px] text-muted-foreground font-semibold">Build wall to:</p>
-                            <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground mb-1">
+                            <p className="text-sm text-muted-foreground font-semibold">Build wall to:</p>
+                            <div className="flex items-center gap-2.5 text-sm text-muted-foreground mb-1">
                               <span className={resources.gold >= wallCostPerSegment.gold ? '' : 'text-destructive'}>🪙{wallCostPerSegment.gold}</span>
                               <span className={resources.wood >= wallCostPerSegment.wood ? '' : 'text-destructive'}>🪵{wallCostPerSegment.wood}</span>
                               <span className={resources.stone >= wallCostPerSegment.stone ? '' : 'text-destructive'}>🪨{wallCostPerSegment.stone}</span>
@@ -3570,19 +3570,19 @@ export default function WorldMap() {
                               const dist = Math.hypot(target.x - op.x, target.y - op.y);
                               const isBuilding = outpostBuildQueue.find(q => q.outpostId === op.id && q.targetOutpostId === target.id);
                               return (
-                                <div key={target.id} className="flex items-center gap-1.5">
+                                <div key={target.id} className="flex items-center gap-2.5">
                                   {isBuilding ? (
-                                    <div className="flex-1 bg-muted rounded py-1.5 px-2 text-center">
-                                      <p className="font-display text-[9px] text-accent-foreground">⏳ Building...</p>
-                                      <p className="text-[8px] text-muted-foreground">{Math.max(0, Math.ceil((isBuilding.finishTime - Date.now()) / 1000))}s</p>
+                                    <div className="flex-1 bg-muted rounded py-2.5 px-3 text-center">
+                                      <p className="font-display text-sm text-accent-foreground">⏳ Building...</p>
+                                      <p className="text-sm text-muted-foreground">{Math.max(0, Math.ceil((isBuilding.finishTime - Date.now()) / 1000))}s</p>
                                     </div>
                                   ) : (
                                     <motion.button whileTap={{ scale: 0.95 }}
                                       onClick={() => handleBuildWallTo(target)}
                                       disabled={!canAffordWallSeg}
-                                      className="flex-1 flex items-center justify-between bg-accent/20 hover:bg-accent/30 text-accent-foreground font-display text-[10px] py-1.5 px-2 rounded disabled:opacity-40 active:scale-95 transition-all">
+                                      className="flex-1 flex items-center justify-between bg-accent/20 hover:bg-accent/30 text-accent-foreground font-display text-sm py-2.5 px-3 rounded disabled:opacity-40 active:scale-95 transition-all">
                                       <span>🧱 → {target.name}</span>
-                                      <span className="text-[8px] text-muted-foreground">{Math.round(dist / 1000)}k</span>
+                                      <span className="text-sm text-muted-foreground">{Math.round(dist / 1000)}k</span>
                                     </motion.button>
                                   )}
                                 </div>
@@ -3592,7 +3592,7 @@ export default function WorldMap() {
                         )}
 
                         {availableToConnect.length === 0 && existingWalls.length === 0 && (
-                          <p className="text-[8px] text-muted-foreground italic">No nearby outposts within range. Build outposts closer together to connect walls.</p>
+                          <p className="text-sm text-muted-foreground italic">No nearby outposts within range. Build outposts closer together to connect walls.</p>
                         )}
                       </div>
                       {/* Convert to Bridge — only for outposts near a river */}
@@ -3611,9 +3611,9 @@ export default function WorldMap() {
                         const canAffordBridge = resources.gold >= bridgeCost.gold && resources.wood >= bridgeCost.wood && resources.stone >= bridgeCost.stone && resources.food >= bridgeCost.food;
                         return (
                           <div className="bg-sky-500/10 rounded-lg p-2 space-y-1 border border-sky-400/20">
-                            <p className="text-[10px] font-semibold text-sky-300">🌉 Convert to Bridge</p>
-                            <p className="text-[8px] text-muted-foreground">This outpost is near a river. Convert it into a bridge to allow troops to cross here.</p>
-                            <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+                            <p className="text-sm font-semibold text-sky-300">🌉 Convert to Bridge</p>
+                            <p className="text-sm text-muted-foreground">This outpost is near a river. Convert it into a bridge to allow troops to cross here.</p>
+                            <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
                               <span className={resources.gold >= bridgeCost.gold ? '' : 'text-destructive'}>🪙{bridgeCost.gold}</span>
                               <span className={resources.wood >= bridgeCost.wood ? '' : 'text-destructive'}>🪵{bridgeCost.wood}</span>
                               <span className={resources.stone >= bridgeCost.stone ? '' : 'text-destructive'}>🪨{bridgeCost.stone}</span>
@@ -3631,7 +3631,7 @@ export default function WorldMap() {
                                 toast.success(`🌉 ${bridgeName} has been built! Troops can now cross the river here.`);
                                 setSelected(null);
                               }}
-                              className="w-full bg-sky-600/80 text-white font-display text-[11px] py-2 rounded-lg disabled:opacity-40 active:scale-95 transition-transform">
+                              className="w-full bg-sky-600/80 text-white font-display text-[11px] py-3 rounded-lg disabled:opacity-40 active:scale-95 transition-transform">
                               🌉 Build Bridge
                             </motion.button>
                           </div>
@@ -3640,9 +3640,9 @@ export default function WorldMap() {
                       {/* Convert to Fort at Lv.5+ */}
                       {op.outpost_type === 'outpost' && op.level >= 5 && (
                         <div className="bg-accent/20 rounded-lg p-2 space-y-1">
-                          <p className="text-[10px] font-semibold text-accent-foreground">🏰 Convert to Fort</p>
-                          <p className="text-[8px] text-muted-foreground">Upgrade this outpost into a fort. Forts can garrison armies and have stronger defenses. At Lv.10, forts can become full settlements.</p>
-                          <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+                          <p className="text-sm font-semibold text-accent-foreground">🏰 Convert to Fort</p>
+                          <p className="text-sm text-muted-foreground">Upgrade this outpost into a fort. Forts can garrison armies and have stronger defenses. At Lv.10, forts can become full settlements.</p>
+                          <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
                             <span className={resources.gold >= 400 ? '' : 'text-destructive'}>🪙400</span>
                             <span className={resources.wood >= 250 ? '' : 'text-destructive'}>🪵250</span>
                             <span className={resources.stone >= 300 ? '' : 'text-destructive'}>🪨300</span>
@@ -3660,7 +3660,7 @@ export default function WorldMap() {
                               toast.success(`🏰 ${fortName} has been established!`);
                               setSelected(null);
                             }}
-                            className="w-full bg-accent text-accent-foreground font-display text-[11px] py-2 rounded-lg disabled:opacity-40 active:scale-95 transition-transform">
+                            className="w-full bg-accent text-accent-foreground font-display text-[11px] py-3 rounded-lg disabled:opacity-40 active:scale-95 transition-transform">
                             🏰 Convert to Fort
                           </motion.button>
                         </div>
@@ -3668,9 +3668,9 @@ export default function WorldMap() {
                       {/* Convert Fort to Settlement at Lv.10+ */}
                       {op.outpost_type === 'fort' && op.level >= 10 && (
                         <div className="bg-primary/20 rounded-lg p-2 space-y-1">
-                          <p className="text-[10px] font-semibold text-primary">🏘️ Convert to Settlement</p>
-                          <p className="text-[8px] text-muted-foreground">This fort is powerful enough to become a full settlement with its own village, buildings, and resource production.</p>
-                          <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+                          <p className="text-sm font-semibold text-primary">🏘️ Convert to Settlement</p>
+                          <p className="text-sm text-muted-foreground">This fort is powerful enough to become a full settlement with its own village, buildings, and resource production.</p>
+                          <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
                             <span className={resources.gold >= 800 ? '' : 'text-destructive'}>🪙800</span>
                             <span className={resources.wood >= 500 ? '' : 'text-destructive'}>🪵500</span>
                             <span className={resources.stone >= 400 ? '' : 'text-destructive'}>🪨400</span>
@@ -3704,7 +3704,7 @@ export default function WorldMap() {
                               toast.success(`🏘️ ${settleName} is now a full settlement!`);
                               setSelected(null);
                             }}
-                            className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
+                            className="w-full bg-primary text-primary-foreground font-display text-[11px] py-3 rounded-lg glow-gold-sm disabled:opacity-40 active:scale-95 transition-transform">
                             🏘️ Convert to Settlement
                           </motion.button>
                         </div>
@@ -3729,8 +3729,8 @@ export default function WorldMap() {
                       {/* Delete Outpost (only for non-settlement outposts) */}
                       {!isSettlement && (
                         <div className="bg-destructive/10 rounded-lg p-2 space-y-1">
-                          <p className="text-[10px] font-semibold text-destructive">🗑️ Demolish Outpost</p>
-                          <p className="text-[8px] text-muted-foreground">Permanently remove this outpost. This cannot be undone.</p>
+                          <p className="text-sm font-semibold text-destructive">🗑️ Demolish Outpost</p>
+                          <p className="text-sm text-muted-foreground">Permanently remove this outpost. This cannot be undone.</p>
                           <motion.button whileTap={{ scale: 0.95 }}
                             onClick={async () => {
                               if (!window.confirm(`Demolish ${op.name}? This cannot be undone.`)) return;
@@ -3739,7 +3739,7 @@ export default function WorldMap() {
                               toast.success(`🗑️ ${op.name} demolished.`);
                               setSelected(null);
                             }}
-                            className="w-full bg-destructive text-destructive-foreground font-display text-[11px] py-2 rounded-lg active:scale-95 transition-transform">
+                            className="w-full bg-destructive text-destructive-foreground font-display text-[11px] py-3 rounded-lg active:scale-95 transition-transform">
                             🗑️ Demolish
                           </motion.button>
                         </div>
@@ -3748,7 +3748,7 @@ export default function WorldMap() {
                   )}
                   {!isOwn && (
                     <div className="space-y-1.5">
-                      <p className="text-[9px] text-muted-foreground">
+                      <p className="text-sm text-muted-foreground">
                         Defeat the garrison to raze this outpost. Wall level adds +{op.wall_level * 10} bonus defense.
                       </p>
                       <motion.button whileTap={{ scale: 0.95 }}
@@ -3813,11 +3813,11 @@ export default function WorldMap() {
               const coordLabel = `${(selected.data.x / 1000).toFixed(1)}k, ${(selected.data.y / 1000).toFixed(1)}k`;
               return (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <span className="text-2xl">📍</span>
                     <div>
                       <h3 className="font-display text-sm text-foreground">Open Territory</h3>
-                      <p className="text-[9px] text-muted-foreground font-mono">{coordLabel}</p>
+                      <p className="text-sm text-muted-foreground font-mono">{coordLabel}</p>
                     </div>
                   </div>
 
@@ -3825,10 +3825,10 @@ export default function WorldMap() {
                   <div className="bg-muted/30 rounded-lg p-2.5 space-y-1.5">
                     <div className="flex items-center justify-between">
                       <p className="font-display text-[11px] text-foreground">🏕️ Found Outpost</p>
-                      {!canBuildOutpost && <span className="text-[8px] text-destructive">TH Lv.3+</span>}
+                      {!canBuildOutpost && <span className="text-sm text-destructive">TH Lv.3+</span>}
                     </div>
-                    <p className="text-[9px] text-muted-foreground">Expand your borders by founding an outpost here.</p>
-                    <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">Expand your borders by founding an outpost here.</p>
+                    <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
                       <span className={resources.gold >= outpostCost.gold ? '' : 'text-destructive'}>🪙{outpostCost.gold}</span>
                       <span className={resources.wood >= outpostCost.wood ? '' : 'text-destructive'}>🪵{outpostCost.wood}</span>
                       <span className={resources.stone >= outpostCost.stone ? '' : 'text-destructive'}>🪨{outpostCost.stone}</span>
@@ -3865,14 +3865,14 @@ export default function WorldMap() {
                         });
                         setSelected(null);
                       }}
-                      className="w-full bg-primary text-primary-foreground font-display text-[11px] py-2 rounded-lg glow-gold-sm disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform">
+                      className="w-full bg-primary text-primary-foreground font-display text-[11px] py-3 rounded-lg glow-gold-sm disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform">
                       {!inRange ? '⚠️ Out of Range' : '🏕️ Found Outpost'}
                     </motion.button>
                   </div>
 
                   {/* Hint about settlement path */}
                   <div className="bg-muted/20 rounded-lg p-2 text-center">
-                    <p className="text-[9px] text-muted-foreground">💡 Upgrade an outpost to Lv.5 to convert it into a full settlement with its own village and resources.</p>
+                    <p className="text-sm text-muted-foreground">💡 Upgrade an outpost to Lv.5 to convert it into a full settlement with its own village and resources.</p>
                   </div>
                 </div>
               );

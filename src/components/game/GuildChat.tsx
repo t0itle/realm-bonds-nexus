@@ -62,14 +62,14 @@ export default function GuildChat({ allianceId }: { allianceId: string }) {
       <h3 className="font-display text-sm text-foreground">💬 Guild Chat</h3>
       <div ref={scrollRef} className="h-40 overflow-y-auto space-y-1.5 bg-secondary/30 rounded-lg p-2">
         {messages.length === 0 && (
-          <p className="text-[10px] text-muted-foreground text-center py-4">No messages yet</p>
+          <p className="text-sm text-muted-foreground text-center py-4">No messages yet</p>
         )}
         {messages.map(msg => (
           <div key={msg.id} className={`flex flex-col ${msg.sender_id === user?.id ? 'items-end' : 'items-start'}`}>
-            <span className="text-[8px] text-muted-foreground font-display">
+            <span className="text-sm text-muted-foreground font-display">
               {profileMap.get(msg.sender_id) || 'Unknown'}
             </span>
-            <div className={`rounded-lg px-2 py-1 max-w-[80%] ${
+            <div className={`rounded-lg px-3 py-2 max-w-[80%] ${
               msg.sender_id === user?.id ? 'bg-primary/20 text-foreground' : 'bg-muted text-foreground'
             }`}>
               <p className="text-[11px]">{msg.content}</p>
@@ -77,13 +77,13 @@ export default function GuildChat({ allianceId }: { allianceId: string }) {
           </div>
         ))}
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         <input type="text" placeholder="Chat..." value={newMsg}
           onChange={e => setNewMsg(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && send()}
-          className="flex-1 bg-secondary border border-border rounded-lg px-2 py-1.5 text-xs text-foreground" />
+          className="flex-1 bg-secondary border border-border rounded-lg px-3 py-2.5 text-sm text-foreground" />
         <motion.button whileTap={{ scale: 0.95 }} onClick={send}
-          className="bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-xs font-display">Send</motion.button>
+          className="bg-primary text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-display">Send</motion.button>
       </div>
     </div>
   );
