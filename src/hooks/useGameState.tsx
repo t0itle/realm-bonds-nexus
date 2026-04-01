@@ -1456,23 +1456,32 @@ export function GameProvider({ children }: { children: ReactNode }) {
     let vassalized = false;
     
     if (result.victory) {
-      // Raid resources: steal 15-30% based on power ratio
+      // Raid resources: steal 15-30% based on power ratio, but NEVER more than what the defender has
       const raidPercent = Math.min(0.3, 0.15 + result.powerRatio * 0.05);
+      const defGold = Math.max(0, Number(defVillage.gold));
+      const defWood = Math.max(0, Number(defVillage.wood));
+      const defStone = Math.max(0, Number(defVillage.stone));
+      const defFood = Math.max(0, Number(defVillage.food));
       resourcesRaided = {
-        gold: Math.floor(Number(defVillage.gold) * raidPercent),
-        wood: Math.floor(Number(defVillage.wood) * raidPercent),
-        stone: Math.floor(Number(defVillage.stone) * raidPercent),
-        food: Math.floor(Number(defVillage.food) * raidPercent),
+        gold: Math.min(Math.floor(defGold * raidPercent), defGold),
+        wood: Math.min(Math.floor(defWood * raidPercent), defWood),
+        stone: Math.min(Math.floor(defStone * raidPercent), defStone),
+        food: Math.min(Math.floor(defFood * raidPercent), defFood),
       };
       
-      // Take resources from defender, give to attacker
-      addResources(resourcesRaided);
-      await supabase.from('villages').update({
-        gold: Math.max(0, Number(defVillage.gold) - (resourcesRaided.gold || 0)),
-        wood: Math.max(0, Number(defVillage.wood) - (resourcesRaided.wood || 0)),
-        stone: Math.max(0, Number(defVillage.stone) - (resourcesRaided.stone || 0)),
-        food: Math.max(0, Number(defVillage.food) - (resourcesRaided.food || 0)),
-      } as any).eq('id', targetVillageId);
+      // Only give attacker what's actually taken — skip if nothing to raid
+      const totalRaided = (resourcesRaided.gold || 0) + (resourcesRaided.wood || 0) + (resourcesRaided.stone || 0) + (resourcesRaided.food || 0);
+      if (totalRaided > 0) {
+        addResources(resourcesRaided);
+        await supabase.from('villages').update({
+          gold: defGold - (resourcesRaided.gold || 0),
+          wood: defWood - (resourcesRaided.wood || 0),
+          stone: defStone - (resourcesRaided.stone || 0),
+          food: defFood - (resourcesRaided.food || 0),
+        } as any).eq('id', targetVillageId);
+      } else {
+        resourcesRaided = undefined; // Nothing to raid
+      }
       
       // Building damage: random building loses 1 level if power ratio > 1.5
       if (result.powerRatio > 1.5 && defBuildings && defBuildings.length > 0) {
