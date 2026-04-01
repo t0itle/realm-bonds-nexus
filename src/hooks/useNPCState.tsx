@@ -259,12 +259,6 @@ export function useNPCState() {
     });
   }, [townStates]);
 
-  // Check if player has scouted this NPC (has intel report for it)
-  const hasScoutedNPC = useCallback((npcTownId: string): boolean => {
-    // Check intel_reports loaded in the game state — we'll track scouted NPCs here
-    return scoutedNPCs.has(npcTownId);
-  }, []);
-
   // Get total hired mercenary power
   const getMercenaryPower = useCallback(() => {
     const MERC_POWER: Record<string, number> = { militia: 5, archer: 8, knight: 15, cavalry: 14, siege: 25 };
