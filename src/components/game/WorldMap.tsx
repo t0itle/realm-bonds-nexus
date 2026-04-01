@@ -1452,7 +1452,7 @@ export default function WorldMap() {
     setMarches(prev => [...prev, {
       id, targetName, arrivalTime,
       startTime: now, startX: myPos.x, startY: myPos.y,
-      targetX, targetY, waypoints, action,
+      targetX, targetY, waypoints, action, sentArmy,
     }]);
     if (user) {
       supabase.from('active_marches').insert({
