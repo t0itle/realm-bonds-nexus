@@ -1064,14 +1064,38 @@ export default function WorldMap() {
     return visionSources.some(source => Math.hypot(wx - source.x, wy - source.y) <= source.radius + padding);
   }, [visionSources]);
 
-  // Collect all terrain for pathfinding
-  const allTerrain = useMemo(() => {
+  // Collect all terrain for pathfinding — includes visible chunks
+  const visibleTerrain = useMemo(() => {
     const terrain: TerrainFeature[] = [];
     for (const chunk of visibleChunks) {
       terrain.push(...chunk.data.terrain);
     }
     return terrain;
   }, [visibleChunks]);
+
+  // Gather terrain along a march path (visible + all chunks between start and target)
+  const getTerrainForPath = useCallback((startX: number, startY: number, endX: number, endY: number): TerrainFeature[] => {
+    const terrain: TerrainFeature[] = [...visibleTerrain];
+    const loadedKeys = new Set(visibleChunks.map(c => `${c.cx},${c.cy}`));
+
+    // Determine all chunk coords along the bounding box of the path (with padding)
+    const pad = CHUNK_SIZE;
+    const minCX = Math.floor((Math.min(startX, endX) - pad) / CHUNK_SIZE);
+    const maxCX = Math.floor((Math.max(startX, endX) + pad) / CHUNK_SIZE);
+    const minCY = Math.floor((Math.min(startY, endY) - pad) / CHUNK_SIZE);
+    const maxCY = Math.floor((Math.max(startY, endY) + pad) / CHUNK_SIZE);
+
+    for (let cx = minCX; cx <= maxCX; cx++) {
+      for (let cy = minCY; cy <= maxCY; cy++) {
+        const key = `${cx},${cy}`;
+        if (loadedKeys.has(key)) continue;
+        loadedKeys.add(key);
+        const chunk = getChunk(cx, cy);
+        terrain.push(...chunk.terrain);
+      }
+    }
+    return terrain;
+  }, [visibleTerrain, visibleChunks]);
 
   // Bridge outpost positions for pathfinding — outposts with type 'bridge' allow crossing rivers
   const bridgeOutpostPositions = useMemo(() => {
@@ -1099,7 +1123,8 @@ export default function WorldMap() {
   const createMarch = useCallback((id: string, targetName: string, targetX: number, targetY: number, _travelSec: number, action: () => void) => {
     const myPos = getMyPos();
     const now = Date.now();
-    const waypoints = findPath(myPos.x, myPos.y, targetX, targetY, allTerrain, bridgeOutpostPositions);
+    const pathTerrain = getTerrainForPath(myPos.x, myPos.y, targetX, targetY);
+    const waypoints = findPath(myPos.x, myPos.y, targetX, targetY, pathTerrain, bridgeOutpostPositions);
 
     // Check if march path crosses any enemy wall
     let pathBlocked = false;
@@ -1151,7 +1176,7 @@ export default function WorldMap() {
     if (pathDist > Math.hypot(targetX - myPos.x, targetY - myPos.y) * 1.1) {
       toast.info(`Route adjusted around obstacles — travel time: ${actualTravelSec}s`);
     }
-  }, [getMyPos, allTerrain, bridgeOutpostPositions, army, user, displayName, findBlockingWall]);
+  }, [getMyPos, getTerrainForPath, bridgeOutpostPositions, army, user, displayName, findBlockingWall]);
 
   const getDistance = useCallback((targetX: number, targetY: number) => {
     const myPos = getMyPos();
@@ -2558,7 +2583,7 @@ export default function WorldMap() {
                       {op.outpost_type === 'outpost' && (() => {
                         // Check if this outpost is near any river
                         const BRIDGE_RIVER_DIST = 8000;
-                        const nearRiver = allTerrain.some(t => {
+                        const nearRiver = visibleTerrain.some(t => {
                           if (t.type !== 'river' || !t.points) return false;
                           for (let i = 0; i < t.points.length - 1; i++) {
                             if (isPointNearRiverSegment(op.x, op.y, t.points[i], t.points[i + 1], (t.width || 3000) + BRIDGE_RIVER_DIST)) return true;
