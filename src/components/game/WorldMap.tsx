@@ -420,12 +420,29 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
   const dist = Math.sqrt((chunkCenterX - WORLD_SIZE / 2) ** 2 + (chunkCenterY - WORLD_SIZE / 2) ** 2) / (WORLD_SIZE / 2);
   const difficultyMult = 1 + dist * 0.6;
 
-  // Generate region name for this chunk
-  const regionName = generateRegionName(rng);
-  const regionBiome = BIOME_TYPES[Math.floor(rng() * BIOME_TYPES.length)];
+  // Biome determination
+  let regionBiome: string;
+  if (region.type === 'continent') {
+    const subBiomes = CONTINENT_SUB_BIOMES[region.continent.biome] || [region.continent.biome];
+    regionBiome = subBiomes[Math.floor(rng() * subBiomes.length)];
+  } else if (region.type === 'island') {
+    regionBiome = region.island.biome;
+  } else {
+    regionBiome = 'Coast';
+  }
 
-  // 0-1 realms per chunk (reduced density for cleaner map)
-  const realmCount = rng() < 0.45 ? 0 : 1;
+  const regionName = isOceanChunk
+    ? `${BIOME_ADJECTIVES[Math.floor(rng() * BIOME_ADJECTIVES.length)]} Sea`
+    : generateRegionName(rng);
+
+  // Ocean chunks get nothing
+  if (isOceanChunk && !isIslandChunk) {
+    return { realms: [], events: [], terrain: [], steelMines: [], decorations: [], regionName, regionBiome: 'Coast' };
+  }
+
+  // Realms
+  const realmChance = isIslandChunk ? 0.15 : 0.55;
+  const realmCount = rng() < realmChance ? 0 : 1;
   const realms: ProceduralRealm[] = [];
   for (let i = 0; i < realmCount; i++) {
     const emojiIdx = Math.floor(rng() * REALM_EMOJIS.length);
@@ -441,15 +458,15 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
       y: worldBaseY + 15000 + rng() * (CHUNK_SIZE - 30000),
       emoji: REALM_EMOJIS[emojiIdx],
       type,
-      desc: `A ${type} kingdom in the ${dist < 3 ? 'heartlands' : dist < 8 ? 'frontier' : 'deep wilds'}. Power grows with distance from the center.`,
+      desc: `A ${type} kingdom in ${region.type === 'continent' ? region.continent.name : region.type === 'island' ? region.island.name : 'the wilds'}.`,
       territory: 8000 + Math.floor(rng() * 16000),
     });
   }
 
-  // 1-4 events per chunk — use time-based seed rotation so events change periodically
-  const timeSeed = Math.floor(Date.now() / (1000 * 60 * 30)); // rotates every 30 minutes
+  // Events
+  const timeSeed = Math.floor(Date.now() / (1000 * 60 * 30));
   const eventRng = seededRandom(hashCoords(chunkX, chunkY, timeSeed + 99));
-  const eventCount = 1 + Math.floor(eventRng() * 2); // reduced from 4 to 2 max extras
+  const eventCount = isIslandChunk ? 1 : (1 + Math.floor(eventRng() * 2));
   const events: ProceduralEvent[] = [];
   for (let i = 0; i < eventCount; i++) {
     const baseIdx = Math.floor(eventRng() * EVENT_BASES.length);
@@ -457,16 +474,13 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
     const nameIdx = Math.floor(eventRng() * base.names.length);
     const descIdx = Math.floor(eventRng() * base.descs.length);
     let eventName = base.names[nameIdx];
-    const adjRoll = eventRng();
-    if (adjRoll < 0.3) {
+    if (eventRng() < 0.3) {
       eventName = `${EVENT_ADJECTIVES[Math.floor(eventRng() * EVENT_ADJECTIVES.length)]} ${eventName}`;
     }
     let eventDesc = `${eventName} ${base.descs[descIdx]}`;
-    const locRoll = eventRng();
-    if (locRoll < 0.5) {
+    if (eventRng() < 0.5) {
       eventDesc += ` ${EVENT_LOCATIONS[Math.floor(eventRng() * EVENT_LOCATIONS.length)]}`;
     }
-    const rewardMult = difficultyMult;
     events.push({
       id: `event-${chunkX}-${chunkY}-${i}-${timeSeed}`,
       name: eventName,
@@ -477,106 +491,34 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
       x: worldBaseX + 10000 + eventRng() * (CHUNK_SIZE - 20000),
       y: worldBaseY + 10000 + eventRng() * (CHUNK_SIZE - 20000),
       reward: {
-        gold: Math.floor((50 + eventRng() * 200) * rewardMult),
-        wood: base.type === 'opportunity' ? Math.floor((30 + eventRng() * 100) * rewardMult) : 0,
-        stone: base.type === 'mystery' ? Math.floor((40 + eventRng() * 120) * rewardMult) : 0,
-        food: base.type === 'opportunity' ? Math.floor((30 + eventRng() * 80) * rewardMult) : 0,
+        gold: Math.floor((50 + eventRng() * 200) * difficultyMult),
+        wood: base.type === 'opportunity' ? Math.floor((30 + eventRng() * 100) * difficultyMult) : 0,
+        stone: base.type === 'mystery' ? Math.floor((40 + eventRng() * 120) * difficultyMult) : 0,
+        food: base.type === 'opportunity' ? Math.floor((30 + eventRng() * 80) * difficultyMult) : 0,
       },
     });
   }
 
-  // ── Terrain features ──
+  // ── Terrain (lakes only — rivers & mountains are continent-level now) ──
   const LAKE_NAMES = ['Mirror Lake', 'Lake Sorrow', 'Azure Pool', 'Dead Mere', 'Crystal Waters', 'Shadow Pond', 'Moonwell', 'Serpent Lake', 'Frozen Tarn', 'Emerald Basin'];
-  const MTN_NAMES = ['Mt. Dread', 'Frostpeak', 'Ironjaw Summit', 'The Spire', 'Ashcrown', 'Thunder Ridge', 'Skullcap Peak', 'Dragonspine', 'The Anvil', 'Stormbreak'];
-  const RIVER_NAMES = ['River Styx', 'Goldrun', 'Silvervein', 'The Serpent', 'Whitewater', 'Blackflow', 'Crimson Creek', 'Mistbrook', 'Thornstream', 'Deepchannel'];
-  const ISLAND_NAMES = ['Isle of Bones', 'Verdant Atoll', 'Skull Rock', 'Trader\'s Rest', 'Phantom Isle', 'Coral Haven', 'Driftwood Key', 'Ember Isle', 'Windward Cay', 'Smuggler\'s Den'];
-
   const terrain: TerrainFeature[] = [];
-
-  // Lakes (0-2 per chunk, more in Coast/Marsh/Jungle biomes)
-  const lakeChance = regionBiome === 'Coast' || regionBiome === 'Marsh' || regionBiome === 'Jungle' ? 0.8 : 0.35;
+  const lakeChance = regionBiome === 'Coast' || regionBiome === 'Marsh' || regionBiome === 'Jungle' ? 0.8 : regionBiome === 'Desert' ? 0.1 : 0.35;
   const lakeCount = rng() < lakeChance ? (rng() < 0.4 ? 2 : 1) : 0;
   for (let i = 0; i < lakeCount; i++) {
+    const isOasis = regionBiome === 'Desert';
     terrain.push({
       type: 'lake',
       x: worldBaseX + 8000 + rng() * (CHUNK_SIZE - 16000),
       y: worldBaseY + 8000 + rng() * (CHUNK_SIZE - 16000),
-      width: 4000 + rng() * 10000,
-      height: 3000 + rng() * 7000,
+      width: isOasis ? 2000 + rng() * 4000 : 4000 + rng() * 10000,
+      height: isOasis ? 1500 + rng() * 3000 : 3000 + rng() * 7000,
       rotation: rng() * 360,
-      name: LAKE_NAMES[Math.floor(rng() * LAKE_NAMES.length)],
+      name: isOasis ? 'Oasis' : LAKE_NAMES[Math.floor(rng() * LAKE_NAMES.length)],
     });
   }
 
-  // Mountains (0-3 per chunk, more in Highlands/Tundra/Badlands)
-  const mtnChance = regionBiome === 'Highlands' || regionBiome === 'Tundra' || regionBiome === 'Badlands' ? 0.9 : 0.3;
-  const mtnCount = rng() < mtnChance ? 1 + Math.floor(rng() * 3) : 0;
-  for (let i = 0; i < mtnCount; i++) {
-    terrain.push({
-      type: 'mountain',
-      x: worldBaseX + 5000 + rng() * (CHUNK_SIZE - 10000),
-      y: worldBaseY + 5000 + rng() * (CHUNK_SIZE - 10000),
-      width: 3000 + rng() * 8000,
-      height: 3000 + rng() * 8000,
-      name: MTN_NAMES[Math.floor(rng() * MTN_NAMES.length)],
-    });
-  }
-
-  // Rivers (0-1 per chunk, with bridges)
-  if (rng() < 0.45) {
-    const riverPoints: { x: number; y: number }[] = [];
-    const segments = 5 + Math.floor(rng() * 4);
-    const startEdge = Math.floor(rng() * 4); // 0=top, 1=right, 2=bottom, 3=left
-    let rx = worldBaseX, ry = worldBaseY;
-    if (startEdge === 0) { rx = worldBaseX + rng() * CHUNK_SIZE; ry = worldBaseY; }
-    else if (startEdge === 1) { rx = worldBaseX + CHUNK_SIZE; ry = worldBaseY + rng() * CHUNK_SIZE; }
-    else if (startEdge === 2) { rx = worldBaseX + rng() * CHUNK_SIZE; ry = worldBaseY + CHUNK_SIZE; }
-    else { rx = worldBaseX; ry = worldBaseY + rng() * CHUNK_SIZE; }
-    riverPoints.push({ x: rx, y: ry });
-    for (let s = 1; s <= segments; s++) {
-      const t = s / segments;
-      const targetX = startEdge === 1 ? worldBaseX : startEdge === 3 ? worldBaseX + CHUNK_SIZE : worldBaseX + rng() * CHUNK_SIZE;
-      const targetY = startEdge === 0 ? worldBaseY + CHUNK_SIZE : startEdge === 2 ? worldBaseY : worldBaseY + rng() * CHUNK_SIZE;
-      rx = rx + (targetX - rx) * t + (rng() - 0.5) * 8000;
-      ry = ry + (targetY - ry) * t + (rng() - 0.5) * 8000;
-      rx = Math.max(worldBaseX, Math.min(worldBaseX + CHUNK_SIZE, rx));
-      ry = Math.max(worldBaseY, Math.min(worldBaseY + CHUNK_SIZE, ry));
-      riverPoints.push({ x: rx, y: ry });
-    }
-    // Place 1-2 bridges along the river
-    const bridges: { x: number; y: number }[] = [];
-    const bridgeCount = 1 + Math.floor(rng() * 2);
-    for (let b = 0; b < bridgeCount; b++) {
-      const idx = 1 + Math.floor(rng() * (riverPoints.length - 2));
-      bridges.push(riverPoints[idx]);
-    }
-    terrain.push({
-      type: 'river',
-      x: riverPoints[0].x,
-      y: riverPoints[0].y,
-      width: 800 + rng() * 1500,
-      height: 0,
-      points: riverPoints,
-      bridgeAt: bridges,
-      name: RIVER_NAMES[Math.floor(rng() * RIVER_NAMES.length)],
-    });
-  }
-
-  // Islands (only in Coast biome or near lakes, 0-1)
-  if (regionBiome === 'Coast' || (lakeCount > 0 && rng() < 0.4)) {
-    terrain.push({
-      type: 'island',
-      x: worldBaseX + 10000 + rng() * (CHUNK_SIZE - 20000),
-      y: worldBaseY + 10000 + rng() * (CHUNK_SIZE - 20000),
-      width: 3000 + rng() * 6000,
-      height: 2000 + rng() * 4000,
-      rotation: rng() * 360,
-      name: ISLAND_NAMES[Math.floor(rng() * ISLAND_NAMES.length)],
-    });
-  }
-
-  // Steel mines (0-1 per chunk, more common in Highlands/Badlands)
-  const MINE_NAMES = ['Iron Vein', 'Deep Forge', 'Obsidian Pit', 'Steelcrag Mine', 'The Black Seam', 'Titan\'s Quarry', 'Shadowsteel Delve', 'Ore Hollow', 'Molten Core', 'The Crucible'];
+  // Steel mines
+  const MINE_NAMES = ['Iron Vein', 'Deep Forge', 'Obsidian Pit', 'Steelcrag Mine', 'The Black Seam', "Titan's Quarry", 'Shadowsteel Delve', 'Ore Hollow', 'Molten Core', 'The Crucible'];
   const steelMines: SteelMine[] = [];
   const mineChance = regionBiome === 'Highlands' || regionBiome === 'Badlands' ? 0.5 : regionBiome === 'Tundra' ? 0.3 : 0.12;
   if (rng() < mineChance) {
@@ -590,7 +532,7 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
     });
   }
 
-  // ── Decorations (trees, grass, rocks) — sparse scatter for clean look ──
+  // Decorations
   const decorations: Decoration[] = [];
   const decoTypes: Decoration['type'][] = 
     regionBiome === 'Forest' || regionBiome === 'Jungle' ? ['trees', 'trees', 'grass'] :
@@ -615,13 +557,12 @@ function generateChunk(chunkX: number, chunkY: number): ChunkData {
   return { realms, events, terrain, steelMines, decorations, regionName, regionBiome };
 }
 
-// ── Chunk cache (time-keyed so events rotate) ──
+// ── Chunk cache ──
 const chunkCache = new Map<string, ChunkData>();
 let chunkCacheTimeSeed = Math.floor(Date.now() / (1000 * 60 * 30));
 
 function getChunk(cx: number, cy: number): ChunkData {
   const currentTimeSeed = Math.floor(Date.now() / (1000 * 60 * 30));
-  // Invalidate cache when time seed changes (events rotate every 30min)
   if (currentTimeSeed !== chunkCacheTimeSeed) {
     chunkCache.clear();
     chunkCacheTimeSeed = currentTimeSeed;
@@ -637,7 +578,6 @@ function getChunk(cx: number, cy: number): ChunkData {
   return chunkCache.get(key)!;
 }
 
-const TYPE_COLORS = { hostile: 'bg-destructive', neutral: 'bg-muted-foreground', friendly: 'bg-food' };
 const EVENT_COLORS = { danger: 'border-destructive/60 bg-destructive/20', opportunity: 'border-primary/60 bg-primary/20', mystery: 'border-accent/60 bg-accent/20' };
 
 type SelectedItem =
