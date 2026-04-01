@@ -178,7 +178,7 @@ export default function DungeonMasterPanel() {
   };
 
   return (
-    <div className="flex flex-col h-full p-2 gap-3">
+    <div className="flex flex-col h-full p-2 gap-3 parchment-panel rounded-xl">
       {/* Event Banner */}
       <AnimatePresence>
         {eventBanner && (
