@@ -1477,6 +1477,24 @@ export default function WorldMap() {
           })()}
         </svg>
 
+        {/* ── Ocean chunk overlays ── */}
+        {visibleChunks.filter(c => c.data.regionBiome === 'Ocean').map(chunk => {
+          const { sx, sy } = worldToScreen(chunk.cx * CHUNK_SIZE, chunk.cy * CHUNK_SIZE);
+          const size = CHUNK_SIZE * camera.ppu;
+          if (size < 4) return null;
+          return (
+            <div key={`ocean-${chunk.cx}-${chunk.cy}`}
+              className="absolute pointer-events-none"
+              style={{
+                left: sx, top: sy,
+                width: size, height: size,
+                background: 'radial-gradient(ellipse at center, hsl(210 80% 25% / 0.6), hsl(215 85% 18% / 0.75) 60%, hsl(220 90% 12% / 0.85))',
+                borderRadius: 0,
+              }}
+            />
+          );
+        })}
+
         {/* ── Terrain Features ── */}
         {visibleChunks.map(chunk => chunk.data.terrain.map((t, ti) => {
           if (t.type === 'lake') {
