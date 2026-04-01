@@ -9,6 +9,7 @@ import { useProduction } from './useProduction';
 import { useWorkerManagement } from './useWorkerManagement';
 import { useTroopManagement } from './useTroopManagement';
 import { useBuildingManagement } from './useBuildingManagement';
+import { useTroopTraining } from './useTroopTraining';
 
 // Re-export all types from gameTypes
 export type {
@@ -888,53 +889,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     steel, setSteel, villageId, user, canAfford, canAffordSteel, storageCapacity,
     currentHouses, maxHouses, setWorkerAssignments,
   });
-  const trainTroops = useCallback((type: TroopType, count: number) => {
-    const info = TROOP_INFO[type];
-    const barracksLvl = getBarracksLevel();
-    
-    // Count troops currently in the training queue (not yet added to army)
-    const queuedSoldiers = trainingQueue.reduce((sum, q) => sum + TROOP_INFO[q.type].popCost * q.count, 0);
-    
-    console.log('[trainTroops]', { type, count, barracksLvl, required: info.requiredBarracksLevel, totalSoldiers, queuedSoldiers, armyCap, civilians: population.civilians, resources, steel });
-    if (barracksLvl < info.requiredBarracksLevel) { console.log('[trainTroops] FAIL: barracks too low'); return false; }
-    const totalCost: Resources = {
-      gold: info.cost.gold * count, wood: info.cost.wood * count,
-      stone: info.cost.stone * count, food: info.cost.food * count,
-    };
-    const totalSteelCost = info.steelCost * count;
-    if (!canAfford(totalCost) || !canAffordSteel(totalSteelCost)) { console.log('[trainTroops] FAIL: cant afford', { totalCost, totalSteelCost }); return false; }
-    const popNeeded = info.popCost * count;
-    // Check army cap INCLUDING troops currently training
-    if (totalSoldiers + queuedSoldiers + popNeeded > armyCap) { console.log('[trainTroops] FAIL: over army cap (including queued)', { totalSoldiers, queuedSoldiers, popNeeded, armyCap }); return false; }
-    if (population.civilians < popNeeded) { console.log('[trainTroops] FAIL: not enough civilians', { civilians: population.civilians, popNeeded }); return false; }
-
-    const newResources = {
-      gold: resources.gold - totalCost.gold, wood: resources.wood - totalCost.wood,
-      stone: resources.stone - totalCost.stone, food: resources.food - totalCost.food,
-    };
-    setResources(newResources);
-    const newSteel = totalSteelCost > 0 ? steel - totalSteelCost : steel;
-    if (totalSteelCost > 0) setSteel(newSteel);
-    // Persist to DB
-    if (villageId) {
-      supabase.from('villages').update({ ...newResources, steel: newSteel }).eq('id', villageId).then();
-    }
-    const finishTime = Date.now() + info.trainTime * 1000 * count;
-    setTrainingQueue(prev => [...prev, { type, count, finishTime }]);
-    // Persist to training_queue table
-    if (user) supabase.from('training_queue').insert({ user_id: user.id, troop_type: type, count, finish_time: new Date(finishTime).toISOString() } as any).then();
-    return true;
-  }, [canAfford, canAffordSteel, getBarracksLevel, totalSoldiers, armyCap, population.civilians, resources, steel, villageId, user, trainingQueue]);
-
-  const totalArmyPower = useCallback(() => {
-    let attack = 0, defense = 0;
-    for (const [type, count] of Object.entries(army)) {
-      const info = TROOP_INFO[type as TroopType];
-      attack += info.attack * count;
-      defense += info.defense * count;
-    }
-    return { attack, defense };
-  }, [army]);
+  const { trainTroops, totalArmyPower } = useTroopTraining({
+    trainingQueue, setTrainingQueue, army, resources, setResources, steel, setSteel,
+    villageId, user, canAfford, canAffordSteel, getBarracksLevel, totalSoldiers, armyCap, population,
+  });
 
 
 
