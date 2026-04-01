@@ -1587,19 +1587,41 @@ export default function WorldMap() {
 
     const dx = e.clientX - drag.x;
     const dy = e.clientY - drag.y;
-    const startCx = drag.cx;
-    const startCy = drag.cy;
 
-    safeSetCamera(prev => ({
-      ...prev,
-      cx: startCx - dx / prev.ppu,
-      cy: startCy - dy / prev.ppu,
-    }));
+    // Store latest delta and schedule rAF update
+    pendingPan.current = { dx, dy, startCx: drag.cx, startCy: drag.cy };
+    if (panRafId.current === null) {
+      panRafId.current = requestAnimationFrame(() => {
+        panRafId.current = null;
+        const pan = pendingPan.current;
+        if (!pan) return;
+        safeSetCamera(prev => ({
+          ...prev,
+          cx: pan.startCx - pan.dx / prev.ppu,
+          cy: pan.startCy - pan.dy / prev.ppu,
+        }));
+      });
+    }
   }, [safeSetCamera]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     const drag = dragStart.current;
     if (drag) {
+      // Flush any pending pan update immediately
+      if (panRafId.current !== null) {
+        cancelAnimationFrame(panRafId.current);
+        panRafId.current = null;
+        const pan = pendingPan.current;
+        if (pan) {
+          safeSetCamera(prev => ({
+            ...prev,
+            cx: pan.startCx - pan.dx / prev.ppu,
+            cy: pan.startCy - pan.dy / prev.ppu,
+          }));
+        }
+      }
+      pendingPan.current = null;
+
       const dx = e.clientX - drag.x;
       const dy = e.clientY - drag.y;
       const moved = Math.abs(dx) + Math.abs(dy);
@@ -1616,7 +1638,7 @@ export default function WorldMap() {
       }
     }
     dragStart.current = null;
-  }, [camera, containerSize]);
+  }, [camera, containerSize, safeSetCamera]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 2) {
@@ -1637,7 +1659,16 @@ export default function WorldMap() {
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     const factor = e.deltaY > 0 ? 0.85 : 1.18;
-    safeSetCamera(prev => ({ ...prev, ppu: Math.max(0.00005, Math.min(0.05, prev.ppu * factor)) }));
+    // Accumulate zoom factor and batch via rAF
+    pendingZoomFactor.current *= factor;
+    if (zoomRafId.current === null) {
+      zoomRafId.current = requestAnimationFrame(() => {
+        zoomRafId.current = null;
+        const accumulated = pendingZoomFactor.current;
+        pendingZoomFactor.current = 1;
+        safeSetCamera(prev => ({ ...prev, ppu: Math.max(0.00005, Math.min(0.05, prev.ppu * accumulated)) }));
+      });
+    }
   }, [safeSetCamera]);
 
   const getPlayerPos = (id: string) => {
