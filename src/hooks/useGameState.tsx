@@ -453,8 +453,11 @@ export function getSlowestTroopSpeed(army: Army): number {
 
 export function calcMarchTime(distance: number, army: Army): number {
   const speed = getSlowestTroopSpeed(army);
-  // Higher speed = faster travel. Base: distance / (speed * 200) seconds
-  return Math.max(5, Math.floor(distance / (speed * 200)));
+  const base = Math.floor(distance / (speed * 200));
+  // Scouts speed up marches: 3% per scout, capped at 30%
+  const scoutCount = army.scout || 0;
+  const scoutBonus = Math.min(0.30, scoutCount * 0.03);
+  return Math.max(5, Math.floor(base * (1 - scoutBonus)));
 }
 
 export const WATCHTOWER_RANGE_BONUS = 3000; // extra range per watchtower level
