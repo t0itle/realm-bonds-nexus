@@ -111,13 +111,15 @@ export default function AttackConfigPanel({
         const warnings: string[] = [];
 
         for (const [enemyType] of presentTypes) {
-          const info = TROOP_INFO[enemyType];
-          for (const [ourType] of (Object.entries(TROOP_COUNTERS) as [TroopType, { strongVs: TroopType[]; weakVs: TroopType[] }][])) {
-            if (TROOP_COUNTERS[ourType].strongVs.includes(enemyType) && army[ourType] > 0) {
-              strengths.push(`${TROOP_INFO[ourType].name} beat ${info.name}`);
+          const enemyInfo = TROOP_INFO[enemyType as TroopType];
+          for (const ourType of TROOP_TYPES) {
+            if (army[ourType] <= 0) continue;
+            const counters = TROOP_COUNTERS[ourType];
+            if (counters.strongVs.includes(enemyType as TroopType)) {
+              strengths.push(`${TROOP_INFO[ourType].name} beat ${enemyInfo.name}`);
             }
-            if (TROOP_COUNTERS[ourType].weakVs.includes(enemyType) && army[ourType] > 0) {
-              warnings.push(`${TROOP_INFO[ourType].name} vs ${info.name}`);
+            if (counters.weakVs.includes(enemyType as TroopType)) {
+              warnings.push(`${TROOP_INFO[ourType].name} vs ${enemyInfo.name}`);
             }
           }
         }
