@@ -2249,31 +2249,6 @@ export default function WorldMap() {
           );
         })}
 
-        {/* ── Fog of War — fully obscures anything outside vision ── */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 45 }}>
-          <defs>
-            <mask id="fog-mask">
-              <rect width="100%" height="100%" fill="white" />
-              {visionSources.map((source, index) => {
-                const { sx, sy } = worldToScreen(source.x, source.y);
-                const radius = source.radius * camera.ppu;
-                if (radius < 5) return null;
-
-                return <circle key={index} cx={sx} cy={sy} r={radius} fill="black" />;
-              })}
-            </mask>
-            <filter id="fog-clouds" x="-10%" y="-10%" width="120%" height="120%">
-              <feTurbulence type="fractalNoise" baseFrequency="0.008" numOctaves="5" seed="7" result="noise" />
-              <feColorMatrix type="saturate" values="0" in="noise" result="gn" />
-              <feComponentTransfer in="gn" result="tn">
-                <feFuncA type="linear" slope="0.35" intercept="0.05" />
-              </feComponentTransfer>
-              <feGaussianBlur stdDeviation="6" in="tn" />
-            </filter>
-          </defs>
-          <rect width="100%" height="100%" fill="hsl(220 20% 7% / 0.93)" mask="url(#fog-mask)" />
-          <rect width="100%" height="100%" fill="hsl(220 15% 18% / 0.4)" mask="url(#fog-mask)" filter="url(#fog-clouds)" />
-        </svg>
 
         {/* ── Unified Territory borders + Explicit Wall segments ── */}
         {(() => {
