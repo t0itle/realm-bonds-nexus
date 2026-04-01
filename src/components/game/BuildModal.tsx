@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame, BuildingType, BUILDING_INFO, getUpgradeCost } from '@/hooks/useGameState';
-import { BUILDING_SPRITES } from './sprites';
+import { useTroopSkins } from '@/hooks/useTroopSkins';
 import ResourceIcon, { getResourceType } from './ResourceIcon';
 
 const BUILDABLE: Exclude<BuildingType, 'empty' | 'townhall'>[] = [
@@ -16,6 +16,7 @@ function formatTime(s: number) {
 
 export default function BuildModal({ position, onClose }: { position: number; onClose: () => void }) {
   const { buildAt, canAfford, canAffordSteel, resources, steel, getBuildTime } = useGame();
+  const { getBuildingSprite } = useTroopSkins();
   const [steelPopup, setSteelPopup] = useState(false);
 
   const handleBuild = async (type: Exclude<BuildingType, 'empty'>) => {
@@ -55,7 +56,7 @@ export default function BuildModal({ position, onClose }: { position: number; on
               const info = BUILDING_INFO[type];
               const cost = getUpgradeCost(type, 0);
               const affordable = canAfford(cost) && (cost.steel <= 0 || canAffordSteel(cost.steel));
-              const sprite = BUILDING_SPRITES[type];
+              const sprite = getBuildingSprite(type);
               const buildTime = getBuildTime(type, 0);
               const needsSteel = cost.steel > 0 && !canAffordSteel(cost.steel);
 

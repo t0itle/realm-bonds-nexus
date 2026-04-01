@@ -6,6 +6,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BUILDING_SPRITES } from './sprites';
+import { FACTION_BUILDING_SPRITES } from './factionSprites';
 import crownOverlay from '@/assets/sprites/crown-overlay.png';
 import ResourceIcon from './ResourceIcon';
 
@@ -34,8 +35,7 @@ function CrownAvatar({ avatarUrl, emoji, size = 64 }: { avatarUrl?: string | nul
 export default function ProfilePanel() {
   const { villageName, playerLevel, buildings, totalProduction, steelProduction, displayName, avatarUrl, army, totalArmyPower, setDisplayName, setVillageName, setAvatarUrl, resources } = useGame();
   const { signOut, user } = useAuth();
-  const { activeSkin, ownedSkins, purchaseSkin, setActiveSkin, getTroopDisplay, getSpriteFilter } = useTroopSkins();
-  const spriteFilter = getSpriteFilter();
+  const { activeSkin, ownedSkins, purchaseSkin, setActiveSkin, getTroopDisplay, getBuildingSprite } = useTroopSkins();
   const { isSupported, isSubscribed, subscribe, unsubscribe, permission } = usePushNotifications();
   const totalBuildingLevels = buildings.reduce((sum, b) => sum + b.level, 0);
   const power = totalArmyPower();
@@ -230,7 +230,7 @@ export default function ProfilePanel() {
         <div className="flex items-center justify-center gap-2 py-2">
           {(['townhall', 'barracks', 'farm'] as const).map(bType => (
             <div key={bType} className="flex flex-col items-center">
-              <img src={BUILDING_SPRITES[bType]} alt={bType} className="w-10 h-10 object-contain" style={{ filter: spriteFilter }} />
+              <img src={getBuildingSprite(bType)} alt={bType} className="w-10 h-10 object-contain" />
               <span className="text-[7px] text-muted-foreground mt-0.5">{BUILDING_INFO[bType].name}</span>
             </div>
           ))}
@@ -252,7 +252,7 @@ export default function ProfilePanel() {
                 <div className="flex items-center gap-3">
                   {/* Sprite preview with this skin's filter */}
                   <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-background/50 flex items-center justify-center overflow-hidden">
-                    <img src={BUILDING_SPRITES.townhall} alt={skin.name} className="w-10 h-10 object-contain" style={{ filter: skin.spriteFilter }} />
+                    <img src={skin.id !== 'default' && FACTION_BUILDING_SPRITES[skin.id] ? FACTION_BUILDING_SPRITES[skin.id].townhall : BUILDING_SPRITES.townhall} alt={skin.name} className="w-10 h-10 object-contain" />
                   </div>
 
                   <div className="flex-1 min-w-0">

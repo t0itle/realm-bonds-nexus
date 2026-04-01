@@ -181,8 +181,7 @@ function CollapsibleSection({ icon, title, defaultOpen, children }: {
 
 export default function VillageGrid() {
   const { buildings, upgradeBuilding, demolishBuilding, canAfford, canAffordSteel, isBuildingUpgrading, getBuildTime, resources, steel } = useGame();
-  const { getSpriteFilter } = useTroopSkins();
-  const spriteFilter = getSpriteFilter();
+  const { getBuildingSprite } = useTroopSkins();
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [buildPosition, setBuildPosition] = useState<number | null>(null);
   const [, forceUpdate] = useState(0);
@@ -207,7 +206,7 @@ export default function VillageGrid() {
         <div className={`grid gap-2.5 w-full max-w-xs`} style={{ gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))` }}>
           {grid.map((building, i) => {
             const type = building?.type as Exclude<BuildingType, 'empty'> | undefined;
-            const sprite = type ? BUILDING_SPRITES[type] : null;
+            const sprite = type ? getBuildingSprite(type) : null;
             const worker = type ? WORKER_FOR_BUILDING[type] : null;
             const upgrading = building ? isBuildingUpgrading(building.id) : undefined;
             const isUnderConstruction = building && building.level === 0;
@@ -233,7 +232,6 @@ export default function VillageGrid() {
                       src={sprite}
                       alt={BUILDING_INFO[type!].name}
                       className={`w-16 h-16 object-contain drop-shadow-lg ${(upgrading || isUnderConstruction) ? 'opacity-50 grayscale' : ''}`}
-                      style={{ filter: (!upgrading && !isUnderConstruction) ? spriteFilter : undefined }}
                       loading="lazy"
                     />
                     {/* Build/upgrade timer overlay */}
@@ -370,11 +368,10 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
 }) {
   const [confirmDemolish, setConfirmDemolish] = useState(false);
   const [steelPopup, setSteelPopup] = useState(false);
-  const { getSpriteFilter } = useTroopSkins();
-  const spriteFilter = getSpriteFilter();
+  const { getBuildingSprite } = useTroopSkins();
   const type = building.type as Exclude<BuildingType, 'empty'>;
   const info = BUILDING_INFO[type];
-  const sprite = BUILDING_SPRITES[type];
+  const sprite = getBuildingSprite(type);
   const upgradeCost = getUpgradeCost(type, building.level);
   const production = getProduction(type, building.level);
   const steelProd = getSteelProduction(type, building.level);
@@ -395,7 +392,7 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
-        <img src={sprite} alt={info.name} className="w-16 h-16 object-contain" style={{ filter: spriteFilter }} />
+        <img src={sprite} alt={info.name} className="w-16 h-16 object-contain" />
         <div>
           <h3 className="font-display text-lg text-foreground">
             {type === 'townhall' && building.level >= 7 ? '🏰 Castle' : info.name}
