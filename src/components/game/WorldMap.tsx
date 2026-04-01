@@ -1140,12 +1140,23 @@ export default function WorldMap() {
   const DEFAULT_CAMERA = { cx: 100000, cy: 100000, ppu: 0.003 };
   const initializedCamera = useRef(false);
   const [camera, setCamera] = useState(DEFAULT_CAMERA);
+  const rafRef = useRef<number | null>(null);
+  const pendingCamera = useRef<typeof DEFAULT_CAMERA | null>(null);
   const safeSetCamera = useCallback((updater: (prev: typeof DEFAULT_CAMERA) => typeof DEFAULT_CAMERA) => {
     setCamera(prev => {
       const safe = prev ?? DEFAULT_CAMERA;
       return updater(safe);
     });
   }, []);
+  // RAF-throttled camera setter for drag — only commits once per animation frame
+  const rafSetCamera = useCallback((updater: (prev: typeof DEFAULT_CAMERA) => typeof DEFAULT_CAMERA) => {
+    if (rafRef.current) return; // already scheduled
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      safeSetCamera(updater);
+    });
+  }, [safeSetCamera]);
+  useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); }, []);
   const containerRef = useRef<HTMLDivElement>(null);
   const dragStart = useRef<{ x: number; y: number; cx: number; cy: number } | null>(null);
   const lastTouchDist = useRef<number | null>(null);
