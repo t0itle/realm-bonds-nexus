@@ -2514,6 +2514,7 @@ export default function WorldMap() {
             cameraPpu={camera.ppu}
             displayName={displayName}
             soldierSprite={FACTION_SOLDIER_SPRITES[activeSkin.id] || FACTION_SOLDIER_SPRITES.default || mapSoldier}
+            containerSize={containerSize}
           />
         ))}
 
