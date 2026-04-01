@@ -2554,9 +2554,11 @@ export default function WorldMap() {
                 onUpdateSentiment={npcState.updateSentiment}
                 onSetRelationStatus={npcState.setRelationStatus}
                 onHireMercenaries={npcState.hireMercenaries}
+                onDeductNPCStock={npcState.deductNPCStock}
                 isInRange={isInRange(selected.data.x, selected.data.y)}
                 travelTime={calcTravelTime(selected.data.x, selected.data.y)}
                 hasActiveTrade={tradeContracts.some(c => c.realmId === selected.data.id)}
+                isScouted={npcState.scoutedNPCs.has(selected.data.id) || npcState.scoutedNPCs.has(selected.data.name)}
               />
             )}
 
