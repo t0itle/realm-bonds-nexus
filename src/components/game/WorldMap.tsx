@@ -875,7 +875,7 @@ type SelectedItem =
   | { kind: 'event'; data: ProceduralEvent; chunkKey: string; index: number }
   | { kind: 'player'; data: any }
   | { kind: 'mine'; data: SteelMine }
-  | { kind: 'outpost'; data: { id: string; x: number; y: number; name: string; user_id: string; level: number; garrison_power: number; has_wall: boolean; wall_level: number; territory_radius: number; outpost_type: string } }
+  | { kind: 'outpost'; data: { id: string; x: number; y: number; name: string; user_id: string; level: number; garrison_power: number; garrison_troops: Partial<Record<string, number>>; has_wall: boolean; wall_level: number; territory_radius: number; outpost_type: string } }
   | { kind: 'empty'; data: { x: number; y: number } }
   | null;
 
