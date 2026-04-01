@@ -1649,6 +1649,24 @@ export function GameProvider({ children }: { children: ReactNode }) {
       siege: (defVillage as any).army_siege ?? 0,
       scout: (defVillage as any).army_scout ?? 0,
     };
+
+    // Fetch active reinforcements at defender's village
+    const { data: reinforcements } = await supabase
+      .from('active_reinforcements')
+      .select('*')
+      .eq('host_village_id', targetVillageId);
+    
+    // Add reinforcement troops to defense
+    const reinforcementOwners: { ownerId: string; troops: Partial<Army> }[] = [];
+    if (reinforcements && reinforcements.length > 0) {
+      for (const r of reinforcements) {
+        const troops = r.troops as any as Partial<Army>;
+        reinforcementOwners.push({ ownerId: r.owner_id, troops });
+        for (const [type, count] of Object.entries(troops) as [TroopType, number][]) {
+          if (count > 0) defArmy[type] = (defArmy[type] || 0) + count;
+        }
+      }
+    }
     
     // Get defender's wall level
     const { data: defBuildings } = await supabase.from('buildings').select('*').eq('village_id', targetVillageId);
@@ -1682,15 +1700,53 @@ export function GameProvider({ children }: { children: ReactNode }) {
     });
     if (pvpPopLost > 0) setPopulationBase(prev => Math.max(1, prev - pvpPopLost));
     
-    // Apply defender losses to their village
-    const defNewArmy = { ...defArmy };
-    for (const [type, lost] of Object.entries(result.defenderLosses) as [TroopType, number][]) {
-      defNewArmy[type] = Math.max(0, (defNewArmy[type] || 0) - lost);
+    // Apply defender losses — subtract from reinforcements first, then village army
+    let remainingLosses = { ...result.defenderLosses } as Record<TroopType, number>;
+    
+    // Deduct losses from reinforcements first
+    for (const r of reinforcementOwners) {
+      const rTroops = r.troops as Record<string, number>;
+      for (const type of Object.keys(remainingLosses) as TroopType[]) {
+        const loss = remainingLosses[type] || 0;
+        const available = rTroops[type] || 0;
+        if (loss > 0 && available > 0) {
+          const deducted = Math.min(loss, available);
+          rTroops[type] = available - deducted;
+          remainingLosses[type] = loss - deducted;
+        }
+      }
+    }
+
+    // Update or delete reinforcement records
+    if (reinforcements && reinforcements.length > 0) {
+      for (let i = 0; i < reinforcements.length; i++) {
+        const r = reinforcements[i];
+        const updatedTroops = reinforcementOwners[i]?.troops || {};
+        const totalRemaining = Object.values(updatedTroops).reduce((s, v) => s + (Number(v) || 0), 0);
+        if (totalRemaining <= 0) {
+          await supabase.from('active_reinforcements').delete().eq('id', r.id);
+        } else {
+          await supabase.from('active_reinforcements').update({ troops: updatedTroops } as any).eq('id', r.id);
+        }
+      }
+    }
+
+    // Apply remaining losses to defender's own village army
+    const defOwnArmy: Army = {
+      militia: (defVillage as any).army_militia ?? 0,
+      archer: (defVillage as any).army_archer ?? 0,
+      knight: (defVillage as any).army_knight ?? 0,
+      cavalry: (defVillage as any).army_cavalry ?? 0,
+      siege: (defVillage as any).army_siege ?? 0,
+      scout: (defVillage as any).army_scout ?? 0,
+    };
+    for (const [type, lost] of Object.entries(remainingLosses) as [TroopType, number][]) {
+      defOwnArmy[type] = Math.max(0, (defOwnArmy[type] || 0) - lost);
     }
     await supabase.from('villages').update({
-      army_militia: defNewArmy.militia, army_archer: defNewArmy.archer,
-      army_knight: defNewArmy.knight, army_cavalry: defNewArmy.cavalry, army_siege: defNewArmy.siege,
-      army_scout: defNewArmy.scout,
+      army_militia: defOwnArmy.militia, army_archer: defOwnArmy.archer,
+      army_knight: defOwnArmy.knight, army_cavalry: defOwnArmy.cavalry, army_siege: defOwnArmy.siege,
+      army_scout: defOwnArmy.scout,
     } as any).eq('id', targetVillageId);
     
     let resourcesRaided: Partial<Resources> | undefined;

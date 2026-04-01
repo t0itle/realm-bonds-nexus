@@ -21,10 +21,12 @@ export type Database = {
           id: string
           march_type: string
           player_name: string
+          sent_army: Json
           start_x: number
           start_y: number
           started_at: string
           target_name: string
+          target_user_id: string | null
           target_x: number
           target_y: number
           user_id: string
@@ -35,10 +37,12 @@ export type Database = {
           id?: string
           march_type?: string
           player_name?: string
+          sent_army?: Json
           start_x: number
           start_y: number
           started_at?: string
           target_name?: string
+          target_user_id?: string | null
           target_x: number
           target_y: number
           user_id: string
@@ -49,15 +53,52 @@ export type Database = {
           id?: string
           march_type?: string
           player_name?: string
+          sent_army?: Json
           start_x?: number
           start_y?: number
           started_at?: string
           target_name?: string
+          target_user_id?: string | null
           target_x?: number
           target_y?: number
           user_id?: string
         }
         Relationships: []
+      }
+      active_reinforcements: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          host_village_id: string
+          id: string
+          owner_id: string
+          troops: Json
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          host_village_id: string
+          id?: string
+          owner_id: string
+          troops?: Json
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          host_village_id?: string
+          id?: string
+          owner_id?: string
+          troops?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "active_reinforcements_host_village_id_fkey"
+            columns: ["host_village_id"]
+            isOneToOne: false
+            referencedRelation: "villages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       active_spy_missions: {
         Row: {

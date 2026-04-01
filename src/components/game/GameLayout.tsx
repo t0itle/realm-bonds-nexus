@@ -6,6 +6,9 @@ import { useGame } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import PatchNotesModal from './PatchNotesModal';
+import IncomingAttackAlert from './IncomingAttackAlert';
+import AllyDefenseModal from './AllyDefenseModal';
+import GratitudeModal from './GratitudeModal';
 
 function lazyRetry<T extends { default: React.ComponentType<any> }>(
   fn: () => Promise<T>
@@ -63,6 +66,13 @@ export default function GameLayout() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeMarches, setActiveMarches] = useState<{ id: string; target_name: string; march_type: string; arrives_at: string; started_at: string }[]>([]);
   const [vassalPopup, setVassalPopup] = useState(false);
+  // Ally defense modal state
+  const [allyDefenseData, setAllyDefenseData] = useState<{
+    attackerName: string; allyName: string; allyVillageId?: string;
+    targetX: number; targetY: number; attackEta: string;
+  } | null>(null);
+  // Gratitude modal state
+  const [gratitudeData, setGratitudeData] = useState<{ allyUserId: string; allyName: string } | null>(null);
   const totalTroops = Object.values(army).reduce((s, v) => s + v, 0);
 
   // Check if player is vassalized
@@ -205,6 +215,24 @@ export default function GameLayout() {
 
       <ResourceBar />
 
+      {/* Incoming attack warnings */}
+      <IncomingAttackAlert
+        onAllyAttacked={(march, allyName) => {
+          // Find ally's village to get coordinates
+          supabase.from('villages').select('id').eq('user_id', march.target_user_id).single()
+            .then(({ data }) => {
+              setAllyDefenseData({
+                attackerName: march.player_name,
+                allyName,
+                allyVillageId: data?.id,
+                targetX: march.target_x as any,
+                targetY: march.target_y as any,
+                attackEta: march.arrives_at,
+              });
+            });
+        }}
+      />
+
       {/* Active marches banner */}
       {activeMarches.length > 0 && (
         <div className="px-3 py-1.5 max-h-24 overflow-y-auto scrollbar-thin">
@@ -301,6 +329,26 @@ export default function GameLayout() {
       </nav>
 
       <PatchNotesModal />
+
+      {/* Ally Defense Modal */}
+      <AllyDefenseModal
+        open={!!allyDefenseData}
+        onClose={() => setAllyDefenseData(null)}
+        attackerName={allyDefenseData?.attackerName || ''}
+        allyName={allyDefenseData?.allyName || ''}
+        allyVillageId={allyDefenseData?.allyVillageId}
+        targetX={allyDefenseData?.targetX || 0}
+        targetY={allyDefenseData?.targetY || 0}
+        attackEta={allyDefenseData?.attackEta || new Date().toISOString()}
+      />
+
+      {/* Gratitude Modal */}
+      <GratitudeModal
+        open={!!gratitudeData}
+        onClose={() => setGratitudeData(null)}
+        allyUserId={gratitudeData?.allyUserId || ''}
+        allyName={gratitudeData?.allyName || ''}
+      />
 
       {/* Vassalized info popup */}
       <AnimatePresence>
