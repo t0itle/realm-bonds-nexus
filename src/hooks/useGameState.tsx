@@ -1632,7 +1632,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const defWall = defBuildings?.find(b => b.type === 'wall');
     const defWallLevel = defWall?.level || 0;
     
-    const result = resolveCombat(attackingArmy, defArmy, getWallLevel(), defWallLevel);
+    const result = resolveCombat(attackingArmy, defArmy, 0, defWallLevel);
     
     // Troops were already deployed when march started — calculate survivors and return them
     const survivors: Partial<Army> = {};
