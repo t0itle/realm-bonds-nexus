@@ -1552,17 +1552,18 @@ export default function WorldMap() {
     const minCY = Math.floor((camera.cy - halfH) / CHUNK_SIZE);
     const maxCY = Math.floor((camera.cy + halfH) / CHUNK_SIZE);
 
-    // Cap to max ~30 visible chunks to avoid rendering too many elements
+    // Cap visible chunks based on zoom LOD
     const rangeX = maxCX - minCX + 1;
     const rangeY = maxCY - minCY + 1;
-    if (rangeX * rangeY > 30) {
-      // Too zoomed out — show only nearby chunks
-      const r = 2;
+    const farZoom = camera.ppu < 0.001;
+    const maxChunks = farZoom ? 9 : 30; // 3x3 at far zoom, ~5x5 otherwise
+    const fallbackR = farZoom ? 1 : 2;
+    if (rangeX * rangeY > maxChunks) {
       const ccx = Math.floor(camera.cx / CHUNK_SIZE);
       const ccy = Math.floor(camera.cy / CHUNK_SIZE);
       const chunks: { cx: number; cy: number; data: ChunkData }[] = [];
-      for (let x = ccx - r; x <= ccx + r; x++) {
-        for (let y = ccy - r; y <= ccy + r; y++) {
+      for (let x = ccx - fallbackR; x <= ccx + fallbackR; x++) {
+        for (let y = ccy - fallbackR; y <= ccy + fallbackR; y++) {
           chunks.push({ cx: x, cy: y, data: getChunk(x, y) });
         }
       }
@@ -2047,10 +2048,13 @@ export default function WorldMap() {
     return { visibleRealms: realms, visibleEvents: events };
   }, [visibleChunks, isVisible, claimedEvents]);
 
+  // ── LOD tiers based on zoom level ──
+  const lodTier = camera.ppu > 0.005 ? 'close' : camera.ppu >= 0.001 ? 'medium' : 'far';
+
   // Cap rendered items when very zoomed out
   const maxItems = 30;
   const renderRealms = useMemo(() => visibleRealms.slice(0, maxItems), [visibleRealms]);
-  const renderEvents = useMemo(() => visibleEvents.slice(0, maxItems), [visibleEvents]);
+  const renderEvents = useMemo(() => lodTier !== 'far' ? visibleEvents.slice(0, maxItems) : [], [visibleEvents, lodTier]);
 
   // ── Memoized collision-nudged player positions ──
   const nudgedPlayerPositions = useMemo(() => {
@@ -2239,7 +2243,8 @@ export default function WorldMap() {
         })}
 
 
-        {visibleChunks.map(chunk => chunk.data.terrain.map((t, ti) => {
+        {/* Terrain features hidden at far zoom */}
+        {lodTier !== 'far' && visibleChunks.map(chunk => chunk.data.terrain.map((t, ti) => {
           if (t.type === 'lake') {
             const { sx, sy } = worldToScreen(t.x, t.y);
             const w = t.width * camera.ppu;
@@ -2316,8 +2321,8 @@ export default function WorldMap() {
           return null;
         }))}
 
-        {/* ── Decorations (trees, grass, rocks) ── */}
-        {visibleChunks.map(chunk => chunk.data.decorations.map((d, di) => {
+        {/* ── Decorations (trees, grass, rocks) — hidden at medium and far zoom ── */}
+        {lodTier === 'close' && visibleChunks.map(chunk => chunk.data.decorations.map((d, di) => {
           const { sx, sy } = worldToScreen(d.x, d.y);
           const s = d.size * camera.ppu;
           if (s < 4) return null;
@@ -2503,6 +2508,17 @@ export default function WorldMap() {
 
         {/* Player settlements with memoized collision nudging */}
         {nudgedPlayerPositions.map(({ pv, sx, sy, isMe }) => {
+            if (lodTier === 'far') {
+              // Simple colored dots at far zoom
+              const dotSize = isMe ? 10 : 6;
+              return (
+                <button key={pv.village.id} data-map-item
+                  onClick={(e) => { e.stopPropagation(); if (isMe) { window.dispatchEvent(new CustomEvent('switch-tab', { detail: 'village' })); } else { setSelected({ kind: 'player', data: pv }); } }}
+                  className={`absolute rounded-full ${isMe ? 'z-40' : 'z-30'} hover:z-50`}
+                  style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', width: dotSize, height: dotSize, background: isMe ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))', border: isMe ? '2px solid hsl(var(--primary-foreground))' : 'none' }}
+                />
+              );
+            }
             const pvSettlementType = isMe ? settlementType : (pv.village.settlement_type || 'village');
             const sprite = getSettlementSprite(pvSettlementType, isMe);
             const settlementLabel = SETTLEMENT_LABELS[pvSettlementType] || '🏠 Village';
