@@ -1356,7 +1356,15 @@ export default function WorldMap() {
     return () => clearInterval(interval);
   }, [otherMarches.length]);
 
-  // Get TH level for dynamic sprite
+  // Tick every second for boss march countdown display
+  const [bossTick, setBossTick] = useState(0);
+  const hasBossMarches = otherMarches.some(m => m.user_id === '00000000-0000-0000-0000-000000000000' && m.target_user_id === user?.id);
+  useEffect(() => {
+    if (!hasBossMarches) return;
+    const interval = setInterval(() => setBossTick(t => t + 1), 1000);
+    return () => clearInterval(interval);
+  }, [hasBossMarches]);
+
   const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
 
   const SETTLEMENT_TIER_SPRITES: Record<string, string> = {
