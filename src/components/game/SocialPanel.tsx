@@ -1,8 +1,22 @@
 import { useState, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const MessagesPanel = lazy(() => import('./MessagesPanel'));
-const AlliancePanel = lazy(() => import('./AlliancePanel'));
+function lazyRetry<T extends { default: React.ComponentType<any> }>(
+  fn: () => Promise<T>,
+  retries = 3
+): Promise<T> {
+  return fn().catch((err) => {
+    if (retries > 0) {
+      return new Promise<T>((resolve) => setTimeout(resolve, 1000)).then(() =>
+        lazyRetry(fn, retries - 1)
+      );
+    }
+    throw err;
+  });
+}
+
+const MessagesPanel = lazy(() => lazyRetry(() => import('./MessagesPanel')));
+const AlliancePanel = lazy(() => lazyRetry(() => import('./AlliancePanel')));
 
 function TabFallback() {
   return (
