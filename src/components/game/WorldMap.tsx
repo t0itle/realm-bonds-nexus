@@ -2824,6 +2824,102 @@ export default function WorldMap() {
               </div>
             )}
 
+            {selected.kind === 'worldboss' && (() => {
+              const boss = selected.data;
+              const bossBase = WORLD_BOSS_BASES[boss.bossType];
+              const steelReward = Math.floor(50 + boss.daysAlive * 15 * bossBase.rewardMultiplier / 6);
+              return (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-3xl">{boss.emoji}</span>
+                    <div className="flex-1">
+                      <h3 className="font-display text-sm text-foreground">{boss.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-destructive/20 text-destructive">
+                          WORLD BOSS ⚔️{boss.scaledPower}
+                        </span>
+                        <span className="text-[9px] text-muted-foreground">Day {boss.daysAlive + 1}/7</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">{boss.description}</p>
+                  <p className="text-[9px] text-muted-foreground/70 italic">{bossBase.lore}</p>
+
+                  {/* Troop Tiers */}
+                  <div className="bg-muted/30 rounded-lg p-2 space-y-1">
+                    <p className="text-[10px] font-semibold text-foreground">🪖 Army Composition</p>
+                    {boss.troops.map(t => (
+                      <div key={t.name} className="flex items-center justify-between text-[9px]">
+                        <span className={`font-display ${t.tier === 'elite' ? 'text-destructive' : t.tier === 'average' ? 'text-primary' : 'text-muted-foreground'}`}>
+                          {t.tier === 'elite' ? '💀' : t.tier === 'average' ? '⚔️' : '🦴'} {t.name}
+                          <span className="text-muted-foreground/60 ml-1">({t.tier})</span>
+                        </span>
+                        <span className="text-foreground font-mono">
+                          ×{t.count} <span className="text-muted-foreground/60">atk:{t.attack} def:{t.defense}</span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Rewards */}
+                  <div className="flex items-center gap-1.5 text-[10px] text-primary font-bold flex-wrap">
+                    {Object.entries(boss.reward).filter(([, v]) => v && v > 0).map(([k, v]) => (
+                      <span key={k}>+{v} {k}</span>
+                    ))}
+                    <span>+{steelReward} steel</span>
+                  </div>
+
+                  <motion.button whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      if (!isInRange(boss.x, boss.y)) { toast.error('Too far! Train scouts to extend your range.'); return; }
+                      const hasTroops = Object.values(army).some(v => v > 0);
+                      if (!hasTroops) { toast.error('You need troops to fight the world boss!'); return; }
+                      const travelSec = calcTravelTime(boss.x, boss.y);
+                      setAttackConfig({
+                        targetName: boss.name, targetPower: boss.scaledPower,
+                        targetX: boss.x, targetY: boss.y, travelTime: travelSec,
+                        showEspionage: false,
+                        onAttack: (sentArmy) => {
+                          toast(`⚔️ Troops marching to ${boss.name}... ETA ${travelSec}s`);
+                          deployTroops(sentArmy);
+                          createMarch(`worldboss-${Date.now()}`, boss.name, boss.x, boss.y, travelSec, async () => {
+                            const log = attackTarget(boss.name, boss.scaledPower, sentArmy);
+                            if (log.result === 'victory') {
+                              addResources({ ...boss.reward });
+                              addResources({ gold: 0, wood: 0, stone: 0, food: 0 } as any); // steel added via village update
+                              // Record defeat
+                              if (user) {
+                                await supabase.from('world_boss_defeats' as any).insert({
+                                  user_id: user.id,
+                                  boss_week_seed: boss.weekSeed,
+                                  boss_type: boss.name,
+                                });
+                                // Add steel reward to village
+                                const myVillage = allVillages.find(v => v.village.user_id === user.id);
+                                if (myVillage) {
+                                  await supabase.from('villages').update({
+                                    steel: (myVillage.village as any).steel + steelReward
+                                  } as any).eq('id', myVillage.village.id);
+                                }
+                              }
+                              setWorldBossDefeated(true);
+                              toast.success(`🏆 WORLD BOSS DEFEATED! ${boss.name} has been vanquished! Massive rewards claimed!`);
+                            } else {
+                              toast.error(`💀 Defeated by ${boss.name}! The world boss grows stronger...`);
+                            }
+                          }, sentArmy);
+                          setAttackConfig(null);
+                          setSelected(null);
+                        },
+                      });
+                    }}
+                    className="w-full bg-destructive text-destructive-foreground font-display text-[11px] py-2.5 rounded-lg active:scale-95 transition-transform">
+                    ⚔️ Challenge World Boss (⚔️{boss.scaledPower})
+                  </motion.button>
+                </div>
+              );
+            })()}
+
             {selected.kind === 'player' && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
