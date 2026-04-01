@@ -1,20 +1,14 @@
 
 
-# Plan: Nerf All Resource Production by 15%
+# Plan: Nerf All Resource Production by 10%
 
-Production is calculated in two places with the same formula. Both need the multiplier reduced.
+Production uses a `0.8` multiplier in two places. Apply an additional 10% reduction: `0.8 × 0.9 = 0.72`.
 
 ## Changes
 
-### 1. Client-side: `src/hooks/useGameState.tsx` (line 75)
+### 1. Client-side: `src/hooks/useGameState.tsx`
+Change the production multiplier from `0.8` to `0.72` in the `getProduction` helper.
 
-Current multiplier chain: `val * level * 1.2 * workerBonus * 0.8` (the `0.8` is a previous 20% nerf).
-
-Change `0.8` → `0.68` (0.8 × 0.85 = 0.68), applying an additional 15% reduction on top of the existing nerf.
-
-### 2. Server-side: `supabase/functions/resource-tick/index.ts` (line 76)
-
-Same formula with `0.8` multiplier — change to `0.68` to match.
-
-Both files stay in sync so the UI preview and the actual tick produce consistent numbers.
+### 2. Server-side: `supabase/functions/resource-tick/index.ts`
+Same change — `0.8` → `0.72` in the `getProduction` function to keep client and server in sync.
 
