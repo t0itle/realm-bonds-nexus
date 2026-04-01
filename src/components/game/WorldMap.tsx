@@ -421,20 +421,20 @@ interface ExoticContinent {
 }
 
 const EXOTIC_CONTINENTS: ExoticContinent[] = [
-  // Desert continent - far east
-  { cx: 55, cy: 0, radius: 10, biome: 'Desert', name: 'The Scorchlands', seed: 3001 },
-  // Jungle continent - far south
-  { cx: -10, cy: 55, radius: 9, biome: 'Jungle', name: 'The Jade Wilds', seed: 3002 },
-  // Lava continent - far west
-  { cx: -55, cy: -5, radius: 8, biome: 'Lava', name: 'The Ashforge', seed: 3003 },
-  // Island archipelago - far northeast
-  { cx: 40, cy: -45, radius: 12, biome: 'Islands', name: 'The Shattered Isles', seed: 3004 },
-  // Desert + jungle mix - far south-west
-  { cx: -40, cy: 50, radius: 9, biome: 'Oasis', name: 'The Mirage Coast', seed: 3005 },
-  // Volcanic islands - far northwest
-  { cx: -45, cy: -45, radius: 7, biome: 'VolcanicIslands', name: 'The Cinderchain', seed: 3006 },
-  // Deep jungle - far south-east
-  { cx: 45, cy: 45, radius: 8, biome: 'DeepJungle', name: 'The Verdant Abyss', seed: 3007 },
+  // Desert continent - east (was 55, now 28)
+  { cx: 28, cy: 0, radius: 10, biome: 'Desert', name: 'The Scorchlands', seed: 3001 },
+  // Jungle continent - south (was -10,55 now -5,28)
+  { cx: -5, cy: 28, radius: 9, biome: 'Jungle', name: 'The Jade Wilds', seed: 3002 },
+  // Lava continent - west (was -55, now -28)
+  { cx: -28, cy: -3, radius: 8, biome: 'Lava', name: 'The Ashforge', seed: 3003 },
+  // Island archipelago - northeast (was 40,-45 now 22,-24)
+  { cx: 22, cy: -24, radius: 12, biome: 'Islands', name: 'The Shattered Isles', seed: 3004 },
+  // Desert + jungle mix - southwest (was -40,50 now -20,25)
+  { cx: -20, cy: 25, radius: 9, biome: 'Oasis', name: 'The Mirage Coast', seed: 3005 },
+  // Volcanic islands - northwest (was -45,-45 now -23,-23)
+  { cx: -23, cy: -23, radius: 7, biome: 'VolcanicIslands', name: 'The Cinderchain', seed: 3006 },
+  // Deep jungle - southeast (was 45,45 now 23,23)
+  { cx: 23, cy: 23, radius: 8, biome: 'DeepJungle', name: 'The Verdant Abyss', seed: 3007 },
 ];
 
 function getExoticContinent(cx: number, cy: number): ExoticContinent | null {
@@ -442,7 +442,6 @@ function getExoticContinent(cx: number, cy: number): ExoticContinent | null {
     const dx = cx - ec.cx;
     const dy = cy - ec.cy;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    // Add coastline wobble
     const angle = Math.atan2(dy, dx);
     const wobbleSeed = hashCoords(Math.floor(angle * 6), 0, ec.seed);
     const wobble = (seededRandom(wobbleSeed)() - 0.5) * ec.radius * 0.3;
@@ -454,17 +453,17 @@ function getExoticContinent(cx: number, cy: number): ExoticContinent | null {
 function isOceanChunk(cx: number, cy: number): boolean {
   const dist = Math.sqrt(cx * cx + cy * cy);
   // Inner homeland is always land
-  if (dist < 12) return false;
+  if (dist < 10) return false;
   
   // Check if on an exotic continent beyond the ocean
-  if (dist > 25 && getExoticContinent(cx, cy)) return false;
+  if (getExoticContinent(cx, cy)) return false;
   
-  // Transition zone (12-25): irregular coastline of the homeland
-  if (dist <= 25) {
+  // Transition zone (10-18): irregular coastline of the homeland
+  if (dist <= 18) {
     const angle = Math.atan2(cy, cx);
     const coastSeed = hashCoords(Math.floor(angle * 8), 0, 7777);
     const coastRng = seededRandom(coastSeed);
-    const coastThreshold = 15 + coastRng() * 10;
+    const coastThreshold = 11 + coastRng() * 7; // 11-18 chunks
     return dist > coastThreshold;
   }
   
