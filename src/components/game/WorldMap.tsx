@@ -1777,8 +1777,9 @@ export default function WorldMap() {
           <rect width="100%" height="100%" fill="hsl(220 15% 18% / 0.4)" mask="url(#fog-mask)" filter="url(#fog-clouds)" />
         </svg>
 
-        {/* ── Unified Territory borders (merged per owner) ── */}
+        {/* ── Unified Territory borders (merged per owner) + Wall segments ── */}
         {(() => {
+          const WALL_CONNECT_DIST = 50000; // max world-unit distance for wall segments
           // Group outposts by owner
           const ownerGroups = new Map<string, typeof outposts>();
           for (const op of outposts) {
@@ -1788,33 +1789,47 @@ export default function WorldMap() {
             ownerGroups.set(op.user_id, arr);
           }
 
-          // For each owner, generate a unified SVG territory path
           const elements: React.ReactNode[] = [];
           ownerGroups.forEach((ops, ownerId) => {
             const isOwn = ownerId === user?.id;
             const borderColor = isOwn ? 'hsl(var(--primary))' : 'hsl(var(--destructive))';
             const fillColor = isOwn ? 'hsl(var(--primary) / 0.06)' : 'hsl(var(--destructive) / 0.04)';
-            const hasAnyWall = ops.some(o => o.has_wall);
 
-            // Build SVG circles and use composite to merge
-            // Calculate bounding box in screen coords
+            // Calculate bounding box
             let minSx = Infinity, minSy = Infinity, maxSx = -Infinity, maxSy = -Infinity;
-            const screenCircles: { cx: number; cy: number; r: number; hasWall: boolean }[] = [];
+            const screenData: { cx: number; cy: number; r: number; hasWall: boolean; op: typeof ops[0] }[] = [];
             for (const op of ops) {
               const { sx, sy } = worldToScreen(op.x, op.y);
               const r = op.territory_radius * camera.ppu;
               if (r < 10) continue;
-              screenCircles.push({ cx: sx, cy: sy, r, hasWall: op.has_wall });
-              minSx = Math.min(minSx, sx - r - 4);
-              minSy = Math.min(minSy, sy - r - 4);
-              maxSx = Math.max(maxSx, sx + r + 4);
-              maxSy = Math.max(maxSy, sy + r + 4);
+              screenData.push({ cx: sx, cy: sy, r, hasWall: op.has_wall, op });
+              minSx = Math.min(minSx, sx - r - 10);
+              minSy = Math.min(minSy, sy - r - 10);
+              maxSx = Math.max(maxSx, sx + r + 10);
+              maxSy = Math.max(maxSy, sy + r + 10);
             }
-            if (screenCircles.length === 0) return;
+            if (screenData.length === 0) return;
 
             const svgW = maxSx - minSx;
             const svgH = maxSy - minSy;
             if (svgW <= 0 || svgH <= 0) return;
+
+            // Find wall segments: pairs of walled outposts within connection distance
+            const wallSegments: { x1: number; y1: number; x2: number; y2: number; avgLevel: number }[] = [];
+            const walledOps = screenData.filter(d => d.hasWall);
+            for (let i = 0; i < walledOps.length; i++) {
+              for (let j = i + 1; j < walledOps.length; j++) {
+                const a = walledOps[i], b = walledOps[j];
+                const worldDist = Math.hypot(a.op.x - b.op.x, a.op.y - b.op.y);
+                if (worldDist <= WALL_CONNECT_DIST) {
+                  wallSegments.push({
+                    x1: a.cx - minSx, y1: a.cy - minSy,
+                    x2: b.cx - minSx, y2: b.cy - minSy,
+                    avgLevel: Math.floor((a.op.wall_level + b.op.wall_level) / 2),
+                  });
+                }
+              }
+            }
 
             elements.push(
               <svg key={`territory-unified-${ownerId}`}
@@ -1823,7 +1838,7 @@ export default function WorldMap() {
                 viewBox={`0 0 ${svgW} ${svgH}`}>
                 <defs>
                   <clipPath id={`clip-territory-${ownerId}`}>
-                    {screenCircles.map((c, i) => (
+                    {screenData.map((c, i) => (
                       <circle key={i} cx={c.cx - minSx} cy={c.cy - minSy} r={c.r} />
                     ))}
                   </clipPath>
@@ -1832,26 +1847,68 @@ export default function WorldMap() {
                 <rect x="0" y="0" width={svgW} height={svgH}
                   clipPath={`url(#clip-territory-${ownerId})`}
                   fill={fillColor} />
-                {/* Outer border: draw each circle but clip the interior intersections */}
-                {screenCircles.map((c, i) => (
+                {/* Territory border circles (always dashed, light) */}
+                {screenData.map((c, i) => (
                   <circle key={`border-${i}`}
                     cx={c.cx - minSx} cy={c.cy - minSy} r={c.r}
                     fill="none"
                     stroke={borderColor}
-                    strokeWidth={c.hasWall ? 2.5 : 1}
-                    strokeDasharray={c.hasWall ? 'none' : '6 4'}
-                    opacity={c.hasWall ? 0.7 : 0.4}
-                  />
-                ))}
-                {/* For walled outposts, add inner ring */}
-                {screenCircles.filter(c => c.hasWall).map((c, i) => (
-                  <circle key={`inner-wall-${i}`}
-                    cx={c.cx - minSx} cy={c.cy - minSy} r={Math.max(c.r - 4, 2)}
-                    fill="none"
-                    stroke={borderColor}
                     strokeWidth={1}
+                    strokeDasharray="6 4"
                     opacity={0.3}
                   />
+                ))}
+                {/* Wall segments connecting walled outposts */}
+                {wallSegments.map((seg, i) => {
+                  const thickness = Math.max(2.5, Math.min(6, seg.avgLevel * 1.5 + 2));
+                  return (
+                    <g key={`wall-seg-${i}`}>
+                      {/* Outer wall line (stone color) */}
+                      <line x1={seg.x1} y1={seg.y1} x2={seg.x2} y2={seg.y2}
+                        stroke={borderColor} strokeWidth={thickness + 2} opacity={0.25}
+                        strokeLinecap="round" />
+                      {/* Main wall line */}
+                      <line x1={seg.x1} y1={seg.y1} x2={seg.x2} y2={seg.y2}
+                        stroke={borderColor} strokeWidth={thickness} opacity={0.7}
+                        strokeLinecap="round" />
+                      {/* Crenellation pattern (small rectangles along wall) */}
+                      {(() => {
+                        const dx = seg.x2 - seg.x1;
+                        const dy = seg.y2 - seg.y1;
+                        const len = Math.hypot(dx, dy);
+                        if (len < 20) return null;
+                        const count = Math.floor(len / 12);
+                        const nx = -dy / len; // normal
+                        const ny = dx / len;
+                        const dots: React.ReactNode[] = [];
+                        for (let t = 0; t < count; t++) {
+                          const frac = (t + 0.5) / count;
+                          const px = seg.x1 + dx * frac;
+                          const py = seg.y1 + dy * frac;
+                          if (t % 2 === 0) {
+                            dots.push(
+                              <rect key={t}
+                                x={px + nx * (thickness * 0.5) - 1.5}
+                                y={py + ny * (thickness * 0.5) - 1.5}
+                                width={3} height={3}
+                                fill={borderColor} opacity={0.5}
+                              />
+                            );
+                          }
+                        }
+                        return dots;
+                      })()}
+                    </g>
+                  );
+                })}
+                {/* Walled outpost nodes (fortification dots) */}
+                {walledOps.map((c, i) => (
+                  <g key={`wall-node-${i}`}>
+                    <circle cx={c.cx - minSx} cy={c.cy - minSy} r={Math.max(5, thickness => 6)}
+                      fill={borderColor} opacity={0.5} />
+                    <circle cx={c.cx - minSx} cy={c.cy - minSy} r={Math.max(3, 4)}
+                      fill={fillColor} stroke={borderColor} strokeWidth={1.5} opacity={0.8} />
+                  </g>
                 ))}
               </svg>
             );
