@@ -2241,38 +2241,63 @@ export default function WorldMap() {
                 toast(`${isSettlement ? '🏘️' : '🏕️'} Upgrading ${op.name} to Lv.${newLevel}... (${Math.floor(upgradeTimeSec / 60)}:${(upgradeTimeSec % 60).toString().padStart(2, '0')})`);
               };
 
-              // Find nearby outposts that could connect via wall
+              // Find nearby outposts eligible for wall connections
               const WALL_CONNECT_DIST = 50000;
               const nearbyOwnOutposts = outposts.filter(other =>
                 other.id !== op.id && other.user_id === user?.id && other.outpost_type !== 'mine' &&
                 Math.hypot(other.x - op.x, other.y - op.y) <= WALL_CONNECT_DIST
               );
-              const wallConnections = nearbyOwnOutposts.filter(n => n.has_wall);
-              const potentialConnections = nearbyOwnOutposts.filter(n => !n.has_wall);
+              // Existing wall segments from/to this outpost
+              const existingWalls = wallSegments.filter(ws =>
+                ws.outpost_a_id === op.id || ws.outpost_b_id === op.id
+              );
+              const connectedIds = new Set(existingWalls.map(ws =>
+                ws.outpost_a_id === op.id ? ws.outpost_b_id : ws.outpost_a_id
+              ));
+              // Available to connect (nearby, not already connected)
+              const availableToConnect = nearbyOwnOutposts.filter(n => !connectedIds.has(n.id));
 
-              const handleWall = async () => {
-                if (!canAffordWall) { toast.error('Not enough resources!'); return; }
-                if (isBuildingWall) { toast.error('Already building wall!'); return; }
-                if (!op.has_wall && nearbyOwnOutposts.length === 0) {
-                  toast.error('No nearby outposts to connect! Build outposts within range first.');
-                  return;
-                }
-                addResources({ gold: -wallCost.gold, wood: -wallCost.wood, stone: -wallCost.stone, food: -wallCost.food });
-                const newWallLevel = op.wall_level + 1;
-                const newGarrison = op.garrison_power + 30;
+              const wallCostPerSegment = { gold: 300, wood: 200, stone: 250, food: 50 };
+              const canAffordWallSeg = resources.gold >= wallCostPerSegment.gold && resources.wood >= wallCostPerSegment.wood && resources.stone >= wallCostPerSegment.stone && resources.food >= wallCostPerSegment.food;
+
+              const handleBuildWallTo = async (targetOutpost: typeof op) => {
+                if (!canAffordWallSeg) { toast.error('Not enough resources!'); return; }
+                if (!user) return;
+                // Check not already connected
+                const alreadyExists = wallSegments.find(ws =>
+                  (ws.outpost_a_id === op.id && ws.outpost_b_id === targetOutpost.id) ||
+                  (ws.outpost_a_id === targetOutpost.id && ws.outpost_b_id === op.id)
+                );
+                if (alreadyExists) { toast.error('Wall already exists between these outposts!'); return; }
+
+                addResources({ gold: -wallCostPerSegment.gold, wood: -wallCostPerSegment.wood, stone: -wallCostPerSegment.stone, food: -wallCostPerSegment.food });
+
+                const wallTimeSec = 60;
                 const finishTime = Date.now() + wallTimeSec * 1000;
-                setOutpostBuildQueue(prev => [...prev, { outpostId: op.id, action: 'wall', finishTime, targetLevel: newWallLevel, newGarrison }]);
-                if (user) {
-                  supabase.from('build_queue').insert({ user_id: user.id, building_id: op.id, building_type: 'outpost_wall', target_level: newWallLevel, finish_time: new Date(finishTime).toISOString() } as any).then();
-                }
-                const connectMsg = wallConnections.length > 0
-                  ? ` Connecting to ${wallConnections.map(c => c.name).join(', ')}!`
-                  : potentialConnections.length > 0
-                    ? ` Wall nearby outposts to complete the border.`
-                    : '';
-                toast(`🧱 ${op.has_wall ? 'Reinforcing' : 'Building'} wall at ${op.name}...${connectMsg} (${Math.floor(wallTimeSec / 60)}:${(wallTimeSec % 60).toString().padStart(2, '0')})`);
-              };
+                setOutpostBuildQueue(prev => [...prev, { outpostId: op.id, action: 'wall', finishTime, targetLevel: 1, newGarrison: 30, targetOutpostId: targetOutpost.id }]);
 
+                toast(`🧱 Building wall from ${op.name} to ${targetOutpost.name}... (1:00)`);
+
+                // After build time, create the wall segment
+                setTimeout(async () => {
+                  const [idA, idB] = [op.id, targetOutpost.id].sort();
+                  const { data, error } = await supabase.from('wall_segments').insert({
+                    user_id: user.id,
+                    outpost_a_id: idA,
+                    outpost_b_id: idB,
+                    wall_level: 1,
+                    health: 100,
+                    max_health: 100,
+                  } as any).select().single();
+                  if (!error && data) {
+                    setWallSegments(prev => [...prev, { id: data.id, user_id: user.id, outpost_a_id: idA, outpost_b_id: idB, wall_level: 1, health: 100, max_health: 100 }]);
+                    toast.success(`🧱 Wall built between ${op.name} and ${targetOutpost.name}!`);
+                  } else {
+                    toast.error('Failed to build wall segment');
+                  }
+                  setOutpostBuildQueue(prev => prev.filter(q => !(q.outpostId === op.id && q.targetOutpostId === targetOutpost.id)));
+                }, wallTimeSec * 1000);
+              };
 
               return (
                 <div className="space-y-2">
@@ -2283,7 +2308,7 @@ export default function WorldMap() {
                       <div className="flex items-center gap-2 text-[9px]">
                         <span className="text-primary font-semibold">Lv.{op.level}</span>
                         <span className="text-muted-foreground">⚔️{op.garrison_power} defense</span>
-                        {op.has_wall && <span className="text-accent-foreground bg-accent/20 px-1.5 rounded-full">🧱 Wall Lv.{op.wall_level}</span>}
+                        {existingWalls.length > 0 && <span className="text-accent-foreground bg-accent/20 px-1.5 rounded-full">🧱 {existingWalls.length} wall{existingWalls.length !== 1 ? 's' : ''}</span>}
                         {isSettlement && <span className="text-primary bg-primary/10 px-1.5 rounded-full">Settlement</span>}
                         {op.outpost_type === 'fort' && <span className="text-accent-foreground bg-accent/20 px-1.5 rounded-full">🏰 Fort</span>}
                       </div>
@@ -2296,7 +2321,7 @@ export default function WorldMap() {
                         : op.outpost_type === 'fort'
                           ? 'Your fort. Can garrison armies. Upgrade to Lv.10 to convert into a full settlement.'
                           : 'Your outpost. Upgrade to Lv.5 to convert into a fort, then Lv.10 for a settlement.')
-                      : `Enemy ${isSettlement ? 'settlement' : op.outpost_type === 'fort' ? 'fort' : 'outpost'}. Garrison strength: ⚔️${op.garrison_power}${op.has_wall ? ` with Lv.${op.wall_level} walls` : ''}`}
+                      : `Enemy ${isSettlement ? 'settlement' : op.outpost_type === 'fort' ? 'fort' : 'outpost'}. Garrison strength: ⚔️${op.garrison_power}`}
                   </p>
                   {isOwn && (
                     <div className="space-y-2">
@@ -2325,44 +2350,77 @@ export default function WorldMap() {
                           </motion.button>
                         )}
                       </div>
-                      {/* Border Wall */}
-                      <div className="bg-muted/30 rounded-lg p-2 space-y-1">
-                        <p className="text-[10px] font-semibold text-foreground">🧱 {op.has_wall ? `Reinforce Wall to Lv.${op.wall_level + 1}` : 'Build Wall Segment'}</p>
+
+                      {/* ── Build Wall Segments ── */}
+                      <div className="bg-muted/30 rounded-lg p-2 space-y-1.5">
+                        <p className="text-[10px] font-semibold text-foreground">🧱 Wall Connections</p>
                         <p className="text-[8px] text-muted-foreground">
-                          {op.has_wall
-                            ? `+30 garrison. Connected to ${wallConnections.length} walled outpost${wallConnections.length !== 1 ? 's' : ''}.`
-                            : nearbyOwnOutposts.length > 0
-                              ? `Walls connect to nearby outposts (within 50k). ${wallConnections.length > 0 ? `Will link to: ${wallConnections.map(c => c.name).join(', ')}` : `Build walls on nearby outposts to form a border.`}`
-                              : 'No nearby outposts to connect. Build outposts closer together first.'}
+                          Build walls between outposts to block enemy troops. Walls can be destroyed by siege weapons or espionage.
                         </p>
-                        {nearbyOwnOutposts.length > 0 && !op.has_wall && (
-                          <div className="flex flex-wrap gap-1">
-                            {nearbyOwnOutposts.slice(0, 4).map(n => (
-                              <span key={n.id} className={`text-[8px] px-1.5 py-0.5 rounded-full ${n.has_wall ? 'bg-accent/30 text-accent-foreground' : 'bg-muted text-muted-foreground'}`}>
-                                {n.has_wall ? '🧱' : '○'} {n.name}
-                              </span>
-                            ))}
+
+                        {/* Existing walls from this outpost */}
+                        {existingWalls.length > 0 && (
+                          <div className="space-y-1">
+                            <p className="text-[8px] text-muted-foreground font-semibold">Connected walls:</p>
+                            {existingWalls.map(ws => {
+                              const otherId = ws.outpost_a_id === op.id ? ws.outpost_b_id : ws.outpost_a_id;
+                              const otherOp = outposts.find(o => o.id === otherId);
+                              const healthPct = ws.health / ws.max_health;
+                              return (
+                                <div key={ws.id} className="flex items-center gap-1.5 bg-accent/10 rounded p-1.5">
+                                  <span className="text-[9px] text-foreground flex-1">🧱 → {otherOp?.name || 'Unknown'}</span>
+                                  <span className="text-[8px] text-muted-foreground">Lv.{ws.wall_level}</span>
+                                  <div className="w-10 h-1.5 bg-muted rounded-full overflow-hidden">
+                                    <div className="h-full rounded-full transition-all" style={{
+                                      width: `${healthPct * 100}%`,
+                                      backgroundColor: healthPct > 0.5 ? 'hsl(var(--primary))' : 'hsl(var(--destructive))',
+                                    }} />
+                                  </div>
+                                  <span className="text-[7px] text-muted-foreground">{ws.health}/{ws.max_health}</span>
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
-                        <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
-                          <span className={resources.gold >= wallCost.gold ? '' : 'text-destructive'}>🪙{wallCost.gold}</span>
-                          <span className={resources.wood >= wallCost.wood ? '' : 'text-destructive'}>🪵{wallCost.wood}</span>
-                          <span className={resources.stone >= wallCost.stone ? '' : 'text-destructive'}>🪨{wallCost.stone}</span>
-                          {wallCost.food > 0 && <span className={resources.food >= wallCost.food ? '' : 'text-destructive'}>🌾{wallCost.food}</span>}
-                        </div>
-                        {isBuildingWall ? (
-                          <div className="w-full bg-muted rounded-lg py-2 text-center space-y-1">
-                            <p className="font-display text-[11px] text-accent-foreground">⏳ Building wall...</p>
-                            <div className="bg-background rounded-full h-1.5 mx-2 overflow-hidden">
-                              <div className="h-full bg-accent rounded-full transition-all" style={{ width: `${Math.max(0, 100 - ((isBuildingWall.finishTime - Date.now()) / (wallTimeSec * 1000)) * 100)}%` }} />
+
+                        {/* Available connections */}
+                        {availableToConnect.length > 0 && (
+                          <div className="space-y-1">
+                            <p className="text-[8px] text-muted-foreground font-semibold">Build wall to:</p>
+                            <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground mb-1">
+                              <span className={resources.gold >= wallCostPerSegment.gold ? '' : 'text-destructive'}>🪙{wallCostPerSegment.gold}</span>
+                              <span className={resources.wood >= wallCostPerSegment.wood ? '' : 'text-destructive'}>🪵{wallCostPerSegment.wood}</span>
+                              <span className={resources.stone >= wallCostPerSegment.stone ? '' : 'text-destructive'}>🪨{wallCostPerSegment.stone}</span>
+                              <span className={resources.food >= wallCostPerSegment.food ? '' : 'text-destructive'}>🌾{wallCostPerSegment.food}</span>
+                              <span className="text-muted-foreground/60">per segment</span>
                             </div>
-                            <p className="text-[9px] text-muted-foreground">{Math.max(0, Math.ceil((isBuildingWall.finishTime - Date.now()) / 1000))}s remaining</p>
+                            {availableToConnect.slice(0, 5).map(target => {
+                              const dist = Math.hypot(target.x - op.x, target.y - op.y);
+                              const isBuilding = outpostBuildQueue.find(q => q.outpostId === op.id && q.targetOutpostId === target.id);
+                              return (
+                                <div key={target.id} className="flex items-center gap-1.5">
+                                  {isBuilding ? (
+                                    <div className="flex-1 bg-muted rounded py-1.5 px-2 text-center">
+                                      <p className="font-display text-[9px] text-accent-foreground">⏳ Building...</p>
+                                      <p className="text-[8px] text-muted-foreground">{Math.max(0, Math.ceil((isBuilding.finishTime - Date.now()) / 1000))}s</p>
+                                    </div>
+                                  ) : (
+                                    <motion.button whileTap={{ scale: 0.95 }}
+                                      onClick={() => handleBuildWallTo(target)}
+                                      disabled={!canAffordWallSeg}
+                                      className="flex-1 flex items-center justify-between bg-accent/20 hover:bg-accent/30 text-accent-foreground font-display text-[10px] py-1.5 px-2 rounded disabled:opacity-40 active:scale-95 transition-all">
+                                      <span>🧱 → {target.name}</span>
+                                      <span className="text-[8px] text-muted-foreground">{Math.round(dist / 1000)}k</span>
+                                    </motion.button>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
-                        ) : (
-                          <motion.button whileTap={{ scale: 0.95 }} onClick={handleWall} disabled={!canAffordWall || (!op.has_wall && nearbyOwnOutposts.length === 0)}
-                            className="w-full bg-accent text-accent-foreground font-display text-[11px] py-2 rounded-lg disabled:opacity-40 active:scale-95 transition-transform">
-                            🧱 {op.has_wall ? 'Reinforce Wall' : 'Build Wall'} ({Math.floor(wallTimeSec / 60)}:{(wallTimeSec % 60).toString().padStart(2, '0')})
-                          </motion.button>
+                        )}
+
+                        {availableToConnect.length === 0 && existingWalls.length === 0 && (
+                          <p className="text-[8px] text-muted-foreground italic">No nearby outposts within range. Build outposts closer together to connect walls.</p>
                         )}
                       </div>
                       {/* Convert to Fort at Lv.5+ */}
