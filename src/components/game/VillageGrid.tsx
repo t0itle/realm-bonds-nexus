@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useGameTicker } from '@/hooks/useGameTicker';
 import { useGame, BUILDING_INFO, getUpgradeCost, getProduction, getSteelProduction, BuildingType, Building } from '@/hooks/useGameState';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BUILDING_SPRITES, WORKERS_SPRITE, WORKER_FOR_BUILDING } from './sprites';
