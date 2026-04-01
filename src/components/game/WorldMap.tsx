@@ -46,7 +46,7 @@ const EVENT_SPRITES: Record<string, string> = {
 };
 
 // ── A* Pathfinding around terrain obstacles ──
-const PATH_GRID_CELL = 2000; // world units per pathfinding cell
+const PATH_GRID_CELL = 200_000; // world units per pathfinding cell (scaled 100x)
 
 function isPointInEllipse(px: number, py: number, cx: number, cy: number, rw: number, rh: number): boolean {
   const dx = (px - cx) / rw;
