@@ -759,48 +759,60 @@ export function GameProvider({ children }: { children: ReactNode }) {
           })));
         }
 
-        // Process spy training queue
+        // Process spy data via hydrateSpyData
         const stqData = stqRes.data;
-        if (stqData && stqData.length > 0) {
-          const completed = stqData.filter((q: any) => new Date(q.finish_time).getTime() <= now);
-          const active = stqData.filter((q: any) => new Date(q.finish_time).getTime() > now);
-          if (completed.length > 0) {
-            const totalNewSpies = completed.reduce((s: number, q: any) => s + q.count, 0);
-            const currentSpies = (village as any)?.spies ?? 0;
-            setSpies(currentSpies + totalNewSpies);
-            await Promise.all([
-              supabase.from('villages').update({ spies: currentSpies + totalNewSpies } as any).eq('id', village!.id),
-              ...completed.map(q => supabase.from('spy_training_queue').delete().eq('id', q.id)),
-            ]);
-          }
-          setSpyTrainingQueue(active.map((q: any) => ({
-            count: q.count,
-            finishTime: new Date(q.finish_time).getTime(),
-          })));
-        }
-
-        // Process spy missions
         const asmData = asmRes.data;
-        if (asmData && asmData.length > 0) {
-          setActiveSpyMissions(asmData.map((m: any) => ({
-            id: m.id, mission: m.mission as SpyMission, targetName: m.target_name,
-            targetId: m.target_id, spiesCount: m.spies_count,
-            departTime: new Date(m.depart_time).getTime(),
-            arrivalTime: new Date(m.arrival_time).getTime(),
-            returnTime: new Date(m.arrival_time).getTime() + 15000,
-            phase: new Date(m.arrival_time).getTime() <= now ? 'operating' : 'traveling',
-            targetX: m.target_x || 0, targetY: m.target_y || 0,
-          })));
-        }
-
-        // Process intel reports
         const irData = irRes.data;
-        if (irData && irData.length > 0) {
-          setIntelReports(irData.map((r: any) => ({
-            id: r.id, targetName: r.target_name, targetId: '', mission: r.mission as SpyMission,
-            result: r.success ? 'success' : 'failure', timestamp: new Date(r.created_at).getTime(),
-            data: r.data, spiesLost: r.spies_lost,
-          })));
+        {
+          let hydratedSpies = (village as any)?.spies ?? 0;
+          let hydratedStq: { count: number; finishTime: number }[] = [];
+          let hydratedAsm: ActiveSpyMission[] = [];
+          let hydratedIr: IntelReport[] = [];
+
+          if (stqData && stqData.length > 0) {
+            const completed = stqData.filter((q: any) => new Date(q.finish_time).getTime() <= now);
+            const active = stqData.filter((q: any) => new Date(q.finish_time).getTime() > now);
+            if (completed.length > 0) {
+              const totalNewSpies = completed.reduce((s: number, q: any) => s + q.count, 0);
+              hydratedSpies += totalNewSpies;
+              await Promise.all([
+                supabase.from('villages').update({ spies: hydratedSpies } as any).eq('id', village!.id),
+                ...completed.map(q => supabase.from('spy_training_queue').delete().eq('id', q.id)),
+              ]);
+            }
+            hydratedStq = active.map((q: any) => ({
+              count: q.count,
+              finishTime: new Date(q.finish_time).getTime(),
+            }));
+          }
+
+          if (asmData && asmData.length > 0) {
+            hydratedAsm = asmData.map((m: any) => ({
+              id: m.id, mission: m.mission as SpyMission, targetName: m.target_name,
+              targetId: m.target_id, spiesCount: m.spies_count,
+              departTime: new Date(m.depart_time).getTime(),
+              arrivalTime: new Date(m.arrival_time).getTime(),
+              returnTime: new Date(m.arrival_time).getTime() + 15000,
+              phase: (new Date(m.arrival_time).getTime() <= now ? 'operating' : 'traveling') as 'traveling' | 'operating',
+              targetX: m.target_x || 0, targetY: m.target_y || 0,
+            }));
+          }
+
+          if (irData && irData.length > 0) {
+            hydratedIr = irData.map((r: any) => ({
+              id: r.id, targetName: r.target_name, targetId: '', mission: r.mission as SpyMission,
+              result: (r.success ? 'success' : 'failure') as 'success' | 'failure',
+              timestamp: new Date(r.created_at).getTime(),
+              data: r.data, spiesLost: r.spies_lost,
+            }));
+          }
+
+          hydrateSpyDataRef.current?.({
+            spies: hydratedSpies,
+            spyTrainingQueue: hydratedStq,
+            activeSpyMissions: hydratedAsm,
+            intelReports: hydratedIr,
+          });
         }
 
         // Process all villages for world map
