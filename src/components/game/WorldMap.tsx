@@ -2658,7 +2658,7 @@ export default function WorldMap() {
                                     } else {
                                       toast.error(`Defeated by ${targetData.profile.display_name}!`);
                                     }
-                                  });
+                                  }, sentArmy);
                                   setAttackConfig(null);
                                   setSelected(null);
                                 },
