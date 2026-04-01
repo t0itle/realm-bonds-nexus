@@ -1,35 +1,19 @@
 
 
-# Plan: Scouts Speed Up Marches
+# Plan: Disband Troops (Demote Soldiers to Civilians)
 
-Scouts (speed 25, fastest unit) should reduce march time by a percentage per scout included in the army.
+Add a "Disband" button next to each troop type in the Military Panel, allowing players to convert soldiers back into civilians to reduce food upkeep.
 
-## Current Behavior
-- `calcMarchTime` uses the **slowest** troop's speed to calculate travel time
-- Scouts don't contribute to speed at all — they can only slow things down if they happen to be slowest (they won't, at speed 25)
+## Changes
 
-## Proposed Change
+### 1. `src/hooks/useGameState.tsx` — Add `disbandTroops` function
+- New function: `disbandTroops(type: TroopType, count: number)` that reduces `army[type]` by `count`, persists to DB, and increases civilian population accordingly (by `popCost * count`).
+- Export it from the game context interface.
 
-Add a scout speed bonus: each scout in the army reduces march time by **3%**, capped at **30%** (10 scouts). This is applied after the base travel time calculation.
+### 2. `src/components/game/MilitaryPanel.tsx` — Add disband UI
+- For each troop type row that has `army[type] > 0`, add a "Disband" button with a count input (defaulting to 1).
+- Clicking it calls `disbandTroops(type, count)` and shows a toast confirming the dismissal.
+- Style it with a destructive/muted variant to differentiate from training.
 
-### Files to Change
-
-**1. `src/hooks/useGameState.tsx`** — Update `calcMarchTime` to accept the army and apply scout discount:
-```typescript
-export function calcMarchTime(distance: number, army: Army): number {
-  const speed = getSlowestTroopSpeed(army);
-  const base = Math.floor(distance / (speed * 200));
-  const scoutCount = army.scout || 0;
-  const scoutBonus = Math.min(0.30, scoutCount * 0.03); // 3% per scout, max 30%
-  return Math.max(5, Math.floor(base * (1 - scoutBonus)));
-}
-```
-
-**2. `src/components/game/WorldMap.tsx`** (line ~1440) — Apply the same scout bonus to the inline march time calculation in `createMarch`:
-```typescript
-const scoutBonus = Math.min(0.30, (army.scout || 0) * 0.03);
-const actualTravelSec = Math.max(5, Math.floor(pathDist / (getSlowestTroopSpeed(army) * 200) * (1 - scoutBonus)));
-```
-
-Two files, minimal changes. The travel time preview in `calcTravelTime` will automatically reflect the bonus since it already calls `calcMarchTime`.
+Two files, straightforward addition. No resources refunded — troops are simply dismissed back to civilian life.
 
