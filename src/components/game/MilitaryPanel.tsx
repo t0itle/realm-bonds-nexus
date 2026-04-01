@@ -285,7 +285,7 @@ export default function MilitaryPanel() {
                   <div className="flex gap-2 text-[9px] text-muted-foreground mt-1">
                     <span className="text-destructive/70">Your losses:</span>
                     {Object.entries(log.troopsLost).filter(([, v]) => v && v > 0).map(([type, count]) => (
-                      <span key={type}>-{count} {TROOP_INFO[type as TroopType].emoji}</span>
+                      <span key={type} className="flex items-center gap-0.5">-{count} <TroopIcon type={type as TroopType} size={10} /></span>
                     ))}
                   </div>
                   {log.defenderTroopsLost && Object.values(log.defenderTroopsLost).some(v => v && v > 0) && (
