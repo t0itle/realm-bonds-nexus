@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Resources, Building, PopulationStats, SpyMission, ActiveSpyMission, IntelReport } from './useGameState';
 import { SPY_MISSION_INFO } from './useGameState';
@@ -13,19 +13,25 @@ export interface UseSpyMissionsParams {
   population: PopulationStats;
 }
 
+export interface SpyDataPayload {
+  spies: number;
+  spyTrainingQueue: { count: number; finishTime: number }[];
+  activeSpyMissions: ActiveSpyMission[];
+  intelReports: IntelReport[];
+}
+
 export interface UseSpyMissionsReturn {
   spies: number;
   setSpies: React.Dispatch<React.SetStateAction<number>>;
   spyTrainingQueue: { count: number; finishTime: number }[];
-  setSpyTrainingQueue: React.Dispatch<React.SetStateAction<{ count: number; finishTime: number }[]>>;
   activeSpyMissions: ActiveSpyMission[];
-  setActiveSpyMissions: React.Dispatch<React.SetStateAction<ActiveSpyMission[]>>;
   intelReports: IntelReport[];
-  setIntelReports: React.Dispatch<React.SetStateAction<IntelReport[]>>;
   trainSpies: (count: number) => boolean;
   sendSpyMission: (mission: SpyMission, targetName: string, targetId: string, targetX: number, targetY: number, spiesCount: number) => boolean;
   getSpyGuildLevel: () => number;
   getWatchtowerLevel: () => number;
+  /** Called by loadVillageData to hydrate spy state from DB data */
+  hydrateSpyData: (data: SpyDataPayload) => void;
 }
 
 export function useSpyMissions({
@@ -41,6 +47,13 @@ export function useSpyMissions({
   const [spyTrainingQueue, setSpyTrainingQueue] = useState<{ count: number; finishTime: number }[]>([]);
   const [activeSpyMissions, setActiveSpyMissions] = useState<ActiveSpyMission[]>([]);
   const [intelReports, setIntelReports] = useState<IntelReport[]>([]);
+
+  const hydrateSpyData = useCallback((data: SpyDataPayload) => {
+    setSpies(data.spies);
+    setSpyTrainingQueue(data.spyTrainingQueue);
+    setActiveSpyMissions(data.activeSpyMissions);
+    setIntelReports(data.intelReports);
+  }, []);
 
   const getSpyGuildLevel = useCallback(() => {
     const sg = buildings.find(b => b.type === 'spyguild');
@@ -237,14 +250,12 @@ export function useSpyMissions({
     spies,
     setSpies,
     spyTrainingQueue,
-    setSpyTrainingQueue,
     activeSpyMissions,
-    setActiveSpyMissions,
     intelReports,
-    setIntelReports,
     trainSpies,
     sendSpyMission,
     getSpyGuildLevel,
     getWatchtowerLevel,
+    hydrateSpyData,
   };
 }
