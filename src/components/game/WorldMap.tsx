@@ -1865,13 +1865,11 @@ export default function WorldMap() {
   }, [tradeContracts, addResources]);
 
   const power = totalArmyPower();
-  const iconSize = Math.max(28, Math.min(56, camera.ppu * 12000));
-  const fontSize = Math.max(9, Math.min(13, camera.ppu * 4000));
-  const eventSize = Math.max(22, Math.min(44, camera.ppu * 9000));
+  const iconSize = useMemo(() => Math.max(28, Math.min(56, camera.ppu * 12000)), [camera.ppu]);
+  const fontSize = useMemo(() => Math.max(9, Math.min(13, camera.ppu * 4000)), [camera.ppu]);
+  const eventSize = useMemo(() => Math.max(22, Math.min(44, camera.ppu * 9000)), [camera.ppu]);
 
   // Collect all visible realms and events from chunks
-  const visibleRealms: (ProceduralRealm & { biome: string })[] = [];
-  const visibleEvents: ProceduralEvent[] = [];
   const allRealmNames = useMemo(() => {
     const map = new Map<string, string>();
     for (const chunk of visibleChunks) {
@@ -1881,19 +1879,25 @@ export default function WorldMap() {
     }
     return map;
   }, [visibleChunks]);
-  for (const chunk of visibleChunks) {
-    for (const realm of chunk.data.realms) {
-      if (isVisible(realm.x, realm.y, 100)) visibleRealms.push({ ...realm, biome: chunk.data.regionBiome });
+
+  const { visibleRealms, visibleEvents } = useMemo(() => {
+    const realms: (ProceduralRealm & { biome: string })[] = [];
+    const events: ProceduralEvent[] = [];
+    for (const chunk of visibleChunks) {
+      for (const realm of chunk.data.realms) {
+        if (isVisible(realm.x, realm.y, 100)) realms.push({ ...realm, biome: chunk.data.regionBiome });
+      }
+      for (const event of chunk.data.events) {
+        if (!claimedEvents.has(event.id) && isVisible(event.x, event.y, 60)) events.push(event);
+      }
     }
-    for (const event of chunk.data.events) {
-      if (!claimedEvents.has(event.id) && isVisible(event.x, event.y, 60)) visibleEvents.push(event);
-    }
-  }
+    return { visibleRealms: realms, visibleEvents: events };
+  }, [visibleChunks, isVisible, claimedEvents]);
 
   // Cap rendered items when very zoomed out
   const maxItems = 30;
-  const renderRealms = visibleRealms.slice(0, maxItems);
-  const renderEvents = visibleEvents.slice(0, maxItems);
+  const renderRealms = useMemo(() => visibleRealms.slice(0, maxItems), [visibleRealms]);
+  const renderEvents = useMemo(() => visibleEvents.slice(0, maxItems), [visibleEvents]);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
