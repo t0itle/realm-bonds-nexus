@@ -241,7 +241,7 @@ export default function ResourceBar() {
             >
               🏪 {Math.floor(storagePct)}%
             </button>
-            <span className="text-muted-foreground flex items-center gap-0.5">
+            <span className="text-foreground/80 flex items-center gap-0.5">
               <ResourceIcon type="population" size={10} /> {population.current}/{population.max}
             </span>
             <Tooltip>
