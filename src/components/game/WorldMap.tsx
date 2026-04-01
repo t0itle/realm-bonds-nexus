@@ -1098,10 +1098,10 @@ export default function WorldMap() {
     return () => clearInterval(interval);
   }, [npcState.playerRelations, addResources]);
 
-  // Animate marches — re-render every 500ms for smooth interpolation
+  // Animate marches — re-render every 1s (reduced from 500ms for perf)
   useEffect(() => {
     if (marches.length === 0) return;
-    const interval = setInterval(() => forceRender(v => v + 1), 500);
+    const interval = setInterval(() => forceRender(v => v + 1), 1000);
     return () => clearInterval(interval);
   }, [marches.length]);
 
