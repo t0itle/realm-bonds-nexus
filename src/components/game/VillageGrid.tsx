@@ -564,7 +564,77 @@ function BuildingDetail({ building, onUpgrade, onDemolish, canAfford, canAffordS
         </div>
       )}
 
-      {upgrading && (
+      {/* Worker assignment section */}
+      {supportsWorkers && building.level > 0 && (
+        <div className="bg-secondary/30 border border-border/50 rounded-lg p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-display text-foreground">👷 Workers</span>
+            <span className="text-sm text-muted-foreground">{currentWorkers} / {maxWorkers}</span>
+          </div>
+          <div className="flex items-center justify-center gap-4">
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => unassignWorker(building.id)}
+              disabled={currentWorkers <= 0}
+              className={`w-10 h-10 rounded-xl font-display text-lg flex items-center justify-center ${
+                currentWorkers > 0 ? 'bg-destructive/20 text-destructive hover:bg-destructive/30' : 'bg-muted text-muted-foreground'
+              }`}
+            >−</motion.button>
+            <span className="w-8 text-center text-sm font-bold text-foreground">{currentWorkers}</span>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => assignWorker(building.id)}
+              disabled={currentWorkers >= maxWorkers || population.civilians <= 0}
+              className={`w-10 h-10 rounded-xl font-display text-lg flex items-center justify-center ${
+                currentWorkers < maxWorkers && population.civilians > 0 ? 'bg-primary/20 text-primary hover:bg-primary/30' : 'bg-muted text-muted-foreground'
+              }`}
+            >+</motion.button>
+          </div>
+          <p className="text-sm text-center text-muted-foreground">{population.civilians} civilians available</p>
+          {/* Worker benefit display */}
+          {(() => {
+            if (['farm', 'lumbermill', 'quarry', 'goldmine'].includes(type)) {
+              const prodWithWorkers = getProduction(type, building.level, currentWorkers);
+              const prodWithout = getProduction(type, building.level, 0);
+              const entries = Object.entries(prodWithWorkers);
+              if (entries.length > 0) {
+                const [resKey, totalVal] = entries[0];
+                const baseVal = prodWithout[resKey as keyof typeof prodWithout] || 0;
+                const bonus = (totalVal || 0) - baseVal;
+                if (bonus > 0) {
+                  return <p className="text-sm text-center text-primary">+{bonus} {resKey}/min from workers</p>;
+                }
+              }
+              return null;
+            }
+            if (type === 'barracks') {
+              const baseCap = building.level * 20;
+              const workerBonus = currentWorkers * 10;
+              return <p className="text-sm text-center text-primary">Army cap: {baseCap + workerBonus} (+{workerBonus} from workers)</p>;
+            }
+            if (type === 'temple') {
+              const baseHappy = building.level * 3;
+              const workerBonus = currentWorkers * 2;
+              return <p className="text-sm text-center text-primary">Happiness: +{baseHappy + workerBonus} (+{workerBonus} from workers)</p>;
+            }
+            if (type === 'watchtower') {
+              const baseDet = building.level * 10;
+              const workerBonus = currentWorkers * 5;
+              return <p className="text-sm text-center text-primary">Detection: +{baseDet + workerBonus}% (+{workerBonus}% from workers)</p>;
+            }
+            if (type === 'apothecary') {
+              const baseRec = building.level * 5;
+              const workerBonus = currentWorkers * 3;
+              return <p className="text-sm text-center text-primary">Recovery: {baseRec + workerBonus}% (+{workerBonus}% from workers)</p>;
+            }
+            if (type === 'spyguild') {
+              return <p className="text-sm text-center text-primary">Training speed bonus + concurrent missions</p>;
+            }
+            return null;
+          })()}
+        </div>
+      )}
+
         <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 text-center space-y-1">
           <p className="text-sm font-display text-primary animate-pulse">🔨 Upgrading to Level {upgrading.targetLevel}...</p>
           <p className="text-sm font-bold text-foreground">{formatTime(upgrading.finishTime - Date.now())}</p>
