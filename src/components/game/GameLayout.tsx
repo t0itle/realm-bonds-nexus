@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useGameTicker } from '@/hooks/useGameTicker';
 import { motion, AnimatePresence } from 'framer-motion';
 import ResourceBar from './ResourceBar';
 import ThemeToggle from '@/components/ThemeToggle';
