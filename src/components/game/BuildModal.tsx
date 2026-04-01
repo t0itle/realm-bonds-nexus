@@ -56,7 +56,7 @@ export default function BuildModal({ position, onClose }: { position: number; on
               const info = BUILDING_INFO[type];
               const cost = getUpgradeCost(type, 0);
               const affordable = canAfford(cost) && (cost.steel <= 0 || canAffordSteel(cost.steel));
-              const sprite = BUILDING_SPRITES[type];
+              const sprite = getBuildingSprite(type);
               const buildTime = getBuildTime(type, 0);
               const needsSteel = cost.steel > 0 && !canAffordSteel(cost.steel);
 
