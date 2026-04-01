@@ -2332,8 +2332,23 @@ export default function WorldMap() {
                       </div>
                       {/* Border Wall */}
                       <div className="bg-muted/30 rounded-lg p-2 space-y-1">
-                        <p className="text-[10px] font-semibold text-foreground">🧱 {op.has_wall ? `Upgrade Wall to Lv.${op.wall_level + 1}` : 'Build Border Wall'}</p>
-                        <p className="text-[8px] text-muted-foreground">{op.has_wall ? '+30 garrison, stronger border' : 'Creates visible territory border, +30 garrison defense'}</p>
+                        <p className="text-[10px] font-semibold text-foreground">🧱 {op.has_wall ? `Reinforce Wall to Lv.${op.wall_level + 1}` : 'Build Wall Segment'}</p>
+                        <p className="text-[8px] text-muted-foreground">
+                          {op.has_wall
+                            ? `+30 garrison. Connected to ${wallConnections.length} walled outpost${wallConnections.length !== 1 ? 's' : ''}.`
+                            : nearbyOwnOutposts.length > 0
+                              ? `Walls connect to nearby outposts (within 50k). ${wallConnections.length > 0 ? `Will link to: ${wallConnections.map(c => c.name).join(', ')}` : `Build walls on nearby outposts to form a border.`}`
+                              : 'No nearby outposts to connect. Build outposts closer together first.'}
+                        </p>
+                        {nearbyOwnOutposts.length > 0 && !op.has_wall && (
+                          <div className="flex flex-wrap gap-1">
+                            {nearbyOwnOutposts.slice(0, 4).map(n => (
+                              <span key={n.id} className={`text-[8px] px-1.5 py-0.5 rounded-full ${n.has_wall ? 'bg-accent/30 text-accent-foreground' : 'bg-muted text-muted-foreground'}`}>
+                                {n.has_wall ? '🧱' : '○'} {n.name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
                           <span className={resources.gold >= wallCost.gold ? '' : 'text-destructive'}>🪙{wallCost.gold}</span>
                           <span className={resources.wood >= wallCost.wood ? '' : 'text-destructive'}>🪵{wallCost.wood}</span>
@@ -2349,9 +2364,9 @@ export default function WorldMap() {
                             <p className="text-[9px] text-muted-foreground">{Math.max(0, Math.ceil((isBuildingWall.finishTime - Date.now()) / 1000))}s remaining</p>
                           </div>
                         ) : (
-                          <motion.button whileTap={{ scale: 0.95 }} onClick={handleWall} disabled={!canAffordWall}
+                          <motion.button whileTap={{ scale: 0.95 }} onClick={handleWall} disabled={!canAffordWall || (!op.has_wall && nearbyOwnOutposts.length === 0)}
                             className="w-full bg-accent text-accent-foreground font-display text-[11px] py-2 rounded-lg disabled:opacity-40 active:scale-95 transition-transform">
-                            🧱 {op.has_wall ? 'Upgrade Wall' : 'Build Border Wall'} ({Math.floor(wallTimeSec / 60)}:{(wallTimeSec % 60).toString().padStart(2, '0')})
+                            🧱 {op.has_wall ? 'Reinforce Wall' : 'Build Wall'} ({Math.floor(wallTimeSec / 60)}:{(wallTimeSec % 60).toString().padStart(2, '0')})
                           </motion.button>
                         )}
                       </div>
