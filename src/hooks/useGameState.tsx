@@ -373,6 +373,8 @@ interface GameContextType {
   setVassalTributeRate: (vassalageId: string, rate: number) => Promise<boolean>;
   releaseVassal: (vassalageId: string) => Promise<boolean>;
   getWallLevel: () => number;
+  deployTroops: (sentArmy: Partial<Army>) => void;
+  returnTroops: (survivors: Partial<Army>) => void;
   armyUpkeep: () => { food: number; gold: number };
   population: PopulationStats;
   workerAssignments: WorkerAssignments;
