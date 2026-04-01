@@ -187,6 +187,8 @@ export interface ActiveSpyMission {
   arrivalTime: number;
   returnTime: number;
   phase: 'traveling' | 'operating' | 'returning';
+  targetX: number;
+  targetY: number;
 }
 
 export interface BattleLog {
