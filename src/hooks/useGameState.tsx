@@ -12,6 +12,7 @@ import { useBuildingManagement } from './useBuildingManagement';
 import { useTroopTraining } from './useTroopTraining';
 import { useApothecary } from './useApothecary';
 import { useVassalage } from './useVassalage';
+import { useCombat } from './useCombat';
 
 // Re-export all types from gameTypes
 export type {
