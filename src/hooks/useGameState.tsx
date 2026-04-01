@@ -1270,7 +1270,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const trainTroops = useCallback((type: TroopType, count: number) => {
     const info = TROOP_INFO[type];
     const barracksLvl = getBarracksLevel();
-    console.log('[trainTroops]', { type, count, barracksLvl, required: info.requiredBarracksLevel, totalSoldiers, armyCap, civilians: population.civilians, resources, steel });
+    
+    // Count troops currently in the training queue (not yet added to army)
+    const queuedSoldiers = trainingQueue.reduce((sum, q) => sum + TROOP_INFO[q.type].popCost * q.count, 0);
+    
+    console.log('[trainTroops]', { type, count, barracksLvl, required: info.requiredBarracksLevel, totalSoldiers, queuedSoldiers, armyCap, civilians: population.civilians, resources, steel });
     if (barracksLvl < info.requiredBarracksLevel) { console.log('[trainTroops] FAIL: barracks too low'); return false; }
     const totalCost: Resources = {
       gold: info.cost.gold * count, wood: info.cost.wood * count,
@@ -1279,7 +1283,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const totalSteelCost = info.steelCost * count;
     if (!canAfford(totalCost) || !canAffordSteel(totalSteelCost)) { console.log('[trainTroops] FAIL: cant afford', { totalCost, totalSteelCost }); return false; }
     const popNeeded = info.popCost * count;
-    if (totalSoldiers + popNeeded > armyCap) { console.log('[trainTroops] FAIL: over army cap', { totalSoldiers, popNeeded, armyCap }); return false; }
+    // Check army cap INCLUDING troops currently training
+    if (totalSoldiers + queuedSoldiers + popNeeded > armyCap) { console.log('[trainTroops] FAIL: over army cap (including queued)', { totalSoldiers, queuedSoldiers, popNeeded, armyCap }); return false; }
     if (population.civilians < popNeeded) { console.log('[trainTroops] FAIL: not enough civilians', { civilians: population.civilians, popNeeded }); return false; }
 
     const newResources = {
@@ -1298,7 +1303,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     // Persist to training_queue table
     if (user) supabase.from('training_queue').insert({ user_id: user.id, troop_type: type, count, finish_time: new Date(finishTime).toISOString() } as any).then();
     return true;
-  }, [canAfford, canAffordSteel, getBarracksLevel, totalSoldiers, armyCap, population.civilians, resources, steel, villageId, user]);
+  }, [canAfford, canAffordSteel, getBarracksLevel, totalSoldiers, armyCap, population.civilians, resources, steel, villageId, user, trainingQueue]);
 
   const totalArmyPower = useCallback(() => {
     let attack = 0, defense = 0;
