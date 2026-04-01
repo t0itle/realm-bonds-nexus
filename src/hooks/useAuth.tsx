@@ -24,19 +24,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+    let initialStateResolved = false;
+
+    const applySession = (nextSession: Session | null) => {
+      if (!isMounted) return;
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+      setLoading(false);
+    };
+
+    const resolveInitialState = (nextSession: Session | null) => {
+      if (initialStateResolved) return;
+      initialStateResolved = true;
+      applySession(nextSession);
+    };
+
+    const initTimeout = window.setTimeout(() => {
+      console.error('Auth bootstrap timed out; falling back to signed-out state.');
+      resolveInitialState(null);
+    }, 4000);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+      window.clearTimeout(initTimeout);
+      if (!initialStateResolved) {
+        initialStateResolved = true;
+      }
+      applySession(session);
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    void supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        window.clearTimeout(initTimeout);
+        resolveInitialState(session);
+      })
+      .catch((error) => {
+        console.error('Failed to initialize auth session.', error);
+        window.clearTimeout(initTimeout);
+        resolveInitialState(null);
+      });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      window.clearTimeout(initTimeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (displayName: string, password: string, email?: string) => {
