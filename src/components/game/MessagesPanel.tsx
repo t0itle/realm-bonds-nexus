@@ -455,7 +455,7 @@ export default function MessagesPanel({ initialDm, onDmHandled }: MessagesPanelP
                   {new Date(convo.lastMsg.created_at).toLocaleDateString()}
                 </span>
                 {convo.unread > 0 && (
-                  <span className="wood-btn-primary text-sm rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                  <span className="bg-primary text-primary-foreground text-sm rounded-full w-5 h-5 flex items-center justify-center font-bold">
                     {convo.unread}
                   </span>
                 )}
