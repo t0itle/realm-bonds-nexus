@@ -501,10 +501,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [happinessBase, setHappinessBase] = useState(50);
   const [rations, setRationsLocal] = useState<RationsLevel>('normal');
   const [popTaxRate, setPopTaxRateLocal] = useState(5);
-  const [spies, setSpies] = useState(0);
-  const [spyTrainingQueue, setSpyTrainingQueue] = useState<{ count: number; finishTime: number }[]>([]);
-  const [activeSpyMissions, setActiveSpyMissions] = useState<ActiveSpyMission[]>([]);
-  const [intelReports, setIntelReports] = useState<IntelReport[]>([]);
+  // Spy state is managed by useSpyMissions hook (initialized after population is computed)
   const [vassalages, setVassalages] = useState<Vassalage[]>([]);
   const [injuredTroops, setInjuredTroops] = useState<InjuredArmy>({ ...EMPTY_INJURED });
   const [poisons, setPoisons] = useState(0);
