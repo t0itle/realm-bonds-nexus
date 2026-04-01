@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame, BuildingType, BUILDING_INFO, getUpgradeCost } from '@/hooks/useGameState';
-import { BUILDING_SPRITES } from './sprites';
+import { useTroopSkins } from '@/hooks/useTroopSkins';
 import ResourceIcon, { getResourceType } from './ResourceIcon';
 
 const BUILDABLE: Exclude<BuildingType, 'empty' | 'townhall'>[] = [
