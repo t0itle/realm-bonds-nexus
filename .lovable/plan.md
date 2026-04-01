@@ -1,14 +1,18 @@
 
+# Plan: Block River Crossing Without Bridges
 
-# Plan: Nerf All Resource Production by 10%
+## Problem
+`findPath()` falls back to a straight line (line 190) when A* can't find a route, allowing armies to cross rivers without bridges.
 
-Production uses a `0.8` multiplier in two places. Apply an additional 10% reduction: `0.8 × 0.9 = 0.72`.
+## Fix (2 changes in WorldMap.tsx)
 
-## Changes
+### 1. `findPath` returns empty array on failure instead of straight line
+Change line 190 from returning `[start, end]` to returning `[]` when no path is found.
 
-### 1. Client-side: `src/hooks/useGameState.tsx`
-Change the production multiplier from `0.8` to `0.72` in the `getProduction` helper.
+### 2. `createMarch` checks for empty path and blocks the march
+After calling `findPath`, if the result is empty (or only has start/end with a river between), show an error toast: "🌊 Path blocked by a river! Build a bridge outpost to cross." and abort the march.
 
-### 2. Server-side: `supabase/functions/resource-tick/index.ts`
-Same change — `0.8` → `0.72` in the `getProduction` function to keep client and server in sync.
+### 3. Add a helper to check if straight line crosses a river
+For cases where pathfinding succeeds with straight line (start==end grid cell), also verify the direct path doesn't cross a river without a bridge.
 
+This ensures rivers are truly impassable without bridge outposts.

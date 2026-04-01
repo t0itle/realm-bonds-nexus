@@ -186,8 +186,8 @@ function findPath(startX: number, startY: number, endX: number, endY: number, te
     }
   }
   
-  // No path found — fall back to straight line
-  return [{ x: startX, y: startY }, { x: endX, y: endY }];
+  // No path found — return empty to signal blocked
+  return [];
 }
 
 function simplifyPath(path: { x: number; y: number }[]): { x: number; y: number }[] {
@@ -1401,6 +1401,12 @@ export default function WorldMap() {
     const now = Date.now();
     const pathTerrain = getTerrainForPath(myPos.x, myPos.y, targetX, targetY);
     const waypoints = findPath(myPos.x, myPos.y, targetX, targetY, pathTerrain, bridgeOutpostPositions);
+
+    // If pathfinding returned empty, route is blocked (river without bridge, etc.)
+    if (waypoints.length === 0) {
+      toast.error('🌊 Path blocked by a river! Build a bridge outpost to cross.');
+      return;
+    }
 
     // Check if march path crosses any enemy wall
     let pathBlocked = false;
