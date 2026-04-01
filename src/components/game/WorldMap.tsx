@@ -1176,7 +1176,7 @@ export default function WorldMap() {
     if (pathDist > Math.hypot(targetX - myPos.x, targetY - myPos.y) * 1.1) {
       toast.info(`Route adjusted around obstacles — travel time: ${actualTravelSec}s`);
     }
-  }, [getMyPos, allTerrain, bridgeOutpostPositions, army, user, displayName, findBlockingWall]);
+  }, [getMyPos, getTerrainForPath, bridgeOutpostPositions, army, user, displayName, findBlockingWall]);
 
   const getDistance = useCallback((targetX: number, targetY: number) => {
     const myPos = getMyPos();
