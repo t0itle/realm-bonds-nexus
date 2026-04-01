@@ -46,7 +46,7 @@ const EVENT_SPRITES: Record<string, string> = {
 };
 
 // ── A* Pathfinding around terrain obstacles ──
-const PATH_GRID_CELL = 2000; // world units per pathfinding cell
+const PATH_GRID_CELL = 200_000; // world units per pathfinding cell (scaled 100x)
 
 function isPointInEllipse(px: number, py: number, cx: number, cy: number, rw: number, rh: number): boolean {
   const dx = (px - cx) / rw;
@@ -74,9 +74,7 @@ function isPointNearRiverSegment(px: number, py: number, p1: { x: number; y: num
   return Math.hypot(px - closestX, py - closestY) < riverWidth;
 }
 
-function isPointNearBridge(px: number, py: number, bridges: { x: number; y: number }[], radius: number): boolean {
-  return bridges.some(b => Math.hypot(px - b.x, py - b.y) < radius);
-}
+// Bridges are player-built only — no pre-placed bridge check needed
 
 function isCellBlocked(wx: number, wy: number, terrainFeatures: TerrainFeature[]): boolean {
   const pad = PATH_GRID_CELL * 0.5;
@@ -88,9 +86,9 @@ function isCellBlocked(wx: number, wy: number, terrainFeatures: TerrainFeature[]
   // Check continent-level mountain ranges
   if (isPointInMountainRange(wx, wy, pad)) return true;
   
-  // Check continent-level rivers (blocked unless near a bridge)
+  // Check continent-level rivers (always blocked — players must build bridges)
   const riverCheck = isPointOnContinentRiver(wx, wy, pad);
-  if (riverCheck && !riverCheck.nearBridge) return true;
+  if (riverCheck) return true;
   
   // Check per-chunk terrain (lakes, local mountains)
   for (const t of terrainFeatures) {
@@ -252,7 +250,7 @@ function hashCoords(cx: number, cy: number, salt = 0): number {
 }
 
 // ── Chunk-based procedural world ──
-const CHUNK_SIZE = 90000; // world units per chunk — spread out for cleaner map
+const CHUNK_SIZE = 9_000_000; // world units per chunk — 100x scale
 
 interface TerrainFeature {
   type: 'lake' | 'mountain' | 'island' | 'river';
@@ -802,7 +800,7 @@ export default function WorldMap() {
     return () => clearInterval(interval);
   }, [tradeContracts.length]);
 
-  const DEFAULT_CAMERA = { cx: 420_000, cy: 470_000, ppu: 0.003 }; // Heartlands center
+  const DEFAULT_CAMERA = { cx: 42_000_000, cy: 47_000_000, ppu: 0.00003 }; // Heartlands center (100x world)
   const initializedCamera = useRef(false);
   const [camera, setCamera] = useState(DEFAULT_CAMERA);
   const safeSetCamera = useCallback((updater: (prev: typeof DEFAULT_CAMERA) => typeof DEFAULT_CAMERA) => {
@@ -933,7 +931,7 @@ export default function WorldMap() {
     if (e.touches.length === 2 && lastTouchDist.current) {
       const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
       const scale = d / lastTouchDist.current;
-      safeSetCamera(prev => ({ ...prev, ppu: Math.max(0.00005, Math.min(0.05, prev.ppu * scale)) }));
+      safeSetCamera(prev => ({ ...prev, ppu: Math.max(0.0000005, Math.min(0.005, prev.ppu * scale)) }));
       lastTouchDist.current = d;
     }
   }, [safeSetCamera]);
@@ -941,7 +939,7 @@ export default function WorldMap() {
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     const factor = e.deltaY > 0 ? 0.85 : 1.18;
-    safeSetCamera(prev => ({ ...prev, ppu: Math.max(0.00005, Math.min(0.05, prev.ppu * factor)) }));
+    safeSetCamera(prev => ({ ...prev, ppu: Math.max(0.0000005, Math.min(0.005, prev.ppu * factor)) }));
   }, [safeSetCamera]);
 
   const getPlayerPos = (id: string) => {
@@ -957,24 +955,24 @@ export default function WorldMap() {
     }
     const h2 = ((h * 2654435761) >>> 0);
     const angle = (h % 10000) / 10000 * Math.PI * 2;
-    const radius = 25000 + (h2 % 80000);
+    const radius = 2_500_000 + (h2 % 8_000_000);
     return {
-      x: 420000 + Math.cos(angle) * radius,
-      y: 470000 + Math.sin(angle) * radius,
+      x: 42_000_000 + Math.cos(angle) * radius,
+      y: 47_000_000 + Math.sin(angle) * radius,
     };
   };
 
   // goHome moved below getMyPos
 
   const getMyPos = useCallback(() => {
-    if (!user) return { x: 420000, y: 470000 };
+    if (!user) return { x: 42_000_000, y: 47_000_000 };
     const myVillage = allVillages.find(v => v.village.user_id === user.id);
     return getPlayerPos(myVillage?.village.id || 'me');
   }, [user, allVillages]);
 
   const goHome = useCallback(() => {
     const pos = getMyPos();
-    setCamera({ cx: pos.x, cy: pos.y, ppu: 0.003 });
+    setCamera({ cx: pos.x, cy: pos.y, ppu: 0.00003 });
   }, [getMyPos]);
 
   // Center camera on player's village when map first loads
@@ -1241,9 +1239,9 @@ export default function WorldMap() {
   }, [tradeContracts, addResources]);
 
   const power = totalArmyPower();
-  const iconSize = Math.max(28, Math.min(56, camera.ppu * 12000));
-  const fontSize = Math.max(9, Math.min(13, camera.ppu * 4000));
-  const eventSize = Math.max(22, Math.min(44, camera.ppu * 9000));
+  const iconSize = Math.max(28, Math.min(56, camera.ppu * 1_200_000));
+  const fontSize = Math.max(9, Math.min(13, camera.ppu * 400_000));
+  const eventSize = Math.max(22, Math.min(44, camera.ppu * 900_000));
 
   // Collect all visible realms and events from chunks
   const visibleRealms: (ProceduralRealm & { biome: string })[] = [];
@@ -1416,25 +1414,7 @@ export default function WorldMap() {
                   {river.name}
                 </span>
               )}
-              {/* Bridges */}
-              {river.bridges.map((bp, bi) => {
-                const { sx: bsx, sy: bsy } = worldToScreen(bp.x, bp.y);
-                const bridgeW = Math.max(14, strokeW * 2.5);
-                if (bridgeW < 10) return null;
-                return (
-                  <div key={`bridge-${bi}`} className="absolute flex flex-col items-center" style={{ left: bsx, top: bsy, transform: 'translate(-50%, -50%)', zIndex: 5 }}>
-                    <div style={{
-                      width: bridgeW,
-                      height: bridgeW * 0.5,
-                      background: 'linear-gradient(180deg, hsl(30 40% 50% / 0.8), hsl(25 35% 35% / 0.7))',
-                      borderRadius: `${bridgeW * 0.5}px ${bridgeW * 0.5}px 2px 2px`,
-                      border: '1px solid hsl(30 30% 60% / 0.5)',
-                      boxShadow: '0 2px 8px hsl(0 0% 0% / 0.4)',
-                    }} />
-                    {bridgeW > 18 && <span style={{ fontSize: 9 }} className="mt-0.5" role="img">🌉</span>}
-                  </div>
-                );
-              })}
+              {/* No pre-built bridges — players must build their own */}
             </div>
           );
         }))}
