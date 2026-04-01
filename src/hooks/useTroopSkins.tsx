@@ -128,7 +128,7 @@ interface TroopSkinContextType {
   loading: boolean;
 }
 
-const TroopSkinContext = createContext<TroopSkinContextType | null>(null);
+export const TroopSkinContext = createContext<TroopSkinContextType | null>(null);
 
 export function TroopSkinProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();

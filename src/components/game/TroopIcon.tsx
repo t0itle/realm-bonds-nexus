@@ -1,7 +1,8 @@
 import { useContext } from 'react';
 import { TROOP_SPRITES, SPY_SPRITE } from './troopSprites';
 import { FACTION_TROOP_SPRITES } from './factionTroopSprites';
-import { useTroopSkins, TroopSkinContext } from '@/hooks/useTroopSkins';
+import { TroopSkinContext } from '@/hooks/useTroopSkins';
+import type { FactionSkin } from '@/hooks/useTroopSkins';
 import type { TroopType } from '@/lib/gameTypes';
 
 interface TroopIconProps {
