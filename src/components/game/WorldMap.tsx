@@ -629,7 +629,7 @@ export default function WorldMap() {
   const { allVillages, addResources, addSteel, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, resources, getWatchtowerLevel, getSpyGuildLevel, refreshVillages, myVillages } = useGame();
   const { user } = useAuth();
   const npcState = useNPCState();
-  const { getBuildingSprite } = useTroopSkins();
+  const { getBuildingSprite, getSpriteFilter } = useTroopSkins();
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [claimedEvents, setClaimedEvents] = useState<Set<string>>(new Set());
   const [capturedMines, setCapturedMines] = useState<Set<string>>(new Set());
@@ -1615,9 +1615,10 @@ export default function WorldMap() {
           const sorted = playerPositions.sort((a, b) => (a.isMe ? 1 : 0) - (b.isMe ? 1 : 0));
 
           return sorted.map(({ pv, sx, sy, isMe }) => {
-            const pvThLevel = isMe ? townhallLevel : pv.village.level; // approximate TH level from village level for others
+            const pvThLevel = isMe ? townhallLevel : pv.village.level;
             const sprite = getSettlementSprite(pvThLevel, isMe);
             const settlementLabel = pvThLevel >= 7 ? '🏰 Castle' : pvThLevel >= 5 ? '🏘️ Town' : '🏠 Village';
+            const skinFilter = isMe ? getSpriteFilter() : undefined;
             return (
               <button key={pv.village.id} data-map-item
                 onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'player', data: pv }); }}
@@ -1628,7 +1629,7 @@ export default function WorldMap() {
                   alt={pv.profile.display_name}
                   loading="lazy"
                   className={`drop-shadow-lg ${isMe ? 'brightness-110 saturate-110' : 'brightness-75 grayscale-[20%]'}`}
-                  style={{ width: iconSize * 1.2, height: iconSize * 1.2, imageRendering: 'auto', objectFit: 'contain' }}
+                  style={{ width: iconSize * 1.2, height: iconSize * 1.2, imageRendering: 'auto', objectFit: 'contain', filter: skinFilter }}
                 />
                 {isMe && (
                   <div className="absolute -inset-2 rounded-full pointer-events-none"
@@ -1680,7 +1681,7 @@ export default function WorldMap() {
               <div className="absolute z-40 flex flex-col items-center pointer-events-none"
                 style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
                 <img src={mapSoldier} alt="Army" className="drop-shadow-lg"
-                  style={{ width: marchSize, height: marchSize, objectFit: 'contain', transform: facingLeft ? 'scaleX(-1)' : undefined }} loading="lazy" />
+                  style={{ width: marchSize, height: marchSize, objectFit: 'contain', transform: facingLeft ? 'scaleX(-1)' : undefined, filter: getSpriteFilter() }} loading="lazy" />
                 <div className="bg-background/90 rounded px-1.5 py-0.5 text-center mt-0.5 border border-primary/30 shadow-md">
                   <p className="text-foreground font-display whitespace-nowrap font-bold" style={{ fontSize: Math.max(7, marchSize / 4) }}>
                     {displayName}
@@ -1819,7 +1820,7 @@ export default function WorldMap() {
               <div className="relative">
                 <img src={mapVillage} alt={outpost.name} loading="lazy"
                   className={`drop-shadow-md ${isOwn ? 'brightness-90' : 'brightness-75 hue-rotate-180'}`}
-                  style={{ width: opSize, height: opSize, objectFit: 'contain' }} />
+                  style={{ width: opSize, height: opSize, objectFit: 'contain', filter: isOwn ? getSpriteFilter() : undefined }} />
                 <div className="absolute -inset-1 rounded-full pointer-events-none"
                   style={{
                     boxShadow: isOwn ? '0 0 10px 3px hsl(var(--primary) / 0.2)' : '0 0 8px 2px hsl(var(--destructive) / 0.15)',

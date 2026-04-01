@@ -6,22 +6,22 @@ import { useTroopSkins } from '@/hooks/useTroopSkins';
 import BuildModal from './BuildModal';
 import ResourceIcon, { getResourceType } from './ResourceIcon';
 import { Send, Scroll } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { lazy, Suspense } from 'react';
 
 const MilitaryPanel = lazy(() => import('./MilitaryPanel'));
 const StatSheet = lazy(() => import('./StatSheet'));
 
-function getGridSize(townhallLevel: number): number {
-  if (townhallLevel >= 7) return 16;
-  if (townhallLevel >= 5) return 12;
-  if (townhallLevel >= 3) return 9;
+function getGridSize(settlementType: string): number {
+  if (settlementType === 'city') return 25;
+  if (settlementType === 'town') return 16;
   return 9;
 }
 
 function getGridCols(gridSize: number): number {
+  if (gridSize >= 25) return 5;
   if (gridSize >= 16) return 4;
-  if (gridSize >= 12) return 4;
   return 3;
 }
 
@@ -180,7 +180,7 @@ function CollapsibleSection({ icon, title, defaultOpen, children }: {
 }
 
 export default function VillageGrid() {
-  const { buildings, upgradeBuilding, demolishBuilding, canAfford, canAffordSteel, isBuildingUpgrading, getBuildTime, resources, steel } = useGame();
+  const { buildings, upgradeBuilding, demolishBuilding, canAfford, canAffordSteel, isBuildingUpgrading, getBuildTime, resources, steel, settlementType, upgradeSettlement, isSettlementUpgrading, settlementUpgradeFinishTime } = useGame();
   const { getBuildingSprite } = useTroopSkins();
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [buildPosition, setBuildPosition] = useState<number | null>(null);
@@ -193,7 +193,7 @@ export default function VillageGrid() {
   }, []);
 
   const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
-  const gridSize = getGridSize(townhallLevel);
+  const gridSize = getGridSize(settlementType);
   const gridCols = getGridCols(gridSize);
 
   const grid = Array.from({ length: gridSize }, (_, i) => {
@@ -285,6 +285,65 @@ export default function VillageGrid() {
             );
           })}
         </div>
+
+        {/* Settlement Upgrade Button */}
+        {(() => {
+          const UPGRADES: Record<string, { next: string; label: string; thRequired: number; cost: { gold: number; wood: number; stone: number; food: number }; steelCost: number; buildTime: string } | null> = {
+            village: { next: 'town', label: 'Town', thRequired: 10, cost: { gold: 15000, wood: 12000, stone: 10000, food: 8000 }, steelCost: 50, buildTime: '2h' },
+            town: { next: 'city', label: 'City', thRequired: 10, cost: { gold: 80000, wood: 75000, stone: 70000, food: 60000 }, steelCost: 200, buildTime: '24h' },
+            city: null,
+          };
+          const upgrade = UPGRADES[settlementType];
+          if (!upgrade) return null;
+
+          if (isSettlementUpgrading && settlementUpgradeFinishTime) {
+            const remaining = Math.max(0, settlementUpgradeFinishTime - Date.now());
+            const hours = Math.floor(remaining / 3600000);
+            const mins = Math.floor((remaining % 3600000) / 60000);
+            const secs = Math.floor((remaining % 60000) / 1000);
+            return (
+              <div className="mx-3 mb-2 game-panel border border-primary/30 rounded-xl px-4 py-3 text-center space-y-1">
+                <span className="text-lg animate-pulse">🏗️</span>
+                <p className="font-display text-xs text-foreground">Upgrading to {upgrade.label}...</p>
+                <p className="text-sm font-bold text-primary">{hours > 0 ? `${hours}h ` : ''}{mins}m {secs}s</p>
+                <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${Math.min(100, (1 - remaining / (upgrade.next === 'town' ? 7200000 : 86400000)) * 100)}%` }} />
+                </div>
+              </div>
+            );
+          }
+
+          const thMaxed = townhallLevel >= upgrade.thRequired;
+          const affordable = canAfford(upgrade.cost) && canAffordSteel(upgrade.steelCost);
+          return (
+            <button
+              onClick={() => { if (thMaxed && affordable) upgradeSettlement(); else if (!thMaxed) toast.error(`Max out your Town Hall (Lv.${upgrade.thRequired}) first!`); }}
+              disabled={!thMaxed || !affordable}
+              className={`mx-3 mb-2 w-[calc(100%-1.5rem)] game-panel border rounded-xl px-4 py-3 text-left transition-all ${
+                thMaxed && affordable ? 'border-primary/40 hover:border-primary/70 glow-gold-sm' : 'border-border/30 opacity-60'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-display text-xs text-foreground">⬆️ Upgrade to {upgrade.label}</p>
+                  <p className="text-[9px] text-muted-foreground mt-0.5">
+                    {!thMaxed ? `Requires TH Lv.${upgrade.thRequired}` : `Unlocks ${upgrade.next === 'town' ? 16 : 25} building slots`}
+                  </p>
+                </div>
+                <span className="text-[10px] text-primary font-display">{upgrade.buildTime}</span>
+              </div>
+              {thMaxed && (
+                <div className="flex flex-wrap gap-1.5 mt-1.5 text-[9px] text-muted-foreground">
+                  <span className={resources.gold >= upgrade.cost.gold ? '' : 'text-destructive'}>🪙{(upgrade.cost.gold / 1000).toFixed(0)}k</span>
+                  <span className={resources.wood >= upgrade.cost.wood ? '' : 'text-destructive'}>🪵{(upgrade.cost.wood / 1000).toFixed(0)}k</span>
+                  <span className={resources.stone >= upgrade.cost.stone ? '' : 'text-destructive'}>🪨{(upgrade.cost.stone / 1000).toFixed(0)}k</span>
+                  <span className={resources.food >= upgrade.cost.food ? '' : 'text-destructive'}>🌾{(upgrade.cost.food / 1000).toFixed(0)}k</span>
+                  {upgrade.steelCost > 0 && <span className={steel >= upgrade.steelCost ? '' : 'text-destructive'}>⚙️{upgrade.steelCost}</span>}
+                </div>
+              )}
+            </button>
+          );
+        })()}
       </div>
 
       {/* Inline Oracle Widget */}
