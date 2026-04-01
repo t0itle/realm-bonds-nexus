@@ -1061,11 +1061,24 @@ export default function WorldMap() {
     const nearbyVillages = allVillages.filter(v => {
       const dx = v.village.map_x - worldBoss.x;
       const dy = v.village.map_y - worldBoss.y;
-      return Math.sqrt(dx * dx + dy * dy) <= bossRange && v.village.user_id === user.id;
+      return Math.sqrt(dx * dx + dy * dy) <= bossRange;
     });
     if (nearbyVillages.length === 0) return;
 
-    const target = nearbyVillages.sort((a, b) => b.village.level - a.village.level)[0];
+    // Rank targets: vassals count > army strength > total resources (excl. food)
+    const scored = nearbyVillages.map(v => {
+      const vil = v.village as any;
+      const vassalCount = vassalages.filter(va => va.lord_id === vil.user_id && va.status === 'active').length;
+      const armyPower = (vil.army_militia || 0) + (vil.army_archer || 0) * 2 + (vil.army_knight || 0) * 4
+        + (vil.army_cavalry || 0) * 5 + (vil.army_siege || 0) * 6 + (vil.army_scout || 0);
+      const totalRes = Number(vil.gold || 0) + Number(vil.wood || 0) + Number(vil.stone || 0);
+      // Weighted score: vassals most important, then army, then resources
+      const score = vassalCount * 100000 + armyPower * 100 + totalRes;
+      return { v, score, userId: vil.user_id as string };
+    }).sort((a, b) => b.score - a.score);
+
+    const target = scored[0].v;
+    const targetUserId = scored[0].userId;
     const raidRng = seededRandom(daySeed * 7919 + worldBoss.weekSeed);
     if (raidRng() > 0.5) { sessionStorage.setItem(raidKey, '1'); return; }
 
@@ -1081,7 +1094,7 @@ export default function WorldMap() {
       start_x: worldBoss.x, start_y: worldBoss.y,
       target_x: target.village.map_x, target_y: target.village.map_y,
       target_name: target.village.name,
-      target_user_id: user.id,
+      target_user_id: targetUserId,
       arrives_at: arrivesAt,
       march_type: 'attack',
       sent_army: raidArmy,
@@ -1138,7 +1151,7 @@ export default function WorldMap() {
     }, arrivalMs);
 
     return () => clearTimeout(raidTimer);
-  }, [user, worldBoss, worldBossDefeated, allVillages, addResources]);
+  }, [user, worldBoss, worldBossDefeated, allVillages, addResources, vassalages]);
 
 
   useEffect(() => {
