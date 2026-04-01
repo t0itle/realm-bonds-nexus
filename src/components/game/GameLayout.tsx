@@ -200,7 +200,7 @@ export default function GameLayout() {
 
       {/* Active marches banner */}
       {activeMarches.length > 0 && (
-        <div className="px-3 py-1.5">
+        <div className="px-3 py-1.5 max-h-24 overflow-y-auto scrollbar-thin">
           {activeMarches.map(march => {
             const now = Date.now();
             const arrival = new Date(march.arrives_at).getTime();
