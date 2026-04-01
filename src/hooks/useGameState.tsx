@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef, Re
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from './useAuth';
+import { getMineSteelPerMinuteFromMineIds, getMineSteelPerTickFromMineId } from '@/lib/mineProduction';
 
 export interface Building {
   id: string;
@@ -408,6 +409,7 @@ interface GameContextType {
   myVillages: { id: string; name: string; settlement_type: string }[];
   switchVillage: (villageId: string) => void;
   refreshVillages: () => Promise<void>;
+  refreshMineOutposts: () => Promise<void>;
   abandonSettlement: (villageId: string) => Promise<boolean>;
   // Settlement upgrade
   settlementType: 'village' | 'town' | 'city';
@@ -462,6 +464,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [avatarUrl, setAvatarUrlLocal] = useState<string | null>(null);
   const [allVillages, setAllVillages] = useState<PlayerVillage[]>([]);
   const [myVillages, setMyVillages] = useState<{ id: string; name: string; settlement_type: string }[]>([]);
+  const [ownedMineIds, setOwnedMineIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [army, setArmy] = useState<Army>({ ...EMPTY_ARMY });
   const [trainingQueue, setTrainingQueue] = useState<TrainingQueue[]>([]);
@@ -546,6 +549,21 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (user) {
       supabase.from('profiles').update({ avatar_url: url } as any).eq('user_id', user.id).then();
     }
+  }, [user]);
+
+  const refreshMineOutposts = useCallback(async () => {
+    if (!user) {
+      setOwnedMineIds([]);
+      return;
+    }
+
+    const { data } = await supabase
+      .from('outposts')
+      .select('name')
+      .eq('user_id', user.id)
+      .eq('outpost_type', 'mine');
+
+    setOwnedMineIds((data || []).map((outpost: any) => outpost.name).filter(Boolean));
   }, [user]);
 
   const loadVillageData = useCallback(async (targetVillageId?: string) => {
@@ -786,14 +804,20 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setAllianceTaxRate(0);
       }
 
+      await refreshMineOutposts();
+
       setLoading(false);
     };
     loadData();
-  }, [user, villageId]);
+  }, [user, villageId, refreshMineOutposts]);
 
   // Initial load
   useEffect(() => {
-    loadVillageData();
+    if (user) {
+      loadVillageData();
+    } else {
+      setOwnedMineIds([]);
+    }
   }, [user]);
 
   const switchVillage = useCallback((newVillageId: string) => {
@@ -1100,14 +1124,20 @@ export function GameProvider({ children }: { children: ReactNode }) {
     );
   }, [buildings, workerAssignments]);
 
-  // Steel production from quarries at level 3+
-  const steelProduction = useMemo(() => {
+  // Steel production from buildings + owned world-map mines
+  const buildingSteelProduction = useMemo(() => {
     return buildings.reduce((acc, b) => {
       if (b.type === 'empty') return acc;
       const workers = workerAssignments[b.id] || 0;
       return acc + getSteelProduction(b.type, b.level, workers);
     }, 0);
   }, [buildings, workerAssignments]);
+
+  const mineSteelPerTick = useMemo(() => ownedMineIds.reduce((acc, mineId) => acc + getMineSteelPerTickFromMineId(mineId), 0), [ownedMineIds]);
+
+  const steelProduction = useMemo(() => {
+    return buildingSteelProduction + getMineSteelPerMinuteFromMineIds(ownedMineIds);
+  }, [buildingSteelProduction, ownedMineIds]);
 
   // Net production: gross - army upkeep - pop food cost + pop tax income
   const totalProduction = useMemo(() => {
@@ -1168,8 +1198,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const totalProductionRef = useRef(totalProduction);
   totalProductionRef.current = totalProduction;
-  const steelProductionRef = useRef(steelProduction);
-  steelProductionRef.current = steelProduction;
+  const buildingSteelProductionRef = useRef(buildingSteelProduction);
+  buildingSteelProductionRef.current = buildingSteelProduction;
+  const mineSteelPerTickRef = useRef(mineSteelPerTick);
+  mineSteelPerTickRef.current = mineSteelPerTick;
   const armyRef = useRef(army);
   armyRef.current = army;
 
@@ -1225,7 +1257,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     let lastDesertionTime = 0;
     const tickInterval = setInterval(() => {
       const prod = totalProductionRef.current;
-      const steelProd = steelProductionRef.current;
+      const steelProd = buildingSteelProductionRef.current;
       const fraction = 2 / 60;
       const cap = storageCapRef.current;
       
@@ -1462,6 +1494,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
       return newVal;
     });
   }, [villageId]);
+
+  useEffect(() => {
+    if (!user || !villageId || mineSteelPerTick <= 0) return;
+
+    const interval = setInterval(() => {
+      const steelPerTick = mineSteelPerTickRef.current;
+      if (steelPerTick > 0) addSteel(steelPerTick);
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [user, villageId, mineSteelPerTick, addSteel]);
 
   const getWallLevel = useCallback(() => {
     const wall = buildings.find(b => b.type === 'wall');
@@ -2138,7 +2181,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       attackPlayer, vassalages, payRansom, attemptRebellion, setVassalTributeRate, releaseVassal, getWallLevel,
       injuredTroops, poisons, healTroops, craftPoison, getApothecaryLevel,
       storageCapacity,
-      myVillages, switchVillage, refreshVillages, abandonSettlement,
+      myVillages, switchVillage, refreshVillages, refreshMineOutposts, abandonSettlement,
       settlementType, upgradeSettlement, isSettlementUpgrading, settlementUpgradeFinishTime,
     }}>
       {children}
