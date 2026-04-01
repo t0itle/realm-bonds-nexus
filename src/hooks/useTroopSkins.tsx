@@ -98,6 +98,22 @@ export const FACTION_SKINS: FactionSkin[] = [
       scout: { name: 'Explorator', emoji: '👁️' },
     },
   },
+  {
+    id: 'pirate',
+    name: 'Pirate Fleet',
+    description: 'Tropical cove buildings with docks, cannons, and skull flags.',
+    icon: '🏴‍☠️',
+    cost: 3500,
+    accentHue: 200,
+    troops: {
+      militia: { name: 'Buccaneer', emoji: '🏴‍☠️' },
+      archer: { name: 'Gunner', emoji: '🔫' },
+      knight: { name: 'Corsair', emoji: '⚓' },
+      cavalry: { name: 'Boarder', emoji: '🦜' },
+      siege: { name: 'Cannon', emoji: '💣' },
+      scout: { name: 'Lookout', emoji: '🔭' },
+    },
+  },
 ];
 
 interface TroopSkinContextType {
@@ -193,6 +209,7 @@ export function TroopSkinProvider({ children }: { children: ReactNode }) {
     samurai: 'hue-rotate(320deg) saturate(1.4) brightness(1.05)',
     undead: 'hue-rotate(100deg) saturate(1.5) brightness(0.8)',
     roman: 'hue-rotate(40deg) saturate(1.2) brightness(1.1)',
+    pirate: 'hue-rotate(200deg) saturate(1.3) brightness(1.0)',
   };
 
   const getSpriteFilter = useCallback((): string | undefined => {

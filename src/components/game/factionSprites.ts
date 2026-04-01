@@ -58,6 +58,21 @@ import romanApothecary from '@/assets/sprites/factions/roman/apothecary.png';
 import romanWarehouse from '@/assets/sprites/factions/roman/warehouse.png';
 import romanSpyguild from '@/assets/sprites/factions/roman/spyguild.png';
 
+// Pirate faction sprites
+import pirateTownhall from '@/assets/sprites/factions/pirate/townhall.png';
+import pirateFarm from '@/assets/sprites/factions/pirate/farm.png';
+import pirateLumbermill from '@/assets/sprites/factions/pirate/lumbermill.png';
+import pirateQuarry from '@/assets/sprites/factions/pirate/quarry.png';
+import pirateGoldmine from '@/assets/sprites/factions/pirate/goldmine.png';
+import pirateBarracks from '@/assets/sprites/factions/pirate/barracks.png';
+import pirateWall from '@/assets/sprites/factions/pirate/wall.png';
+import pirateWatchtower from '@/assets/sprites/factions/pirate/watchtower.png';
+import pirateHouse from '@/assets/sprites/factions/pirate/house.png';
+import pirateTemple from '@/assets/sprites/factions/pirate/temple.png';
+import pirateApothecary from '@/assets/sprites/factions/pirate/apothecary.png';
+import pirateWarehouse from '@/assets/sprites/factions/pirate/warehouse.png';
+import pirateSpyguild from '@/assets/sprites/factions/pirate/spyguild.png';
+
 import type { BuildingType } from '@/hooks/useGameState';
 
 type BuildingSpriteMap = Record<Exclude<BuildingType, 'empty'>, string>;
@@ -122,5 +137,20 @@ export const FACTION_BUILDING_SPRITES: Record<string, BuildingSpriteMap> = {
     apothecary: romanApothecary,
     warehouse: romanWarehouse,
     spyguild: romanSpyguild,
+  },
+  pirate: {
+    townhall: pirateTownhall,
+    farm: pirateFarm,
+    lumbermill: pirateLumbermill,
+    quarry: pirateQuarry,
+    goldmine: pirateGoldmine,
+    barracks: pirateBarracks,
+    wall: pirateWall,
+    watchtower: pirateWatchtower,
+    house: pirateHouse,
+    temple: pirateTemple,
+    apothecary: pirateApothecary,
+    warehouse: pirateWarehouse,
+    spyguild: pirateSpyguild,
   },
 };
