@@ -1434,34 +1434,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval);
   }, [trainingQueue.length, persistArmyToVillage, user?.id]);
 
-  // Spy training queue processing
-  useEffect(() => {
-    if (spyTrainingQueue.length === 0) return;
-    const interval = setInterval(() => {
-      const now = Date.now();
-      setSpyTrainingQueue(prev => {
-        const completed = prev.filter(q => q.finishTime <= now);
-        const remaining = prev.filter(q => q.finishTime > now);
-        if (completed.length > 0) {
-          const totalSpies = completed.reduce((s, q) => s + q.count, 0);
-          setSpies(p => {
-            const newVal = p + totalSpies;
-            // Persist spies to village
-            if (villageId) supabase.from('villages').update({ spies: newVal } as any).eq('id', villageId).then();
-            return newVal;
-          });
-          // Clean up from DB
-          supabase.from('spy_training_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').then();
-          // Push notification
-          supabase.functions.invoke('send-push', {
-            body: { user_id: user?.id, title: '🕵️ Spy Training Complete', body: `${totalSpies} spy${totalSpies > 1 ? 's' : ''} ready for missions!`, tag: 'spy-training-done' },
-          }).catch(() => {});
-        }
-        return remaining;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [spyTrainingQueue.length, villageId, user?.id]);
+  // Spy training queue processing is now in useSpyMissions
 
 
   useEffect(() => {
