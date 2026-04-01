@@ -243,21 +243,28 @@ export function resolveCombat(
   const calcEffectivePower = (army: Army, enemyArmy: Army, isDefender: boolean, wallLevel: number) => {
     let totalAtk = 0;
     let totalDef = 0;
+    
+    // Calculate total enemy army size for counter proportion scaling
+    const totalEnemyUnits = Object.values(enemyArmy).reduce((s, c) => s + Math.max(0, c), 0);
+    
     for (const [type, count] of Object.entries(army) as [TroopType, number][]) {
       if (count <= 0) continue;
       const info = TROOP_INFO[type];
       let atk = info.attack * count;
       let def = info.defense * count;
       
-      // Counter bonuses
-      const counters = TROOP_COUNTERS[type];
-      for (const [enemyType, enemyCount] of Object.entries(enemyArmy) as [TroopType, number][]) {
-        if (enemyCount <= 0) continue;
-        if (counters.strongVs.includes(enemyType)) {
-          atk += info.attack * count * 0.3; // 30% bonus vs countered types
-        }
-        if (counters.weakVs.includes(enemyType)) {
-          atk -= info.attack * count * 0.15; // 15% penalty vs counter types
+      // Counter bonuses — scaled by proportion of countered units in enemy army
+      if (totalEnemyUnits > 0) {
+        const counters = TROOP_COUNTERS[type];
+        for (const [enemyType, enemyCount] of Object.entries(enemyArmy) as [TroopType, number][]) {
+          if (enemyCount <= 0) continue;
+          const proportion = enemyCount / totalEnemyUnits;
+          if (counters.strongVs.includes(enemyType)) {
+            atk += info.attack * count * 0.3 * proportion;
+          }
+          if (counters.weakVs.includes(enemyType)) {
+            atk -= info.attack * count * 0.15 * proportion;
+          }
         }
       }
       totalAtk += Math.max(0, atk);
@@ -273,8 +280,13 @@ export function resolveCombat(
   const atkPower = calcEffectivePower(attackerArmy, defenderArmy, false, 0);
   const defPower = calcEffectivePower(defenderArmy, attackerArmy, true, defenderWallLevel);
   
-  const attackerScore = atkPower.attack * (0.85 + Math.random() * 0.3); // ±15% randomness
-  const defenderScore = defPower.attack + defPower.defense * 0.5;
+  // Balanced formula: attackers use atk + partial def; defenders use partial atk + full def + walls
+  const attackerTotal = atkPower.attack + atkPower.defense * 0.3;
+  const defenderTotal = defPower.attack * 0.7 + defPower.defense;
+  
+  // ±10% randomness (reduced from ±15% to prevent extreme upsets)
+  const attackerScore = attackerTotal * (0.9 + Math.random() * 0.2);
+  const defenderScore = defenderTotal * (0.9 + Math.random() * 0.2);
   
   const victory = attackerScore > defenderScore;
   const powerRatio = attackerScore / Math.max(1, defenderScore);
