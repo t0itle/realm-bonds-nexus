@@ -96,7 +96,7 @@ export default function AttackConfigPanel({
       {/* Tactical Intel */}
       {(() => {
         const scoutReport = intelReports.find(r => r.mission === 'scout' && r.result === 'success' && r.targetName === targetName);
-        const targetTroops = (scoutReport?.data as any)?.troops as Record<TroopType, number> | undefined;
+        const targetTroops = scoutReport?.data?.troops as Record<string, number> | undefined;
 
         if (!targetTroops || Object.values(targetTroops).every(c => c === 0)) {
           return (
