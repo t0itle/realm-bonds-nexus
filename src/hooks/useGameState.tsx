@@ -738,16 +738,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
     villageId, user, canAfford, canAffordSteel, getBarracksLevel, totalSoldiers, armyCap, population,
   });
 
-  useEffect(() => {
-    if (!user || !villageId || mineSteelPerTick <= 0) return;
-
-    const interval = setInterval(() => {
-      const steelPerTick = mineSteelPerTickRef.current;
-      if (steelPerTick > 0) addSteel(steelPerTick);
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [user, villageId, mineSteelPerTick, addSteel]);
+  useGameTick({
+    villageId, user, totalProduction, buildingSteelProduction, mineSteelPerTick,
+    storageCapacity, setResources, setSteel, army, setArmy, setPopulationBase,
+    persistArmyToVillage, allianceId, setAllianceTaxRate, addSteel,
+  });
 
   const { getMaxWorkers, assignWorker, unassignWorker } = useWorkerManagement({
     buildings, workerAssignments, setWorkerAssignments, population, villageId,
