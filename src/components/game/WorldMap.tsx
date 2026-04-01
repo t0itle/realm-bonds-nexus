@@ -411,16 +411,65 @@ const EVENT_LOCATIONS = ['of the Northern Pass', 'by the River Crossing', 'near 
 // Uses seeded noise to create irregular ocean boundaries with bays, peninsulas, and straits
 const OCEAN_NAMES = ['The Abyssal Deep', 'Sea of Storms', 'The Endless Blue', 'Drowned Expanse', 'Shattered Sea', 'The Void Waters', 'Mare Tenebris', 'Sea of Whispers', 'The Sunken Reach', 'Leviathan\'s Domain'];
 
+// ── Distant exotic continent definitions ──
+interface ExoticContinent {
+  cx: number; cy: number; // center in chunk coords
+  radius: number; // radius in chunks
+  biome: string;
+  name: string;
+  seed: number;
+}
+
+const EXOTIC_CONTINENTS: ExoticContinent[] = [
+  // Desert continent - far east
+  { cx: 55, cy: 0, radius: 10, biome: 'Desert', name: 'The Scorchlands', seed: 3001 },
+  // Jungle continent - far south
+  { cx: -10, cy: 55, radius: 9, biome: 'Jungle', name: 'The Jade Wilds', seed: 3002 },
+  // Lava continent - far west
+  { cx: -55, cy: -5, radius: 8, biome: 'Lava', name: 'The Ashforge', seed: 3003 },
+  // Island archipelago - far northeast
+  { cx: 40, cy: -45, radius: 12, biome: 'Islands', name: 'The Shattered Isles', seed: 3004 },
+  // Desert + jungle mix - far south-west
+  { cx: -40, cy: 50, radius: 9, biome: 'Oasis', name: 'The Mirage Coast', seed: 3005 },
+  // Volcanic islands - far northwest
+  { cx: -45, cy: -45, radius: 7, biome: 'VolcanicIslands', name: 'The Cinderchain', seed: 3006 },
+  // Deep jungle - far south-east
+  { cx: 45, cy: 45, radius: 8, biome: 'DeepJungle', name: 'The Verdant Abyss', seed: 3007 },
+];
+
+function getExoticContinent(cx: number, cy: number): ExoticContinent | null {
+  for (const ec of EXOTIC_CONTINENTS) {
+    const dx = cx - ec.cx;
+    const dy = cy - ec.cy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    // Add coastline wobble
+    const angle = Math.atan2(dy, dx);
+    const wobbleSeed = hashCoords(Math.floor(angle * 6), 0, ec.seed);
+    const wobble = (seededRandom(wobbleSeed)() - 0.5) * ec.radius * 0.3;
+    if (dist < ec.radius + wobble) return ec;
+  }
+  return null;
+}
+
 function isOceanChunk(cx: number, cy: number): boolean {
   const dist = Math.sqrt(cx * cx + cy * cy);
-  if (dist < 12) return false; // Inner zone is always land
-  if (dist > 25) return true;  // Far out is always ocean
-  // Transition zone (12-25): use seeded noise for irregular coastline
-  const angle = Math.atan2(cy, cx);
-  const coastSeed = hashCoords(Math.floor(angle * 8), 0, 7777);
-  const coastRng = seededRandom(coastSeed);
-  const coastThreshold = 15 + coastRng() * 10; // 15-25 chunks from origin
-  return dist > coastThreshold;
+  // Inner homeland is always land
+  if (dist < 12) return false;
+  
+  // Check if on an exotic continent beyond the ocean
+  if (dist > 25 && getExoticContinent(cx, cy)) return false;
+  
+  // Transition zone (12-25): irregular coastline of the homeland
+  if (dist <= 25) {
+    const angle = Math.atan2(cy, cx);
+    const coastSeed = hashCoords(Math.floor(angle * 8), 0, 7777);
+    const coastRng = seededRandom(coastSeed);
+    const coastThreshold = 15 + coastRng() * 10;
+    return dist > coastThreshold;
+  }
+  
+  // Beyond 25 and not on exotic continent = ocean
+  return true;
 }
 
 function isCoastalChunk(cx: number, cy: number): boolean {
