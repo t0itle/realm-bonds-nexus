@@ -34,6 +34,7 @@ import mapCityTier from '@/assets/sprites/map-city-tier.png';
 import mapRuins from '@/assets/sprites/map-ruins.png';
 import mapSoldier from '@/assets/sprites/map-soldier.png';
 import mapMountain from '@/assets/sprites/map-mountain.png';
+import mapCaravan from '@/assets/sprites/map-caravan.png';
 
 const REALM_SPRITES: Record<string, string> = {
   hostile: mapCastleHostile,
