@@ -2094,7 +2094,7 @@ export default function WorldMap() {
           const sorted = playerPositions.sort((a, b) => (a.isMe ? 1 : 0) - (b.isMe ? 1 : 0));
 
           return sorted.map(({ pv, sx, sy, isMe }) => {
-            const pvSettlementType = isMe ? settlementType : (pv.village.settlement_type || 'village');
+            const pvSettlementType = pv.village.settlement_type || 'village';
             const sprite = getSettlementSprite(pvSettlementType, isMe);
             const settlementLabel = SETTLEMENT_LABELS[pvSettlementType] || '🏠 Village';
             const skinFilter = isMe ? getSpriteFilter() : undefined;
