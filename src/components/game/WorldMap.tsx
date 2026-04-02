@@ -2625,7 +2625,7 @@ export default function WorldMap() {
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'outpost', data: outpost }); }}
             >
               <div className="relative overflow-hidden" style={{ width: opSize, height: opSize }}>
-                <img src={mapFort} alt={outpost.name} loading="lazy"
+                <img src={isOwn && activeSkin.id !== 'default' && FACTION_FORT_SPRITES[activeSkin.id] ? FACTION_FORT_SPRITES[activeSkin.id] : mapFort} alt={outpost.name} loading="lazy"
                   className={`w-full h-full object-contain drop-shadow-lg ${isOwn ? '' : 'brightness-75 hue-rotate-180'}`}
                   style={{
                     transform: 'scale(1.55)',
