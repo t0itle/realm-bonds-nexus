@@ -47,10 +47,35 @@ export function getSteelProduction(_type: Exclude<BuildingType, 'empty'>, _level
   return 0; // Steel is acquired from iron ore deposits on the world map
 }
 
-export const RATIONS_INFO: Record<RationsLevel, { label: string; foodMultiplier: number; happinessBonus: number; description: string }> = {
-  scarce: { label: 'Scarce', foodMultiplier: 0.5, happinessBonus: -15, description: 'Half rations. Saves food but lowers happiness.' },
-  normal: { label: 'Normal', foodMultiplier: 1.0, happinessBonus: 0, description: 'Standard rations. No bonus or penalty.' },
-  generous: { label: 'Generous', foodMultiplier: 2.0, happinessBonus: 15, description: 'Double rations. Costs more food but boosts happiness.' },
+/** Interpolates rations effects from a 0–100 slider value.
+ *  0 = scarce (0.5× food, -15 happiness)
+ *  50 = normal (1.0× food, 0 happiness)
+ *  100 = generous (2.0× food, +15 happiness) */
+export function getRationsEffect(level: number): { label: string; foodMultiplier: number; happinessBonus: number; description: string } {
+  const clamped = Math.max(0, Math.min(100, level));
+  let foodMultiplier: number;
+  let happinessBonus: number;
+  if (clamped <= 50) {
+    const t = clamped / 50; // 0→1 mapping scarce→normal
+    foodMultiplier = 0.5 + t * 0.5; // 0.5 → 1.0
+    happinessBonus = -15 + t * 15;  // -15 → 0
+  } else {
+    const t = (clamped - 50) / 50; // 0→1 mapping normal→generous
+    foodMultiplier = 1.0 + t * 1.0; // 1.0 → 2.0
+    happinessBonus = t * 15;        // 0 → 15
+  }
+  happinessBonus = Math.round(happinessBonus);
+  foodMultiplier = Math.round(foodMultiplier * 100) / 100;
+  const label = clamped <= 20 ? 'Scarce' : clamped <= 40 ? 'Lean' : clamped <= 60 ? 'Normal' : clamped <= 80 ? 'Plentiful' : 'Generous';
+  const description = `${foodMultiplier}× food consumption, ${happinessBonus >= 0 ? '+' : ''}${happinessBonus} happiness.`;
+  return { label, foodMultiplier, happinessBonus, description };
+}
+
+// Legacy compat – kept for re-exports but prefer getRationsEffect
+export const RATIONS_INFO = {
+  scarce: getRationsEffect(0),
+  normal: getRationsEffect(50),
+  generous: getRationsEffect(100),
 };
 
 export const TROOP_INFO: Record<TroopType, TroopInfo> = {

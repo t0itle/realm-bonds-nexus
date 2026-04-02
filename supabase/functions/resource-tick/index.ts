@@ -56,17 +56,22 @@ const TROOP_UPKEEP: Record<string, { food: number; gold: number; popCost: number
   scout:    { food: 1, gold: 0, popCost: 1 },
 };
 
-const RATIONS_MULTIPLIER: Record<string, number> = {
-  scarce: 0.5,
-  normal: 1.0,
-  generous: 2.0,
-};
-
-const RATIONS_HAPPINESS: Record<string, number> = {
-  scarce: -15,
-  normal: 0,
-  generous: 15,
-};
+// Rations is now a 0-100 slider value; legacy string values are converted
+function parseRations(raw: string): number {
+  if (raw === 'scarce') return 0;
+  if (raw === 'normal') return 50;
+  if (raw === 'generous') return 100;
+  const n = Number(raw);
+  return isNaN(n) ? 50 : Math.max(0, Math.min(100, n));
+}
+function getRationsMultiplier(level: number): number {
+  if (level <= 50) return 0.5 + (level / 50) * 0.5;
+  return 1.0 + ((level - 50) / 50) * 1.0;
+}
+function getRationsHappiness(level: number): number {
+  if (level <= 50) return Math.round(-15 + (level / 50) * 15);
+  return Math.round(((level - 50) / 50) * 15);
+}
 
 function getProduction(type: string, level: number, workers: number): Record<string, number> {
   const base = BASE_PRODUCTION[type];
@@ -403,8 +408,9 @@ Deno.serve(async (req) => {
       }
 
       // Rations
-      const rationsMultiplier = RATIONS_MULTIPLIER[village.rations] ?? 1.0;
-      happinessVal += RATIONS_HAPPINESS[village.rations] ?? 0;
+      const rationsLevel = parseRations(village.rations);
+      const rationsMultiplier = getRationsMultiplier(rationsLevel);
+      happinessVal += getRationsHappiness(rationsLevel);
 
       // Army stats
       const armyCounts: Record<string, number> = {

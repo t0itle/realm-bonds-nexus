@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { Building, Army, RationsLevel, PopulationStats, TroopType, WorkerAssignments } from '@/lib/gameTypes';
-import { RATIONS_INFO, TROOP_INFO } from '@/lib/gameConstants';
+import { getRationsEffect, TROOP_INFO } from '@/lib/gameConstants';
 import { useHousing } from './useHousing';
 
 interface UsePopulationParams {
@@ -30,7 +30,7 @@ export function usePopulation({
         h += (workerAssignments[b.id] || 0) * 5;
       }
     }
-    h += RATIONS_INFO[rations].happinessBonus;
+    h += getRationsEffect(rations).happinessBonus;
     if (populationBase > housingCapacity * 0.9) {
       h -= Math.floor((populationBase - housingCapacity * 0.9) * 2);
     }
@@ -67,7 +67,7 @@ export function usePopulation({
 
   const popFoodCost = useMemo(() => {
     const nonSoldiers = Math.max(0, populationBase - totalSoldiers);
-    return Math.floor(nonSoldiers * RATIONS_INFO[rations].foodMultiplier);
+    return Math.floor(nonSoldiers * getRationsEffect(rations).foodMultiplier);
   }, [populationBase, totalSoldiers, rations]);
 
   const popTaxIncome = useMemo(() => {

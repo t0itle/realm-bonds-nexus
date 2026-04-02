@@ -42,7 +42,7 @@ export function useVillageDataLoader(user: { id: string } | null) {
   const [populationBase, setPopulationBase] = useState(10);
   const [maxPopBase, setMaxPopBase] = useState(20);
   const [happinessBase, setHappinessBase] = useState(50);
-  const [rations, setRationsLocal] = useState<RationsLevel>('normal');
+  const [rations, setRationsLocal] = useState<RationsLevel>(50);
   const [popTaxRate, setPopTaxRateLocal] = useState(5);
   const hydrateSpyDataRef = useRef<((data: SpyDataPayload) => void) | null>(null);
   const setSpiesRef = useRef<React.Dispatch<React.SetStateAction<number>>>(() => {});
@@ -116,7 +116,7 @@ export function useVillageDataLoader(user: { id: string } | null) {
         setPopulationBase((village as any).population ?? 10);
         setMaxPopBase((village as any).max_population ?? 20);
         setHappinessBase((village as any).happiness ?? 50);
-        setRationsLocal(((village as any).rations as RationsLevel) ?? 'normal');
+        setRationsLocal(Number((village as any).rations) || 50);
         setPopTaxRateLocal((village as any).pop_tax_rate ?? 5);
         setSpiesRef.current((village as any).spies ?? 0);
         setPoisons((village as any).poisons ?? 0);
@@ -399,7 +399,7 @@ export function useVillageDataLoader(user: { id: string } | null) {
         setPopulationBase((v as any).population ?? 10);
         setMaxPopBase((v as any).max_population ?? 20);
         setHappinessBase((v as any).happiness ?? 50);
-        setRationsLocal(((v as any).rations as RationsLevel) ?? 'normal');
+        setRationsLocal(Number((v as any).rations) || 50);
         setPopTaxRateLocal((v as any).pop_tax_rate ?? 5);
         setArmy({
           militia: (v as any).army_militia ?? 0,

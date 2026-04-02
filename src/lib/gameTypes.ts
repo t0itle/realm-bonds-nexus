@@ -33,7 +33,8 @@ export interface BuildingInfo {
 }
 
 // === RATIONS SYSTEM ===
-export type RationsLevel = 'scarce' | 'normal' | 'generous';
+/** 0 = scarce, 50 = normal, 100 = generous (continuous slider) */
+export type RationsLevel = number;
 
 // === TROOP SYSTEM ===
 export type TroopType = 'militia' | 'archer' | 'knight' | 'cavalry' | 'siege' | 'scout';
