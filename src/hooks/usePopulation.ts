@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { Building, Army, RationsLevel, PopulationStats, TroopType, WorkerAssignments } from '@/lib/gameTypes';
-import { RATIONS_INFO, TROOP_INFO } from '@/lib/gameConstants';
+import { getRationsEffect, TROOP_INFO } from '@/lib/gameConstants';
 import { useHousing } from './useHousing';
 
 interface UsePopulationParams {
