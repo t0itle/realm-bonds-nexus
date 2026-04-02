@@ -82,6 +82,19 @@ async function streamDM(
   onDone();
 }
 
+export default function DungeonMasterPanel() {
+  const game = useGame();
+  const [messages, setMessages] = useState<Msg[]>([]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const initRef = useRef(false);
+
+  const scrollToBottom = useCallback(() => {
+    requestAnimationFrame(() => {
+      if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    });
+  }, []);
 
   // Welcome message on first mount
   useEffect(() => {
