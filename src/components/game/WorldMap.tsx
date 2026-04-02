@@ -2244,6 +2244,59 @@ export default function WorldMap() {
         })}
 
 
+        {/* ── Caravans on Map (visible to all) ── */}
+        {activeCaravans.map(caravan => {
+          const now = Date.now();
+          const startT = new Date(caravan.departed_at).getTime();
+          const endT = new Date(caravan.arrives_at).getTime();
+          const totalDuration = endT - startT;
+          const elapsed = now - startT;
+          const progress = Math.min(1, Math.max(0, elapsed / totalDuration));
+          // Find origin and destination village positions
+          const fromVillage = playerVillages.find(pv => pv.village.id === caravan.from_village_id);
+          const toVillage = playerVillages.find(pv => pv.village.id === caravan.to_village_id);
+          if (!fromVillage || !toVillage) return null;
+          const fromX = fromVillage.village.map_x;
+          const fromY = fromVillage.village.map_y;
+          const toX = toVillage.village.map_x;
+          const toY = toVillage.village.map_y;
+          const currentX = fromX + (toX - fromX) * progress;
+          const currentY = fromY + (toY - fromY) * progress;
+          const { sx, sy } = worldToScreen(currentX, currentY);
+          if (sx < -80 || sx > containerSize.w + 80 || sy < -80 || sy > containerSize.h + 80) return null;
+          const caravanSize = Math.max(16, Math.min(32, camera.ppu * 5000));
+          const facingLeft = toX < fromX;
+          const remainingSec = Math.max(0, Math.ceil((endT - now) / 1000));
+          const startScreen = worldToScreen(fromX, fromY);
+          const endScreen = worldToScreen(toX, toY);
+          const isOwn = caravan.user_id === user?.id;
+          const totalRes = caravan.gold + caravan.wood + caravan.stone + caravan.food;
+          return (
+            <div key={`caravan-${caravan.id}`}>
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible', zIndex: 31 }}>
+                <line x1={startScreen.sx} y1={startScreen.sy} x2={endScreen.sx} y2={endScreen.sy}
+                  stroke="hsl(42 60% 50% / 0.35)" strokeWidth={1.5} strokeDasharray="6 4" opacity={0.7} />
+              </svg>
+              <div className="absolute z-35 flex flex-col items-center pointer-events-none"
+                style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
+                <img src={mapCaravan} alt="Caravan" className="drop-shadow-md"
+                  style={{ width: caravanSize, height: caravanSize, objectFit: 'contain', transform: facingLeft ? 'scaleX(-1)' : undefined, opacity: isOwn ? 1 : 0.75 }} loading="lazy" />
+                {caravanSize > 18 && (
+                  <div className="bg-background/70 backdrop-blur-sm rounded px-1 py-0.5 text-center mt-0.5 border border-border/30">
+                    <p className="text-foreground/70 font-display whitespace-nowrap" style={{ fontSize: Math.max(6, caravanSize / 4) }}>
+                      🐴 Caravan {isOwn ? '' : `(${fromVillage.profile.display_name})`}
+                    </p>
+                    <p className="text-muted-foreground/60 whitespace-nowrap" style={{ fontSize: Math.max(5, caravanSize / 5) }}>
+                      {totalRes} res · {remainingSec}s
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+
         {/* ── Spy Agents on Map (visible only to sender) ── */}
         {activeSpyMissions.map(spy => {
           const now = Date.now();
