@@ -73,6 +73,7 @@ export function useSettlementUpgrade({
       user_id: user.id, building_id: villageId, building_type: 'settlement_upgrade',
       target_level: upgrade.next === 'town' ? 2 : 3,
       finish_time: new Date(finishTime).toISOString(),
+      village_id: villageId,
     } as any).then();
 
     toast.success(`🏗️ Upgrading to ${upgrade.label}! This will take ${Math.floor(upgrade.buildTimeSec / 3600)}h.`);

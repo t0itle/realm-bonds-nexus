@@ -89,7 +89,7 @@ export function useBuildingManagement({
     const buildTime = getBuildTime(type, 0);
     const finishTime = Date.now() + buildTime * 1000;
     setBuildQueue(prev => [...prev, { buildingId: data.id, buildingType: type as BuildingType, targetLevel: 1, finishTime }]);
-    supabase.from('build_queue').insert({ user_id: user.id, building_id: data.id, building_type: type, target_level: 1, finish_time: new Date(finishTime).toISOString() } as any).then();
+    supabase.from('build_queue').insert({ user_id: user.id, building_id: data.id, building_type: type, target_level: 1, finish_time: new Date(finishTime).toISOString(), village_id: villageId } as any).then();
     return true;
   }, [villageId, user, resources, canAfford, canAffordSteel, currentHouses, maxHouses, getBuildTime, setResources, setSteel, setBuildings, setBuildQueue]);
 
@@ -111,7 +111,7 @@ export function useBuildingManagement({
     const buildTime = getBuildTime(building.type, building.level);
     const finishTime = Date.now() + buildTime * 1000;
     setBuildQueue(prev => [...prev, { buildingId: id, buildingType: building.type as BuildingType, targetLevel: newLevel, finishTime }]);
-    supabase.from('build_queue').insert({ user_id: user.id, building_id: id, building_type: building.type, target_level: newLevel, finish_time: new Date(finishTime).toISOString() } as any).then();
+    supabase.from('build_queue').insert({ user_id: user.id, building_id: id, building_type: building.type, target_level: newLevel, finish_time: new Date(finishTime).toISOString(), village_id: villageId } as any).then();
     return true;
   }, [buildings, villageId, user, resources, canAfford, canAffordSteel, buildQueue, getBuildTime, setResources, setSteel, setBuildQueue]);
 

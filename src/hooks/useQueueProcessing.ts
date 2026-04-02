@@ -44,7 +44,7 @@ export function useQueueProcessing({
           completed.forEach(q => { nextArmy[q.type] += q.count; });
           setArmy(nextArmy);
           persistArmyToVillage(nextArmy);
-          supabase.from('training_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').then();
+          supabase.from('training_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').eq('village_id', villageId ?? '').then();
           const summary = completed.map(q => `${q.count} ${q.type}`).join(', ');
           supabase.functions.invoke('send-push', {
             body: { user_id: user?.id, title: '⚔️ Training Complete', body: `${summary} ready for battle!`, tag: 'training-done' },
@@ -69,7 +69,7 @@ export function useQueueProcessing({
             supabase.from('buildings').update({ level: q.targetLevel }).eq('id', q.buildingId).then();
             setBuildings(prevB => prevB.map(b => b.id === q.buildingId ? { ...b, level: q.targetLevel } : b));
           });
-          supabase.from('build_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').not('building_type', 'in', '(outpost_upgrade,outpost_wall)').then();
+          supabase.from('build_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').eq('village_id', villageId ?? '').not('building_type', 'in', '(outpost_upgrade,outpost_wall)').then();
           const names = completed.map(q => {
             const info = BUILDING_INFO[q.buildingType];
             return info ? `${info.name} Lv.${q.targetLevel}` : q.buildingType;

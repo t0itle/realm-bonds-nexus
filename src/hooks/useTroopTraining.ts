@@ -68,7 +68,7 @@ export function useTroopTraining({
     }
     const finishTime = Date.now() + info.trainTime * 1000 * count;
     setTrainingQueue(prev => [...prev, { type, count, finishTime }]);
-    if (user) supabase.from('training_queue').insert({ user_id: user.id, troop_type: type, count, finish_time: new Date(finishTime).toISOString() } as any).then();
+    if (user) supabase.from('training_queue').insert({ user_id: user.id, troop_type: type, count, finish_time: new Date(finishTime).toISOString(), village_id: villageId } as any).then();
     return true;
   }, [canAfford, canAffordSteel, getBarracksLevel, totalSoldiers, armyCap, population.civilians, resources, steel, villageId, user, trainingQueue, setResources, setSteel, setTrainingQueue]);
 

@@ -414,6 +414,7 @@ export type Database = {
           id: string
           target_level: number
           user_id: string
+          village_id: string | null
         }
         Insert: {
           building_id: string
@@ -423,6 +424,7 @@ export type Database = {
           id?: string
           target_level: number
           user_id: string
+          village_id?: string | null
         }
         Update: {
           building_id?: string
@@ -432,8 +434,17 @@ export type Database = {
           id?: string
           target_level?: number
           user_id?: string
+          village_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "build_queue_village_id_fkey"
+            columns: ["village_id"]
+            isOneToOne: false
+            referencedRelation: "villages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       buildings: {
         Row: {
@@ -1004,6 +1015,7 @@ export type Database = {
           id: string
           troop_type: string
           user_id: string
+          village_id: string | null
         }
         Insert: {
           count: number
@@ -1012,6 +1024,7 @@ export type Database = {
           id?: string
           troop_type: string
           user_id: string
+          village_id?: string | null
         }
         Update: {
           count?: number
@@ -1020,8 +1033,17 @@ export type Database = {
           id?: string
           troop_type?: string
           user_id?: string
+          village_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "training_queue_village_id_fkey"
+            columns: ["village_id"]
+            isOneToOne: false
+            referencedRelation: "villages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vassalages: {
         Row: {
