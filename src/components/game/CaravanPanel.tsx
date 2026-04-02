@@ -54,30 +54,14 @@ export default function CaravanPanel({ onClose }: { onClose: () => void }) {
     };
     loadCaravans();
 
-    // Realtime subscription
+    // Realtime subscription for UI updates
     const channel = supabase.channel('my-caravans')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'caravans', filter: `user_id=eq.${user.id}` }, () => {
         loadCaravans();
       }).subscribe();
 
-    // Process arrivals every 5s
-    const interval = setInterval(async () => {
-      const now = new Date().toISOString();
-      const { data: arrived } = await supabase.from('caravans').select('*')
-        .eq('user_id', user.id).eq('status', 'in_transit').lte('arrives_at', now);
-      if (arrived && arrived.length > 0) {
-        for (const c of arrived) {
-          const { data: delivered } = await supabase.rpc('deliver_caravan', {
-            p_caravan_id: (c as any).id,
-            p_user_id: user.id,
-          });
-          if (delivered) {
-            toast.success(`📦 Caravan arrived! Resources delivered.`);
-          }
-        }
-        loadCaravans();
-      }
-    }, 5000);
+    // Refresh list periodically for progress bar updates
+    const interval = setInterval(loadCaravans, 10000);
 
     return () => {
       supabase.removeChannel(channel);
