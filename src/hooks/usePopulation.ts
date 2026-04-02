@@ -30,7 +30,7 @@ export function usePopulation({
         h += (workerAssignments[b.id] || 0) * 5;
       }
     }
-    h += RATIONS_INFO[rations].happinessBonus;
+    h += getRationsEffect(rations).happinessBonus;
     if (populationBase > housingCapacity * 0.9) {
       h -= Math.floor((populationBase - housingCapacity * 0.9) * 2);
     }
