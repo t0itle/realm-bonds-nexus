@@ -898,7 +898,7 @@ type SelectedItem =
   | null;
 
 export default function WorldMap() {
-  const { allVillages, addResources, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, activeSpyMissions, resources, getWatchtowerLevel, getSpyGuildLevel, refreshVillages, refreshMineOutposts, myVillages, settlementType, deployTroops, returnTroops } = useGame();
+  const { allVillages, addResources, army, totalArmyPower, attackTarget, attackPlayer, vassalages, buildings, displayName, spies, sendSpyMission, activeSpyMissions, resources, getWatchtowerLevel, getSpyGuildLevel, refreshVillages, refreshMineOutposts, myVillages, settlementType, deployTroops, returnTroops, switchVillage, villageId } = useGame();
   const { user } = useAuth();
   const npcState = useNPCState();
   const { activeSkin, getBuildingSprite, getSpriteFilter } = useTroopSkins();
@@ -2094,13 +2094,13 @@ export default function WorldMap() {
           const sorted = playerPositions.sort((a, b) => (a.isMe ? 1 : 0) - (b.isMe ? 1 : 0));
 
           return sorted.map(({ pv, sx, sy, isMe }) => {
-            const pvSettlementType = isMe ? settlementType : (pv.village.settlement_type || 'village');
+            const pvSettlementType = pv.village.settlement_type || 'village';
             const sprite = getSettlementSprite(pvSettlementType, isMe);
             const settlementLabel = SETTLEMENT_LABELS[pvSettlementType] || '🏠 Village';
             const skinFilter = isMe ? getSpriteFilter() : undefined;
             return (
               <button key={pv.village.id} data-map-item
-                onClick={(e) => { e.stopPropagation(); if (isMe) { window.dispatchEvent(new CustomEvent('switch-tab', { detail: 'village' })); } else { setSelected({ kind: 'player', data: pv }); } }}
+                onClick={(e) => { e.stopPropagation(); if (isMe) { if (pv.village.id !== villageId) { switchVillage(pv.village.id); } window.dispatchEvent(new CustomEvent('switch-tab', { detail: 'village' })); } else { setSelected({ kind: 'player', data: pv }); } }}
                 className={`absolute flex flex-col items-center ${isMe ? 'z-40' : 'z-30'} hover:z-50`}
                 style={{ left: sx, top: sy, transform: 'translate(-50%, -80%)' }}>
                 <img
