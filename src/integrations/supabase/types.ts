@@ -1299,6 +1299,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      deliver_caravan: {
+        Args: { p_caravan_id: string; p_user_id: string }
+        Returns: boolean
+      }
       raze_outpost: { Args: { p_outpost_id: string }; Returns: undefined }
     }
     Enums: {

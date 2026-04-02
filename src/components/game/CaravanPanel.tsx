@@ -67,16 +67,13 @@ export default function CaravanPanel({ onClose }: { onClose: () => void }) {
         .eq('user_id', user.id).eq('status', 'in_transit').lte('arrives_at', now);
       if (arrived && arrived.length > 0) {
         for (const c of arrived) {
-          // Add resources to destination village
-          await supabase.from('villages').update({
-            gold: (c as any).gold,
-            wood: (c as any).wood,
-            stone: (c as any).stone,
-            food: (c as any).food,
-          }).eq('id', (c as any).to_village_id);
-
-          await supabase.from('caravans').update({ status: 'delivered' } as any).eq('id', (c as any).id);
-          toast.success(`📦 Caravan arrived! Resources delivered.`);
+          const { data: delivered } = await supabase.rpc('deliver_caravan', {
+            p_caravan_id: (c as any).id,
+            p_user_id: user.id,
+          });
+          if (delivered) {
+            toast.success(`📦 Caravan arrived! Resources delivered.`);
+          }
         }
         loadCaravans();
       }
