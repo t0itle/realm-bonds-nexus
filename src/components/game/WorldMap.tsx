@@ -2253,8 +2253,8 @@ export default function WorldMap() {
           const elapsed = now - startT;
           const progress = Math.min(1, Math.max(0, elapsed / totalDuration));
           // Find origin and destination village positions
-          const fromVillage = playerVillages.find(pv => pv.village.id === caravan.from_village_id);
-          const toVillage = playerVillages.find(pv => pv.village.id === caravan.to_village_id);
+          const fromVillage = allVillages.find(pv => pv.village.id === caravan.from_village_id);
+          const toVillage = allVillages.find(pv => pv.village.id === caravan.to_village_id);
           if (!fromVillage || !toVillage) return null;
           const fromX = fromVillage.village.map_x;
           const fromY = fromVillage.village.map_y;
