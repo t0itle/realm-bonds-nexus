@@ -42,7 +42,7 @@ export function useVillageDataLoader(user: { id: string } | null) {
   const [populationBase, setPopulationBase] = useState(10);
   const [maxPopBase, setMaxPopBase] = useState(20);
   const [happinessBase, setHappinessBase] = useState(50);
-  const [rations, setRationsLocal] = useState<RationsLevel>('normal');
+  const [rations, setRationsLocal] = useState<RationsLevel>(50);
   const [popTaxRate, setPopTaxRateLocal] = useState(5);
   const hydrateSpyDataRef = useRef<((data: SpyDataPayload) => void) | null>(null);
   const setSpiesRef = useRef<React.Dispatch<React.SetStateAction<number>>>(() => {});
