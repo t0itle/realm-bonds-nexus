@@ -34,6 +34,7 @@ import mapCityTier from '@/assets/sprites/map-city-tier.png';
 import mapRuins from '@/assets/sprites/map-ruins.png';
 import mapSoldier from '@/assets/sprites/map-soldier.png';
 import mapMountain from '@/assets/sprites/map-mountain.png';
+import mapCaravan from '@/assets/sprites/map-caravan.png';
 
 const REALM_SPRITES: Record<string, string> = {
   hostile: mapCastleHostile,
@@ -910,6 +911,7 @@ export default function WorldMap() {
   const [outpostBuildQueue, setOutpostBuildQueue] = useState<{ outpostId: string; action: 'upgrade' | 'wall'; finishTime: number; targetLevel: number; newGarrison: number; newRadius?: number; targetOutpostId?: string }[]>([]);
   const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; startTime: number; startX: number; startY: number; targetX: number; targetY: number; waypoints: { x: number; y: number }[]; action: () => void; sentArmy?: Partial<Record<string, number>> }[]>([]);
   const [otherMarches, setOtherMarches] = useState<{ id: string; user_id: string; player_name: string; start_x: number; start_y: number; target_x: number; target_y: number; target_name: string; started_at: string; arrives_at: string; march_type: string }[]>([]);
+  const [activeCaravans, setActiveCaravans] = useState<{ id: string; user_id: string; from_village_id: string; to_village_id: string; gold: number; wood: number; stone: number; food: number; departed_at: string; arrives_at: string; status: string }[]>([]);
   const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
   const [legendOpen, setLegendOpen] = useState(false);
   const [, forceRender] = useState(0);
@@ -989,7 +991,24 @@ export default function WorldMap() {
     return () => clearInterval(interval);
   }, [otherMarches.length]);
 
-  // Get TH level for dynamic sprite
+  // ── Load all active caravans (visible to everyone) ──
+  useEffect(() => {
+    if (!user) return;
+    const loadCaravans = async () => {
+      const { data } = await supabase.from('caravans').select('*').eq('status', 'in_transit');
+      if (data) setActiveCaravans(data as any);
+    };
+    loadCaravans();
+    const channel = supabase.channel('map-caravans')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'caravans' }, () => loadCaravans())
+      .subscribe();
+    const cleanup = setInterval(() => {
+      setActiveCaravans(prev => prev.filter(c => new Date(c.arrives_at).getTime() > Date.now()));
+    }, 5000);
+    return () => { supabase.removeChannel(channel); clearInterval(cleanup); };
+  }, [user]);
+
+
   const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
 
   const SETTLEMENT_TIER_SPRITES: Record<string, string> = {
@@ -2225,6 +2244,59 @@ export default function WorldMap() {
         })}
 
 
+        {/* ── Caravans on Map (visible to all) ── */}
+        {activeCaravans.map(caravan => {
+          const now = Date.now();
+          const startT = new Date(caravan.departed_at).getTime();
+          const endT = new Date(caravan.arrives_at).getTime();
+          const totalDuration = endT - startT;
+          const elapsed = now - startT;
+          const progress = Math.min(1, Math.max(0, elapsed / totalDuration));
+          // Find origin and destination village positions
+          const fromVillage = allVillages.find(pv => pv.village.id === caravan.from_village_id);
+          const toVillage = allVillages.find(pv => pv.village.id === caravan.to_village_id);
+          if (!fromVillage || !toVillage) return null;
+          const fromX = fromVillage.village.map_x;
+          const fromY = fromVillage.village.map_y;
+          const toX = toVillage.village.map_x;
+          const toY = toVillage.village.map_y;
+          const currentX = fromX + (toX - fromX) * progress;
+          const currentY = fromY + (toY - fromY) * progress;
+          const { sx, sy } = worldToScreen(currentX, currentY);
+          if (sx < -80 || sx > containerSize.w + 80 || sy < -80 || sy > containerSize.h + 80) return null;
+          const caravanSize = Math.max(16, Math.min(32, camera.ppu * 5000));
+          const facingLeft = toX < fromX;
+          const remainingSec = Math.max(0, Math.ceil((endT - now) / 1000));
+          const startScreen = worldToScreen(fromX, fromY);
+          const endScreen = worldToScreen(toX, toY);
+          const isOwn = caravan.user_id === user?.id;
+          const totalRes = caravan.gold + caravan.wood + caravan.stone + caravan.food;
+          return (
+            <div key={`caravan-${caravan.id}`}>
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible', zIndex: 31 }}>
+                <line x1={startScreen.sx} y1={startScreen.sy} x2={endScreen.sx} y2={endScreen.sy}
+                  stroke="hsl(42 60% 50% / 0.35)" strokeWidth={1.5} strokeDasharray="6 4" opacity={0.7} />
+              </svg>
+              <div className="absolute z-35 flex flex-col items-center pointer-events-none"
+                style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
+                <img src={mapCaravan} alt="Caravan" className="drop-shadow-md"
+                  style={{ width: caravanSize, height: caravanSize, objectFit: 'contain', transform: facingLeft ? 'scaleX(-1)' : undefined, opacity: isOwn ? 1 : 0.75 }} loading="lazy" />
+                {caravanSize > 18 && (
+                  <div className="bg-background/70 backdrop-blur-sm rounded px-1 py-0.5 text-center mt-0.5 border border-border/30">
+                    <p className="text-foreground/70 font-display whitespace-nowrap" style={{ fontSize: Math.max(6, caravanSize / 4) }}>
+                      🐴 Caravan {isOwn ? '' : `(${fromVillage.profile.display_name})`}
+                    </p>
+                    <p className="text-muted-foreground/60 whitespace-nowrap" style={{ fontSize: Math.max(5, caravanSize / 5) }}>
+                      {totalRes} res · {remainingSec}s
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+
         {/* ── Spy Agents on Map (visible only to sender) ── */}
         {activeSpyMissions.map(spy => {
           const now = Date.now();
@@ -3122,8 +3194,8 @@ export default function WorldMap() {
                                 { village_id: newVillage.id, user_id: user.id, type: 'farm', level: 1, position: 7 },
                                 { village_id: newVillage.id, user_id: user.id, type: 'lumbermill', level: 1, position: 3 },
                               ]);
-                              await supabase.from('outposts').update({ outpost_type: 'settlement', name: settleName } as any).eq('id', op.id);
-                              setOutposts(prev => prev.map(o => o.id === op.id ? { ...o, outpost_type: 'settlement', name: settleName } : o));
+                              await supabase.from('outposts').delete().eq('id', op.id);
+                              setOutposts(prev => prev.filter(o => o.id !== op.id));
                               await refreshVillages();
                               toast.success(`🏘️ ${settleName} is now a full settlement!`);
                               setSelected(null);
