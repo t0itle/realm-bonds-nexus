@@ -2625,8 +2625,8 @@ export default function WorldMap() {
             >
               <div className="relative">
                 <img src={mapFort} alt={outpost.name} loading="lazy"
-                  className={`drop-shadow-md ${isOwn ? '' : 'brightness-75 hue-rotate-180'}`}
-                  style={{ width: opSize, height: opSize, objectFit: 'contain' }} />
+                  className={`drop-shadow-lg ${isOwn ? '' : 'brightness-75 hue-rotate-180'}`}
+                  style={{ width: opSize, height: opSize, objectFit: 'contain', filter: isOwn ? 'drop-shadow(0 0 4px hsl(var(--primary) / 0.4))' : 'drop-shadow(0 0 3px hsl(var(--destructive) / 0.3))' }} />
               </div>
               {opSize > 22 && (
                 <div className={`backdrop-blur-sm rounded px-1.5 py-0.5 text-center mt-0.5 border ${isOwn ? 'bg-background/70 border-primary/20' : 'bg-background/50 border-destructive/20'}`}>
