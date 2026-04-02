@@ -299,7 +299,7 @@ export default function StatSheet() {
           <span className="text-muted-foreground">Civilian food consumption</span>
           <span className="text-destructive">🌾-{popFoodCost}/min</span>
         </div>
-        <p className="text-[9px] text-muted-foreground">Based on rations: {RATIONS_INFO[rations].description}</p>
+        <p className="text-[9px] text-muted-foreground">Based on rations: {getRationsEffect(rations).description}</p>
       </div>
     </div>
   );
