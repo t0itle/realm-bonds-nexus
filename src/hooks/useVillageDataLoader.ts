@@ -140,8 +140,8 @@ export function useVillageDataLoader(user: { id: string } | null) {
         // --- Phase 3: parallel fetch of buildings, queues, missions, villages list, vassalages, alliance ---
         const [bldRes, bqRes, tqRes, stqRes, asmRes, irRes, villagesRes, vassalRes, memberRes] = await Promise.all([
           supabase.from('buildings').select('*').eq('village_id', village.id),
-          supabase.from('build_queue').select('*').eq('user_id', user.id),
-          supabase.from('training_queue').select('*').eq('user_id', user.id),
+          supabase.from('build_queue').select('*').eq('user_id', user.id).eq('village_id', village.id),
+          supabase.from('training_queue').select('*').eq('user_id', user.id).eq('village_id', village.id),
           supabase.from('spy_training_queue').select('*').eq('user_id', user.id),
           supabase.from('active_spy_missions').select('*').eq('user_id', user.id),
           supabase.from('intel_reports').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(30),
