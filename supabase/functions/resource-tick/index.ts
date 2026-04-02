@@ -408,8 +408,9 @@ Deno.serve(async (req) => {
       }
 
       // Rations
-      const rationsMultiplier = RATIONS_MULTIPLIER[village.rations] ?? 1.0;
-      happinessVal += RATIONS_HAPPINESS[village.rations] ?? 0;
+      const rationsLevel = parseRations(village.rations);
+      const rationsMultiplier = getRationsMultiplier(rationsLevel);
+      happinessVal += getRationsHappiness(rationsLevel);
 
       // Army stats
       const armyCounts: Record<string, number> = {
