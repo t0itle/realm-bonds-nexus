@@ -98,7 +98,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const displayName = displayNameLocal;
   const setRations = useCallback((r: RationsLevel) => {
     setRationsLocal(r);
-    if (villageId) supabase.from('villages').update({ rations: r } as any).eq('id', villageId).then();
+    if (villageId) supabase.from('villages').update({ rations: String(r) } as any).eq('id', villageId).then();
   }, [villageId, setRationsLocal]);
   const setPopTaxRate = useCallback((rate: number) => {
     setPopTaxRateLocal(rate);
