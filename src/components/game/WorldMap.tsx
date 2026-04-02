@@ -2100,7 +2100,7 @@ export default function WorldMap() {
             const skinFilter = isMe ? getSpriteFilter() : undefined;
             return (
               <button key={pv.village.id} data-map-item
-                onClick={(e) => { e.stopPropagation(); if (isMe) { window.dispatchEvent(new CustomEvent('switch-tab', { detail: 'village' })); } else { setSelected({ kind: 'player', data: pv }); } }}
+                onClick={(e) => { e.stopPropagation(); if (isMe) { if (pv.village.id !== villageId) { switchVillage(pv.village.id); } window.dispatchEvent(new CustomEvent('switch-tab', { detail: 'village' })); } else { setSelected({ kind: 'player', data: pv }); } }}
                 className={`absolute flex flex-col items-center ${isMe ? 'z-40' : 'z-30'} hover:z-50`}
                 style={{ left: sx, top: sy, transform: 'translate(-50%, -80%)' }}>
                 <img
