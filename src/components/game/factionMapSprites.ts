@@ -75,3 +75,11 @@ export const FACTION_SOLDIER_SPRITES: Record<string, string> = {
   roman: romanMapSoldier,
   pirate: pirateMapSoldier,
 };
+
+export const FACTION_FORT_SPRITES: Record<string, string> = {
+  viking: vikingMapFort,
+  samurai: samuraiMapFort,
+  undead: undeadMapFort,
+  roman: romanMapFort,
+  pirate: pirateMapFort,
+};
