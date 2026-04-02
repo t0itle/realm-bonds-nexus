@@ -525,6 +525,22 @@ Deno.serve(async (req) => {
       }).eq("id", village.id);
     }
 
+    // ── Deliver arrived caravans server-side ──
+    const { data: arrivedCaravans } = await supabase
+      .from("caravans")
+      .select("*")
+      .eq("status", "in_transit")
+      .lte("arrives_at", now.toISOString());
+
+    if (arrivedCaravans && arrivedCaravans.length > 0) {
+      for (const c of arrivedCaravans) {
+        await supabase.rpc("deliver_caravan", {
+          p_caravan_id: c.id,
+          p_user_id: c.user_id,
+        });
+      }
+    }
+
     // Update alliance treasuries
     for (const [allianceId, adds] of treasuryAdds.entries()) {
       if (adds.gold + adds.wood + adds.stone + adds.food > 0) {
