@@ -44,7 +44,7 @@ export function useQueueProcessing({
           completed.forEach(q => { nextArmy[q.type] += q.count; });
           setArmy(nextArmy);
           persistArmyToVillage(nextArmy);
-          supabase.from('training_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').then();
+          supabase.from('training_queue').delete().lte('finish_time', new Date(now).toISOString()).eq('user_id', user?.id ?? '').eq('village_id', villageId ?? '').then();
           const summary = completed.map(q => `${q.count} ${q.type}`).join(', ');
           supabase.functions.invoke('send-push', {
             body: { user_id: user?.id, title: '⚔️ Training Complete', body: `${summary} ready for battle!`, tag: 'training-done' },
