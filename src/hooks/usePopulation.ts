@@ -67,7 +67,7 @@ export function usePopulation({
 
   const popFoodCost = useMemo(() => {
     const nonSoldiers = Math.max(0, populationBase - totalSoldiers);
-    return Math.floor(nonSoldiers * RATIONS_INFO[rations].foodMultiplier);
+    return Math.floor(nonSoldiers * getRationsEffect(rations).foodMultiplier);
   }, [populationBase, totalSoldiers, rations]);
 
   const popTaxIncome = useMemo(() => {
