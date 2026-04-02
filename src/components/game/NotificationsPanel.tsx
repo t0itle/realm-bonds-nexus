@@ -159,6 +159,22 @@ export default function NotificationsPanel({ embedded = false }: { embedded?: bo
   const [dbAlerts, setDbAlerts] = useState<BattleAlert[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const wallTipShown = useRef(false);
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem('dismissed_alerts');
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch { return new Set(); }
+  });
+
+  const dismissAlert = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDismissedIds(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      localStorage.setItem('dismissed_alerts', JSON.stringify([...next]));
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -322,20 +338,44 @@ export default function NotificationsPanel({ embedded = false }: { embedded?: bo
     general: 'border-border',
   };
 
+  const visibleNotifications = notifications.filter(n => !dismissedIds.has(n.id));
+
   if (embedded) {
-    if (notifications.length === 0) return null;
+    if (visibleNotifications.length === 0) return null;
     return (
       <div className="game-panel border-glow rounded-xl p-3 space-y-2">
-        <h3 className="font-display text-xs text-foreground flex items-center gap-1">🔔 Alerts</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="font-display text-xs text-foreground flex items-center gap-1">🔔 Alerts</h3>
+          {visibleNotifications.length > 1 && (
+            <button
+              onClick={() => {
+                const next = new Set(dismissedIds);
+                visibleNotifications.forEach(n => next.add(n.id));
+                localStorage.setItem('dismissed_alerts', JSON.stringify([...next]));
+                setDismissedIds(next);
+              }}
+              className="text-[8px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Dismiss all
+            </button>
+          )}
+        </div>
         <div className="space-y-1.5 max-h-48 overflow-y-auto">
-          {notifications.slice(0, 10).map(n => (
-            <div key={n.id} className={`rounded-lg p-2 space-y-0.5 border ${typeColors[n.type]} bg-card/50`}>
+          {visibleNotifications.slice(0, 10).map(n => (
+            <div key={n.id} className={`rounded-lg p-2 space-y-0.5 border ${typeColors[n.type]} bg-card/50 group relative`}>
               <div className="flex items-start gap-1.5">
                 <span className="text-sm">{n.icon}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-1">
                     <p className="text-[10px] font-display text-foreground leading-tight">{n.title}</p>
-                    <span className="text-[7px] text-muted-foreground whitespace-nowrap">{n.time}</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[7px] text-muted-foreground whitespace-nowrap">{n.time}</span>
+                      <button
+                        onClick={(e) => dismissAlert(n.id, e)}
+                        className="text-[9px] text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-0.5"
+                        title="Dismiss"
+                      >✕</button>
+                    </div>
                   </div>
                   <p className="text-[8px] text-muted-foreground">{n.detail}</p>
                 </div>
