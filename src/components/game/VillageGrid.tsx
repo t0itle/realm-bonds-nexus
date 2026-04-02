@@ -372,12 +372,12 @@ export default function VillageGrid() {
 
       {/* Inline Army & Stats */}
       <div className="px-3 pb-2 space-y-2">
-        <CollapsibleSection icon="⚔️" title="Army" defaultOpen={false}>
+        <CollapsibleSection key={`army-${villageId}`} icon="⚔️" title="Army" defaultOpen={false}>
           <Suspense fallback={<div className="text-center text-muted-foreground text-xs py-4">Loading...</div>}>
             <MilitaryPanel />
           </Suspense>
         </CollapsibleSection>
-        <CollapsibleSection icon="📊" title="Stats" defaultOpen={true}>
+        <CollapsibleSection key={`stats-${villageId}`} icon="📊" title="Stats" defaultOpen={true}>
           <Suspense fallback={<div className="text-center text-muted-foreground text-xs py-4">Loading...</div>}>
             <StatSheet />
           </Suspense>
