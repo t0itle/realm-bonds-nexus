@@ -35,6 +35,8 @@ import mapRuins from '@/assets/sprites/map-ruins.png';
 import mapSoldier from '@/assets/sprites/map-soldier.png';
 import mapMountain from '@/assets/sprites/map-mountain.png';
 import mapCaravan from '@/assets/sprites/map-caravan.png';
+import mapFort from '@/assets/sprites/map-fort.png';
+import mapWall from '@/assets/sprites/map-wall.png';
 
 const REALM_SPRITES: Record<string, string> = {
   hostile: mapCastleHostile,
@@ -2490,78 +2492,37 @@ export default function WorldMap() {
               }
             }
 
-            elements.push(
-              <svg key={`territory-unified-${ownerId}`}
-                className="absolute pointer-events-none z-[10]"
-                style={{ left: minSx, top: minSy, width: svgW, height: svgH, overflow: 'visible' }}
-                viewBox={`0 0 ${svgW} ${svgH}`}>
-                <defs>
-                  <clipPath id={`clip-territory-${ownerId}`}>
-                    {screenData.map((c, i) => (
-                      <circle key={i} cx={c.cx - minSx} cy={c.cy - minSy} r={c.r} />
-                    ))}
-                  </clipPath>
-                </defs>
-                <rect x="0" y="0" width={svgW} height={svgH}
-                  clipPath={`url(#clip-territory-${ownerId})`} fill={fillColor} />
-                {screenData.map((c, i) => (
-                  <circle key={`border-${i}`} cx={c.cx - minSx} cy={c.cy - minSy} r={c.r}
-                    fill="none" stroke={borderColor} strokeWidth={1}
-                    strokeDasharray="6 4" opacity={0.3} />
-                ))}
-                {/* Explicit wall segments */}
-                {renderedSegments.map((seg) => {
-                  const thickness = Math.max(2.5, Math.min(6, seg.level * 1.5 + 2));
-                  const healthPct = seg.health / seg.maxHealth;
-                  const wallOpacity = healthPct > 0.5 ? 0.7 : healthPct > 0.2 ? 0.45 : 0.25;
-                  const damaged = healthPct < 1;
-                  return (
-                    <g key={`wall-seg-${seg.id}`}>
-                      <line x1={seg.x1} y1={seg.y1} x2={seg.x2} y2={seg.y2}
-                        stroke={borderColor} strokeWidth={thickness + 2} opacity={0.15} strokeLinecap="round" />
-                      <line x1={seg.x1} y1={seg.y1} x2={seg.x2} y2={seg.y2}
-                        stroke={borderColor} strokeWidth={thickness} opacity={wallOpacity}
-                        strokeLinecap="round" strokeDasharray={damaged ? '8 3' : 'none'} />
-                      {(() => {
-                        const dx = seg.x2 - seg.x1, dy = seg.y2 - seg.y1;
-                        const len = Math.hypot(dx, dy);
-                        if (len < 20) return null;
-                        const count = Math.floor(len / 12);
-                        const nx = -dy / len, ny = dx / len;
-                        const dots: React.ReactNode[] = [];
-                        for (let t = 0; t < count; t += 2) {
-                          const frac = (t + 0.5) / count;
-                          dots.push(<rect key={t}
-                            x={seg.x1 + dx * frac + nx * (thickness * 0.5) - 1.5}
-                            y={seg.y1 + dy * frac + ny * (thickness * 0.5) - 1.5}
-                            width={3} height={3} fill={borderColor} opacity={wallOpacity * 0.7} />);
-                        }
-                        return dots;
-                      })()}
-                      {damaged && (() => {
-                        const mx = (seg.x1 + seg.x2) / 2, my = (seg.y1 + seg.y2) / 2, barW = 20;
-                        return (<g>
-                          <rect x={mx - barW / 2} y={my - 6} width={barW} height={3} fill="hsl(var(--muted))" rx={1} opacity={0.8} />
-                          <rect x={mx - barW / 2} y={my - 6} width={barW * healthPct} height={3}
-                            fill={healthPct > 0.5 ? 'hsl(var(--primary))' : 'hsl(var(--destructive))'} rx={1} opacity={0.9} />
-                        </g>);
-                      })()}
-                    </g>
-                  );
-                })}
-                {/* Wall node markers */}
-                {(() => {
-                  const connectedIds = new Set<string>();
-                  for (const ws of ownerWallSegs) { connectedIds.add(ws.outpost_a_id); connectedIds.add(ws.outpost_b_id); }
-                  return screenData.filter(d => connectedIds.has(d.op.id)).map((c, i) => (
-                    <g key={`wall-node-${i}`}>
-                      <circle cx={c.cx - minSx} cy={c.cy - minSy} r={6} fill={borderColor} opacity={0.5} />
-                      <circle cx={c.cx - minSx} cy={c.cy - minSy} r={4} fill={fillColor} stroke={borderColor} strokeWidth={1.5} opacity={0.8} />
-                    </g>
-                  ));
-                })()}
-              </svg>
-            );
+            // Render wall segment sprites between outposts (no territory circles)
+            for (const seg of renderedSegments) {
+              const dx = seg.x2 - seg.x1, dy = seg.y2 - seg.y1;
+              const len = Math.hypot(dx, dy);
+              if (len < 5) continue;
+              const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+              const healthPct = seg.health / seg.maxHealth;
+              const wallH = Math.max(16, Math.min(40, len * 0.18));
+              elements.push(
+                <div key={`wall-sprite-${seg.id}`} className="absolute pointer-events-none z-[11]"
+                  style={{
+                    left: minSx + seg.x1, top: minSy + seg.y1,
+                    width: len, height: wallH,
+                    transform: `rotate(${angle}deg)`,
+                    transformOrigin: '0 50%',
+                    opacity: healthPct > 0.5 ? 0.9 : healthPct > 0.2 ? 0.6 : 0.35,
+                  }}>
+                  <img src={mapWall} alt="wall" loading="lazy"
+                    className={`w-full h-full object-fill ${isOwn ? '' : 'hue-rotate-180 brightness-75'}`}
+                    style={{ filter: healthPct < 1 ? 'saturate(0.6)' : undefined }} />
+                  {healthPct < 1 && (
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[3px] rounded-sm overflow-hidden" style={{ backgroundColor: 'hsl(var(--muted))' }}>
+                      <div className="h-full rounded-sm" style={{
+                        width: `${healthPct * 100}%`,
+                        backgroundColor: healthPct > 0.5 ? 'hsl(var(--primary))' : 'hsl(var(--destructive))',
+                      }} />
+                    </div>
+                  )}
+                </div>
+              );
+            }
           });
           return elements;
         })()}
@@ -2663,18 +2624,9 @@ export default function WorldMap() {
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'outpost', data: outpost }); }}
             >
               <div className="relative">
-                <img src={isOwn ? getSettlementSprite('village', true) : mapVillage} alt={outpost.name} loading="lazy"
-                  className={`drop-shadow-md ${isOwn ? 'brightness-90' : 'brightness-75 hue-rotate-180'}`}
-                  style={{ width: opSize, height: opSize, objectFit: 'contain', filter: isOwn ? getSpriteFilter() : undefined }} />
-                <div className="absolute -inset-1 rounded-full pointer-events-none"
-                  style={{
-                    boxShadow: isOwn ? '0 0 10px 3px hsl(var(--primary) / 0.2)' : '0 0 8px 2px hsl(var(--destructive) / 0.15)',
-                    border: isOwn ? '1px solid hsl(var(--primary) / 0.3)' : '1px solid hsl(var(--destructive) / 0.25)',
-                  }} />
-                {outpost.has_wall && (
-                  <div className="absolute -inset-2 rounded-full pointer-events-none"
-                    style={{ border: `2px solid hsl(var(--${isOwn ? 'primary' : 'destructive'}) / 0.5)` }} />
-                )}
+                <img src={mapFort} alt={outpost.name} loading="lazy"
+                  className={`drop-shadow-md ${isOwn ? '' : 'brightness-75 hue-rotate-180'}`}
+                  style={{ width: opSize, height: opSize, objectFit: 'contain' }} />
               </div>
               {opSize > 22 && (
                 <div className={`backdrop-blur-sm rounded px-1.5 py-0.5 text-center mt-0.5 border ${isOwn ? 'bg-background/70 border-primary/20' : 'bg-background/50 border-destructive/20'}`}>
