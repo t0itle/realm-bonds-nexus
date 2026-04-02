@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useGame } from '@/hooks/useGameState';
-import { Send, Scroll, Sparkles } from 'lucide-react';
+import { Send, Scroll } from 'lucide-react';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
@@ -82,44 +82,6 @@ async function streamDM(
   onDone();
 }
 
-// Thresholds for automatic events
-function detectEvents(game: ReturnType<typeof useGame>): string | null {
-  if (game.resources.food <= 10 && game.population.current > 5) return 'The granaries are nearly empty! The people cry out for food. What counsel do you offer?';
-  if (game.resources.gold <= 10) return 'The treasury coffers echo with emptiness. Gold reserves are critically low.';
-  if (game.population.happiness <= 20) return 'Discontent festers among the populace. Happiness has fallen dangerously low. The people whisper of rebellion.';
-  if (game.population.current >= game.population.max * 0.95 && game.population.max > 10) return 'The village bursts at the seams — housing is at maximum capacity!';
-  return null;
-}
-
-export default function DungeonMasterPanel() {
-  const game = useGame();
-  const [messages, setMessages] = useState<Msg[]>([]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [eventBanner, setEventBanner] = useState<string | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const lastEventRef = useRef<string | null>(null);
-  const initRef = useRef(false);
-
-  const scrollToBottom = useCallback(() => {
-    setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }), 50);
-  }, []);
-
-  // Auto-detect events every 30s
-  useEffect(() => {
-    const check = () => {
-      const event = detectEvents(game);
-      if (event && event !== lastEventRef.current) {
-        lastEventRef.current = event;
-        setEventBanner(event);
-        // Auto-dismiss after 10s
-        setTimeout(() => setEventBanner(null), 10000);
-      }
-    };
-    check();
-    const interval = setInterval(check, 30000);
-    return () => clearInterval(interval);
-  }, [game.resources, game.population]);
 
   // Welcome message on first mount
   useEffect(() => {
@@ -170,34 +132,8 @@ export default function DungeonMasterPanel() {
     }
   };
 
-  const handleEventClick = () => {
-    if (eventBanner) {
-      sendMessage(eventBanner);
-      setEventBanner(null);
-    }
-  };
-
   return (
     <div className="flex flex-col h-full p-2 gap-2">
-      {/* Event Banner */}
-      <AnimatePresence>
-        {eventBanner && (
-          <motion.button
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            onClick={handleEventClick}
-            className="game-panel p-3 text-left border border-primary/30 bg-primary/5 rounded-lg flex items-start gap-2"
-          >
-            <Sparkles className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-            <div>
-              <p className="text-xs font-display text-primary font-bold">⚡ Kingdom Event</p>
-              <p className="text-xs text-muted-foreground mt-1">{eventBanner}</p>
-              <p className="text-[10px] text-primary/60 mt-1">Tap to consult the Oracle</p>
-            </div>
-          </motion.button>
-        )}
-      </AnimatePresence>
 
       {/* Chat Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-2 min-h-0">
