@@ -159,6 +159,22 @@ export default function NotificationsPanel({ embedded = false }: { embedded?: bo
   const [dbAlerts, setDbAlerts] = useState<BattleAlert[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const wallTipShown = useRef(false);
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem('dismissed_alerts');
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch { return new Set(); }
+  });
+
+  const dismissAlert = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDismissedIds(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      localStorage.setItem('dismissed_alerts', JSON.stringify([...next]));
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!user) return;
