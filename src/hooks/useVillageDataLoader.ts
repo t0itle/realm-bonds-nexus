@@ -399,7 +399,7 @@ export function useVillageDataLoader(user: { id: string } | null) {
         setPopulationBase((v as any).population ?? 10);
         setMaxPopBase((v as any).max_population ?? 20);
         setHappinessBase((v as any).happiness ?? 50);
-        setRationsLocal(((v as any).rations as RationsLevel) ?? 'normal');
+        setRationsLocal(Number((v as any).rations) || 50);
         setPopTaxRateLocal((v as any).pop_tax_rate ?? 5);
         setArmy({
           militia: (v as any).army_militia ?? 0,
