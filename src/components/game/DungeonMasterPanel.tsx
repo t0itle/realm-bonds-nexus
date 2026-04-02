@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useGame } from '@/hooks/useGameState';
-import { Send, Scroll, Sparkles } from 'lucide-react';
+import { Send, Scroll } from 'lucide-react';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
