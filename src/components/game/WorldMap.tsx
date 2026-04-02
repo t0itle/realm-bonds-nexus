@@ -2624,18 +2624,9 @@ export default function WorldMap() {
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'outpost', data: outpost }); }}
             >
               <div className="relative">
-                <img src={isOwn ? getSettlementSprite('village', true) : mapVillage} alt={outpost.name} loading="lazy"
-                  className={`drop-shadow-md ${isOwn ? 'brightness-90' : 'brightness-75 hue-rotate-180'}`}
-                  style={{ width: opSize, height: opSize, objectFit: 'contain', filter: isOwn ? getSpriteFilter() : undefined }} />
-                <div className="absolute -inset-1 rounded-full pointer-events-none"
-                  style={{
-                    boxShadow: isOwn ? '0 0 10px 3px hsl(var(--primary) / 0.2)' : '0 0 8px 2px hsl(var(--destructive) / 0.15)',
-                    border: isOwn ? '1px solid hsl(var(--primary) / 0.3)' : '1px solid hsl(var(--destructive) / 0.25)',
-                  }} />
-                {outpost.has_wall && (
-                  <div className="absolute -inset-2 rounded-full pointer-events-none"
-                    style={{ border: `2px solid hsl(var(--${isOwn ? 'primary' : 'destructive'}) / 0.5)` }} />
-                )}
+                <img src={mapFort} alt={outpost.name} loading="lazy"
+                  className={`drop-shadow-md ${isOwn ? '' : 'brightness-75 hue-rotate-180'}`}
+                  style={{ width: opSize, height: opSize, objectFit: 'contain' }} />
               </div>
               {opSize > 22 && (
                 <div className={`backdrop-blur-sm rounded px-1.5 py-0.5 text-center mt-0.5 border ${isOwn ? 'bg-background/70 border-primary/20' : 'bg-background/50 border-destructive/20'}`}>
