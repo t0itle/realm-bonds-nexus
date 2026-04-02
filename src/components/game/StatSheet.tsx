@@ -93,31 +93,44 @@ export default function StatSheet() {
       {/* Rations Control */}
       <div className="game-panel border-glow rounded-xl p-3 space-y-2">
         <h3 className="font-display text-xs text-foreground flex items-center gap-1">🍖 Rations</h3>
-        <div className="grid grid-cols-3 gap-1.5">
-          {(['scarce', 'normal', 'generous'] as RationsLevel[]).map(r => {
-            const info = RATIONS_INFO[r];
-            const active = rations === r;
-            return (
-              <button
-                key={r}
-                onClick={() => setRations(r)}
-                className={`rounded-lg p-2 text-center transition-all border ${
-                  active ? 'border-primary bg-primary/10 text-foreground' : 'border-border bg-muted/30 text-muted-foreground'
-                }`}
-              >
-                <p className="text-xs font-display font-bold">{info.label}</p>
-                <p className="text-[8px]">{info.foodMultiplier}× food</p>
-                <p className={`text-[8px] ${info.happinessBonus > 0 ? 'text-emerald-500' : info.happinessBonus < 0 ? 'text-destructive' : ''}`}>
-                  {info.happinessBonus > 0 ? '+' : ''}{info.happinessBonus} 😊
-                </p>
-              </button>
-            );
-          })}
-        </div>
-        <div className="flex justify-between text-xs">
-          <span className="text-muted-foreground">Pop Food Cost</span>
-          <span className="text-destructive">🌾 -{popFoodCost}/min</span>
-        </div>
+        {(() => {
+          const effect = getRationsEffect(rations);
+          return (
+            <>
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className="text-muted-foreground">Level</span>
+                <span className="font-bold text-foreground">{effect.label}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-[9px] text-muted-foreground">Scarce</span>
+                <input
+                  type="range"
+                  min={0} max={100} step={1}
+                  value={rations}
+                  onChange={e => setRations(Number(e.target.value))}
+                  className="flex-1 accent-primary"
+                />
+                <span className="text-[9px] text-muted-foreground">Generous</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs mt-1">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Food multiplier</span>
+                  <span className="text-foreground font-bold">{effect.foodMultiplier}×</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Happiness</span>
+                  <span className={`font-bold ${effect.happinessBonus > 0 ? 'text-emerald-500' : effect.happinessBonus < 0 ? 'text-destructive' : 'text-foreground'}`}>
+                    {effect.happinessBonus > 0 ? '+' : ''}{effect.happinessBonus} 😊
+                  </span>
+                </div>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Pop Food Cost</span>
+                <span className="text-destructive">🌾 -{popFoodCost}/min</span>
+              </div>
+            </>
+          );
+        })()}
       </div>
 
       {/* Tax Control */}
