@@ -51,6 +51,14 @@ const EVENT_SPRITES: Record<string, string> = {
 // ── A* Pathfinding around terrain obstacles ──
 const PATH_GRID_CELL = 2000; // world units per pathfinding cell
 
+function getRiverBlockRadius(riverWidth: number): number {
+  return Math.max(900, riverWidth * 0.5 + PATH_GRID_CELL * 0.2);
+}
+
+function getBridgeAccessRadius(riverWidth: number): number {
+  return Math.max(PATH_GRID_CELL * 1.5, getRiverBlockRadius(riverWidth) * 2);
+}
+
 function isPointInEllipse(px: number, py: number, cx: number, cy: number, rw: number, rh: number): boolean {
   const dx = (px - cx) / rw;
   const dy = (py - cy) / rh;
@@ -81,6 +89,38 @@ function isPointNearBridge(px: number, py: number, bridges: { x: number; y: numb
   return bridges.some(b => Math.hypot(px - b.x, py - b.y) < radius);
 }
 
+function isRiverCrossingBlocked(
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+  terrainFeatures: TerrainFeature[],
+  bridgeOutpostPositions?: { x: number; y: number }[]
+): boolean {
+  const midX = (ax + bx) * 0.5;
+  const midY = (ay + by) * 0.5;
+
+  for (const t of terrainFeatures) {
+    if (t.type !== 'river' || !t.points || t.points.length < 2) continue;
+
+    const bridgeRadius = getBridgeAccessRadius(t.width || 1000);
+
+    for (let i = 0; i < t.points.length - 1; i++) {
+      const p1 = t.points[i];
+      const p2 = t.points[i + 1];
+
+      if (!segmentsIntersect(ax, ay, bx, by, p1.x, p1.y, p2.x, p2.y)) continue;
+
+      if (t.bridgeAt && isPointNearBridge(midX, midY, t.bridgeAt, bridgeRadius)) continue;
+      if (bridgeOutpostPositions && isPointNearBridge(midX, midY, bridgeOutpostPositions, bridgeRadius)) continue;
+
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function isCellBlocked(wx: number, wy: number, terrainFeatures: TerrainFeature[], bridgeOutpostPositions?: { x: number; y: number }[]): boolean {
   // Block movement into ocean chunks
   const chunkX = Math.floor(wx / CHUNK_SIZE);
@@ -95,14 +135,14 @@ function isCellBlocked(wx: number, wy: number, terrainFeatures: TerrainFeature[]
       if (isPointInEllipse(wx, wy, t.x, t.y, t.width / 2 + pad, t.height / 2 + pad)) return true;
     }
     if (t.type === 'river' && t.points && t.points.length > 1) {
-      const riverW = (t.width || 1000) + pad;
-      // Check if near river but NOT near a bridge (auto or player-built)
+      const riverRadius = getRiverBlockRadius(t.width || 1000);
+      const bridgeRadius = getBridgeAccessRadius(t.width || 1000);
+
+      // Only block cells that are actually inside the river, not just nearby on the bank.
       for (let i = 0; i < t.points.length - 1; i++) {
-        if (isPointNearRiverSegment(wx, wy, t.points[i], t.points[i + 1], riverW)) {
-          // Check auto-bridges (legacy, should be empty now)
-          if (t.bridgeAt && isPointNearBridge(wx, wy, t.bridgeAt, riverW * 2)) return false;
-          // Check player-built bridge outposts
-          if (bridgeOutpostPositions && isPointNearBridge(wx, wy, bridgeOutpostPositions, riverW * 2)) return false;
+        if (isPointNearRiverSegment(wx, wy, t.points[i], t.points[i + 1], riverRadius)) {
+          if (t.bridgeAt && isPointNearBridge(wx, wy, t.bridgeAt, bridgeRadius)) return false;
+          if (bridgeOutpostPositions && isPointNearBridge(wx, wy, bridgeOutpostPositions, bridgeRadius)) return false;
           return true;
         }
       }
@@ -121,21 +161,63 @@ function findPath(startX: number, startY: number, endX: number, endY: number, te
   const cell = PATH_GRID_CELL;
   const toGrid = (v: number) => Math.round(v / cell);
   const fromGrid = (g: number) => g * cell;
+
+  const isWalkableWorldPoint = (wx: number, wy: number) => !isCellBlocked(wx, wy, terrainFeatures, bridgeOutpostPositions);
+  const isWalkableGridPoint = (gx: number, gy: number) => isWalkableWorldPoint(fromGrid(gx), fromGrid(gy));
+
+  const snapToWalkableGrid = (gx: number, gy: number, anchorX: number, anchorY: number) => {
+    if (isWalkableGridPoint(gx, gy)) return { x: gx, y: gy };
+
+    for (let radius = 1; radius <= 6; radius++) {
+      let best: { x: number; y: number; dist: number } | null = null;
+
+      for (let dx = -radius; dx <= radius; dx++) {
+        for (let dy = -radius; dy <= radius; dy++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue;
+
+          const nx = gx + dx;
+          const ny = gy + dy;
+          if (!isWalkableGridPoint(nx, ny)) continue;
+
+          const dist = Math.hypot(fromGrid(nx) - anchorX, fromGrid(ny) - anchorY);
+          if (!best || dist < best.dist) best = { x: nx, y: ny, dist };
+        }
+      }
+
+      if (best) return { x: best.x, y: best.y };
+    }
+
+    return null;
+  };
   
   const sx = toGrid(startX), sy = toGrid(startY);
   const ex = toGrid(endX), ey = toGrid(endY);
+
+  const startBlocked = !isWalkableWorldPoint(startX, startY);
+  const endBlocked = !isWalkableWorldPoint(endX, endY);
+
+  const startNode = snapToWalkableGrid(sx, sy, startX, startY);
+  const endNode = snapToWalkableGrid(ex, ey, endX, endY);
+
+  if (!startNode || !endNode) return [];
   
   // If start == end, return direct
-  if (sx === ex && sy === ey) return [{ x: startX, y: startY }, { x: endX, y: endY }];
+  if (startNode.x === endNode.x && startNode.y === endNode.y) {
+    return [
+      startBlocked ? { x: fromGrid(startNode.x), y: fromGrid(startNode.y) } : { x: startX, y: startY },
+      endBlocked ? { x: fromGrid(endNode.x), y: fromGrid(endNode.y) } : { x: endX, y: endY },
+    ];
+  }
   
-  // Limit search area to avoid performance issues
-  const maxSearch = 800;
+  // Limit search area to avoid performance issues while still allowing detours around rivers.
+  const maxSearch = 2400;
   const key = (gx: number, gy: number) => `${gx},${gy}`;
   
-  const open: PathNode[] = [{ x: sx, y: sy, g: 0, h: Math.abs(ex - sx) + Math.abs(ey - sy), f: Math.abs(ex - sx) + Math.abs(ey - sy), parent: null }];
+  const initialH = Math.abs(endNode.x - startNode.x) + Math.abs(endNode.y - startNode.y);
+  const open: PathNode[] = [{ x: startNode.x, y: startNode.y, g: 0, h: initialH, f: initialH, parent: null }];
   const closed = new Set<string>();
   const gScores = new Map<string, number>();
-  gScores.set(key(sx, sy), 0);
+  gScores.set(key(startNode.x, startNode.y), 0);
   
   let iterations = 0;
   const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]];
@@ -150,7 +232,7 @@ function findPath(startX: number, startY: number, endX: number, endY: number, te
     const current = open[bestIdx];
     open.splice(bestIdx, 1);
     
-    if (current.x === ex && current.y === ey) {
+    if (current.x === endNode.x && current.y === endNode.y) {
       // Reconstruct path
       const path: { x: number; y: number }[] = [];
       let node: PathNode | null = current;
@@ -158,9 +240,8 @@ function findPath(startX: number, startY: number, endX: number, endY: number, te
         path.unshift({ x: fromGrid(node.x), y: fromGrid(node.y) });
         node = node.parent;
       }
-      // Replace first and last with exact positions
-      path[0] = { x: startX, y: startY };
-      path[path.length - 1] = { x: endX, y: endY };
+      path[0] = startBlocked ? { x: fromGrid(startNode.x), y: fromGrid(startNode.y) } : { x: startX, y: startY };
+      path[path.length - 1] = endBlocked ? { x: fromGrid(endNode.x), y: fromGrid(endNode.y) } : { x: endX, y: endY };
       // Simplify: remove collinear points
       return simplifyPath(path);
     }
@@ -168,6 +249,9 @@ function findPath(startX: number, startY: number, endX: number, endY: number, te
     const ck = key(current.x, current.y);
     if (closed.has(ck)) continue;
     closed.add(ck);
+
+    const currentWorldX = fromGrid(current.x);
+    const currentWorldY = fromGrid(current.y);
     
     for (const [dx, dy] of dirs) {
       const nx = current.x + dx;
@@ -178,6 +262,7 @@ function findPath(startX: number, startY: number, endX: number, endY: number, te
       const worldX = fromGrid(nx);
       const worldY = fromGrid(ny);
       if (isCellBlocked(worldX, worldY, terrainFeatures, bridgeOutpostPositions)) continue;
+      if (isRiverCrossingBlocked(currentWorldX, currentWorldY, worldX, worldY, terrainFeatures, bridgeOutpostPositions)) continue;
       
       const moveCost = dx !== 0 && dy !== 0 ? 1.414 : 1;
       const ng = current.g + moveCost;
@@ -185,7 +270,7 @@ function findPath(startX: number, startY: number, endX: number, endY: number, te
       if (existingG !== undefined && ng >= existingG) continue;
       
       gScores.set(nk, ng);
-      const h = Math.sqrt((ex - nx) ** 2 + (ey - ny) ** 2);
+      const h = Math.sqrt((endNode.x - nx) ** 2 + (endNode.y - ny) ** 2);
       open.push({ x: nx, y: ny, g: ng, h, f: ng + h, parent: current });
     }
   }
