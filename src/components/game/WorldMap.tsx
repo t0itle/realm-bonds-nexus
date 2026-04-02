@@ -3122,8 +3122,8 @@ export default function WorldMap() {
                                 { village_id: newVillage.id, user_id: user.id, type: 'farm', level: 1, position: 7 },
                                 { village_id: newVillage.id, user_id: user.id, type: 'lumbermill', level: 1, position: 3 },
                               ]);
-                              await supabase.from('outposts').update({ outpost_type: 'settlement', name: settleName } as any).eq('id', op.id);
-                              setOutposts(prev => prev.map(o => o.id === op.id ? { ...o, outpost_type: 'settlement', name: settleName } : o));
+                              await supabase.from('outposts').delete().eq('id', op.id);
+                              setOutposts(prev => prev.filter(o => o.id !== op.id));
                               await refreshVillages();
                               toast.success(`🏘️ ${settleName} is now a full settlement!`);
                               setSelected(null);
