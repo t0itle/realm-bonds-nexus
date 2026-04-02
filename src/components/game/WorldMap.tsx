@@ -2606,10 +2606,11 @@ export default function WorldMap() {
 
         {/* ── Outpost markers on the map ── */}
         {outposts.filter(o => o.outpost_type !== 'bridge').map(outpost => {
-          if (!isWithinVision(outpost.x, outpost.y, 6000)) return null;
+          const visibleRadius = Math.max(6000, outpost.territory_radius || 0);
+          if (!isWithinVision(outpost.x, outpost.y, visibleRadius)) return null;
           if (!isVisible(outpost.x, outpost.y, 60)) return null;
           const { sx, sy } = worldToScreen(outpost.x, outpost.y);
-          const opSize = Math.max(18, Math.min(36, camera.ppu * 6000));
+          const opSize = Math.max(28, Math.min(52, camera.ppu * 9000));
           const hitSize = Math.max(44, opSize * 1.9);
           const isOwn = outpost.user_id === user?.id;
           const isSettlement = outpost.outpost_type === 'settlement';
@@ -2623,10 +2624,14 @@ export default function WorldMap() {
               style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)', minWidth: hitSize, minHeight: hitSize, padding: Math.max(6, opSize * 0.35) }}
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'outpost', data: outpost }); }}
             >
-              <div className="relative">
+              <div className="relative overflow-hidden" style={{ width: opSize, height: opSize }}>
                 <img src={mapFort} alt={outpost.name} loading="lazy"
-                  className={`drop-shadow-lg ${isOwn ? '' : 'brightness-75 hue-rotate-180'}`}
-                  style={{ width: opSize, height: opSize, objectFit: 'contain', filter: isOwn ? 'drop-shadow(0 0 4px hsl(var(--primary) / 0.4))' : 'drop-shadow(0 0 3px hsl(var(--destructive) / 0.3))' }} />
+                  className={`w-full h-full object-contain drop-shadow-lg ${isOwn ? '' : 'brightness-75 hue-rotate-180'}`}
+                  style={{
+                    transform: 'scale(1.55)',
+                    transformOrigin: 'center center',
+                    filter: isOwn ? 'drop-shadow(0 0 4px hsl(var(--primary) / 0.4))' : 'drop-shadow(0 0 3px hsl(var(--destructive) / 0.3))',
+                  }} />
               </div>
               {opSize > 22 && (
                 <div className={`backdrop-blur-sm rounded px-1.5 py-0.5 text-center mt-0.5 border ${isOwn ? 'bg-background/70 border-primary/20' : 'bg-background/50 border-destructive/20'}`}>
