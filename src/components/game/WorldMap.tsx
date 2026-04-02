@@ -991,7 +991,24 @@ export default function WorldMap() {
     return () => clearInterval(interval);
   }, [otherMarches.length]);
 
-  // Get TH level for dynamic sprite
+  // ── Load all active caravans (visible to everyone) ──
+  useEffect(() => {
+    if (!user) return;
+    const loadCaravans = async () => {
+      const { data } = await supabase.from('caravans').select('*').eq('status', 'in_transit');
+      if (data) setActiveCaravans(data as any);
+    };
+    loadCaravans();
+    const channel = supabase.channel('map-caravans')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'caravans' }, () => loadCaravans())
+      .subscribe();
+    const cleanup = setInterval(() => {
+      setActiveCaravans(prev => prev.filter(c => new Date(c.arrives_at).getTime() > Date.now()));
+    }, 5000);
+    return () => { supabase.removeChannel(channel); clearInterval(cleanup); };
+  }, [user]);
+
+
   const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
 
   const SETTLEMENT_TIER_SPRITES: Record<string, string> = {
