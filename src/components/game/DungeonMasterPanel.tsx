@@ -132,34 +132,8 @@ async function streamDM(
     }
   };
 
-  const handleEventClick = () => {
-    if (eventBanner) {
-      sendMessage(eventBanner);
-      setEventBanner(null);
-    }
-  };
-
   return (
     <div className="flex flex-col h-full p-2 gap-2">
-      {/* Event Banner */}
-      <AnimatePresence>
-        {eventBanner && (
-          <motion.button
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            onClick={handleEventClick}
-            className="game-panel p-3 text-left border border-primary/30 bg-primary/5 rounded-lg flex items-start gap-2"
-          >
-            <Sparkles className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-            <div>
-              <p className="text-xs font-display text-primary font-bold">⚡ Kingdom Event</p>
-              <p className="text-xs text-muted-foreground mt-1">{eventBanner}</p>
-              <p className="text-[10px] text-primary/60 mt-1">Tap to consult the Oracle</p>
-            </div>
-          </motion.button>
-        )}
-      </AnimatePresence>
 
       {/* Chat Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-2 min-h-0">
