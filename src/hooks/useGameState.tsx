@@ -162,7 +162,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     buildings, workerAssignments, setWorkerAssignments, population, villageId });
 
   useAdministrator({
-    buildings, buildQueue, resources, canAfford, canAffordSteel, buildAt,
+    buildings, buildQueue, resources, canAfford, canAffordSteel, buildAt, upgradeBuilding,
     currentHouses, maxHouses, population, villageId,
   });
 
