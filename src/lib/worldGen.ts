@@ -139,7 +139,7 @@ export const CONTINENTS: Continent[] = [
         { x: 1550000, y: 0 },
         { x: 1600000, y: 80000 },
         { x: 1700000, y: 150000 },
-      ], width: 3000, name: 'The Mirage Run' },
+      ], width: 1200, name: 'The Mirage Run' },
     ],
   },
   {
