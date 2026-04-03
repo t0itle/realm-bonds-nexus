@@ -125,6 +125,7 @@ export const FACTION_BUILDING_SPRITES: Record<string, BuildingSpriteMap> = {
     apothecary: undeadApothecary,
     warehouse: undeadWarehouse,
     spyguild: undeadSpyguild,
+    administrator: administratorSprite,
   },
   roman: {
     townhall: romanTownhall,
