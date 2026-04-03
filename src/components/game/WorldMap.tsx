@@ -1105,6 +1105,20 @@ export default function WorldMap() {
     return () => { supabase.removeChannel(channel); clearInterval(cleanup); };
   }, [user]);
 
+  // ── Load roads for map rendering ──
+  useEffect(() => {
+    if (!user) return;
+    const loadRoads = async () => {
+      const { data } = await supabase.from('roads').select('*');
+      if (data) setMapRoads(data as any);
+    };
+    loadRoads();
+    const channel = supabase.channel('map-roads')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'roads' }, () => loadRoads())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
 
   const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
 
