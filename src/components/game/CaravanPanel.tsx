@@ -81,7 +81,14 @@ export default function CaravanPanel({ onClose }: { onClose: () => void }) {
     const dest = settlements.find(s => s.id === destId);
     if (!origin || !dest) return 60;
     const dist = Math.sqrt(Math.pow(dest.map_x - origin.map_x, 2) + Math.pow(dest.map_y - origin.map_y, 2));
-    return Math.max(30, Math.floor(dist / 500)); // ~500 units per second
+    const baseSec = Math.max(30, Math.floor(dist / 500));
+    // Road speed bonus
+    const road = roads.find(r =>
+      (r.from_village_id === villageId && r.to_village_id === destId) ||
+      (r.from_village_id === destId && r.to_village_id === villageId)
+    );
+    const bonus = road ? (ROAD_INFO[road.road_level]?.speedBonus || 0) : 0;
+    return Math.max(15, Math.floor(baseSec * (1 - bonus)));
   };
 
   const handleSend = async () => {
