@@ -161,6 +161,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const { getMaxWorkers, assignWorker, unassignWorker } = useWorkerManagement({
     buildings, workerAssignments, setWorkerAssignments, population, villageId });
 
+  useAdministrator({
+    buildings, buildQueue, resources, canAfford, canAffordSteel, buildAt,
+    currentHouses, maxHouses, population, villageId,
+  });
+
   const { getApothecaryLevel, healTroops, craftPoison } = useApothecary({
     buildings, injuredTroops, setInjuredTroops, army, setArmy, resources, setResources,
     poisons, setPoisons, setTrainingQueue, villageId, user, canAfford });
