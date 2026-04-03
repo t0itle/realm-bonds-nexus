@@ -188,6 +188,7 @@ export default function VillageGrid() {
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [buildPosition, setBuildPosition] = useState<number | null>(null);
   const [workerBuilding, setWorkerBuilding] = useState<Building | null>(null);
+  const [showCityView, setShowCityView] = useState(false);
   const tick = useGameTicker();
 
   const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
