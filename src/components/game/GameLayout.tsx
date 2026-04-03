@@ -39,7 +39,7 @@ const VillageGrid = lazyRetry(() => import('./VillageGrid'));
 const WorldMap = lazyRetry(() => import('./WorldMap'));
 const SocialPanel = lazyRetry(() => import('./SocialPanel'));
 const ProfilePanel = lazyRetry(() => import('./ProfilePanel'));
-const CityView = lazyRetry(() => import('./CityView'));
+
 
 
 function TabFallback() {
@@ -50,12 +50,11 @@ function TabFallback() {
   );
 }
 
-type Tab = 'village' | 'map' | 'city' | 'social' | 'profile';
+type Tab = 'village' | 'map' | 'social' | 'profile';
 
 const TABS: { id: Tab; icon: string; label: string }[] = [
-  { id: 'village', icon: '🏘️', label: 'Village' },
+  { id: 'village', icon: '🏘️', label: 'Govern' },
   { id: 'map', icon: '🗺️', label: 'Map' },
-  { id: 'city', icon: '👁️', label: 'City' },
   { id: 'social', icon: '💬', label: 'Social' },
   { id: 'profile', icon: '👤', label: 'Me' },
 ];
@@ -289,7 +288,6 @@ export default function GameLayout() {
             >
               <Suspense fallback={<TabFallback />}>
                 {activeTab === 'village' && <VillageGrid />}
-                {activeTab === 'city' && <CityView />}
                 {activeTab === 'social' && <SocialPanel initialDm={dmTarget} onDmHandled={() => setDmTarget(null)} />}
                 {activeTab === 'profile' && <ProfilePanel />}
               </Suspense>
