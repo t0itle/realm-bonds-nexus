@@ -50,11 +50,12 @@ function TabFallback() {
   );
 }
 
-type Tab = 'village' | 'map' | 'social' | 'profile';
+type Tab = 'village' | 'map' | 'city' | 'social' | 'profile';
 
 const TABS: { id: Tab; icon: string; label: string }[] = [
   { id: 'village', icon: '🏘️', label: 'Village' },
   { id: 'map', icon: '🗺️', label: 'Map' },
+  { id: 'city', icon: '👁️', label: 'City' },
   { id: 'social', icon: '💬', label: 'Social' },
   { id: 'profile', icon: '👤', label: 'Me' },
 ];
