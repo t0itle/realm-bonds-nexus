@@ -165,7 +165,7 @@ export const CONTINENTS: Continent[] = [
         { x: 200000, y: 1620000 },
         { x: 130000, y: 1700000 },
         { x: 80000, y: 1780000 },
-      ], width: 5000, name: 'The Emerald Serpent' },
+      ], width: 1500, name: 'The Emerald Serpent' },
       { points: [
         { x: 50000, y: 1500000 },
         { x: 100000, y: 1580000 },
