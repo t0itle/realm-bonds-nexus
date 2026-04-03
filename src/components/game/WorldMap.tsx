@@ -38,15 +38,6 @@ import mapCaravan from '@/assets/sprites/map-caravan.png';
 import mapFort from '@/assets/sprites/map-fort.png';
 import mapOutpost from '@/assets/sprites/map-outpost.png';
 import mapWall from '@/assets/sprites/map-wall.png';
-import dirtRoadSprite from '@/assets/sprites/roads/dirt-road.png';
-import cobblestoneRoadSprite from '@/assets/sprites/roads/cobblestone-road.png';
-import pavedRoadSprite from '@/assets/sprites/roads/paved-road.png';
-
-const ROAD_SPRITES: Record<number, string> = {
-  1: dirtRoadSprite,
-  2: cobblestoneRoadSprite,
-  3: pavedRoadSprite,
-};
 const REALM_SPRITES: Record<string, string> = {
   hostile: mapCastleHostile,
   neutral: mapCastleNeutral,
