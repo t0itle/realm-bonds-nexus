@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useGameTicker } from '@/hooks/useGameTicker';
 import { useGame } from '@/hooks/useGameState';
-import { BUILDING_INFO, getUpgradeCost, getProduction, getSteelProduction } from '@/lib/gameConstants';
+import { BUILDING_INFO, getUpgradeCost, getProduction, getSteelProduction, getMaxBuildingLevel, isCastle } from '@/lib/gameConstants';
 import type { BuildingType, Building } from '@/lib/gameTypes';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BUILDING_SPRITES, WORKERS_SPRITE, WORKER_FOR_BUILDING } from './sprites';
