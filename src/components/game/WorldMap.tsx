@@ -11,7 +11,7 @@ import NPCInteractionPanel from './NPCInteractionPanel';
 import { useTroopSkins } from '@/hooks/useTroopSkins';
 import AttackConfigPanel from './AttackConfigPanel';
 import TroopTransferPanel from './TroopTransferPanel';
-import { FACTION_MAP_SPRITES, FACTION_SOLDIER_SPRITES, FACTION_FORT_SPRITES } from './factionMapSprites';
+import { FACTION_MAP_SPRITES, FACTION_SOLDIER_SPRITES, FACTION_FORT_SPRITES, FACTION_OUTPOST_SPRITES } from './factionMapSprites';
 import { getMineSteelPerTickForChunk } from '@/lib/mineProduction';
 
 // Map sprites
