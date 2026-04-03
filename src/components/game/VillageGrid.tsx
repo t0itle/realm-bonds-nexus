@@ -199,9 +199,36 @@ export default function VillageGrid() {
     return buildings.find(b => b.position === i) || null;
   });
 
+  if (showCityView) {
+    const CityViewLazy = lazy(() => import('./CityView'));
+    return (
+      <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="text-2xl animate-float">⏳</div></div>}>
+        <div className="flex-1 flex flex-col relative">
+          <button
+            onClick={() => setShowCityView(false)}
+            className="absolute top-2 right-2 z-10 px-2 py-1 rounded-lg bg-background/80 backdrop-blur-sm border border-border/50 text-[10px] font-display text-foreground"
+          >
+            ← Govern
+          </button>
+          <CityViewLazy />
+        </div>
+      </Suspense>
+    );
+  }
+
   return (
     <>
       <div className="flex-1 flex flex-col items-center justify-center px-2 py-2">
+        {/* Eye button for city view */}
+        <div className="w-full flex justify-end mb-1" style={{ maxWidth: `min(100%, ${gridCols * 6}rem)` }}>
+          <button
+            onClick={() => setShowCityView(true)}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors text-[10px]"
+          >
+            <span className="text-xs">👁️</span>
+            <span className="font-display">City View</span>
+          </button>
+        </div>
         <div className={`grid gap-1.5 w-full`} style={{ gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`, maxWidth: `min(100%, ${gridCols * 6}rem)` }}>
           {grid.map((building, i) => {
             const type = building?.type as Exclude<BuildingType, 'empty'> | undefined;
