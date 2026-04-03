@@ -39,8 +39,9 @@ export default function CaravanPanel({ onClose }: { onClose: () => void }) {
   const [selectedDest, setSelectedDest] = useState<string>('');
   const [sendAmounts, setSendAmounts] = useState({ gold: 0, wood: 0, stone: 0, food: 0 });
   const [sending, setSending] = useState(false);
+  const [roads, setRoads] = useState<{ from_village_id: string; to_village_id: string; road_level: number }[]>([]);
 
-  // Load user's settlements
+  // Load user's settlements & roads
   useEffect(() => {
     if (!user) return;
     supabase.from('villages').select('id, name, map_x, map_y').eq('user_id', user.id).then(({ data }) => {
