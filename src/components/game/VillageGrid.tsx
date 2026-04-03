@@ -189,6 +189,19 @@ export default function VillageGrid() {
   const [buildPosition, setBuildPosition] = useState<number | null>(null);
   const [workerBuilding, setWorkerBuilding] = useState<Building | null>(null);
   const tick = useGameTicker();
+
+  const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
+  const gridSize = getGridSize(settlementType);
+  const gridCols = getGridCols(gridSize);
+
+  const grid = Array.from({ length: gridSize }, (_, i) => {
+    return buildings.find(b => b.position === i) || null;
+  });
+
+  return (
+    <>
+      <div className="flex-1 flex flex-col items-center justify-center px-2 py-2">
+        <div className={`grid gap-1.5 w-full`} style={{ gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`, maxWidth: `min(100%, ${gridCols * 6}rem)` }}>
           {grid.map((building, i) => {
             const type = building?.type as Exclude<BuildingType, 'empty'> | undefined;
             const sprite = type ? getBuildingSprite(type) : null;
