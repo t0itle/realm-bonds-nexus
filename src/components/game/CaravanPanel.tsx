@@ -47,6 +47,9 @@ export default function CaravanPanel({ onClose }: { onClose: () => void }) {
     supabase.from('villages').select('id, name, map_x, map_y').eq('user_id', user.id).then(({ data }) => {
       if (data) setSettlements(data);
     });
+    supabase.from('roads').select('from_village_id, to_village_id, road_level').eq('user_id', user.id).then(({ data }) => {
+      if (data) setRoads(data as any);
+    });
   }, [user]);
 
   // Load active caravans
