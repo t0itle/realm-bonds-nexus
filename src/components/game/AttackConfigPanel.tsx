@@ -94,18 +94,20 @@ export default function AttackConfigPanel({
       <p className="text-[9px] text-muted-foreground">Travel time: ~{travelTime}s</p>
 
       {/* Mode toggle */}
-      <div className="flex gap-1">
-        <button onClick={() => setMode('attack')}
-          className={`flex-1 font-display text-[10px] py-1.5 rounded-lg transition-colors ${mode === 'attack' ? 'bg-destructive text-destructive-foreground' : 'bg-muted text-muted-foreground'}`}>
-          ⚔️ Attack
-        </button>
-        {showEspionage && spies > 0 && (
-          <button onClick={() => setMode('espionage')}
-            className={`flex-1 font-display text-[10px] py-1.5 rounded-lg transition-colors ${mode === 'espionage' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-            🕵️ Espionage
+      {!espionageOnly && (
+        <div className="flex gap-1">
+          <button onClick={() => setMode('attack')}
+            className={`flex-1 font-display text-[10px] py-1.5 rounded-lg transition-colors ${mode === 'attack' ? 'bg-destructive text-destructive-foreground' : 'bg-muted text-muted-foreground'}`}>
+            ⚔️ Attack
           </button>
-        )}
-      </div>
+          {showEspionage && spies > 0 && (
+            <button onClick={() => setMode('espionage')}
+              className={`flex-1 font-display text-[10px] py-1.5 rounded-lg transition-colors ${mode === 'espionage' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+              🕵️ Espionage
+            </button>
+          )}
+        </div>
+      )}
 
       {mode === 'attack' && (
         <>
