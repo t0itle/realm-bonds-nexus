@@ -20,12 +20,13 @@ interface TradeRoute {
   active: boolean;
 }
 
-interface Settlement { id: string; name: string; }
+interface Settlement { id: string; name: string; map_x: number; map_y: number; }
 
 export default function TradeRoutesPanel() {
   const { resources, villageId, addResources } = useGame();
   const { user } = useAuth();
   const [routes, setRoutes] = useState<TradeRoute[]>([]);
+  const [roads, setRoads] = useState<{ from_village_id: string; to_village_id: string; road_level: number }[]>([]);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [selectedDest, setSelectedDest] = useState('');
