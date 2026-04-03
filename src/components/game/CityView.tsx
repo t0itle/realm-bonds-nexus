@@ -182,9 +182,8 @@ export default function CityView() {
     const existing = citizensRef.current;
     if (existing.length === count) return;
 
-    const soldiers = Math.min(Object.values(army).reduce((s, v) => s + v, 0), Math.floor(count * 0.3));
-    const workers = Math.min(Object.values(workerAssignments).reduce((s, v) => s + v, 0), Math.floor(count * 0.4));
-    const civs = count - soldiers - workers;
+    const soldiers = Math.min(Object.values(army).reduce((s: number, v: number) => s + v, 0), Math.floor(count * 0.3));
+    const totalWorkers = Math.min(Object.values(workerAssignments).reduce((s: number, v: number) => s + v, 0), Math.floor(count * 0.4));
 
     const newCitizens: Citizen[] = [];
     for (let i = 0; i < count; i++) {
