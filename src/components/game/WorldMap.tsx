@@ -2355,6 +2355,41 @@ export default function WorldMap() {
         })}
 
 
+        {/* ── Roads on Map ── */}
+        {mapRoads.map(road => {
+          const isBuilding = road.building_finish_time && new Date(road.building_finish_time).getTime() > Date.now();
+          const effectiveLevel = isBuilding ? Math.max(0, road.road_level - 1) : road.road_level;
+          if (effectiveLevel <= 0) return null; // still building first level
+          const fromVillage = allVillages.find(pv => pv.village.id === road.from_village_id);
+          const toVillage = allVillages.find(pv => pv.village.id === road.to_village_id);
+          if (!fromVillage || !toVillage) return null;
+          const fx = fromVillage.village.map_x, fy = fromVillage.village.map_y;
+          const tx = toVillage.village.map_x, ty = toVillage.village.map_y;
+          const dx = tx - fx, dy = ty - fy;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+          const spriteSize = Math.max(12, Math.min(24, camera.ppu * 3000));
+          const numSprites = Math.max(3, Math.floor(dist / 8000));
+          const sprite = ROAD_SPRITES[effectiveLevel];
+          return Array.from({ length: numSprites }, (_, i) => {
+            const t = (i + 1) / (numSprites + 1);
+            const px = fx + dx * t, py = fy + dy * t;
+            const sx = (px - camera.x) * camera.ppu + camera.vw / 2;
+            const sy = (py - camera.y) * camera.ppu + camera.vh / 2;
+            if (sx < -50 || sx > camera.vw + 50 || sy < -50 || sy > camera.vh + 50) return null;
+            return (
+              <img key={`road-${road.id}-${i}`} src={sprite} alt="road"
+                loading="lazy" width={spriteSize} height={spriteSize}
+                className={`absolute pointer-events-none ${isBuilding ? 'opacity-40' : 'opacity-80'}`}
+                style={{
+                  left: sx - spriteSize / 2, top: sy - spriteSize / 2,
+                  width: spriteSize, height: spriteSize, objectFit: 'contain',
+                  transform: `rotate(${angle}deg)`,
+                }} />
+            );
+          });
+        })}
+
         {/* ── Caravans on Map (visible to all) ── */}
         {activeCaravans.map(caravan => {
           const now = Date.now();
