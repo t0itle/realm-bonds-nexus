@@ -113,7 +113,7 @@ export const CONTINENTS: Continent[] = [
         { x: 100000, y: -1500000 },
         { x: 50000, y: -1380000 },
         { x: -30000, y: -1300000 },
-      ], width: 3500, name: 'Frostmelt River' },
+      ], width: 1200, name: 'Frostmelt River' },
     ],
   },
   {
