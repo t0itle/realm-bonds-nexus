@@ -983,6 +983,51 @@ export type Database = {
         }
         Relationships: []
       }
+      roads: {
+        Row: {
+          created_at: string
+          from_village_id: string
+          id: string
+          road_level: number
+          to_village_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_village_id: string
+          id?: string
+          road_level?: number
+          to_village_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          from_village_id?: string
+          id?: string
+          road_level?: number
+          to_village_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roads_from_village_id_fkey"
+            columns: ["from_village_id"]
+            isOneToOne: false
+            referencedRelation: "villages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roads_to_village_id_fkey"
+            columns: ["to_village_id"]
+            isOneToOne: false
+            referencedRelation: "villages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       spy_training_queue: {
         Row: {
           count: number
@@ -1006,6 +1051,69 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      trade_routes: {
+        Row: {
+          active: boolean
+          created_at: string
+          food: number
+          from_village_id: string
+          gold: number
+          id: string
+          interval_seconds: number
+          next_run_at: string
+          stone: number
+          to_village_id: string
+          updated_at: string
+          user_id: string
+          wood: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          food?: number
+          from_village_id: string
+          gold?: number
+          id?: string
+          interval_seconds?: number
+          next_run_at?: string
+          stone?: number
+          to_village_id: string
+          updated_at?: string
+          user_id: string
+          wood?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          food?: number
+          from_village_id?: string
+          gold?: number
+          id?: string
+          interval_seconds?: number
+          next_run_at?: string
+          stone?: number
+          to_village_id?: string
+          updated_at?: string
+          user_id?: string
+          wood?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_routes_from_village_id_fkey"
+            columns: ["from_village_id"]
+            isOneToOne: false
+            referencedRelation: "villages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_routes_to_village_id_fkey"
+            columns: ["to_village_id"]
+            isOneToOne: false
+            referencedRelation: "villages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       training_queue: {
         Row: {

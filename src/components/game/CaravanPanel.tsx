@@ -5,6 +5,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import ResourceIcon from './ResourceIcon';
+import RoadsPanel from './RoadsPanel';
+import TradeRoutesPanel from './TradeRoutesPanel';
+import { ROAD_INFO } from '@/lib/gameConstants';
 
 interface Caravan {
   id: string;
@@ -36,12 +39,16 @@ export default function CaravanPanel({ onClose }: { onClose: () => void }) {
   const [selectedDest, setSelectedDest] = useState<string>('');
   const [sendAmounts, setSendAmounts] = useState({ gold: 0, wood: 0, stone: 0, food: 0 });
   const [sending, setSending] = useState(false);
+  const [roads, setRoads] = useState<{ from_village_id: string; to_village_id: string; road_level: number }[]>([]);
 
-  // Load user's settlements
+  // Load user's settlements & roads
   useEffect(() => {
     if (!user) return;
     supabase.from('villages').select('id, name, map_x, map_y').eq('user_id', user.id).then(({ data }) => {
       if (data) setSettlements(data);
+    });
+    supabase.from('roads').select('from_village_id, to_village_id, road_level').eq('user_id', user.id).then(({ data }) => {
+      if (data) setRoads(data as any);
     });
   }, [user]);
 
@@ -74,7 +81,14 @@ export default function CaravanPanel({ onClose }: { onClose: () => void }) {
     const dest = settlements.find(s => s.id === destId);
     if (!origin || !dest) return 60;
     const dist = Math.sqrt(Math.pow(dest.map_x - origin.map_x, 2) + Math.pow(dest.map_y - origin.map_y, 2));
-    return Math.max(30, Math.floor(dist / 500)); // ~500 units per second
+    const baseSec = Math.max(30, Math.floor(dist / 500));
+    // Road speed bonus
+    const road = roads.find(r =>
+      (r.from_village_id === villageId && r.to_village_id === destId) ||
+      (r.from_village_id === destId && r.to_village_id === villageId)
+    );
+    const bonus = road ? (ROAD_INFO[road.road_level]?.speedBonus || 0) : 0;
+    return Math.max(15, Math.floor(baseSec * (1 - bonus)));
   };
 
   const handleSend = async () => {
@@ -232,6 +246,16 @@ export default function CaravanPanel({ onClose }: { onClose: () => void }) {
           })}
         </div>
       )}
+
+      {/* Roads */}
+      <div className="border-t border-border/50 pt-2">
+        <RoadsPanel />
+      </div>
+
+      {/* Trade Routes */}
+      <div className="border-t border-border/50 pt-2">
+        <TradeRoutesPanel />
+      </div>
     </motion.div>
   );
 }

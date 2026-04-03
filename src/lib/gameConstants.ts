@@ -232,3 +232,19 @@ export function getMaxBuildingLevel(type: Exclude<BuildingType, 'empty'>, townha
   if (type === 'townhall') return base; // townhall uses its own maxLevel (20)
   return isCastle(townhallLevel) ? 20 : base;
 }
+
+// === ROAD SYSTEM ===
+export const ROAD_INFO: Record<number, { name: string; emoji: string; speedBonus: number; cost: Resources & { steel: number } }> = {
+  1: { name: 'Dirt Road', emoji: '🟫', speedBonus: 0.20, cost: { gold: 50, wood: 100, stone: 50, food: 0, steel: 0 } },
+  2: { name: 'Cobblestone Road', emoji: '🪨', speedBonus: 0.40, cost: { gold: 150, wood: 50, stone: 200, food: 0, steel: 5 } },
+  3: { name: 'Paved Road', emoji: '🛤️', speedBonus: 0.60, cost: { gold: 400, wood: 100, stone: 500, food: 0, steel: 15 } },
+};
+export const MAX_ROAD_LEVEL = 3;
+
+// === TRADE ROUTE INTERVALS ===
+export const TRADE_INTERVALS = [
+  { label: 'Every 5 min', seconds: 300 },
+  { label: 'Every 15 min', seconds: 900 },
+  { label: 'Every 30 min', seconds: 1800 },
+  { label: 'Every 1 hour', seconds: 3600 },
+];
