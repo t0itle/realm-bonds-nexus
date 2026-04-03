@@ -7,7 +7,7 @@ import { useTroopSkins } from '@/hooks/useTroopSkins';
 import ResourceIcon, { getResourceType } from './ResourceIcon';
 
 const BUILDABLE: Exclude<BuildingType, 'empty' | 'townhall'>[] = [
-  'house', 'farm', 'lumbermill', 'quarry', 'goldmine', 'barracks', 'wall', 'watchtower', 'temple', 'apothecary', 'warehouse', 'spyguild',
+  'house', 'farm', 'lumbermill', 'quarry', 'goldmine', 'barracks', 'wall', 'watchtower', 'temple', 'apothecary', 'warehouse', 'spyguild', 'administrator',
 ];
 
 function formatTime(s: number) {
