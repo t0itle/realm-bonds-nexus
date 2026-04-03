@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
-import type { Building, BuildQueue, Resources } from '@/lib/gameTypes';
-import { getUpgradeCost } from '@/lib/gameConstants';
+import type { Building, BuildQueue, BuildingType, Resources } from '@/lib/gameTypes';
+import { getUpgradeCost, getMaxBuildingLevel } from '@/lib/gameConstants';
 
 interface UseAdministratorParams {
   buildings: Building[];
@@ -8,7 +8,8 @@ interface UseAdministratorParams {
   resources: Resources;
   canAfford: (cost: Resources) => boolean;
   canAffordSteel: (amount: number) => boolean;
-  buildAt: (position: number, type: 'farm' | 'house') => Promise<boolean>;
+  buildAt: (position: number, type: Exclude<BuildingType, 'empty'>) => Promise<boolean>;
+  upgradeBuilding: (id: string) => Promise<boolean>;
   currentHouses: number;
   maxHouses: number;
   population: { current: number; housingCapacity: number; happiness: number };
@@ -17,8 +18,7 @@ interface UseAdministratorParams {
 
 /**
  * Auto-management hook: when an Administrator building exists (level 1),
- * periodically checks if the settlement needs more food or housing
- * and queues farms/houses automatically at 3× slower pace.
+ * periodically builds farms/houses and upgrades existing buildings.
  */
 export function useAdministrator({
   buildings,
@@ -27,6 +27,7 @@ export function useAdministrator({
   canAfford,
   canAffordSteel,
   buildAt,
+  upgradeBuilding,
   currentHouses,
   maxHouses,
   population,
@@ -50,31 +51,26 @@ export function useAdministrator({
   useEffect(() => {
     if (!hasAdministrator || !villageId) return;
 
-    // Check every 45 seconds (slower pace)
     const interval = setInterval(async () => {
       const currentBuildings = buildingsRef.current;
       const queue = buildQueueRef.current;
 
-      // Don't auto-build if there's already something in the queue
+      // Don't auto-act if there's already 2+ items in queue
       if (queue.length >= 2) return;
 
       const pop = populationRef.current;
       const houses = currentHousesRef.current;
       const maxH = maxHousesRef.current;
+      const queuedIds = new Set(queue.map(q => q.buildingId));
 
-      // Find an empty slot
+      // Priority 1: Need housing — build new house
       const occupiedPositions = new Set(currentBuildings.map(b => b.position));
       let emptySlot = -1;
       for (let i = 0; i < 25; i++) {
-        if (!occupiedPositions.has(i)) {
-          emptySlot = i;
-          break;
-        }
+        if (!occupiedPositions.has(i)) { emptySlot = i; break; }
       }
-      if (emptySlot === -1) return;
 
-      // Priority 1: Need housing (population near capacity)
-      if (pop.current >= pop.housingCapacity * 0.85 && houses < maxH) {
+      if (pop.current >= pop.housingCapacity * 0.85 && houses < maxH && emptySlot !== -1) {
         const cost = getUpgradeCost('house', 0);
         if (canAfford(cost) && (cost.steel <= 0 || canAffordSteel(cost.steel))) {
           await buildAt(emptySlot, 'house');
@@ -82,17 +78,35 @@ export function useAdministrator({
         }
       }
 
-      // Priority 2: Need more food (check if food production is low)
+      // Priority 2: Need food — build new farm
       const farms = currentBuildings.filter(b => b.type === 'farm').length;
-      if (farms < 3 || pop.current > farms * 8) {
+      if ((farms < 3 || pop.current > farms * 8) && emptySlot !== -1) {
         const cost = getUpgradeCost('farm', 0);
         if (canAfford(cost) && (cost.steel <= 0 || canAffordSteel(cost.steel))) {
           await buildAt(emptySlot, 'farm');
           return;
         }
       }
-    }, 45000); // 45 seconds between checks
+
+      // Priority 3: Upgrade existing buildings (lowest level first)
+      const townhallLevel = currentBuildings.find(b => b.type === 'townhall')?.level || 1;
+      const upgradeable = currentBuildings
+        .filter(b => b.type !== 'empty' && b.type !== 'administrator' && !queuedIds.has(b.id))
+        .filter(b => {
+          const maxLvl = getMaxBuildingLevel(b.type as Exclude<BuildingType, 'empty'>, townhallLevel);
+          return b.level < maxLvl;
+        })
+        .sort((a, b) => a.level - b.level);
+
+      for (const building of upgradeable) {
+        const cost = getUpgradeCost(building.type as Exclude<BuildingType, 'empty'>, building.level);
+        if (canAfford(cost) && (cost.steel <= 0 || canAffordSteel(cost.steel))) {
+          const success = await upgradeBuilding(building.id);
+          if (success) return;
+        }
+      }
+    }, 45000);
 
     return () => clearInterval(interval);
-  }, [hasAdministrator, villageId, canAfford, canAffordSteel, buildAt]);
+  }, [hasAdministrator, villageId, canAfford, canAffordSteel, buildAt, upgradeBuilding]);
 }
