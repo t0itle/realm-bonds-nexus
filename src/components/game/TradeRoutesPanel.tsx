@@ -36,8 +36,11 @@ export default function TradeRoutesPanel() {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from('villages').select('id, name').eq('user_id', user.id).then(({ data }) => {
-      if (data) setSettlements(data);
+    supabase.from('villages').select('id, name, map_x, map_y').eq('user_id', user.id).then(({ data }) => {
+      if (data) setSettlements(data as Settlement[]);
+    });
+    supabase.from('roads').select('from_village_id, to_village_id, road_level').eq('user_id', user.id).then(({ data }) => {
+      if (data) setRoads(data as any);
     });
     loadRoutes();
   }, [user]);
