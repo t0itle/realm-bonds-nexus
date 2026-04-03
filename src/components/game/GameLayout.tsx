@@ -59,8 +59,8 @@ const TABS: { id: Tab; icon: string; label: string }[] = [
 ];
 
 export default function GameLayout() {
-  const [activeTab, setActiveTab] = useState<Tab>('village');
-  const [hasOpenedMap, setHasOpenedMap] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tab>('map');
+  const [hasOpenedMap, setHasOpenedMap] = useState(true);
   const [dmTarget, setDmTarget] = useState<{ userId: string; name: string } | null>(null);
   const { villageName, playerLevel, loading, displayName, army, trainingQueue, vassalages } = useGame();
   const { user } = useAuth();
