@@ -36,6 +36,13 @@ import pirateMapFort from '@/assets/sprites/factions/pirate/map-fort.png';
 // Default faction soldier
 import defaultMapSoldier from '@/assets/sprites/factions/default/map-soldier.png';
 
+// Outpost (watchtower) sprites per faction
+import vikingMapOutpost from '@/assets/sprites/factions/viking/map-outpost.png';
+import samuraiMapOutpost from '@/assets/sprites/factions/samurai/map-outpost.png';
+import undeadMapOutpost from '@/assets/sprites/factions/undead/map-outpost.png';
+import romanMapOutpost from '@/assets/sprites/factions/roman/map-outpost.png';
+import pirateMapOutpost from '@/assets/sprites/factions/pirate/map-outpost.png';
+
 type SettlementTier = 'village' | 'town' | 'city';
 type TierSpriteMap = Record<SettlementTier, string>;
 
@@ -82,4 +89,12 @@ export const FACTION_FORT_SPRITES: Record<string, string> = {
   undead: undeadMapFort,
   roman: romanMapFort,
   pirate: pirateMapFort,
+};
+
+export const FACTION_OUTPOST_SPRITES: Record<string, string> = {
+  viking: vikingMapOutpost,
+  samurai: samuraiMapOutpost,
+  undead: undeadMapOutpost,
+  roman: romanMapOutpost,
+  pirate: pirateMapOutpost,
 };

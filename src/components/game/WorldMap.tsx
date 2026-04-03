@@ -11,7 +11,7 @@ import NPCInteractionPanel from './NPCInteractionPanel';
 import { useTroopSkins } from '@/hooks/useTroopSkins';
 import AttackConfigPanel from './AttackConfigPanel';
 import TroopTransferPanel from './TroopTransferPanel';
-import { FACTION_MAP_SPRITES, FACTION_SOLDIER_SPRITES, FACTION_FORT_SPRITES } from './factionMapSprites';
+import { FACTION_MAP_SPRITES, FACTION_SOLDIER_SPRITES, FACTION_FORT_SPRITES, FACTION_OUTPOST_SPRITES } from './factionMapSprites';
 import { getMineSteelPerTickForChunk } from '@/lib/mineProduction';
 
 // Map sprites
@@ -36,6 +36,7 @@ import mapSoldier from '@/assets/sprites/map-soldier.png';
 import mapMountain from '@/assets/sprites/map-mountain.png';
 import mapCaravan from '@/assets/sprites/map-caravan.png';
 import mapFort from '@/assets/sprites/map-fort.png';
+import mapOutpost from '@/assets/sprites/map-outpost.png';
 import mapWall from '@/assets/sprites/map-wall.png';
 
 const REALM_SPRITES: Record<string, string> = {
@@ -2625,7 +2626,14 @@ export default function WorldMap() {
               onClick={(e) => { e.stopPropagation(); setSelected({ kind: 'outpost', data: outpost }); }}
             >
               <div className="relative overflow-hidden" style={{ width: opSize, height: opSize }}>
-                <img src={isOwn && activeSkin.id !== 'default' && FACTION_FORT_SPRITES[activeSkin.id] ? FACTION_FORT_SPRITES[activeSkin.id] : mapFort} alt={outpost.name} loading="lazy"
+                <img src={(() => {
+                    const isFort = outpost.outpost_type === 'fort';
+                    if (isOwn && activeSkin.id !== 'default') {
+                      if (isFort && FACTION_FORT_SPRITES[activeSkin.id]) return FACTION_FORT_SPRITES[activeSkin.id];
+                      if (!isFort && FACTION_OUTPOST_SPRITES[activeSkin.id]) return FACTION_OUTPOST_SPRITES[activeSkin.id];
+                    }
+                    return isFort ? mapFort : mapOutpost;
+                  })()} alt={outpost.name} loading="lazy"
                   className={`w-full h-full object-contain drop-shadow-lg ${isOwn ? '' : 'brightness-75 hue-rotate-180'}`}
                   style={{
                     transform: 'scale(1.55)',
