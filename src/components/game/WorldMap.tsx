@@ -3491,6 +3491,7 @@ export default function WorldMap() {
               targetY={attackConfig.targetY}
               travelTime={attackConfig.travelTime}
               showEspionage={attackConfig.showEspionage}
+              espionageOnly={attackConfig.espionageOnly}
               onConfirmAttack={attackConfig.onAttack}
               onConfirmEspionage={(mission, count) => {
                 if (attackConfig.targetId) {
