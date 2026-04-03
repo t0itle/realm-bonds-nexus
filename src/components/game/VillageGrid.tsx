@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useGameTicker } from '@/hooks/useGameTicker';
 import { useGame } from '@/hooks/useGameState';
-import { BUILDING_INFO, getUpgradeCost, getProduction, getSteelProduction } from '@/lib/gameConstants';
+import { BUILDING_INFO, getUpgradeCost, getProduction, getSteelProduction, getMaxBuildingLevel, isCastle } from '@/lib/gameConstants';
 import type { BuildingType, Building } from '@/lib/gameTypes';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BUILDING_SPRITES, WORKERS_SPRITE, WORKER_FOR_BUILDING } from './sprites';
@@ -208,7 +208,7 @@ export default function VillageGrid() {
             const worker = type ? WORKER_FOR_BUILDING[type] : null;
             const upgrading = building ? isBuildingUpgrading(building.id) : undefined;
             const isUnderConstruction = building && building.level === 0;
-            const isMaxLevel = type ? building!.level >= BUILDING_INFO[type].maxLevel : false;
+            const isMaxLevel = type ? building!.level >= getMaxBuildingLevel(type, townhallLevel) : false;
 
             return (
               <motion.button
@@ -265,7 +265,7 @@ export default function VillageGrid() {
                     {!upgrading && !isUnderConstruction && (
                       <div className="absolute bottom-0 inset-x-0 bg-background/70 backdrop-blur-sm flex items-center justify-center gap-[2%] leading-none" style={{ padding: '1% 3%' }}>
                         <span className="font-display text-foreground/90 truncate" style={{ fontSize: '10cqi' }}>
-                          {type === 'townhall' && building.level >= 7 ? 'Castle' : BUILDING_INFO[type!].name}
+                          {type === 'townhall' && isCastle(building.level) ? 'Castle' : BUILDING_INFO[type!].name}
                         </span>
                         <span className={`font-bold ${isMaxLevel ? 'text-amber-400' : 'text-primary'}`} style={{ fontSize: '10cqi' }}>
                           {isMaxLevel ? '✦MAX' : `Lv${building.level}`}
