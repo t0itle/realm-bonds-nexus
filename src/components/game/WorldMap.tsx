@@ -1008,6 +1008,7 @@ export default function WorldMap() {
     targetX: number; targetY: number; travelTime: number;
     onAttack: (sentArmy: Partial<import('@/hooks/useGameState').Army>) => void;
     showEspionage: boolean;
+    espionageOnly?: boolean;
   } | null>(null);
 
   // ── Subscribe to other players' marches in realtime ──
@@ -2872,6 +2873,7 @@ export default function WorldMap() {
                             targetName: targetData.profile.display_name,
                             targetX: targetPos.x, targetY: targetPos.y,
                             travelTime: travelSec, showEspionage: true,
+                            espionageOnly: true,
                             targetId: targetData.village.user_id,
                             onAttack: () => {},
                           });
@@ -3489,6 +3491,7 @@ export default function WorldMap() {
               targetY={attackConfig.targetY}
               travelTime={attackConfig.travelTime}
               showEspionage={attackConfig.showEspionage}
+              espionageOnly={attackConfig.espionageOnly}
               onConfirmAttack={attackConfig.onAttack}
               onConfirmEspionage={(mission, count) => {
                 if (attackConfig.targetId) {
