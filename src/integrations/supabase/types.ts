@@ -985,6 +985,7 @@ export type Database = {
       }
       roads: {
         Row: {
+          building_finish_time: string | null
           created_at: string
           from_village_id: string
           id: string
@@ -994,6 +995,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          building_finish_time?: string | null
           created_at?: string
           from_village_id: string
           id?: string
@@ -1003,6 +1005,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          building_finish_time?: string | null
           created_at?: string
           from_village_id?: string
           id?: string
