@@ -2374,9 +2374,9 @@ export default function WorldMap() {
           return Array.from({ length: numSprites }, (_, i) => {
             const t = (i + 1) / (numSprites + 1);
             const px = fx + dx * t, py = fy + dy * t;
-            const sx = (px - camera.x) * camera.ppu + camera.vw / 2;
-            const sy = (py - camera.y) * camera.ppu + camera.vh / 2;
-            if (sx < -50 || sx > camera.vw + 50 || sy < -50 || sy > camera.vh + 50) return null;
+            const sx = (px - camera.cx) * camera.ppu + containerSize.w / 2;
+            const sy = (py - camera.cy) * camera.ppu + containerSize.h / 2;
+            if (sx < -50 || sx > containerSize.w + 50 || sy < -50 || sy > containerSize.h + 50) return null;
             return (
               <img key={`road-${road.id}-${i}`} src={sprite} alt="road"
                 loading="lazy" width={spriteSize} height={spriteSize}
