@@ -54,6 +54,8 @@ export function useAdministrator({
   const upgradeBuildingRef = useRef(upgradeBuilding);
   upgradeBuildingRef.current = upgradeBuilding;
 
+  const hasAdministrator = buildings.some(b => b.type === 'administrator' && b.level >= 1);
+
   useEffect(() => {
     if (!hasAdministrator || !villageId) return;
 
