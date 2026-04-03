@@ -57,10 +57,11 @@ export function useGameTick({
     if (!villageId || !user) return;
 
     const tickUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resource-tick`;
+    const tickBody = () => JSON.stringify({ user_id: user.id, current_village_id: villageId });
     fetch(tickUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-      body: JSON.stringify({ user_id: user.id }),
+      body: tickBody(),
     }).catch(() => {});
 
     let lastDesertionTime = 0;
@@ -106,9 +107,9 @@ export function useGameTick({
       fetch(tickUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-        body: JSON.stringify({ user_id: user.id }),
+        body: tickBody(),
       }).catch(() => {});
-    }, 120000);
+    }, 45000);
 
     const taxRefresh = setInterval(async () => {
       const aid = allianceIdRef.current;
