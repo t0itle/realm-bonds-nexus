@@ -18,6 +18,7 @@ interface AttackConfigPanelProps {
   onConfirmEspionage: (mission: SpyMission, spiesCount: number) => void;
   onCancel: () => void;
   showEspionage?: boolean;
+  espionageOnly?: boolean;
 }
 
 export default function AttackConfigPanel({
