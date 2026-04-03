@@ -2873,6 +2873,7 @@ export default function WorldMap() {
                             targetName: targetData.profile.display_name,
                             targetX: targetPos.x, targetY: targetPos.y,
                             travelTime: travelSec, showEspionage: true,
+                            espionageOnly: true,
                             targetId: targetData.village.user_id,
                             onAttack: () => {},
                           });
