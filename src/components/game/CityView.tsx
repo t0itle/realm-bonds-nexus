@@ -1,307 +1,313 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useGame, BUILDING_INFO } from '@/hooks/useGameState';
 import type { Building, BuildingType } from '@/lib/gameTypes';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BUILDING_SPRITES } from './sprites';
 import { useTroopSkins } from '@/hooks/useTroopSkins';
+import citizensSprite from '@/assets/sprites/citizens.png';
+import townGround from '@/assets/sprites/town-ground.png';
 
-interface Citizen {
-  id: number;
-  x: number;
-  y: number;
-  targetX: number;
-  targetY: number;
-  speed: number;
-  color: string;
-  type: 'worker' | 'soldier' | 'civilian';
-  frame: number;
-  dir: number;
+// Citizen walking component
+function WalkingCitizen({ type, delay, areaWidth }: { type: 'worker' | 'soldier' | 'civilian'; delay: number; areaWidth: number }) {
+  const clipX = type === 'soldier' ? '50%' : type === 'worker' ? '25%' : type === 'civilian' ? '75%' : '0%';
+  const startX = -40 + Math.random() * 20;
+  const yPos = 70 + Math.random() * 25;
+  const duration = 12 + Math.random() * 8;
+  const flipped = Math.random() > 0.5;
+
+  return (
+    <motion.div
+      className="absolute pointer-events-none"
+      style={{
+        bottom: `${yPos}px`,
+        zIndex: Math.floor(100 - yPos),
+      }}
+      initial={{ x: flipped ? areaWidth + 40 : startX }}
+      animate={{ x: flipped ? startX : areaWidth + 40 }}
+      transition={{
+        duration,
+        delay,
+        repeat: Infinity,
+        ease: 'linear',
+      }}
+    >
+      <div
+        className="w-8 h-10 overflow-hidden"
+        style={{ transform: flipped ? 'scaleX(-1)' : 'none' }}
+      >
+        <img
+          src={citizensSprite}
+          alt=""
+          className="h-full object-cover animate-float"
+          style={{ objectPosition: `${clipX} center` }}
+          loading="lazy"
+        />
+      </div>
+    </motion.div>
+  );
 }
 
-const CITIZEN_COLORS = ['#4169E1', '#228B22', '#DAA520', '#8B008B', '#FF6347', '#20B2AA'];
+// Building plot in the town
+function TownBuilding({
+  building,
+  sprite,
+  isUpgrading,
+  isSelected,
+  onClick,
+}: {
+  building: Building;
+  sprite: string;
+  isUpgrading: boolean;
+  isSelected: boolean;
+  onClick: () => void;
+}) {
+  const info = building.type !== 'empty' ? BUILDING_INFO[building.type as Exclude<BuildingType, 'empty'>] : null;
+  if (!info) return null;
 
-function drawCitizen(ctx: CanvasRenderingContext2D, c: Citizen) {
-  const bodyColor = c.type === 'soldier' ? '#DC143C' : c.type === 'worker' ? '#8B4513' : c.color;
-  ctx.fillStyle = '#FFDAB9';
-  ctx.fillRect(c.x - 2, c.y - 8, 4, 4);
-  ctx.fillStyle = bodyColor;
-  ctx.fillRect(c.x - 2, c.y - 4, 4, 5);
-  const legOffset = Math.sin(c.frame * 0.3) * 2;
-  ctx.fillStyle = '#4A4A4A';
-  ctx.fillRect(c.x - 2, c.y + 1, 2, 3 + (legOffset > 0 ? 1 : 0));
-  ctx.fillRect(c.x, c.y + 1, 2, 3 + (legOffset < 0 ? 1 : 0));
-  if (c.type === 'soldier') {
-    ctx.fillStyle = '#C0C0C0';
-    ctx.fillRect(c.dir === 0 ? c.x + 2 : c.x - 4, c.y - 6, 2, 8);
-  }
+  const sizeClass = building.level >= 8 ? 'w-20 h-20' : building.level >= 4 ? 'w-16 h-16' : 'w-14 h-14';
+
+  return (
+    <motion.button
+      onClick={onClick}
+      whileTap={{ scale: 0.92 }}
+      className={`relative flex flex-col items-center group transition-all ${isSelected ? 'z-20' : 'z-10'}`}
+    >
+      {/* Ground shadow */}
+      <div className="absolute bottom-0 w-full h-2 bg-black/15 rounded-full blur-sm" />
+
+      {/* Building sprite */}
+      <motion.div
+        className={`${sizeClass} relative`}
+        animate={isUpgrading ? { y: [0, -2, 0] } : {}}
+        transition={isUpgrading ? { duration: 0.8, repeat: Infinity } : {}}
+      >
+        <img
+          src={sprite}
+          alt={info.name}
+          className={`w-full h-full object-contain drop-shadow-lg ${isUpgrading ? 'brightness-75' : ''}`}
+          loading="lazy"
+        />
+
+        {/* Upgrading overlay */}
+        {isUpgrading && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-lg animate-pulse">🔨</span>
+          </div>
+        )}
+
+        {/* Selection ring */}
+        {isSelected && (
+          <motion.div
+            className="absolute -inset-1 rounded-xl border-2 border-amber-400"
+            style={{ boxShadow: '0 0 12px rgba(251,191,36,0.4)' }}
+            animate={{ opacity: [0.6, 1, 0.6] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          />
+        )}
+      </motion.div>
+
+      {/* Label */}
+      <div className="mt-0.5 px-1.5 py-0.5 rounded-md bg-background/80 backdrop-blur-sm border border-border/30 flex items-center gap-1">
+        <span className="text-[8px] font-display text-foreground truncate max-w-[60px]">{info.name}</span>
+        <span className="text-[8px] font-bold text-primary">Lv{building.level}</span>
+      </div>
+
+      {/* Smoke for active production buildings */}
+      {!isUpgrading && ['farm', 'lumbermill', 'quarry', 'goldmine'].includes(building.type) && (
+        <div className="absolute -top-3 left-1/2 pointer-events-none">
+          {[0, 1, 2].map(i => (
+            <motion.div
+              key={i}
+              className="absolute w-1.5 h-1.5 rounded-full bg-muted-foreground/20"
+              initial={{ y: 0, x: (i - 1) * 3, opacity: 0.4, scale: 0.5 }}
+              animate={{ y: -12, opacity: 0, scale: 1.5 }}
+              transition={{ duration: 2, delay: i * 0.6, repeat: Infinity }}
+            />
+          ))}
+        </div>
+      )}
+    </motion.button>
+  );
 }
 
 export default function CityView() {
-  const { buildings, buildQueue, army, population, workerAssignments, upgradeBuilding, assignWorker, unassignWorker, isBuildingUpgrading, getMaxWorkers } = useGame();
+  const {
+    buildings, army, population, workerAssignments,
+    upgradeBuilding, assignWorker, unassignWorker,
+    isBuildingUpgrading, getMaxWorkers,
+  } = useGame();
   const { getBuildingSprite } = useTroopSkins();
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
-  const citizensRef = useRef<Citizen[]>([]);
-  const animFrameRef = useRef<number>(0);
-  const spriteImagesRef = useRef<Map<string, HTMLImageElement>>(new Map());
-  const [canvasSize, setCanvasSize] = useState({ w: 384, h: 500 });
-
-  // Preload building sprite images for canvas
-  useEffect(() => {
-    const nonEmpty = buildings.filter(b => b.type !== 'empty');
-    const types = [...new Set(nonEmpty.map(b => b.type))] as Exclude<BuildingType, 'empty'>[];
-    for (const type of types) {
-      if (spriteImagesRef.current.has(type)) continue;
-      const src = getBuildingSprite(type);
-      const img = new Image();
-      img.src = src;
-      spriteImagesRef.current.set(type, img);
-    }
-  }, [buildings, getBuildingSprite]);
-
-  // Generate citizens
-  useEffect(() => {
-    const count = Math.min(population.current, 40);
-    const existing = citizensRef.current;
-    if (existing.length === count) return;
-
-    const soldierCount = Math.min(
-      Object.values(army).reduce((s: number, v: number) => s + v, 0),
-      Math.floor(count * 0.3)
-    );
-    const workerCount = Math.min(
-      Object.values(workerAssignments).reduce((s: number, v: number) => s + v, 0),
-      Math.floor(count * 0.4)
-    );
-
-    const newCitizens: Citizen[] = [];
-    for (let i = 0; i < count; i++) {
-      const type = i < soldierCount ? 'soldier' : i < soldierCount + workerCount ? 'worker' : 'civilian';
-      const x = 20 + Math.random() * (canvasSize.w - 40);
-      const y = canvasSize.h * 0.45 + Math.random() * (canvasSize.h * 0.45);
-      newCitizens.push({
-        id: i, x, y, targetX: x, targetY: y,
-        speed: 0.3 + Math.random() * 0.5,
-        color: CITIZEN_COLORS[i % CITIZEN_COLORS.length],
-        type, frame: Math.random() * 100, dir: Math.random() > 0.5 ? 0 : 1,
-      });
-    }
-    citizensRef.current = newCitizens;
-  }, [population.current, army, workerAssignments, canvasSize]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(384);
 
   useEffect(() => {
-    const resize = () => {
-      const w = Math.min(window.innerWidth, 600);
-      setCanvasSize({ w, h: Math.max(400, window.innerHeight - 200) });
-    };
-    resize();
-    window.addEventListener('resize', resize);
-    return () => window.removeEventListener('resize', resize);
+    const el = containerRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver(entries => {
+      setContainerWidth(entries[0].contentRect.width);
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
   }, []);
 
-  // Layout buildings
-  const getLayout = useCallback(() => {
-    const nonEmpty = buildings.filter(b => b.type !== 'empty');
-    const cols = Math.ceil(Math.sqrt(nonEmpty.length));
-    const cellW = (canvasSize.w - 40) / Math.max(cols, 1);
-    const cellH = 70;
-    const startY = 60;
-    return nonEmpty.map((b, i) => ({
-      building: b,
-      x: 20 + (i % cols) * cellW,
-      y: startY + Math.floor(i / cols) * (cellH + 20),
-      w: cellW - 8,
-      h: cellH,
-    }));
-  }, [buildings, canvasSize.w]);
+  const nonEmpty = buildings.filter(b => b.type !== 'empty');
 
-  const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const mx = (e.clientX - rect.left) * scaleX;
-    const my = (e.clientY - rect.top) * scaleY;
+  // Arrange into rows: important buildings in back, smaller in front
+  const priorityOrder: Record<string, number> = {
+    townhall: 0, barracks: 1, temple: 2, wall: 3, watchtower: 4,
+    warehouse: 5, spyguild: 6, administrator: 7, apothecary: 8,
+    goldmine: 9, quarry: 10, lumbermill: 11, farm: 12, house: 13,
+  };
+  const sorted = [...nonEmpty].sort((a, b) => (priorityOrder[a.type] ?? 99) - (priorityOrder[b.type] ?? 99));
 
-    const layout = getLayout();
-    for (const item of layout) {
-      if (mx >= item.x && mx <= item.x + item.w && my >= item.y && my <= item.y + item.h + 12) {
-        setSelectedBuilding(item.building);
-        return;
-      }
-    }
-    setSelectedBuilding(null);
-  }, [getLayout]);
+  const cols = containerWidth < 350 ? 3 : containerWidth < 500 ? 4 : 5;
+  const rows: Building[][] = [];
+  for (let i = 0; i < sorted.length; i += cols) {
+    rows.push(sorted.slice(i, i + cols));
+  }
 
-  // Animation loop
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let running = true;
-    const render = () => {
-      if (!running) return;
-      canvas.width = canvasSize.w;
-      canvas.height = canvasSize.h;
-
-      // Sky
-      const skyGrad = ctx.createLinearGradient(0, 0, 0, canvasSize.h * 0.4);
-      skyGrad.addColorStop(0, '#87CEEB');
-      skyGrad.addColorStop(1, '#B0E0E6');
-      ctx.fillStyle = skyGrad;
-      ctx.fillRect(0, 0, canvasSize.w, canvasSize.h * 0.4);
-
-      // Ground
-      ctx.fillStyle = '#4a7c3f';
-      ctx.fillRect(0, canvasSize.h * 0.3, canvasSize.w, canvasSize.h * 0.7);
-
-      // Grass detail
-      ctx.fillStyle = '#3d6634';
-      for (let i = 0; i < 60; i++) {
-        const gx = (i * 37 + 13) % canvasSize.w;
-        const gy = canvasSize.h * 0.35 + (i * 23 + 7) % (canvasSize.h * 0.6);
-        ctx.fillRect(gx, gy, 2, 3);
-      }
-
-      // Road
-      ctx.fillStyle = '#6B5B4B';
-      ctx.fillRect(canvasSize.w * 0.45, canvasSize.h * 0.3, canvasSize.w * 0.1, canvasSize.h * 0.7);
-      ctx.fillStyle = '#8B7355';
-      for (let i = 0; i < 10; i++) {
-        ctx.fillRect(canvasSize.w * 0.47, canvasSize.h * 0.35 + i * 30, 4, 8);
-      }
-
-      // Draw buildings using sprites
-      const layout = getLayout();
-      for (const item of layout) {
-        const type = item.building.type as Exclude<BuildingType, 'empty'>;
-        const img = spriteImagesRef.current.get(type);
-        const isUpgrading = !!isBuildingUpgrading(item.building.id);
-        const isSelected = selectedBuilding?.id === item.building.id;
-        const scale = Math.min(1, 0.6 + item.building.level * 0.08);
-        const bw = item.w * scale;
-        const bh = item.h * scale;
-        const bx = item.x + (item.w - bw) / 2;
-        const by = item.y + (item.h - bh);
-
-        // Shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.2)';
-        ctx.fillRect(bx + 2, by + bh - 4, bw, 6);
-
-        // Draw sprite image
-        if (img && img.complete) {
-          if (isUpgrading) {
-            ctx.globalAlpha = 0.5;
-          }
-          ctx.drawImage(img, bx, by, bw, bh);
-          ctx.globalAlpha = 1;
-
-          // Upgrading sparkle
-          if (isUpgrading) {
-            ctx.fillStyle = '#FFD700';
-            const sparkle = Date.now() % 1000 / 1000;
-            for (let s = 0; s < 3; s++) {
-              const sx = bx + Math.sin(sparkle * Math.PI * 2 + s * 2) * bw * 0.4 + bw / 2;
-              const sy = by + Math.cos(sparkle * Math.PI * 2 + s * 2) * bh * 0.3 + bh * 0.3;
-              ctx.fillRect(sx - 1, sy - 1, 3, 3);
-            }
-          }
-        } else {
-          // Fallback rectangle
-          ctx.fillStyle = '#C4A882';
-          ctx.fillRect(bx, by, bw, bh);
-        }
-
-        // Selection glow
-        if (isSelected) {
-          ctx.strokeStyle = '#FFD700';
-          ctx.lineWidth = 2;
-          ctx.strokeRect(bx - 3, by - 3, bw + 6, bh + 6);
-        }
-
-        // Level label
-        ctx.fillStyle = '#FFF';
-        ctx.font = 'bold 8px monospace';
-        ctx.textAlign = 'center';
-        ctx.shadowColor = '#000';
-        ctx.shadowBlur = 3;
-        ctx.fillText(`Lv${item.building.level}`, bx + bw / 2, by + bh + 10);
-        ctx.shadowBlur = 0;
-      }
-
-      // Citizens
-      const citizens = citizensRef.current;
-      for (const c of citizens) {
-        const dx = c.targetX - c.x;
-        const dy = c.targetY - c.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 2) {
-          c.targetX = 20 + Math.random() * (canvasSize.w - 40);
-          c.targetY = canvasSize.h * 0.4 + Math.random() * (canvasSize.h * 0.5);
-        } else {
-          c.x += (dx / dist) * c.speed;
-          c.y += (dy / dist) * c.speed;
-          c.dir = dx > 0 ? 0 : 1;
-        }
-        c.frame++;
-        drawCitizen(ctx, c);
-      }
-
-      // HUD
-      ctx.fillStyle = '#FFF';
-      ctx.font = 'bold 14px monospace';
-      ctx.textAlign = 'center';
-      ctx.shadowColor = '#000';
-      ctx.shadowBlur = 4;
-      ctx.fillText(`Population: ${population.current}/${population.max}`, canvasSize.w / 2, 20);
-      ctx.fillText(`Happiness: ${population.happiness}%`, canvasSize.w / 2, 36);
-      ctx.shadowBlur = 0;
-
-      animFrameRef.current = requestAnimationFrame(render);
-    };
-
-    render();
-    return () => { running = false; cancelAnimationFrame(animFrameRef.current); };
-  }, [canvasSize, buildings, selectedBuilding, getLayout, population, isBuildingUpgrading]);
+  // Citizen counts
+  const totalTroops = Object.values(army).reduce((s: number, v: number) => s + v, 0);
+  const totalWorkers = Object.values(workerAssignments).reduce((s: number, v: number) => s + v, 0);
+  const citizenCount = Math.min(population.current, 20);
+  const soldiers = Math.min(totalTroops, Math.floor(citizenCount * 0.3));
+  const workers = Math.min(totalWorkers, Math.floor(citizenCount * 0.4));
+  const civs = citizenCount - soldiers - workers;
 
   const selectedInfo = selectedBuilding && selectedBuilding.type !== 'empty'
     ? BUILDING_INFO[selectedBuilding.type]
     : null;
   const upgrading = selectedBuilding ? isBuildingUpgrading(selectedBuilding.id) : undefined;
-  const workers = selectedBuilding ? (workerAssignments[selectedBuilding.id] || 0) : 0;
+  const workerCount = selectedBuilding ? (workerAssignments[selectedBuilding.id] || 0) : 0;
 
   return (
-    <div className="flex flex-col h-full">
-      <canvas
-        ref={canvasRef}
-        onClick={handleCanvasClick}
-        className="w-full cursor-pointer flex-1"
-        style={{ imageRendering: 'auto' }}
-      />
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Town scene */}
+      <div
+        ref={containerRef}
+        className="flex-1 relative overflow-y-auto overflow-x-hidden"
+        style={{
+          background: 'linear-gradient(180deg, #87CEEB 0%, #B0E0E6 25%, #90C695 35%, #5A8F4A 100%)',
+        }}
+      >
+        {/* Distant hills */}
+        <div className="absolute top-[20%] left-0 right-0 h-[15%] pointer-events-none">
+          <svg viewBox="0 0 400 60" className="w-full h-full" preserveAspectRatio="none">
+            <path d="M0 60 Q50 10 100 40 Q150 5 200 35 Q250 15 300 45 Q350 8 400 30 L400 60 Z" fill="#6B9F5B" opacity="0.5" />
+            <path d="M0 60 Q80 25 160 45 Q240 20 320 50 Q360 30 400 40 L400 60 Z" fill="#5A8F4A" opacity="0.4" />
+          </svg>
+        </div>
 
+        {/* Sun */}
+        <div className="absolute top-4 right-8 w-10 h-10 rounded-full bg-yellow-300 blur-sm opacity-80 pointer-events-none" />
+        <div className="absolute top-5 right-9 w-8 h-8 rounded-full bg-yellow-200 pointer-events-none" />
+
+        {/* Clouds */}
+        {[0, 1, 2].map(i => (
+          <motion.div
+            key={i}
+            className="absolute pointer-events-none opacity-60"
+            style={{ top: 12 + i * 20 }}
+            animate={{ x: [-(i * 60 + 80), containerWidth + 40] }}
+            transition={{ duration: 40 + i * 15, repeat: Infinity, ease: 'linear', delay: i * 8 }}
+          >
+            <div className="flex gap-0.5">
+              <div className="w-8 h-3 rounded-full bg-white/70" />
+              <div className="w-12 h-4 rounded-full bg-white/80 -mt-1" />
+              <div className="w-6 h-3 rounded-full bg-white/60" />
+            </div>
+          </motion.div>
+        ))}
+
+        {/* Population HUD */}
+        <div className="sticky top-0 z-30 flex justify-center gap-3 py-2">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-background/70 backdrop-blur-md border border-border/30">
+            <span className="text-xs">👥</span>
+            <span className="text-[10px] font-display text-foreground">{population.current}/{population.max}</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-background/70 backdrop-blur-md border border-border/30">
+            <span className="text-xs">{population.happiness >= 60 ? '😊' : population.happiness >= 30 ? '😐' : '😠'}</span>
+            <span className="text-[10px] font-display text-foreground">{population.happiness}%</span>
+          </div>
+        </div>
+
+        {/* Town ground area */}
+        <div className="relative mt-[25%] px-2 pb-32">
+          {/* Ground texture */}
+          <div
+            className="absolute inset-0 opacity-20 pointer-events-none"
+            style={{
+              backgroundImage: `url(${townGround})`,
+              backgroundSize: '120px',
+              backgroundRepeat: 'repeat',
+            }}
+          />
+
+          {/* Building rows - back to front for depth */}
+          {rows.map((row, ri) => (
+            <div
+              key={ri}
+              className="flex items-end justify-center gap-2 mb-3 relative"
+              style={{ zIndex: ri + 1 }}
+            >
+              {row.map(building => {
+                const type = building.type as Exclude<BuildingType, 'empty'>;
+                return (
+                  <TownBuilding
+                    key={building.id}
+                    building={building}
+                    sprite={getBuildingSprite(type)}
+                    isUpgrading={!!isBuildingUpgrading(building.id)}
+                    isSelected={selectedBuilding?.id === building.id}
+                    onClick={() => setSelectedBuilding(
+                      selectedBuilding?.id === building.id ? null : building
+                    )}
+                  />
+                );
+              })}
+            </div>
+          ))}
+
+          {/* Walking citizens */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            {Array.from({ length: soldiers }).map((_, i) => (
+              <WalkingCitizen key={`s${i}`} type="soldier" delay={i * 2.5} areaWidth={containerWidth} />
+            ))}
+            {Array.from({ length: workers }).map((_, i) => (
+              <WalkingCitizen key={`w${i}`} type="worker" delay={i * 3 + 1} areaWidth={containerWidth} />
+            ))}
+            {Array.from({ length: civs }).map((_, i) => (
+              <WalkingCitizen key={`c${i}`} type="civilian" delay={i * 2 + 0.5} areaWidth={containerWidth} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Building management panel */}
       <AnimatePresence>
         {selectedBuilding && selectedInfo && (
           <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="game-panel border-t border-primary/30 p-3 space-y-2"
+            className="shrink-0 game-panel border-t border-primary/30 p-3 space-y-2 z-40"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-xl">{selectedInfo.icon}</span>
+                <img
+                  src={getBuildingSprite(selectedBuilding.type as Exclude<BuildingType, 'empty'>)}
+                  alt={selectedInfo.name}
+                  className="w-8 h-8 object-contain"
+                />
                 <div>
                   <h3 className="font-display text-sm font-bold text-foreground">{selectedInfo.name}</h3>
                   <span className="text-[10px] text-muted-foreground">Level {selectedBuilding.level}/{selectedInfo.maxLevel}</span>
                 </div>
               </div>
-              <button onClick={() => setSelectedBuilding(null)} className="text-muted-foreground text-xs">✕</button>
+              <button onClick={() => setSelectedBuilding(null)} className="text-muted-foreground text-xs px-1">✕</button>
             </div>
 
-            <p className="text-[10px] text-muted-foreground">{selectedInfo.description}</p>
+            <p className="text-[10px] text-muted-foreground leading-relaxed">{selectedInfo.description}</p>
 
             {upgrading && (
               <div className="flex items-center gap-2 text-[10px] text-primary animate-pulse">
@@ -324,11 +330,11 @@ export default function CityView() {
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => unassignWorker(selectedBuilding.id)}
-                    disabled={workers <= 0}
+                    disabled={workerCount <= 0}
                     className="px-2 py-1.5 rounded-lg bg-secondary text-secondary-foreground text-xs disabled:opacity-30"
                   >−</button>
                   <span className="text-xs font-display text-foreground min-w-[40px] text-center">
-                    👷 {workers}
+                    👷 {workerCount}
                   </span>
                   <button
                     onClick={() => assignWorker(selectedBuilding.id)}
