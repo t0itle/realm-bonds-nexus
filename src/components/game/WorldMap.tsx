@@ -38,15 +38,6 @@ import mapCaravan from '@/assets/sprites/map-caravan.png';
 import mapFort from '@/assets/sprites/map-fort.png';
 import mapOutpost from '@/assets/sprites/map-outpost.png';
 import mapWall from '@/assets/sprites/map-wall.png';
-import dirtRoadSprite from '@/assets/sprites/roads/dirt-road.png';
-import cobblestoneRoadSprite from '@/assets/sprites/roads/cobblestone-road.png';
-import pavedRoadSprite from '@/assets/sprites/roads/paved-road.png';
-
-const ROAD_SPRITES: Record<number, string> = {
-  1: dirtRoadSprite,
-  2: cobblestoneRoadSprite,
-  3: pavedRoadSprite,
-};
 const REALM_SPRITES: Record<string, string> = {
   hostile: mapCastleHostile,
   neutral: mapCastleNeutral,
@@ -2355,40 +2346,39 @@ export default function WorldMap() {
         })}
 
 
-        {/* ── Roads on Map ── */}
-        {mapRoads.map(road => {
-          const isBuilding = road.building_finish_time && new Date(road.building_finish_time).getTime() > Date.now();
-          const effectiveLevel = isBuilding ? Math.max(0, road.road_level - 1) : road.road_level;
-          if (effectiveLevel <= 0) return null; // still building first level
-          const fromVillage = allVillages.find(pv => pv.village.id === road.from_village_id);
-          const toVillage = allVillages.find(pv => pv.village.id === road.to_village_id);
-          if (!fromVillage || !toVillage) return null;
-          const fx = fromVillage.village.map_x, fy = fromVillage.village.map_y;
-          const tx = toVillage.village.map_x, ty = toVillage.village.map_y;
-          const dx = tx - fx, dy = ty - fy;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-          const spriteSize = Math.max(12, Math.min(24, camera.ppu * 3000));
-          const numSprites = Math.max(3, Math.floor(dist / 8000));
-          const sprite = ROAD_SPRITES[effectiveLevel];
-          return Array.from({ length: numSprites }, (_, i) => {
-            const t = (i + 1) / (numSprites + 1);
-            const px = fx + dx * t, py = fy + dy * t;
-            const sx = (px - camera.cx) * camera.ppu + containerSize.w / 2;
-            const sy = (py - camera.cy) * camera.ppu + containerSize.h / 2;
-            if (sx < -50 || sx > containerSize.w + 50 || sy < -50 || sy > containerSize.h + 50) return null;
+        {/* ── Roads on Map (rendered as connected lines underneath everything) ── */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible', zIndex: 1 }}>
+          {mapRoads.map(road => {
+            const isBuilding = road.building_finish_time && new Date(road.building_finish_time).getTime() > Date.now();
+            const effectiveLevel = isBuilding ? Math.max(0, road.road_level - 1) : road.road_level;
+            if (effectiveLevel <= 0) return null;
+            const fromVillage = allVillages.find(pv => pv.village.id === road.from_village_id);
+            const toVillage = allVillages.find(pv => pv.village.id === road.to_village_id);
+            if (!fromVillage || !toVillage) return null;
+            const fx = fromVillage.village.map_x, fy = fromVillage.village.map_y;
+            const tx = toVillage.village.map_x, ty = toVillage.village.map_y;
+            const sx1 = (fx - camera.cx) * camera.ppu + containerSize.w / 2;
+            const sy1 = (fy - camera.cy) * camera.ppu + containerSize.h / 2;
+            const sx2 = (tx - camera.cx) * camera.ppu + containerSize.w / 2;
+            const sy2 = (ty - camera.cy) * camera.ppu + containerSize.h / 2;
+            // Road style based on level
+            const roadStyles: Record<number, { color: string; width: number; dash?: string }> = {
+              1: { color: 'hsl(30 40% 35%)', width: 2, dash: '6 4' },       // dirt - dashed brown
+              2: { color: 'hsl(220 10% 50%)', width: 3, dash: '3 2' },      // cobblestone - dotted grey
+              3: { color: 'hsl(45 30% 55%)', width: 4 },                     // paved - solid gold-grey
+            };
+            const style = roadStyles[effectiveLevel] || roadStyles[1];
             return (
-              <img key={`road-${road.id}-${i}`} src={sprite} alt="road"
-                loading="lazy" width={spriteSize} height={spriteSize}
-                className={`absolute pointer-events-none ${isBuilding ? 'opacity-40' : 'opacity-80'}`}
-                style={{
-                  left: sx - spriteSize / 2, top: sy - spriteSize / 2,
-                  width: spriteSize, height: spriteSize, objectFit: 'contain',
-                  transform: `rotate(${angle}deg)`,
-                }} />
+              <line key={`road-line-${road.id}`}
+                x1={sx1} y1={sy1} x2={sx2} y2={sy2}
+                stroke={style.color} strokeWidth={style.width}
+                strokeDasharray={style.dash || 'none'}
+                strokeLinecap="round"
+                opacity={isBuilding ? 0.3 : 0.6}
+              />
             );
-          });
-        })}
+          })}
+        </svg>
 
         {/* ── Caravans on Map (visible to all) ── */}
         {activeCaravans.map(caravan => {
