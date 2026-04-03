@@ -38,7 +38,15 @@ import mapCaravan from '@/assets/sprites/map-caravan.png';
 import mapFort from '@/assets/sprites/map-fort.png';
 import mapOutpost from '@/assets/sprites/map-outpost.png';
 import mapWall from '@/assets/sprites/map-wall.png';
+import dirtRoadSprite from '@/assets/sprites/roads/dirt-road.png';
+import cobblestoneRoadSprite from '@/assets/sprites/roads/cobblestone-road.png';
+import pavedRoadSprite from '@/assets/sprites/roads/paved-road.png';
 
+const ROAD_SPRITES: Record<number, string> = {
+  1: dirtRoadSprite,
+  2: cobblestoneRoadSprite,
+  3: pavedRoadSprite,
+};
 const REALM_SPRITES: Record<string, string> = {
   hostile: mapCastleHostile,
   neutral: mapCastleNeutral,
@@ -1000,6 +1008,7 @@ export default function WorldMap() {
   const [marches, setMarches] = useState<{ id: string; targetName: string; arrivalTime: number; startTime: number; startX: number; startY: number; targetX: number; targetY: number; waypoints: { x: number; y: number }[]; action: () => void; sentArmy?: Partial<Record<string, number>> }[]>([]);
   const [otherMarches, setOtherMarches] = useState<{ id: string; user_id: string; player_name: string; start_x: number; start_y: number; target_x: number; target_y: number; target_name: string; started_at: string; arrives_at: string; march_type: string }[]>([]);
   const [activeCaravans, setActiveCaravans] = useState<{ id: string; user_id: string; from_village_id: string; to_village_id: string; gold: number; wood: number; stone: number; food: number; departed_at: string; arrives_at: string; status: string }[]>([]);
+  const [mapRoads, setMapRoads] = useState<{ id: string; from_village_id: string; to_village_id: string; road_level: number; building_finish_time: string | null; user_id: string }[]>([]);
   const [tradeContracts, setTradeContracts] = useState<{ realmId: string; realmName: string; expiresAt: number; bonus: Partial<Record<string, number>> }[]>([]);
   const [legendOpen, setLegendOpen] = useState(false);
   const [, forceRender] = useState(0);
@@ -1094,6 +1103,20 @@ export default function WorldMap() {
       setActiveCaravans(prev => prev.filter(c => new Date(c.arrives_at).getTime() > Date.now()));
     }, 5000);
     return () => { supabase.removeChannel(channel); clearInterval(cleanup); };
+  }, [user]);
+
+  // ── Load roads for map rendering ──
+  useEffect(() => {
+    if (!user) return;
+    const loadRoads = async () => {
+      const { data } = await supabase.from('roads').select('*');
+      if (data) setMapRoads(data as any);
+    };
+    loadRoads();
+    const channel = supabase.channel('map-roads')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'roads' }, () => loadRoads())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
 
@@ -2331,6 +2354,41 @@ export default function WorldMap() {
           );
         })}
 
+
+        {/* ── Roads on Map ── */}
+        {mapRoads.map(road => {
+          const isBuilding = road.building_finish_time && new Date(road.building_finish_time).getTime() > Date.now();
+          const effectiveLevel = isBuilding ? Math.max(0, road.road_level - 1) : road.road_level;
+          if (effectiveLevel <= 0) return null; // still building first level
+          const fromVillage = allVillages.find(pv => pv.village.id === road.from_village_id);
+          const toVillage = allVillages.find(pv => pv.village.id === road.to_village_id);
+          if (!fromVillage || !toVillage) return null;
+          const fx = fromVillage.village.map_x, fy = fromVillage.village.map_y;
+          const tx = toVillage.village.map_x, ty = toVillage.village.map_y;
+          const dx = tx - fx, dy = ty - fy;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+          const spriteSize = Math.max(12, Math.min(24, camera.ppu * 3000));
+          const numSprites = Math.max(3, Math.floor(dist / 8000));
+          const sprite = ROAD_SPRITES[effectiveLevel];
+          return Array.from({ length: numSprites }, (_, i) => {
+            const t = (i + 1) / (numSprites + 1);
+            const px = fx + dx * t, py = fy + dy * t;
+            const sx = (px - camera.cx) * camera.ppu + containerSize.w / 2;
+            const sy = (py - camera.cy) * camera.ppu + containerSize.h / 2;
+            if (sx < -50 || sx > containerSize.w + 50 || sy < -50 || sy > containerSize.h + 50) return null;
+            return (
+              <img key={`road-${road.id}-${i}`} src={sprite} alt="road"
+                loading="lazy" width={spriteSize} height={spriteSize}
+                className={`absolute pointer-events-none ${isBuilding ? 'opacity-40' : 'opacity-80'}`}
+                style={{
+                  left: sx - spriteSize / 2, top: sy - spriteSize / 2,
+                  width: spriteSize, height: spriteSize, objectFit: 'contain',
+                  transform: `rotate(${angle}deg)`,
+                }} />
+            );
+          });
+        })}
 
         {/* ── Caravans on Map (visible to all) ── */}
         {activeCaravans.map(caravan => {

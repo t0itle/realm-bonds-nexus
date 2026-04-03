@@ -6,6 +6,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import ResourceIcon from './ResourceIcon';
 import { ROAD_INFO, MAX_ROAD_LEVEL } from '@/lib/gameConstants';
+import dirtRoadSprite from '@/assets/sprites/roads/dirt-road.png';
+import cobblestoneRoadSprite from '@/assets/sprites/roads/cobblestone-road.png';
+import pavedRoadSprite from '@/assets/sprites/roads/paved-road.png';
+
+const ROAD_SPRITES: Record<number, string> = {
+  1: dirtRoadSprite,
+  2: cobblestoneRoadSprite,
+  3: pavedRoadSprite,
+};
 
 interface Road {
   id: string;
@@ -164,8 +173,10 @@ export default function RoadsPanel() {
           <div key={s.id} className="bg-muted/30 rounded-lg p-2 space-y-1">
             <div className="flex items-center justify-between text-[10px]">
               <span className="text-foreground font-medium">{s.name}</span>
-              <span className="text-muted-foreground">
-                {currentInfo ? `${currentInfo.emoji} ${currentInfo.name} (−${Math.round(currentInfo.speedBonus * 100)}% travel)` : 'No road'}
+              <span className="flex items-center gap-1 text-muted-foreground">
+                {currentInfo ? (
+                  <><img src={ROAD_SPRITES[effectiveLevel]} alt={currentInfo.name} width={14} height={14} className="inline rounded" /> {currentInfo.name} (−{Math.round(currentInfo.speedBonus * 100)}% travel)</>
+                ) : 'No road'}
               </span>
             </div>
 
