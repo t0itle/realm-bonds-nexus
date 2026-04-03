@@ -196,7 +196,7 @@ export const CONTINENTS: Continent[] = [
         { x: -1450000, y: 100000 },
         { x: -1380000, y: 200000 },
         { x: -1300000, y: 300000 },
-      ], width: 3500, name: 'Sulfur Creek' },
+      ], width: 1200, name: 'Sulfur Creek' },
     ],
   },
 ];
