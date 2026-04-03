@@ -208,7 +208,7 @@ export default function VillageGrid() {
             const worker = type ? WORKER_FOR_BUILDING[type] : null;
             const upgrading = building ? isBuildingUpgrading(building.id) : undefined;
             const isUnderConstruction = building && building.level === 0;
-            const isMaxLevel = type ? building!.level >= BUILDING_INFO[type].maxLevel : false;
+            const isMaxLevel = type ? building!.level >= getMaxBuildingLevel(type, townhallLevel) : false;
 
             return (
               <motion.button
