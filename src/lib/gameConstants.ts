@@ -217,6 +217,18 @@ export function getMaxRange(army: Army, watchtowerLevel: number = 0): number {
 
 export const SETTLEMENT_UPGRADES: Record<string, { next: string; label: string; thRequired: number; cost: Resources; steelCost: number; buildTimeSec: number } | null> = {
   village: { next: 'town', label: 'Town', thRequired: 10, cost: { gold: 15000, wood: 12000, stone: 10000, food: 8000 }, steelCost: 50, buildTimeSec: 7200 },
-  town: { next: 'city', label: 'City', thRequired: 10, cost: { gold: 80000, wood: 75000, stone: 70000, food: 60000 }, steelCost: 200, buildTimeSec: 86400 },
+  town: { next: 'city', label: 'City', thRequired: 20, cost: { gold: 80000, wood: 75000, stone: 70000, food: 60000 }, steelCost: 200, buildTimeSec: 86400 },
   city: null, // max
 };
+
+/** Townhall level 20 = Castle. Returns true if townhall qualifies as a castle. */
+export function isCastle(townhallLevel: number): boolean {
+  return townhallLevel >= 20;
+}
+
+/** Max building level depends on whether the townhall is a castle */
+export function getMaxBuildingLevel(type: Exclude<BuildingType, 'empty'>, townhallLevel: number): number {
+  const base = BUILDING_INFO[type].maxLevel;
+  if (type === 'townhall') return base; // townhall uses its own maxLevel (20)
+  return isCastle(townhallLevel) ? 20 : base;
+}
