@@ -39,7 +39,7 @@ const VillageGrid = lazyRetry(() => import('./VillageGrid'));
 const WorldMap = lazyRetry(() => import('./WorldMap'));
 const SocialPanel = lazyRetry(() => import('./SocialPanel'));
 const ProfilePanel = lazyRetry(() => import('./ProfilePanel'));
-const CityView = lazyRetry(() => import('./CityView'));
+
 
 
 function TabFallback() {
