@@ -6,6 +6,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import ResourceIcon from './ResourceIcon';
 import { ROAD_INFO, MAX_ROAD_LEVEL } from '@/lib/gameConstants';
+import dirtRoadSprite from '@/assets/sprites/roads/dirt-road.png';
+import cobblestoneRoadSprite from '@/assets/sprites/roads/cobblestone-road.png';
+import pavedRoadSprite from '@/assets/sprites/roads/paved-road.png';
+
+const ROAD_SPRITES: Record<number, string> = {
+  1: dirtRoadSprite,
+  2: cobblestoneRoadSprite,
+  3: pavedRoadSprite,
+};
 
 interface Road {
   id: string;
