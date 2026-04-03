@@ -12,6 +12,7 @@ import { useTroopTraining } from './useTroopTraining';
 import { useApothecary } from './useApothecary';
 import { useVassalage } from './useVassalage';
 import { useCombat } from './useCombat';
+import { useAdministrator } from './useAdministrator';
 import { useQueueProcessing } from './useQueueProcessing';
 import { useGameTick } from './useGameTick';
 import { useVillageDataLoader } from './useVillageDataLoader';
