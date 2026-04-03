@@ -265,7 +265,7 @@ export default function VillageGrid() {
                     {!upgrading && !isUnderConstruction && (
                       <div className="absolute bottom-0 inset-x-0 bg-background/70 backdrop-blur-sm flex items-center justify-center gap-[2%] leading-none" style={{ padding: '1% 3%' }}>
                         <span className="font-display text-foreground/90 truncate" style={{ fontSize: '10cqi' }}>
-                          {type === 'townhall' && building.level >= 7 ? 'Castle' : BUILDING_INFO[type!].name}
+                          {type === 'townhall' && isCastle(building.level) ? 'Castle' : BUILDING_INFO[type!].name}
                         </span>
                         <span className={`font-bold ${isMaxLevel ? 'text-amber-400' : 'text-primary'}`} style={{ fontSize: '10cqi' }}>
                           {isMaxLevel ? '✦MAX' : `Lv${building.level}`}
