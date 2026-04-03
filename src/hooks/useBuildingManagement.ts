@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Building, BuildingType, BuildQueue, Resources, WorkerAssignments } from '@/lib/gameTypes';
-import { BUILDING_INFO, getUpgradeCost } from '@/lib/gameConstants';
+import { BUILDING_INFO, getUpgradeCost, getMaxBuildingLevel } from '@/lib/gameConstants';
 
 interface UseBuildingManagementParams {
   buildings: Building[];
