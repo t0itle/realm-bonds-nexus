@@ -74,6 +74,7 @@ import pirateWarehouse from '@/assets/sprites/factions/pirate/warehouse.png';
 import pirateSpyguild from '@/assets/sprites/factions/pirate/spyguild.png';
 
 import type { BuildingType } from '@/lib/gameTypes';
+import administratorSprite from '@/assets/sprites/administrator.png';
 
 type BuildingSpriteMap = Record<Exclude<BuildingType, 'empty'>, string>;
 
