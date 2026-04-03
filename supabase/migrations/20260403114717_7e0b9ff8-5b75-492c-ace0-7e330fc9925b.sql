@@ -1,0 +1,1 @@
+ALTER TABLE public.roads ADD COLUMN building_finish_time TIMESTAMP WITH TIME ZONE DEFAULT NULL;
