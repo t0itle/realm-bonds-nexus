@@ -1451,9 +1451,10 @@ export default function WorldMap() {
 
   const getMyPos = useCallback(() => {
     if (!user) return { x: 100000, y: 100000 };
-    const myVillage = allVillages.find(v => v.village.user_id === user.id);
+    // Use the currently active village, not just the first one found
+    const myVillage = allVillages.find(v => v.village.id === villageId) || allVillages.find(v => v.village.user_id === user.id);
     return getPlayerPos(myVillage?.village.id || 'me');
-  }, [user, allVillages]);
+  }, [user, allVillages, villageId]);
 
   const goHome = useCallback(() => {
     const pos = getMyPos();
