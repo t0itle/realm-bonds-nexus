@@ -246,6 +246,16 @@ export default function CaravanPanel({ onClose }: { onClose: () => void }) {
           })}
         </div>
       )}
+
+      {/* Roads */}
+      <div className="border-t border-border/50 pt-2">
+        <RoadsPanel />
+      </div>
+
+      {/* Trade Routes */}
+      <div className="border-t border-border/50 pt-2">
+        <TradeRoutesPanel />
+      </div>
     </motion.div>
   );
 }
