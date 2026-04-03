@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import ResourceIcon from './ResourceIcon';
-import { TRADE_INTERVALS } from '@/lib/gameConstants';
+import { TRADE_INTERVALS, ROAD_INFO } from '@/lib/gameConstants';
 
 interface TradeRoute {
   id: string;
