@@ -2,35 +2,8 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useGame, BUILDING_INFO } from '@/hooks/useGameState';
 import type { Building, BuildingType } from '@/lib/gameTypes';
 import { motion, AnimatePresence } from 'framer-motion';
-
-// Pixel-art color palette
-const PALETTE = {
-  sky: ['#1a1a2e', '#16213e', '#0f3460', '#533483'],
-  skyDay: ['#87CEEB', '#B0E0E6', '#E0F7FA', '#FFF9C4'],
-  grass: '#4a7c3f',
-  grassDark: '#3d6634',
-  dirt: '#8B7355',
-  road: '#6B5B4B',
-  shadow: 'rgba(0,0,0,0.2)',
-};
-
-// Building pixel-art renderers
-const BUILDING_COLORS: Record<string, { walls: string; roof: string; accent: string }> = {
-  townhall: { walls: '#C4A882', roof: '#8B4513', accent: '#FFD700' },
-  house: { walls: '#DEB887', roof: '#A0522D', accent: '#F5DEB3' },
-  farm: { walls: '#F5DEB3', roof: '#8B8B00', accent: '#90EE90' },
-  lumbermill: { walls: '#A0522D', roof: '#654321', accent: '#DEB887' },
-  quarry: { walls: '#808080', roof: '#696969', accent: '#A9A9A9' },
-  goldmine: { walls: '#8B7355', roof: '#654321', accent: '#FFD700' },
-  barracks: { walls: '#4A4A4A', roof: '#2F2F2F', accent: '#DC143C' },
-  wall: { walls: '#808080', roof: '#696969', accent: '#A9A9A9' },
-  watchtower: { walls: '#8B8682', roof: '#4A4A4A', accent: '#FFD700' },
-  temple: { walls: '#F0E68C', roof: '#DAA520', accent: '#FFD700' },
-  apothecary: { walls: '#9370DB', roof: '#6A0DAD', accent: '#90EE90' },
-  warehouse: { walls: '#CD853F', roof: '#8B4513', accent: '#DEB887' },
-  spyguild: { walls: '#2F4F4F', roof: '#1C1C1C', accent: '#7B68EE' },
-  administrator: { walls: '#4682B4', roof: '#2E4057', accent: '#E8D5B7' },
-};
+import { BUILDING_SPRITES } from './sprites';
+import { useTroopSkins } from '@/hooks/useTroopSkins';
 
 interface Citizen {
   id: number;
@@ -42,170 +15,80 @@ interface Citizen {
   color: string;
   type: 'worker' | 'soldier' | 'civilian';
   frame: number;
-  dir: number; // 0=right, 1=left
+  dir: number;
 }
 
-function drawPixelBuilding(
-  ctx: CanvasRenderingContext2D,
-  type: BuildingType,
-  level: number,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  isSelected: boolean,
-  isUpgrading: boolean,
-) {
-  if (type === 'empty') return;
-  const colors = BUILDING_COLORS[type] || BUILDING_COLORS.house;
-  const scale = Math.min(1, 0.6 + level * 0.08);
-  const bw = w * scale;
-  const bh = h * scale;
-  const bx = x + (w - bw) / 2;
-  const by = y + (h - bh);
-
-  // Shadow
-  ctx.fillStyle = PALETTE.shadow;
-  ctx.fillRect(bx + 2, by + bh - 4, bw, 6);
-
-  // Walls
-  ctx.fillStyle = colors.walls;
-  ctx.fillRect(bx, by + bh * 0.35, bw, bh * 0.65);
-
-  // Door
-  ctx.fillStyle = '#3E2723';
-  const doorW = bw * 0.18;
-  const doorH = bh * 0.25;
-  ctx.fillRect(bx + bw / 2 - doorW / 2, by + bh - doorH, doorW, doorH);
-
-  // Windows
-  ctx.fillStyle = '#87CEEB';
-  const winSize = Math.max(3, bw * 0.1);
-  if (bw > 20) {
-    ctx.fillRect(bx + bw * 0.2, by + bh * 0.5, winSize, winSize);
-    ctx.fillRect(bx + bw * 0.7, by + bh * 0.5, winSize, winSize);
-  }
-
-  // Roof
-  ctx.fillStyle = colors.roof;
-  ctx.beginPath();
-  ctx.moveTo(bx - 4, by + bh * 0.35);
-  ctx.lineTo(bx + bw / 2, by);
-  ctx.lineTo(bx + bw + 4, by + bh * 0.35);
-  ctx.closePath();
-  ctx.fill();
-
-  // Accent details based on type
-  ctx.fillStyle = colors.accent;
-  if (type === 'townhall') {
-    // Flag
-    ctx.fillRect(bx + bw / 2 - 1, by - 8, 2, 10);
-    ctx.fillRect(bx + bw / 2 + 1, by - 8, 6, 4);
-  } else if (type === 'farm') {
-    // Wheat
-    for (let i = 0; i < 3; i++) {
-      ctx.fillRect(bx + bw + 4 + i * 4, by + bh - 8 - i * 2, 2, 8 + i * 2);
-    }
-  } else if (type === 'watchtower') {
-    // Tall spire
-    ctx.fillRect(bx + bw / 2 - 1, by - 12, 2, 14);
-    ctx.fillStyle = '#FF4500';
-    ctx.fillRect(bx + bw / 2 - 2, by - 14, 4, 3);
-  } else if (type === 'barracks') {
-    // Weapon rack
-    ctx.fillRect(bx - 3, by + bh * 0.4, 2, bh * 0.4);
-    ctx.fillRect(bx + bw + 1, by + bh * 0.4, 2, bh * 0.4);
-  } else if (type === 'temple') {
-    // Cross
-    ctx.fillRect(bx + bw / 2 - 1, by - 6, 2, 8);
-    ctx.fillRect(bx + bw / 2 - 3, by - 4, 6, 2);
-  }
-
-  // Level indicator
-  ctx.fillStyle = '#FFF';
-  ctx.font = 'bold 8px monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText(`Lv${level}`, bx + bw / 2, by + bh + 10);
-
-  // Selection glow
-  if (isSelected) {
-    ctx.strokeStyle = '#FFD700';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(bx - 3, by - 3, bw + 6, bh + 6);
-  }
-
-  // Upgrading sparkle
-  if (isUpgrading) {
-    ctx.fillStyle = '#FFD700';
-    const sparkle = Date.now() % 1000 / 1000;
-    for (let i = 0; i < 3; i++) {
-      const sx = bx + Math.sin(sparkle * Math.PI * 2 + i * 2) * bw * 0.4 + bw / 2;
-      const sy = by + Math.cos(sparkle * Math.PI * 2 + i * 2) * bh * 0.3 + bh * 0.3;
-      ctx.fillRect(sx - 1, sy - 1, 3, 3);
-    }
-  }
-}
+const CITIZEN_COLORS = ['#4169E1', '#228B22', '#DAA520', '#8B008B', '#FF6347', '#20B2AA'];
 
 function drawCitizen(ctx: CanvasRenderingContext2D, c: Citizen) {
   const bodyColor = c.type === 'soldier' ? '#DC143C' : c.type === 'worker' ? '#8B4513' : c.color;
-  // Head
   ctx.fillStyle = '#FFDAB9';
   ctx.fillRect(c.x - 2, c.y - 8, 4, 4);
-  // Body
   ctx.fillStyle = bodyColor;
   ctx.fillRect(c.x - 2, c.y - 4, 4, 5);
-  // Legs (animated)
   const legOffset = Math.sin(c.frame * 0.3) * 2;
   ctx.fillStyle = '#4A4A4A';
   ctx.fillRect(c.x - 2, c.y + 1, 2, 3 + (legOffset > 0 ? 1 : 0));
   ctx.fillRect(c.x, c.y + 1, 2, 3 + (legOffset < 0 ? 1 : 0));
-  // Soldier weapon
   if (c.type === 'soldier') {
     ctx.fillStyle = '#C0C0C0';
     ctx.fillRect(c.dir === 0 ? c.x + 2 : c.x - 4, c.y - 6, 2, 8);
   }
 }
 
-const CITIZEN_COLORS = ['#4169E1', '#228B22', '#DAA520', '#8B008B', '#FF6347', '#20B2AA'];
-
 export default function CityView() {
-  const { buildings, buildQueue, army, population, workerAssignments, upgradeBuilding, assignWorker, unassignWorker, isBuildingUpgrading } = useGame();
+  const { buildings, buildQueue, army, population, workerAssignments, upgradeBuilding, assignWorker, unassignWorker, isBuildingUpgrading, getMaxWorkers } = useGame();
+  const { getBuildingSprite } = useTroopSkins();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const citizensRef = useRef<Citizen[]>([]);
   const animFrameRef = useRef<number>(0);
+  const spriteImagesRef = useRef<Map<string, HTMLImageElement>>(new Map());
   const [canvasSize, setCanvasSize] = useState({ w: 384, h: 500 });
 
-  // Generate citizens based on population
+  // Preload building sprite images for canvas
+  useEffect(() => {
+    const nonEmpty = buildings.filter(b => b.type !== 'empty');
+    const types = [...new Set(nonEmpty.map(b => b.type))] as Exclude<BuildingType, 'empty'>[];
+    for (const type of types) {
+      if (spriteImagesRef.current.has(type)) continue;
+      const src = getBuildingSprite(type);
+      const img = new Image();
+      img.src = src;
+      spriteImagesRef.current.set(type, img);
+    }
+  }, [buildings, getBuildingSprite]);
+
+  // Generate citizens
   useEffect(() => {
     const count = Math.min(population.current, 40);
     const existing = citizensRef.current;
     if (existing.length === count) return;
 
-    const soldiers = Math.min(Object.values(army).reduce((s: number, v: number) => s + v, 0), Math.floor(count * 0.3));
-    const totalWorkers = Math.min(Object.values(workerAssignments).reduce((s: number, v: number) => s + v, 0), Math.floor(count * 0.4));
+    const soldierCount = Math.min(
+      Object.values(army).reduce((s: number, v: number) => s + v, 0),
+      Math.floor(count * 0.3)
+    );
+    const workerCount = Math.min(
+      Object.values(workerAssignments).reduce((s: number, v: number) => s + v, 0),
+      Math.floor(count * 0.4)
+    );
 
     const newCitizens: Citizen[] = [];
     for (let i = 0; i < count; i++) {
-      const type = i < soldiers ? 'soldier' : i < soldiers + workers ? 'worker' : 'civilian';
+      const type = i < soldierCount ? 'soldier' : i < soldierCount + workerCount ? 'worker' : 'civilian';
       const x = 20 + Math.random() * (canvasSize.w - 40);
-      const y = 100 + Math.random() * (canvasSize.h - 160);
+      const y = canvasSize.h * 0.45 + Math.random() * (canvasSize.h * 0.45);
       newCitizens.push({
-        id: i,
-        x, y,
-        targetX: x,
-        targetY: y,
+        id: i, x, y, targetX: x, targetY: y,
         speed: 0.3 + Math.random() * 0.5,
         color: CITIZEN_COLORS[i % CITIZEN_COLORS.length],
-        type,
-        frame: Math.random() * 100,
-        dir: Math.random() > 0.5 ? 0 : 1,
+        type, frame: Math.random() * 100, dir: Math.random() > 0.5 ? 0 : 1,
       });
     }
     citizensRef.current = newCitizens;
-  }, [population.current, army, workerAssignments, canvasSize.w, canvasSize.h]);
+  }, [population.current, army, workerAssignments, canvasSize]);
 
-  // Resize handler
   useEffect(() => {
     const resize = () => {
       const w = Math.min(window.innerWidth, 600);
@@ -216,7 +99,7 @@ export default function CityView() {
     return () => window.removeEventListener('resize', resize);
   }, []);
 
-  // Layout buildings in a grid pattern
+  // Layout buildings
   const getLayout = useCallback(() => {
     const nonEmpty = buildings.filter(b => b.type !== 'empty');
     const cols = Math.ceil(Math.sqrt(nonEmpty.length));
@@ -226,13 +109,12 @@ export default function CityView() {
     return nonEmpty.map((b, i) => ({
       building: b,
       x: 20 + (i % cols) * cellW,
-      y: startY + Math.floor(i / cols) * (cellH + 15),
+      y: startY + Math.floor(i / cols) * (cellH + 20),
       w: cellW - 8,
       h: cellH,
     }));
   }, [buildings, canvasSize.w]);
 
-  // Canvas click handler
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -262,11 +144,10 @@ export default function CityView() {
     let running = true;
     const render = () => {
       if (!running) return;
-      ctx.imageSmoothingEnabled = false;
       canvas.width = canvasSize.w;
       canvas.height = canvasSize.h;
 
-      // Sky gradient
+      // Sky
       const skyGrad = ctx.createLinearGradient(0, 0, 0, canvasSize.h * 0.4);
       skyGrad.addColorStop(0, '#87CEEB');
       skyGrad.addColorStop(1, '#B0E0E6');
@@ -274,11 +155,11 @@ export default function CityView() {
       ctx.fillRect(0, 0, canvasSize.w, canvasSize.h * 0.4);
 
       // Ground
-      ctx.fillStyle = PALETTE.grass;
+      ctx.fillStyle = '#4a7c3f';
       ctx.fillRect(0, canvasSize.h * 0.3, canvasSize.w, canvasSize.h * 0.7);
 
-      // Grass texture
-      ctx.fillStyle = PALETTE.grassDark;
+      // Grass detail
+      ctx.fillStyle = '#3d6634';
       for (let i = 0; i < 60; i++) {
         const gx = (i * 37 + 13) % canvasSize.w;
         const gy = canvasSize.h * 0.35 + (i * 23 + 7) % (canvasSize.h * 0.6);
@@ -286,40 +167,78 @@ export default function CityView() {
       }
 
       // Road
-      ctx.fillStyle = PALETTE.road;
+      ctx.fillStyle = '#6B5B4B';
       ctx.fillRect(canvasSize.w * 0.45, canvasSize.h * 0.3, canvasSize.w * 0.1, canvasSize.h * 0.7);
-      // Road texture
-      ctx.fillStyle = PALETTE.dirt;
+      ctx.fillStyle = '#8B7355';
       for (let i = 0; i < 10; i++) {
         ctx.fillRect(canvasSize.w * 0.47, canvasSize.h * 0.35 + i * 30, 4, 8);
       }
 
-      // Draw buildings
+      // Draw buildings using sprites
       const layout = getLayout();
       for (const item of layout) {
+        const type = item.building.type as Exclude<BuildingType, 'empty'>;
+        const img = spriteImagesRef.current.get(type);
         const isUpgrading = !!isBuildingUpgrading(item.building.id);
-        drawPixelBuilding(
-          ctx,
-          item.building.type,
-          item.building.level,
-          item.x,
-          item.y,
-          item.w,
-          item.h,
-          selectedBuilding?.id === item.building.id,
-          isUpgrading,
-        );
+        const isSelected = selectedBuilding?.id === item.building.id;
+        const scale = Math.min(1, 0.6 + item.building.level * 0.08);
+        const bw = item.w * scale;
+        const bh = item.h * scale;
+        const bx = item.x + (item.w - bw) / 2;
+        const by = item.y + (item.h - bh);
+
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fillRect(bx + 2, by + bh - 4, bw, 6);
+
+        // Draw sprite image
+        if (img && img.complete) {
+          if (isUpgrading) {
+            ctx.globalAlpha = 0.5;
+          }
+          ctx.drawImage(img, bx, by, bw, bh);
+          ctx.globalAlpha = 1;
+
+          // Upgrading sparkle
+          if (isUpgrading) {
+            ctx.fillStyle = '#FFD700';
+            const sparkle = Date.now() % 1000 / 1000;
+            for (let s = 0; s < 3; s++) {
+              const sx = bx + Math.sin(sparkle * Math.PI * 2 + s * 2) * bw * 0.4 + bw / 2;
+              const sy = by + Math.cos(sparkle * Math.PI * 2 + s * 2) * bh * 0.3 + bh * 0.3;
+              ctx.fillRect(sx - 1, sy - 1, 3, 3);
+            }
+          }
+        } else {
+          // Fallback rectangle
+          ctx.fillStyle = '#C4A882';
+          ctx.fillRect(bx, by, bw, bh);
+        }
+
+        // Selection glow
+        if (isSelected) {
+          ctx.strokeStyle = '#FFD700';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(bx - 3, by - 3, bw + 6, bh + 6);
+        }
+
+        // Level label
+        ctx.fillStyle = '#FFF';
+        ctx.font = 'bold 8px monospace';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = '#000';
+        ctx.shadowBlur = 3;
+        ctx.fillText(`Lv${item.building.level}`, bx + bw / 2, by + bh + 10);
+        ctx.shadowBlur = 0;
       }
 
-      // Update and draw citizens
+      // Citizens
       const citizens = citizensRef.current;
       for (const c of citizens) {
-        // Move toward target
         const dx = c.targetX - c.x;
         const dy = c.targetY - c.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < 2) {
-          // Pick new target
           c.targetX = 20 + Math.random() * (canvasSize.w - 40);
           c.targetY = canvasSize.h * 0.4 + Math.random() * (canvasSize.h * 0.5);
         } else {
@@ -331,7 +250,7 @@ export default function CityView() {
         drawCitizen(ctx, c);
       }
 
-      // Settlement name
+      // HUD
       ctx.fillStyle = '#FFF';
       ctx.font = 'bold 14px monospace';
       ctx.textAlign = 'center';
@@ -359,11 +278,10 @@ export default function CityView() {
       <canvas
         ref={canvasRef}
         onClick={handleCanvasClick}
-        className="w-full cursor-pointer"
-        style={{ imageRendering: 'pixelated', height: canvasSize.h }}
+        className="w-full cursor-pointer flex-1"
+        style={{ imageRendering: 'auto' }}
       />
 
-      {/* Building management panel */}
       <AnimatePresence>
         {selectedBuilding && selectedInfo && (
           <motion.div
