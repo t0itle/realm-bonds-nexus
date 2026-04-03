@@ -54,11 +54,11 @@ const EVENT_SPRITES: Record<string, string> = {
 const PATH_GRID_CELL = 2000; // world units per pathfinding cell
 
 function getRiverBlockRadius(riverWidth: number): number {
-  return Math.max(900, riverWidth * 0.5 + PATH_GRID_CELL * 0.2);
+  return Math.max(600, riverWidth * 0.5);
 }
 
 function getBridgeAccessRadius(riverWidth: number): number {
-  return Math.max(PATH_GRID_CELL * 1.5, getRiverBlockRadius(riverWidth) * 2);
+  return Math.max(PATH_GRID_CELL * 2.5, getRiverBlockRadius(riverWidth) * 3);
 }
 
 function isPointInEllipse(px: number, py: number, cx: number, cy: number, rw: number, rh: number): boolean {

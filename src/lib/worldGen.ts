@@ -87,7 +87,7 @@ export const CONTINENTS: Continent[] = [
         { x: 60000, y: 100000 },
         { x: 90000, y: 200000 },
         { x: 70000, y: 300000 },
-      ], width: 4000, name: 'The Lifevein' },
+      ], width: 1500, name: 'The Lifevein' },
     ],
   },
   {
@@ -113,7 +113,7 @@ export const CONTINENTS: Continent[] = [
         { x: 100000, y: -1500000 },
         { x: 50000, y: -1380000 },
         { x: -30000, y: -1300000 },
-      ], width: 3500, name: 'Frostmelt River' },
+      ], width: 1200, name: 'Frostmelt River' },
     ],
   },
   {
@@ -139,7 +139,7 @@ export const CONTINENTS: Continent[] = [
         { x: 1550000, y: 0 },
         { x: 1600000, y: 80000 },
         { x: 1700000, y: 150000 },
-      ], width: 3000, name: 'The Mirage Run' },
+      ], width: 1200, name: 'The Mirage Run' },
     ],
   },
   {
@@ -165,12 +165,12 @@ export const CONTINENTS: Continent[] = [
         { x: 200000, y: 1620000 },
         { x: 130000, y: 1700000 },
         { x: 80000, y: 1780000 },
-      ], width: 5000, name: 'The Emerald Serpent' },
+      ], width: 1500, name: 'The Emerald Serpent' },
       { points: [
         { x: 50000, y: 1500000 },
         { x: 100000, y: 1580000 },
         { x: 200000, y: 1620000 },
-      ], width: 3000, name: 'Jade Tributary' },
+      ], width: 1000, name: 'Jade Tributary' },
     ],
   },
   {
@@ -196,7 +196,7 @@ export const CONTINENTS: Continent[] = [
         { x: -1450000, y: 100000 },
         { x: -1380000, y: 200000 },
         { x: -1300000, y: 300000 },
-      ], width: 3500, name: 'Sulfur Creek' },
+      ], width: 1200, name: 'Sulfur Creek' },
     ],
   },
 ];
