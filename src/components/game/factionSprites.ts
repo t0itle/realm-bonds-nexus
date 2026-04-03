@@ -74,6 +74,7 @@ import pirateWarehouse from '@/assets/sprites/factions/pirate/warehouse.png';
 import pirateSpyguild from '@/assets/sprites/factions/pirate/spyguild.png';
 
 import type { BuildingType } from '@/lib/gameTypes';
+import administratorSprite from '@/assets/sprites/administrator.png';
 
 type BuildingSpriteMap = Record<Exclude<BuildingType, 'empty'>, string>;
 
@@ -92,6 +93,7 @@ export const FACTION_BUILDING_SPRITES: Record<string, BuildingSpriteMap> = {
     apothecary: vikingApothecary,
     warehouse: vikingWarehouse,
     spyguild: vikingSpyguild,
+    administrator: administratorSprite,
   },
   samurai: {
     townhall: samuraiTownhall,
@@ -107,6 +109,7 @@ export const FACTION_BUILDING_SPRITES: Record<string, BuildingSpriteMap> = {
     apothecary: samuraiApothecary,
     warehouse: samuraiWarehouse,
     spyguild: samuraiSpyguild,
+    administrator: administratorSprite,
   },
   undead: {
     townhall: undeadTownhall,
@@ -122,6 +125,7 @@ export const FACTION_BUILDING_SPRITES: Record<string, BuildingSpriteMap> = {
     apothecary: undeadApothecary,
     warehouse: undeadWarehouse,
     spyguild: undeadSpyguild,
+    administrator: administratorSprite,
   },
   roman: {
     townhall: romanTownhall,
@@ -137,6 +141,7 @@ export const FACTION_BUILDING_SPRITES: Record<string, BuildingSpriteMap> = {
     apothecary: romanApothecary,
     warehouse: romanWarehouse,
     spyguild: romanSpyguild,
+    administrator: administratorSprite,
   },
   pirate: {
     townhall: pirateTownhall,
@@ -152,5 +157,6 @@ export const FACTION_BUILDING_SPRITES: Record<string, BuildingSpriteMap> = {
     apothecary: pirateApothecary,
     warehouse: pirateWarehouse,
     spyguild: pirateSpyguild,
+    administrator: administratorSprite,
   },
 };

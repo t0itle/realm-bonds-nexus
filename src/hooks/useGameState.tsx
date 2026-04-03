@@ -12,6 +12,7 @@ import { useTroopTraining } from './useTroopTraining';
 import { useApothecary } from './useApothecary';
 import { useVassalage } from './useVassalage';
 import { useCombat } from './useCombat';
+import { useAdministrator } from './useAdministrator';
 import { useQueueProcessing } from './useQueueProcessing';
 import { useGameTick } from './useGameTick';
 import { useVillageDataLoader } from './useVillageDataLoader';
@@ -159,6 +160,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const { getMaxWorkers, assignWorker, unassignWorker } = useWorkerManagement({
     buildings, workerAssignments, setWorkerAssignments, population, villageId });
+
+  useAdministrator({
+    buildings, buildQueue, resources, canAfford, canAffordSteel, buildAt,
+    currentHouses, maxHouses, population, villageId,
+  });
 
   const { getApothecaryLevel, healTroops, craftPoison } = useApothecary({
     buildings, injuredTroops, setInjuredTroops, army, setArmy, resources, setResources,

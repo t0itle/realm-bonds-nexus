@@ -17,6 +17,7 @@ export const BUILDING_INFO: Record<Exclude<BuildingType, 'empty'>, BuildingInfo>
   apothecary: { name: 'Apothecary', icon: '⚗️', description: 'Heal injured troops and craft poisons for spies.', baseCost: { gold: 70, wood: 30, stone: 30, food: 20 }, steelCost: 2, maxLevel: 5, workersPerLevel: 1, buildTime: 70 },
   warehouse: { name: 'Warehouse', icon: '🏪', description: 'Increases storage capacity by 500 per level. Store more resources safely.', baseCost: { gold: 50, wood: 80, stone: 60, food: 0 }, maxLevel: 10, workersPerLevel: 0, buildTime: 50 },
   spyguild: { name: 'Spy Guild', icon: '🕵️', description: 'Train spies and unlock espionage missions against other players. Workers speed up spy training.', baseCost: { gold: 100, wood: 50, stone: 40, food: 30 }, steelCost: 5, maxLevel: 5, workersPerLevel: 2, buildTime: 90 },
+  administrator: { name: 'Administrator', icon: '📜', description: 'Automates settlement growth. Slowly builds farms and houses when needed. Cannot be upgraded.', baseCost: { gold: 200, wood: 100, stone: 80, food: 50 }, steelCost: 3, maxLevel: 1, workersPerLevel: 0, buildTime: 120 },
 };
 
 export function getUpgradeCost(type: Exclude<BuildingType, 'empty'>, level: number): Resources & { steel: number } {
