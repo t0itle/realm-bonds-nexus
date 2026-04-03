@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import ResourceIcon from './ResourceIcon';
-import { TRADE_INTERVALS } from '@/lib/gameConstants';
+import { TRADE_INTERVALS, ROAD_INFO } from '@/lib/gameConstants';
 
 interface TradeRoute {
   id: string;
@@ -20,12 +20,13 @@ interface TradeRoute {
   active: boolean;
 }
 
-interface Settlement { id: string; name: string; }
+interface Settlement { id: string; name: string; map_x: number; map_y: number; }
 
 export default function TradeRoutesPanel() {
   const { resources, villageId, addResources } = useGame();
   const { user } = useAuth();
   const [routes, setRoutes] = useState<TradeRoute[]>([]);
+  const [roads, setRoads] = useState<{ from_village_id: string; to_village_id: string; road_level: number }[]>([]);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [selectedDest, setSelectedDest] = useState('');
@@ -35,8 +36,11 @@ export default function TradeRoutesPanel() {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from('villages').select('id, name').eq('user_id', user.id).then(({ data }) => {
-      if (data) setSettlements(data);
+    supabase.from('villages').select('id, name, map_x, map_y').eq('user_id', user.id).then(({ data }) => {
+      if (data) setSettlements(data as Settlement[]);
+    });
+    supabase.from('roads').select('from_village_id, to_village_id, road_level').eq('user_id', user.id).then(({ data }) => {
+      if (data) setRoads(data as any);
     });
     loadRoutes();
   }, [user]);
@@ -58,8 +62,20 @@ export default function TradeRoutesPanel() {
           resources.stone >= route.stone && resources.food >= route.food;
         if (!canSend) continue;
 
-        // Create caravan
-        const travelSec = 60; // base, will be modified by roads
+        // Calculate travel time based on distance + road bonus
+        const origin = settlements.find(s => s.id === route.from_village_id);
+        const dest = settlements.find(s => s.id === route.to_village_id);
+        let travelSec = 60;
+        if (origin && dest) {
+          const dist = Math.sqrt(Math.pow(dest.map_x - origin.map_x, 2) + Math.pow(dest.map_y - origin.map_y, 2));
+          const baseSec = Math.max(30, Math.floor(dist / 500));
+          const road = roads.find(r =>
+            (r.from_village_id === route.from_village_id && r.to_village_id === route.to_village_id) ||
+            (r.from_village_id === route.to_village_id && r.to_village_id === route.from_village_id)
+          );
+          const bonus = road ? (ROAD_INFO[road.road_level]?.speedBonus || 0) : 0;
+          travelSec = Math.max(15, Math.floor(baseSec * (1 - bonus)));
+        }
         const arrivesAt = new Date(Date.now() + travelSec * 1000).toISOString();
         const { error } = await supabase.from('caravans').insert({
           user_id: user.id,
