@@ -201,7 +201,6 @@ export default function VillageGrid() {
   });
 
   if (showCityView) {
-    const CityViewLazy = lazy(() => import('./CityView'));
     return (
       <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="text-2xl animate-float">⏳</div></div>}>
         <div className="flex-1 flex flex-col relative">
