@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useGame } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
@@ -51,25 +51,37 @@ export default function TradeRoutesPanel() {
     if (data) setRoutes(data as TradeRoute[]);
   };
 
+  // Use refs to avoid stale closures that restart the timer on every resource tick
+  const routesRef = useRef(routes);
+  routesRef.current = routes;
+  const resourcesRef = useRef(resources);
+  resourcesRef.current = resources;
+  const settlementsRef = useRef(settlements);
+  settlementsRef.current = settlements;
+  const roadsRef = useRef(roads);
+  roadsRef.current = roads;
+
   // Process due trade routes
   useEffect(() => {
     if (!user || !villageId) return;
     const timer = window.setInterval(async () => {
       const now = new Date().toISOString();
-      const dueRoutes = routes.filter(r => r.active && r.from_village_id === villageId && r.next_run_at <= now);
+      const currentRoutes = routesRef.current;
+      const currentResources = resourcesRef.current;
+      const dueRoutes = currentRoutes.filter(r => r.active && r.from_village_id === villageId && r.next_run_at <= now);
       for (const route of dueRoutes) {
-        const canSend = resources.gold >= route.gold && resources.wood >= route.wood &&
-          resources.stone >= route.stone && resources.food >= route.food;
+        const canSend = currentResources.gold >= route.gold && currentResources.wood >= route.wood &&
+          currentResources.stone >= route.stone && currentResources.food >= route.food;
         if (!canSend) continue;
 
         // Calculate travel time based on distance + road bonus
-        const origin = settlements.find(s => s.id === route.from_village_id);
-        const dest = settlements.find(s => s.id === route.to_village_id);
+        const origin = settlementsRef.current.find(s => s.id === route.from_village_id);
+        const dest = settlementsRef.current.find(s => s.id === route.to_village_id);
         let travelSec = 60;
         if (origin && dest) {
           const dist = Math.sqrt(Math.pow(dest.map_x - origin.map_x, 2) + Math.pow(dest.map_y - origin.map_y, 2));
           const baseSec = Math.max(30, Math.floor(dist / 500));
-          const road = roads.find(r =>
+          const road = roadsRef.current.find(r =>
             (r.from_village_id === route.from_village_id && r.to_village_id === route.to_village_id) ||
             (r.from_village_id === route.to_village_id && r.to_village_id === route.from_village_id)
           );
@@ -90,13 +102,13 @@ export default function TradeRoutesPanel() {
           const nextRun = new Date(Date.now() + route.interval_seconds * 1000).toISOString();
           await supabase.from('trade_routes').update({ next_run_at: nextRun } as any).eq('id', route.id);
           setRoutes(prev => prev.map(r => r.id === route.id ? { ...r, next_run_at: nextRun } : r));
-          const dest = settlements.find(s => s.id === route.to_village_id);
-          toast.info(`📦 Trade route sent caravan to ${dest?.name || 'settlement'}`);
+          const destName = settlementsRef.current.find(s => s.id === route.to_village_id);
+          toast.info(`📦 Trade route sent caravan to ${destName?.name || 'settlement'}`);
         }
       }
-    }, 15000);
+    }, 5000);
     return () => window.clearInterval(timer);
-  }, [user, villageId, routes, resources]);
+  }, [user, villageId, addResources]);
 
   const handleCreate = async () => {
     if (!user || !villageId || !selectedDest) return;
