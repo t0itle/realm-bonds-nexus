@@ -170,7 +170,7 @@ export const CONTINENTS: Continent[] = [
         { x: 50000, y: 1500000 },
         { x: 100000, y: 1580000 },
         { x: 200000, y: 1620000 },
-      ], width: 3000, name: 'Jade Tributary' },
+      ], width: 1000, name: 'Jade Tributary' },
     ],
   },
   {
