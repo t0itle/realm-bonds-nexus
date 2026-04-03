@@ -288,7 +288,6 @@ export default function GameLayout() {
             >
               <Suspense fallback={<TabFallback />}>
                 {activeTab === 'village' && <VillageGrid />}
-                {activeTab === 'city' && <CityView />}
                 {activeTab === 'social' && <SocialPanel initialDm={dmTarget} onDmHandled={() => setDmTarget(null)} />}
                 {activeTab === 'profile' && <ProfilePanel />}
               </Suspense>
