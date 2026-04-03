@@ -23,10 +23,10 @@ interface AttackConfigPanelProps {
 
 export default function AttackConfigPanel({
   targetName, targetPower, travelTime,
-  onConfirmAttack, onConfirmEspionage, onCancel, showEspionage = true,
+  onConfirmAttack, onConfirmEspionage, onCancel, showEspionage = true, espionageOnly = false,
 }: AttackConfigPanelProps) {
   const { army, spies, resources } = useGame();
-  const [mode, setMode] = useState<'attack' | 'espionage'>('attack');
+  const [mode, setMode] = useState<'attack' | 'espionage'>(espionageOnly ? 'espionage' : 'attack');
   const [troopCounts, setTroopCounts] = useState<Record<TroopType, number>>(() => {
     const init: Record<TroopType, number> = { militia: 0, archer: 0, knight: 0, cavalry: 0, siege: 0, scout: 0 };
     // Default: send all troops
