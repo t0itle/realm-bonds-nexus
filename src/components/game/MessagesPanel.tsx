@@ -403,7 +403,7 @@ export default function MessagesPanel({ initialDm, onDmHandled }: MessagesPanelP
   );
 
   return (
-    <div className="flex-1 flex flex-col p-3 space-y-3">
+    <div className="flex-1 flex flex-col p-3 space-y-3 max-h-[80vh] overflow-y-auto">
       <div className="flex items-center justify-between">
         <h2 className="font-display text-lg text-foreground text-shadow-gold">
           {activeConvo ? `💬 ${profileMap.get(activeConvo) || 'Unknown'}` : '📨 Messages'}

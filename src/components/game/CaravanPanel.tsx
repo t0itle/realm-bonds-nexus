@@ -139,7 +139,7 @@ export default function CaravanPanel({ onClose }: { onClose: () => void }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-      className="game-panel border-glow rounded-xl p-3 space-y-3"
+      className="game-panel border-glow rounded-xl p-3 space-y-3 max-h-[70vh] overflow-y-auto"
     >
       <div className="flex items-center justify-between">
         <h3 className="font-display text-sm text-foreground">🐴 Caravan & Storage</h3>
