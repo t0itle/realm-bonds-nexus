@@ -2699,7 +2699,7 @@ export default function WorldMap() {
             </button>
           );
         })}
-        <div className="absolute bottom-4 right-3 flex flex-col gap-1 z-50">
+        <div className="absolute bottom-20 sm:bottom-16 right-3 flex flex-col gap-1 z-50">
           <button onPointerDown={e => e.stopPropagation()} onClick={() => safeSetCamera(prev => ({ ...prev, ppu: Math.min(0.05, prev.ppu * 1.5) }))}
             className="w-9 h-9 bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-sm font-medium active:scale-90 transition-all hover:bg-background/95 shadow-sm">+</button>
           <button onPointerDown={e => e.stopPropagation()} onClick={() => safeSetCamera(prev => ({ ...prev, ppu: Math.max(0.00005, prev.ppu / 1.5) }))}
