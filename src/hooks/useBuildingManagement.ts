@@ -98,8 +98,8 @@ export function useBuildingManagement({
     const building = buildings.find(b => b.id === id);
     if (!building || building.type === 'empty') return false;
     if (buildQueue.some(q => q.buildingId === id)) return false;
-    const info = BUILDING_INFO[building.type];
-    if (building.level >= info.maxLevel) return false;
+    const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
+    if (building.level >= getMaxBuildingLevel(building.type as Exclude<BuildingType, 'empty'>, townhallLevel)) return false;
     const cost = getUpgradeCost(building.type, building.level);
     if (!canAfford(cost)) return false;
     if (cost.steel > 0 && !canAffordSteel(cost.steel)) return false;
