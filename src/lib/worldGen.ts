@@ -87,7 +87,7 @@ export const CONTINENTS: Continent[] = [
         { x: 60000, y: 100000 },
         { x: 90000, y: 200000 },
         { x: 70000, y: 300000 },
-      ], width: 4000, name: 'The Lifevein' },
+      ], width: 1500, name: 'The Lifevein' },
     ],
   },
   {
