@@ -45,6 +45,14 @@ export function useAdministrator({
   currentHousesRef.current = currentHouses;
   const maxHousesRef = useRef(maxHouses);
   maxHousesRef.current = maxHouses;
+  const canAffordRef = useRef(canAfford);
+  canAffordRef.current = canAfford;
+  const canAffordSteelRef = useRef(canAffordSteel);
+  canAffordSteelRef.current = canAffordSteel;
+  const buildAtRef = useRef(buildAt);
+  buildAtRef.current = buildAt;
+  const upgradeBuildingRef = useRef(upgradeBuilding);
+  upgradeBuildingRef.current = upgradeBuilding;
 
   const hasAdministrator = buildings.some(b => b.type === 'administrator' && b.level >= 1);
 
@@ -72,8 +80,8 @@ export function useAdministrator({
 
       if (pop.current >= pop.housingCapacity * 0.85 && houses < maxH && emptySlot !== -1) {
         const cost = getUpgradeCost('house', 0);
-        if (canAfford(cost) && (cost.steel <= 0 || canAffordSteel(cost.steel))) {
-          await buildAt(emptySlot, 'house');
+        if (canAffordRef.current(cost) && (cost.steel <= 0 || canAffordSteelRef.current(cost.steel))) {
+          await buildAtRef.current(emptySlot, 'house');
           return;
         }
       }
@@ -82,8 +90,8 @@ export function useAdministrator({
       const farms = currentBuildings.filter(b => b.type === 'farm').length;
       if ((farms < 3 || pop.current > farms * 8) && emptySlot !== -1) {
         const cost = getUpgradeCost('farm', 0);
-        if (canAfford(cost) && (cost.steel <= 0 || canAffordSteel(cost.steel))) {
-          await buildAt(emptySlot, 'farm');
+        if (canAffordRef.current(cost) && (cost.steel <= 0 || canAffordSteelRef.current(cost.steel))) {
+          await buildAtRef.current(emptySlot, 'farm');
           return;
         }
       }
@@ -100,13 +108,13 @@ export function useAdministrator({
 
       for (const building of upgradeable) {
         const cost = getUpgradeCost(building.type as Exclude<BuildingType, 'empty'>, building.level);
-        if (canAfford(cost) && (cost.steel <= 0 || canAffordSteel(cost.steel))) {
-          const success = await upgradeBuilding(building.id);
+        if (canAffordRef.current(cost) && (cost.steel <= 0 || canAffordSteelRef.current(cost.steel))) {
+          const success = await upgradeBuildingRef.current(building.id);
           if (success) return;
         }
       }
     }, 45000);
 
     return () => clearInterval(interval);
-  }, [hasAdministrator, villageId, canAfford, canAffordSteel, buildAt, upgradeBuilding]);
+  }, [hasAdministrator, villageId]);
 }
