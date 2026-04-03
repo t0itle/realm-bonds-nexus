@@ -5,6 +5,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import ResourceIcon from './ResourceIcon';
+import RoadsPanel from './RoadsPanel';
+import TradeRoutesPanel from './TradeRoutesPanel';
+import { ROAD_INFO } from '@/lib/gameConstants';
 
 interface Caravan {
   id: string;
