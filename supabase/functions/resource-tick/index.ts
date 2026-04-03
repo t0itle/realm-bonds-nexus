@@ -13,6 +13,7 @@ interface BuildingRow {
   user_id: string;
   type: string;
   level: number;
+  position: number;
   workers: number;
 }
 
@@ -24,6 +25,7 @@ interface VillageRow {
   stone: number;
   food: number;
   steel: number;
+  level: number;
   population: number;
   max_population: number;
   happiness: number;
@@ -37,6 +39,52 @@ interface VillageRow {
   army_scout: number;
   last_resource_tick: string;
 }
+
+interface BuildQueueRow {
+  id: string;
+  village_id: string | null;
+  user_id: string;
+  building_id: string;
+  building_type: string;
+  target_level: number;
+  finish_time: string;
+}
+
+interface ResourceState {
+  gold: number;
+  wood: number;
+  stone: number;
+  food: number;
+  steel: number;
+}
+
+const BUILDING_QUEUE_IGNORED_TYPES = new Set([
+  "outpost_upgrade",
+  "outpost_wall",
+  "settlement_upgrade",
+]);
+
+const BUILDING_META: Record<string, {
+  baseCost: { gold: number; wood: number; stone: number; food: number };
+  steelCost?: number;
+  maxLevel: number;
+  buildTime: number;
+}> = {
+  townhall: { baseCost: { gold: 100, wood: 50, stone: 50, food: 0 }, steelCost: 5, maxLevel: 20, buildTime: 120 },
+  house: { baseCost: { gold: 20, wood: 40, stone: 20, food: 0 }, maxLevel: 5, buildTime: 40 },
+  temple: { baseCost: { gold: 60, wood: 30, stone: 50, food: 0 }, steelCost: 2, maxLevel: 5, buildTime: 90 },
+  farm: { baseCost: { gold: 30, wood: 40, stone: 10, food: 0 }, maxLevel: 10, buildTime: 30 },
+  lumbermill: { baseCost: { gold: 30, wood: 10, stone: 20, food: 0 }, maxLevel: 10, buildTime: 30 },
+  quarry: { baseCost: { gold: 40, wood: 20, stone: 10, food: 0 }, maxLevel: 10, buildTime: 40 },
+  goldmine: { baseCost: { gold: 10, wood: 30, stone: 40, food: 0 }, steelCost: 3, maxLevel: 10, buildTime: 50 },
+  barracks: { baseCost: { gold: 80, wood: 60, stone: 40, food: 20 }, steelCost: 8, maxLevel: 8, buildTime: 80 },
+  wall: { baseCost: { gold: 20, wood: 10, stone: 60, food: 0 }, steelCost: 4, maxLevel: 10, buildTime: 60 },
+  watchtower: { baseCost: { gold: 50, wood: 40, stone: 30, food: 0 }, maxLevel: 5, buildTime: 50 },
+  apothecary: { baseCost: { gold: 70, wood: 30, stone: 30, food: 20 }, steelCost: 2, maxLevel: 5, buildTime: 70 },
+  warehouse: { baseCost: { gold: 50, wood: 80, stone: 60, food: 0 }, maxLevel: 10, buildTime: 50 },
+  spyguild: { baseCost: { gold: 100, wood: 50, stone: 40, food: 30 }, steelCost: 5, maxLevel: 5, buildTime: 90 },
+  administrator: { baseCost: { gold: 200, wood: 100, stone: 80, food: 50 }, steelCost: 3, maxLevel: 1, buildTime: 120 },
+};
 
 const BASE_PRODUCTION: Record<string, Partial<Record<string, number>>> = {
   farm: { food: 2 },
@@ -86,6 +134,239 @@ function getProduction(type: string, level: number, workers: number): Record<str
 
 function getSteelProduction(_type: string, _level: number, _workers: number): number {
   return 0; // Steel now comes from iron ore deposits on the world map
+}
+
+function getUpgradeCost(type: string, level: number): ResourceState | null {
+  const info = BUILDING_META[type];
+  if (!info) return null;
+
+  const mult = Math.pow(1.5, level);
+  return {
+    gold: Math.floor(info.baseCost.gold * mult),
+    wood: Math.floor(info.baseCost.wood * mult),
+    stone: Math.floor(info.baseCost.stone * mult),
+    food: Math.floor(info.baseCost.food * mult),
+    steel: level >= 3 && info.steelCost ? Math.floor(info.steelCost * (level - 2)) : 0,
+  };
+}
+
+function getBuildTimeSeconds(type: string, level: number): number {
+  const info = BUILDING_META[type];
+  if (!info) return 0;
+  return Math.floor(info.buildTime * 3 * Math.pow(1.3, level));
+}
+
+function getTownhallLevel(buildings: BuildingRow[], fallback: number): number {
+  return buildings.find((building) => building.type === "townhall")?.level ?? fallback;
+}
+
+function getMaxBuildingLevel(type: string, townhallLevel: number): number {
+  const info = BUILDING_META[type];
+  if (!info) return 0;
+  if (type === "townhall") return info.maxLevel;
+  return townhallLevel >= 20 ? 20 : info.maxLevel;
+}
+
+function canAffordResources(resources: ResourceState, cost: ResourceState): boolean {
+  return resources.gold >= cost.gold
+    && resources.wood >= cost.wood
+    && resources.stone >= cost.stone
+    && resources.food >= cost.food
+    && resources.steel >= cost.steel;
+}
+
+function spendResources(resources: ResourceState, cost: ResourceState): ResourceState {
+  return {
+    gold: resources.gold - cost.gold,
+    wood: resources.wood - cost.wood,
+    stone: resources.stone - cost.stone,
+    food: resources.food - cost.food,
+    steel: resources.steel - cost.steel,
+  };
+}
+
+function getFirstEmptyPosition(buildings: BuildingRow[]): number {
+  const occupiedPositions = new Set(buildings.map((building) => building.position));
+  for (let position = 0; position < 25; position++) {
+    if (!occupiedPositions.has(position)) return position;
+  }
+  return -1;
+}
+
+async function processCompletedBuildQueueForVillage(
+  supabase: ReturnType<typeof createClient>,
+  buildings: BuildingRow[],
+  queueRows: BuildQueueRow[],
+  now: Date,
+): Promise<BuildQueueRow[]> {
+  const villageQueue = queueRows.filter((row) => !BUILDING_QUEUE_IGNORED_TYPES.has(row.building_type));
+  const completed = villageQueue.filter((row) => new Date(row.finish_time).getTime() <= now.getTime());
+  const active = villageQueue.filter((row) => new Date(row.finish_time).getTime() > now.getTime());
+
+  if (completed.length === 0) return active;
+
+  for (const row of completed) {
+    const building = buildings.find((entry) => entry.id === row.building_id);
+    if (building) building.level = row.target_level;
+  }
+
+  const queueIds = completed.map((row) => row.id);
+  await Promise.all([
+    ...completed.map((row) =>
+      supabase
+        .from("buildings")
+        .update({ level: row.target_level })
+        .eq("id", row.building_id)
+    ),
+    supabase.from("build_queue").delete().in("id", queueIds),
+  ]);
+
+  return active;
+}
+
+async function maybeRunAdministratorAutomation({
+  supabase,
+  village,
+  buildings,
+  activeQueue,
+  resources,
+  population,
+  housingCapacity,
+  now,
+}: {
+  supabase: ReturnType<typeof createClient>;
+  village: VillageRow;
+  buildings: BuildingRow[];
+  activeQueue: BuildQueueRow[];
+  resources: ResourceState;
+  population: number;
+  housingCapacity: number;
+  now: Date;
+}): Promise<ResourceState> {
+  const hasAdministrator = buildings.some((building) => building.type === "administrator" && building.level >= 1);
+  if (!hasAdministrator || activeQueue.length >= 2) return resources;
+
+  const townhallLevel = getTownhallLevel(buildings, village.level || 1);
+  const currentHouses = buildings.filter((building) => building.type === "house").length;
+  const maxHouses = townhallLevel * 2;
+  const emptyPosition = getFirstEmptyPosition(buildings);
+  const queuedIds = new Set(activeQueue.map((queueItem) => queueItem.building_id));
+
+  const enqueueNewBuilding = async (type: "house" | "farm") => {
+    if (emptyPosition === -1) return null;
+
+    const cost = getUpgradeCost(type, 0);
+    if (!cost || !canAffordResources(resources, cost)) return null;
+
+    const { data: createdBuilding, error: buildingError } = await supabase
+      .from("buildings")
+      .insert({
+        village_id: village.id,
+        user_id: village.user_id,
+        type,
+        level: 0,
+        position: emptyPosition,
+        workers: 0,
+      })
+      .select("id")
+      .single();
+
+    if (buildingError || !createdBuilding) {
+      console.error("Administrator failed to create building", {
+        villageId: village.id,
+        type,
+        error: buildingError?.message,
+      });
+      return null;
+    }
+
+    const finishTime = new Date(now.getTime() + getBuildTimeSeconds(type, 0) * 1000).toISOString();
+    const { error: queueError } = await supabase.from("build_queue").insert({
+      user_id: village.user_id,
+      building_id: createdBuilding.id,
+      building_type: type,
+      target_level: 1,
+      finish_time: finishTime,
+      village_id: village.id,
+    });
+
+    if (queueError) {
+      await supabase.from("buildings").delete().eq("id", createdBuilding.id);
+      console.error("Administrator failed to queue new building", {
+        villageId: village.id,
+        type,
+        error: queueError.message,
+      });
+      return null;
+    }
+
+    console.log("Administrator queued building", {
+      villageId: village.id,
+      buildingId: createdBuilding.id,
+      type,
+      finishTime,
+    });
+
+    return spendResources(resources, cost);
+  };
+
+  const enqueueUpgrade = async (building: BuildingRow) => {
+    const cost = getUpgradeCost(building.type, building.level);
+    if (!cost || !canAffordResources(resources, cost)) return null;
+
+    const finishTime = new Date(now.getTime() + getBuildTimeSeconds(building.type, building.level) * 1000).toISOString();
+    const { error } = await supabase.from("build_queue").insert({
+      user_id: village.user_id,
+      building_id: building.id,
+      building_type: building.type,
+      target_level: building.level + 1,
+      finish_time: finishTime,
+      village_id: village.id,
+    });
+
+    if (error) {
+      console.error("Administrator failed to queue upgrade", {
+        villageId: village.id,
+        buildingId: building.id,
+        buildingType: building.type,
+        error: error.message,
+      });
+      return null;
+    }
+
+    console.log("Administrator queued upgrade", {
+      villageId: village.id,
+      buildingId: building.id,
+      buildingType: building.type,
+      targetLevel: building.level + 1,
+      finishTime,
+    });
+
+    return spendResources(resources, cost);
+  };
+
+  if (population >= housingCapacity * 0.85 && currentHouses < maxHouses) {
+    const nextResources = await enqueueNewBuilding("house");
+    if (nextResources) return nextResources;
+  }
+
+  const farms = buildings.filter((building) => building.type === "farm").length;
+  if ((farms < 3 || population > farms * 8) && emptyPosition !== -1) {
+    const nextResources = await enqueueNewBuilding("farm");
+    if (nextResources) return nextResources;
+  }
+
+  const upgradeableBuildings = buildings
+    .filter((building) => building.type !== "administrator" && !queuedIds.has(building.id))
+    .filter((building) => building.level < getMaxBuildingLevel(building.type, townhallLevel))
+    .sort((left, right) => left.level - right.level);
+
+  for (const building of upgradeableBuildings) {
+    const nextResources = await enqueueUpgrade(building);
+    if (nextResources) return nextResources;
+  }
+
+  return resources;
 }
 
 // ── NPC Autonomy Simulation ──
@@ -305,9 +586,11 @@ Deno.serve(async (req) => {
 
     // Parse optional user_id from request body to scope the tick
     let targetUserId: string | null = null;
+    let currentVillageId: string | null = null;
     try {
       const body = await req.json();
       targetUserId = body?.user_id || null;
+      currentVillageId = body?.current_village_id || null;
     } catch { /* no body is fine */ }
 
     // ── NPC Autonomy Simulation — only run if no specific user (i.e. a cron job) ──
@@ -340,12 +623,26 @@ Deno.serve(async (req) => {
       .in("village_id", villageIds);
     if (bErr) throw bErr;
 
+    const { data: allBuildQueue, error: bqErr } = await supabase
+      .from("build_queue")
+      .select("*")
+      .in("village_id", villageIds);
+    if (bqErr) throw bqErr;
+
     // Group buildings by village_id
     const buildingsByVillage = new Map<string, BuildingRow[]>();
     for (const b of (allBuildings || [])) {
       const list = buildingsByVillage.get(b.village_id) || [];
       list.push(b as BuildingRow);
       buildingsByVillage.set(b.village_id, list);
+    }
+
+    const buildQueueByVillage = new Map<string, BuildQueueRow[]>();
+    for (const queueRow of (allBuildQueue || [])) {
+      if (!queueRow.village_id) continue;
+      const list = buildQueueByVillage.get(queueRow.village_id) || [];
+      list.push(queueRow as BuildQueueRow);
+      buildQueueByVillage.set(queueRow.village_id, list);
     }
 
     // Fetch alliance memberships and tax rates in bulk
@@ -379,6 +676,13 @@ Deno.serve(async (req) => {
       const elapsedMinutes = elapsedMs / 60000;
 
       const buildings = buildingsByVillage.get(village.id) || [];
+      const activeBuildQueue = await processCompletedBuildQueueForVillage(
+        supabase,
+        buildings,
+        buildQueueByVillage.get(village.id) || [],
+        now,
+      );
+      const currentTownhallLevel = getTownhallLevel(buildings, village.level || 1);
 
       // Calculate gross production per hour
       let grossGold = 0, grossWood = 0, grossStone = 0, grossFood = 0;
@@ -479,15 +783,17 @@ Deno.serve(async (req) => {
         treasuryAdds.set(allianceId, prev);
       }
 
-      const newGold = Math.max(0, Math.floor(village.gold + netGold));
-      const newWood = Math.max(0, Math.floor(village.wood + netWood));
-      const newStone = Math.max(0, Math.floor(village.stone + netStone));
-      let newFood = Math.max(0, Math.floor(village.food + netFood));
-      const newSteel = Math.max(0, Math.floor(village.steel + grossSteel * elapsedMinutes));
+      let villageResources: ResourceState = {
+        gold: Math.max(0, Math.floor(village.gold + netGold)),
+        wood: Math.max(0, Math.floor(village.wood + netWood)),
+        stone: Math.max(0, Math.floor(village.stone + netStone)),
+        food: Math.max(0, Math.floor(village.food + netFood)),
+        steel: Math.max(0, Math.floor(village.steel + grossSteel * elapsedMinutes)),
+      };
 
       // Population growth
       let newPop = village.population;
-      if (newPop < housingCap && newFood >= 50) {
+      if (newPop < housingCap && villageResources.food >= 50) {
         const growthChance = happinessVal / 100 * 0.5;
         const growthRolls = Math.floor(elapsedMinutes);
         for (let i = 0; i < Math.min(growthRolls, 60); i++) {
@@ -499,8 +805,8 @@ Deno.serve(async (req) => {
 
       // Starvation: lose at most 1 troop per tick if food is 0
       let updatedArmy = { ...armyCounts };
-      if (newFood <= 0) {
-        newFood = 0;
+      if (villageResources.food <= 0) {
+        villageResources.food = 0;
         const desertOrder = ["siege", "cavalry", "knight", "archer", "militia", "scout"];
         for (const t of desertOrder) {
           if (updatedArmy[t] > 0) {
@@ -511,13 +817,27 @@ Deno.serve(async (req) => {
         }
       }
 
+      if (village.id !== currentVillageId) {
+        villageResources = await maybeRunAdministratorAutomation({
+          supabase,
+          village,
+          buildings,
+          activeQueue: activeBuildQueue,
+          resources: villageResources,
+          population: newPop,
+          housingCapacity: housingCap,
+          now,
+        });
+      }
+
       // Update village
       await supabase.from("villages").update({
-        gold: newGold,
-        wood: newWood,
-        stone: newStone,
-        food: newFood,
-        steel: newSteel,
+        gold: villageResources.gold,
+        wood: villageResources.wood,
+        stone: villageResources.stone,
+        food: villageResources.food,
+        steel: villageResources.steel,
+        level: currentTownhallLevel,
         population: newPop,
         max_population: housingCap,
         happiness: happinessVal,
