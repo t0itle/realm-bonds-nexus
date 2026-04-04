@@ -64,6 +64,7 @@ export default function GameLayout() {
   const [activeTab, setActiveTab] = useState<Tab>('map');
   const [hasOpenedMap, setHasOpenedMap] = useState(true);
   const [dmTarget, setDmTarget] = useState<{ userId: string; name: string } | null>(null);
+  const isMobile = useIsMobile();
   const { villageName, playerLevel, loading, displayName, army, trainingQueue, vassalages } = useGame();
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
