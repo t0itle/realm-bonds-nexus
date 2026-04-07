@@ -1268,6 +1268,8 @@ export type Database = {
           pop_tax_rate: number
           population: number
           rations: string
+          settlement_sub_level: number
+          settlement_tier: number
           settlement_type: string
           spies: number
           steel: number
@@ -1305,6 +1307,8 @@ export type Database = {
           pop_tax_rate?: number
           population?: number
           rations?: string
+          settlement_sub_level?: number
+          settlement_tier?: number
           settlement_type?: string
           spies?: number
           steel?: number
@@ -1342,6 +1346,8 @@ export type Database = {
           pop_tax_rate?: number
           population?: number
           rations?: string
+          settlement_sub_level?: number
+          settlement_tier?: number
           settlement_type?: string
           spies?: number
           steel?: number
@@ -1425,6 +1431,66 @@ export type Database = {
         }
         Relationships: []
       }
+      world_burgs: {
+        Row: {
+          burg_group: string
+          burg_id: number
+          burg_type: string
+          color: string
+          created_at: string
+          culture_name: string
+          has_citadel: boolean
+          has_port: boolean
+          has_temple: boolean
+          has_walls: boolean
+          id: string
+          name: string
+          population: number
+          state_id: number
+          state_name: string
+          x: number
+          y: number
+        }
+        Insert: {
+          burg_group?: string
+          burg_id: number
+          burg_type?: string
+          color?: string
+          created_at?: string
+          culture_name?: string
+          has_citadel?: boolean
+          has_port?: boolean
+          has_temple?: boolean
+          has_walls?: boolean
+          id?: string
+          name: string
+          population?: number
+          state_id?: number
+          state_name?: string
+          x: number
+          y: number
+        }
+        Update: {
+          burg_group?: string
+          burg_id?: number
+          burg_type?: string
+          color?: string
+          created_at?: string
+          culture_name?: string
+          has_citadel?: boolean
+          has_port?: boolean
+          has_temple?: boolean
+          has_walls?: boolean
+          id?: string
+          name?: string
+          population?: number
+          state_id?: number
+          state_name?: string
+          x?: number
+          y?: number
+        }
+        Relationships: []
+      }
       world_events: {
         Row: {
           created_at: string
@@ -1461,6 +1527,39 @@ export type Database = {
           status?: string
           title?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      world_states: {
+        Row: {
+          capital_burg_id: number
+          color: string
+          created_at: string
+          culture_name: string
+          id: string
+          name: string
+          state_id: number
+          state_type: string
+        }
+        Insert: {
+          capital_burg_id?: number
+          color?: string
+          created_at?: string
+          culture_name?: string
+          id?: string
+          name: string
+          state_id: number
+          state_type?: string
+        }
+        Update: {
+          capital_burg_id?: number
+          color?: string
+          created_at?: string
+          culture_name?: string
+          id?: string
+          name?: string
+          state_id?: number
+          state_type?: string
         }
         Relationships: []
       }
