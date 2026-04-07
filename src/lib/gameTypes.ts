@@ -6,7 +6,18 @@ export interface Building {
   village_id: string;
 }
 
-export type BuildingType = 'townhall' | 'farm' | 'lumbermill' | 'quarry' | 'goldmine' | 'barracks' | 'wall' | 'watchtower' | 'house' | 'temple' | 'apothecary' | 'warehouse' | 'spyguild' | 'administrator' | 'empty';
+// Camp-tier buildings + Village-tier + Town-tier + City-tier
+export type BuildingType =
+  // Camp tier (tier 1)
+  | 'campfire' | 'tent' | 'lean_to' | 'forager' | 'woodpile' | 'stone_cache' | 'lookout'
+  // Village tier (tier 2)
+  | 'townhall' | 'farm' | 'lumbermill' | 'quarry' | 'goldmine' | 'house' | 'barracks' | 'wall' | 'watchtower' | 'warehouse'
+  // Town tier (tier 3)
+  | 'temple' | 'apothecary' | 'spyguild' | 'administrator' | 'market' | 'smithy'
+  // City tier (tier 4)
+  | 'castle' | 'university' | 'grand_temple' | 'fortress_wall'
+  // Empty slot
+  | 'empty';
 
 export interface Resources {
   gold: number;
@@ -29,10 +40,27 @@ export interface BuildingInfo {
   maxLevel: number;
   workersPerLevel: number;
   housingPerLevel?: number;
-  buildTime: number; // base seconds to build/upgrade
+  buildTime: number;
+  requiredTier: number; // minimum settlement tier to build
 }
 
-// === RATIONS SYSTEM ===
+// Settlement tiers
+export type SettlementTier = 1 | 2 | 3 | 4;
+
+export const SETTLEMENT_TIER_NAMES: Record<SettlementTier, string> = {
+  1: 'Camp',
+  2: 'Village',
+  3: 'Town',
+  4: 'City',
+};
+
+export const SETTLEMENT_TIER_MAX_SUB: Record<SettlementTier, number> = {
+  1: 20,
+  2: 20,
+  3: 20,
+  4: 15,
+};
+
 /** 0 = scarce, 50 = normal, 100 = generous (continuous slider) */
 export type RationsLevel = number;
 
@@ -64,7 +92,7 @@ export interface Army {
   scout: number;
 }
 
-export type InjuredArmy = Army; // same shape, tracks injured counts
+export type InjuredArmy = Army;
 
 export interface TrainingQueue {
   type: TroopType;
@@ -87,7 +115,7 @@ export interface SpyMissionInfo {
   emoji: string;
   description: string;
   goldCost: number;
-  baseSuccessRate: number; // 0-1
+  baseSuccessRate: number;
   spiesRequired: number;
 }
 
@@ -158,6 +186,8 @@ export interface Village {
   map_x: number;
   map_y: number;
   settlement_type: string;
+  settlement_tier: number;
+  settlement_sub_level: number;
 }
 
 export interface PlayerVillage {
@@ -178,4 +208,51 @@ export interface PopulationStats {
   housingCapacity: number;
   maxHouses: number;
   currentHouses: number;
+}
+
+// === WORLD MAP TYPES ===
+export interface WorldBurg {
+  id: string;
+  burg_id: number;
+  name: string;
+  x: number;
+  y: number;
+  state_id: number;
+  state_name: string;
+  culture_name: string;
+  population: number;
+  burg_type: string;
+  burg_group: string;
+  has_citadel: boolean;
+  has_walls: boolean;
+  has_temple: boolean;
+  has_port: boolean;
+  color: string;
+}
+
+export interface WorldState {
+  id: string;
+  state_id: number;
+  name: string;
+  color: string;
+  capital_burg_id: number;
+  culture_name: string;
+  state_type: string;
+}
+
+// Sub-level upgrade info
+export interface SubLevelUpgrade {
+  subLevel: number;
+  name: string;
+  description: string;
+  cost: Resources;
+  steelCost: number;
+  buildTimeSec: number;
+  unlocks?: string; // what this sub-level unlocks
+  bonuses?: {
+    productionBonus?: number; // percentage
+    storageBonus?: number;
+    populationBonus?: number;
+    defenseBonus?: number;
+  };
 }
