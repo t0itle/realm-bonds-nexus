@@ -1829,6 +1829,9 @@ export default function WorldMap() {
         onTouchMove={handleTouchMove}
         onWheel={handleWheel}
       >
+        {/* Azgaar Map Background Canvas */}
+        <AzgaarMapCanvas camera={camera} containerWidth={containerSize.w} containerHeight={containerSize.h} />
+
         {/* Subtle grid lines */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible' }}>
           {(() => {
