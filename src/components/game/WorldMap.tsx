@@ -13,6 +13,8 @@ import AttackConfigPanel from './AttackConfigPanel';
 import TroopTransferPanel from './TroopTransferPanel';
 import { FACTION_MAP_SPRITES, FACTION_SOLDIER_SPRITES, FACTION_FORT_SPRITES, FACTION_OUTPOST_SPRITES } from './factionMapSprites';
 import { getMineSteelPerTickForChunk } from '@/lib/mineProduction';
+import { useAzgaarMap, azgaarToWorld, AZGAAR_SCALE } from '@/hooks/useAzgaarMap';
+import { AzgaarMapCanvas } from './AzgaarMapCanvas';
 
 // Map sprites
 import mapCastleHostile from '@/assets/sprites/map-castle-hostile.png';
@@ -1274,7 +1276,9 @@ export default function WorldMap() {
     return () => clearInterval(interval);
   }, [tradeContracts.length]);
 
-  const DEFAULT_CAMERA = { cx: 100000, cy: 100000, ppu: 0.003 };
+  // Center on Azgaar map (roughly middle of the map)
+  const DEFAULT_CAMERA = { cx: 175000, cy: 330000, ppu: 0.002 };
+  const azgaarMap = useAzgaarMap();
   const initializedCamera = useRef(false);
   const [camera, setCamera] = useState(DEFAULT_CAMERA);
   const rafRef = useRef<number | null>(null);
@@ -1825,6 +1829,9 @@ export default function WorldMap() {
         onTouchMove={handleTouchMove}
         onWheel={handleWheel}
       >
+        {/* Azgaar Map Background Canvas */}
+        <AzgaarMapCanvas camera={camera} containerWidth={containerSize.w} containerHeight={containerSize.h} />
+
         {/* Subtle grid lines */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible' }}>
           {(() => {
@@ -1858,53 +1865,8 @@ export default function WorldMap() {
           })()}
         </svg>
 
-        {/* ── Ocean chunk overlays ── */}
-        {visibleChunks.filter(c => c.data.regionBiome === 'Ocean').map(chunk => {
-          const { sx, sy } = worldToScreen(chunk.cx * CHUNK_SIZE, chunk.cy * CHUNK_SIZE);
-          const size = CHUNK_SIZE * camera.ppu;
-          if (size < 4) return null;
-          return (
-            <div key={`ocean-${chunk.cx}-${chunk.cy}`}
-              className="absolute pointer-events-none"
-              style={{
-                left: sx, top: sy,
-                width: size, height: size,
-                background: 'radial-gradient(ellipse at center, hsl(210 80% 25% / 0.6), hsl(215 85% 18% / 0.75) 60%, hsl(220 90% 12% / 0.85))',
-                borderRadius: 0,
-              }}
-            />
-          );
-        })}
+        {/* Ocean and biome overlays now handled by AzgaarMapCanvas */}
 
-        {/* ── Exotic biome chunk overlays ── */}
-        {visibleChunks.filter(c => {
-          const ec = getExoticContinent(c.cx, c.cy);
-          return ec !== null;
-        }).map(chunk => {
-          const { sx, sy } = worldToScreen(chunk.cx * CHUNK_SIZE, chunk.cy * CHUNK_SIZE);
-          const size = CHUNK_SIZE * camera.ppu;
-          if (size < 4) return null;
-          const ec = getExoticContinent(chunk.cx, chunk.cy)!;
-          const biomeOverlays: Record<string, string> = {
-            'Desert': 'radial-gradient(ellipse at center, hsl(40 60% 40% / 0.4), hsl(35 55% 30% / 0.5) 60%, hsl(30 50% 22% / 0.55))',
-            'Oasis': 'radial-gradient(ellipse at center, hsl(45 55% 45% / 0.35), hsl(130 40% 30% / 0.3) 70%, hsl(40 50% 25% / 0.45))',
-            'Jungle': 'radial-gradient(ellipse at center, hsl(140 50% 20% / 0.5), hsl(130 55% 15% / 0.55) 60%, hsl(120 60% 10% / 0.6))',
-            'DeepJungle': 'radial-gradient(ellipse at center, hsl(150 55% 15% / 0.55), hsl(140 60% 10% / 0.6) 60%, hsl(130 65% 8% / 0.65))',
-            'Lava': 'radial-gradient(ellipse at center, hsl(15 80% 30% / 0.5), hsl(5 70% 20% / 0.55) 60%, hsl(0 60% 15% / 0.6))',
-            'VolcanicIslands': 'radial-gradient(ellipse at center, hsl(10 70% 25% / 0.45), hsl(210 60% 20% / 0.35) 60%, hsl(0 50% 18% / 0.5))',
-            'Islands': 'radial-gradient(ellipse at center, hsl(190 70% 40% / 0.35), hsl(200 65% 30% / 0.4) 60%, hsl(210 70% 22% / 0.5))',
-          };
-          return (
-            <div key={`exotic-${chunk.cx}-${chunk.cy}`}
-              className="absolute pointer-events-none"
-              style={{
-                left: sx, top: sy,
-                width: size, height: size,
-                background: biomeOverlays[ec.biome] || biomeOverlays['Desert'],
-              }}
-            />
-          );
-        })}
 
 
         {visibleChunks.map(chunk => chunk.data.terrain.map((t, ti) => {
@@ -2084,9 +2046,42 @@ export default function WorldMap() {
           );
         })}
 
+        {/* ── Azgaar NPC Burgs ── */}
+        {!azgaarMap.loading && azgaarMap.burgs.map(burg => {
+          const worldPos = azgaarToWorld(burg.x, burg.y);
+          if (!isVisible(worldPos.x, worldPos.y, 80)) return null;
+          const { sx, sy } = worldToScreen(worldPos.x, worldPos.y);
+          const burgSize = Math.max(16, Math.min(36, camera.ppu * 6000));
+          if (burgSize < 8) return null;
+          const state = azgaarMap.states.find(s => s.id === burg.state);
+          const isCapital = burg.capital;
+          return (
+            <div key={`burg-${burg.id}`}
+              className="absolute flex flex-col items-center pointer-events-none z-[8]"
+              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
+              <div className="rounded-full border shadow-sm flex items-center justify-center"
+                style={{
+                  width: burgSize, height: burgSize,
+                  backgroundColor: state?.color || '#888',
+                  borderColor: isCapital ? 'gold' : 'rgba(255,255,255,0.3)',
+                  borderWidth: isCapital ? 2 : 1,
+                  opacity: 0.85,
+                }}>
+                <span style={{ fontSize: burgSize * 0.5 }}>{isCapital ? '👑' : burg.walls ? '🏰' : '🏘️'}</span>
+              </div>
+              {burgSize > 18 && (
+                <span className="text-foreground/70 font-display whitespace-nowrap mt-0.5 drop-shadow-sm"
+                  style={{ fontSize: Math.max(7, burgSize / 3.5) }}>
+                  {burg.name}
+                </span>
+              )}
+            </div>
+          );
+        })}
+
         {/* NPC Realms */}
         {renderRealms.map(realm => {
-          if (!isWithinVision(realm.x, realm.y, Math.max(8000, realm.territory * 0.2))) return null;
+          // No fog of war - all realms visible
           const { sx, sy } = worldToScreen(realm.x, realm.y);
           const npcRel = npcState.playerRelations.get(realm.id);
           const isVassal = npcRel?.status === 'vassal';
@@ -2122,7 +2117,7 @@ export default function WorldMap() {
 
         {/* Events */}
         {renderEvents.map((event) => {
-          if (!isWithinVision(event.x, event.y, 3000)) return null;
+          // No fog of war
           const { sx, sy } = worldToScreen(event.x, event.y);
           const evSprite = event.type === 'mystery' ? mapRuins : EVENT_SPRITES[event.type];
           return (
@@ -2149,7 +2144,7 @@ export default function WorldMap() {
 
         {/* Steel Mines */}
         {visibleChunks.map(chunk => chunk.data.steelMines.map(mine => {
-          if (!isWithinVision(mine.x, mine.y, 4000)) return null;
+          // No fog of war
           if (!isVisible(mine.x, mine.y, 60)) return null;
           const { sx, sy } = worldToScreen(mine.x, mine.y);
           const isCaptured = capturedMines.has(mine.id);
@@ -2178,7 +2173,7 @@ export default function WorldMap() {
             const isMe = pv.village.user_id === user?.id;
             return { pv, pos, sx, sy, isMe };
           }).filter(p => {
-            if (!isWithinVision(p.pos.x, p.pos.y, 5000)) return false;
+            // No fog of war - all players visible
             const margin = 80;
             return p.sx > -margin && p.sx < containerSize.w + margin && p.sy > -margin && p.sy < containerSize.h + margin;
           });
@@ -2310,7 +2305,7 @@ export default function WorldMap() {
           const progress = Math.min(1, Math.max(0, elapsed / totalDuration));
           const currentX = march.start_x + (march.target_x - march.start_x) * progress;
           const currentY = march.start_y + (march.target_y - march.start_y) * progress;
-          if (!isWithinVision(currentX, currentY, 3000)) return null;
+          // No fog of war
           const { sx, sy } = worldToScreen(currentX, currentY);
           // Visibility check
           if (sx < -80 || sx > containerSize.w + 80 || sy < -80 || sy > containerSize.h + 80) return null;
@@ -2497,7 +2492,7 @@ export default function WorldMap() {
           // Group outposts by owner
           const ownerGroups = new Map<string, typeof outposts>();
           for (const op of outposts) {
-            if (!isWithinVision(op.x, op.y, op.territory_radius + 5000)) continue;
+            // No fog of war
             const arr = ownerGroups.get(op.user_id) || [];
             arr.push(op);
             ownerGroups.set(op.user_id, arr);
@@ -2658,7 +2653,7 @@ export default function WorldMap() {
         {/* ── Outpost markers on the map ── */}
         {outposts.filter(o => o.outpost_type !== 'bridge').map(outpost => {
           const visibleRadius = Math.max(6000, outpost.territory_radius || 0);
-          if (!isWithinVision(outpost.x, outpost.y, visibleRadius)) return null;
+          // No fog of war
           if (!isVisible(outpost.x, outpost.y, 60)) return null;
           const { sx, sy } = worldToScreen(outpost.x, outpost.y);
           const opSize = Math.max(28, Math.min(52, camera.ppu * 9000));
