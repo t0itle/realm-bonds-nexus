@@ -25,6 +25,7 @@ export type {
   BattleLog, Vassalage, Village, PlayerVillage,
   RationsLevel, TroopType, TroopInfo,
   WorkerAssignments, PopulationStats,
+  SettlementTier, SubLevelUpgrade, WorldBurg, WorldState,
 } from '@/lib/gameTypes';
 
 export {
@@ -32,7 +33,7 @@ export {
   RATIONS_INFO, TROOP_INFO, SPY_MISSION_INFO, TROOP_COUNTERS,
   resolveCombat, MAX_MARCH_RANGE, SCOUT_RANGE_BONUS,
   getSlowestTroopSpeed, calcMarchTime, WATCHTOWER_RANGE_BONUS, getMaxRange,
-  SETTLEMENT_UPGRADES,
+  SETTLEMENT_UPGRADES, getBuildingsForTier, getSubLevelUpgrade,
 } from '@/lib/gameConstants';
 
 import type {
