@@ -7,11 +7,11 @@ import { SETTLEMENT_UPGRADES } from '@/lib/gameConstants';
 interface UseSettlementUpgradeParams {
   villageId: string | null;
   user: { id: string } | null;
-  settlementType: 'village' | 'town' | 'city';
-  setSettlementType: React.Dispatch<React.SetStateAction<'village' | 'town' | 'city'>>;
+  settlementType: 'camp' | 'village' | 'town' | 'city';
+  setSettlementType: React.Dispatch<React.SetStateAction<'camp' | 'village' | 'town' | 'city'>>;
   settlementUpgradeFinishTime: number | null;
   setSettlementUpgradeFinishTime: React.Dispatch<React.SetStateAction<number | null>>;
-  settlementTypeRef: React.MutableRefObject<'village' | 'town' | 'city'>;
+  settlementTypeRef: React.MutableRefObject<'camp' | 'village' | 'town' | 'city'>;
   setMyVillages: React.Dispatch<React.SetStateAction<{ id: string; name: string; settlement_type: string }[]>>;
   resources: Resources;
   setResources: React.Dispatch<React.SetStateAction<Resources>>;
