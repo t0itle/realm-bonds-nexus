@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 
 export interface AzgaarCell {
-  x: number; // Azgaar pixel coord
+  x: number;
   y: number;
   height: number;
   stateId: number;
@@ -12,7 +12,7 @@ export interface AzgaarCell {
 export interface AzgaarBurg {
   id: number;
   name: string;
-  x: number; // Azgaar pixel coord
+  x: number;
   y: number;
   state: number;
   culture: number;
@@ -62,14 +62,13 @@ export function worldToAzgaar(wx: number, wy: number): { x: number; y: number } 
   return { x: wx / AZGAAR_SCALE, y: wy / AZGAAR_SCALE };
 }
 
-// Pre-built offscreen canvas for fast rendering
-let _offscreenCanvas: HTMLCanvasElement | null = null;
-let _offscreenReady = false;
+// Offscreen canvas data URL for Leaflet ImageOverlay
+let _mapImageUrl: string | null = null;
 let _stateColors: Map<number, string> = new Map();
 let _cellsData: AzgaarCell[] = [];
 
-export function getOffscreenCanvas() {
-  return _offscreenReady ? _offscreenCanvas : null;
+export function getMapImageUrl() {
+  return _mapImageUrl;
 }
 
 export function getStateColors() {
@@ -80,7 +79,7 @@ export function getCellsData() {
   return _cellsData;
 }
 
-export function useAzgaarMap(): AzgaarMapData {
+export function useAzgaarMap(): AzgaarMapData & { mapImageUrl: string | null } {
   const [data, setData] = useState<AzgaarMapData>({
     cells: [],
     burgs: [],
@@ -90,6 +89,7 @@ export function useAzgaarMap(): AzgaarMapData {
     mapHeight: 697,
     loading: true,
   });
+  const [mapImageUrl, setMapImageUrl] = useState<string | null>(_mapImageUrl);
   const loaded = useRef(false);
 
   useEffect(() => {
@@ -144,17 +144,17 @@ export function useAzgaarMap(): AzgaarMapData {
       const mapWidth = worldJson.info?.width || 384;
       const mapHeight = worldJson.info?.height || 697;
 
-      // Build state color map
       _stateColors = new Map();
       for (const s of states) {
         _stateColors.set(s.id, s.color);
       }
 
-      // Store cells for external access
       _cellsData = cells;
 
-      // Build offscreen canvas
-      buildOffscreenCanvas(cells, states, mapWidth, mapHeight);
+      // Build offscreen canvas and convert to data URL
+      const url = buildMapImage(cells, states, mapWidth, mapHeight);
+      _mapImageUrl = url;
+      setMapImageUrl(url);
 
       setData({
         cells,
@@ -171,11 +171,10 @@ export function useAzgaarMap(): AzgaarMapData {
     });
   }, []);
 
-  return data;
+  return { ...data, mapImageUrl };
 }
 
-function buildOffscreenCanvas(cells: AzgaarCell[], states: AzgaarState[], mapWidth: number, mapHeight: number) {
-  // Canvas at 2x Azgaar resolution for quality
+function buildMapImage(cells: AzgaarCell[], states: AzgaarState[], mapWidth: number, mapHeight: number): string {
   const scale = 2;
   const canvas = document.createElement('canvas');
   canvas.width = mapWidth * scale;
@@ -186,43 +185,34 @@ function buildOffscreenCanvas(cells: AzgaarCell[], states: AzgaarState[], mapWid
   ctx.fillStyle = '#1a3a5c';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // State color lookup
   const stateColorMap = new Map<number, string>();
   for (const s of states) {
     stateColorMap.set(s.id, s.color);
   }
 
-  // Draw each cell
-  const cellSize = 2.2 * scale; // slightly larger than spacing to avoid gaps
+  const cellSize = 2.2 * scale;
   for (const cell of cells) {
     const cx = cell.x * scale;
     const cy = cell.y * scale;
 
     if (cell.stateId === 0) {
-      // Ocean / unclaimed - use depth-based blue
       const depth = Math.max(0, 20 - cell.height) / 20;
       const r = Math.floor(20 + depth * 10);
       const g = Math.floor(45 + depth * 20);
       const b = Math.floor(80 + depth * 30);
       ctx.fillStyle = `rgb(${r},${g},${b})`;
     } else {
-      // Land - use state color with height shading
       const baseColor = stateColorMap.get(cell.stateId) || '#4a7c59';
       const rgb = hexToRgb(baseColor);
-      // Height modifier: higher = lighter
-      const hMod = (cell.height - 20) / 54; // normalize 20-74 to 0-1
-      const brightness = 0.7 + hMod * 0.4; // 0.7-1.1
+      const hMod = (cell.height - 20) / 54;
+      const brightness = 0.7 + hMod * 0.4;
       ctx.fillStyle = `rgb(${clamp(rgb.r * brightness)},${clamp(rgb.g * brightness)},${clamp(rgb.b * brightness)})`;
     }
 
     ctx.fillRect(cx - cellSize / 2, cy - cellSize / 2, cellSize, cellSize);
   }
 
-  // Draw state borders (cells where adjacent cells have different state)
-  // Skip for now - expensive and the color difference shows borders naturally
-
-  _offscreenCanvas = canvas;
-  _offscreenReady = true;
+  return canvas.toDataURL('image/png');
 }
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } {

@@ -173,3 +173,27 @@
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
+
+/* Leaflet icon overrides */
+.leaflet-emoji-icon,
+.leaflet-label-icon,
+.leaflet-burg-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 0.75rem !important;
+}
+
+.leaflet-popup-tip {
+  background: hsl(var(--background)) !important;
+}
+
+.leaflet-popup-content {
+  margin: 8px 12px !important;
+  font-size: 12px;
+}
