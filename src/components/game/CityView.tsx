@@ -158,7 +158,7 @@ function CityBuilding({ building, sprite, animDelay, workerAssigned }: {
 }
 
 export default function CityView() {
-  const { buildings, army, population, workerAssignments } = useGame();
+  const { buildings, army, population, workerAssignments, settlementType } = useGame();
   const { getBuildingSprite } = useTroopSkins();
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(384);
@@ -172,14 +172,16 @@ export default function CityView() {
   }, []);
 
   const nonEmpty = buildings.filter(b => b.type !== 'empty');
-  const townhall = nonEmpty.find(b => b.type === 'townhall');
+  // Handle both camp (campfire) and village+ (townhall) center buildings
+  const centerBuilding = nonEmpty.find(b => b.type === 'townhall' || b.type === 'campfire');
   const walls = nonEmpty.filter(b => b.type === 'wall');
-  const rest = nonEmpty.filter(b => b.type !== 'townhall' && b.type !== 'wall');
+  const rest = nonEmpty.filter(b => b.type !== 'townhall' && b.type !== 'campfire' && b.type !== 'wall');
+  const isCamp = settlementType === 'camp';
 
   // Separate into zones
-  const military = rest.filter(b => ['barracks', 'watchtower', 'spyguild'].includes(b.type));
-  const production = rest.filter(b => ['farm', 'lumbermill', 'quarry', 'goldmine'].includes(b.type));
-  const civic = rest.filter(b => ['house', 'temple', 'apothecary', 'warehouse', 'administrator'].includes(b.type));
+  const military = rest.filter(b => ['barracks', 'watchtower', 'spyguild', 'lookout'].includes(b.type));
+  const production = rest.filter(b => ['farm', 'lumbermill', 'quarry', 'goldmine', 'forager', 'woodpile', 'stone_cache'].includes(b.type));
+  const civic = rest.filter(b => ['house', 'tent', 'lean_to', 'temple', 'apothecary', 'warehouse', 'administrator'].includes(b.type));
 
   const totalTroops = Object.values(army).reduce((s: number, v: number) => s + v, 0);
   const civCount = Math.min(Math.floor(population.current * 0.3), 8);
@@ -334,28 +336,30 @@ export default function CityView() {
             </div>
           )}
 
-          {/* === TOWNHALL - CENTER FOCAL POINT === */}
-          {townhall && (
+          {/* === CENTER FOCAL POINT (campfire or townhall) === */}
+          {centerBuilding && (
             <div className="flex justify-center mb-4 relative" style={{ zIndex: 5 }}>
-              {/* Glow underneath */}
               <div className="absolute bottom-0 w-24 h-4 rounded-full bg-amber-400/10 blur-md" />
               <CityBuilding
-                building={townhall}
-                sprite={getBuildingSprite('townhall')}
+                building={centerBuilding}
+                sprite={getBuildingSprite(centerBuilding.type as Exclude<BuildingType, 'empty'>)}
                 animDelay={0}
                 workerAssigned={false}
               />
-              {/* Banner flags */}
-              <motion.div className="absolute -top-1 left-1/2 -translate-x-6 text-[8px] pointer-events-none"
-                animate={{ rotate: [-5, 5, -5] }}
-                transition={{ duration: 2, repeat: Infinity }}>
-                🚩
-              </motion.div>
-              <motion.div className="absolute -top-1 left-1/2 translate-x-3 text-[8px] pointer-events-none"
-                animate={{ rotate: [5, -5, 5] }}
-                transition={{ duration: 2.2, repeat: Infinity }}>
-                🚩
-              </motion.div>
+              {!isCamp && (
+                <>
+                  <motion.div className="absolute -top-1 left-1/2 -translate-x-6 text-[8px] pointer-events-none"
+                    animate={{ rotate: [-5, 5, -5] }}
+                    transition={{ duration: 2, repeat: Infinity }}>
+                    🚩
+                  </motion.div>
+                  <motion.div className="absolute -top-1 left-1/2 translate-x-3 text-[8px] pointer-events-none"
+                    animate={{ rotate: [5, -5, 5] }}
+                    transition={{ duration: 2.2, repeat: Infinity }}>
+                    🚩
+                  </motion.div>
+                </>
+              )}
             </div>
           )}
 

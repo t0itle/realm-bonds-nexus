@@ -15,6 +15,8 @@ import { lazy, Suspense } from 'react';
 
 const MilitaryPanel = lazy(() => import('./MilitaryPanel'));
 const StatSheet = lazy(() => import('./StatSheet'));
+const SettlementUpgradePanel = lazy(() => import('./SettlementUpgradePanel'));
+const CampSkillsPanel = lazy(() => import('./CampSkillsPanel'));
 
 function getGridSize(settlementType: string): number {
   if (settlementType === 'city') return 25;
@@ -192,7 +194,7 @@ export default function VillageGrid() {
   const [workerBuilding, setWorkerBuilding] = useState<Building | null>(null);
   const tick = useGameTicker();
 
-  const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
+  const townhallLevel = buildings.find(b => b.type === 'townhall' || b.type === 'campfire')?.level || 1;
   const gridSize = getGridSize(settlementType);
   const gridCols = getGridCols(gridSize);
 
@@ -368,6 +370,24 @@ export default function VillageGrid() {
           );
         })()}
       </div>
+
+      {/* Settlement Sub-Level Upgrade */}
+      <Suspense fallback={null}>
+        <SettlementUpgradePanel />
+      </Suspense>
+
+      {/* Camp Skills (only show at camp tier) */}
+      {settlementType === 'camp' && (
+        <div className="px-3 pb-2">
+          <CollapsibleSection icon="🎓" title="Camp Skills" defaultOpen={false}>
+            <div className="game-panel border border-border/30 rounded-b-xl p-3">
+              <Suspense fallback={<div className="text-center text-muted-foreground text-xs py-4">Loading...</div>}>
+                <CampSkillsPanel />
+              </Suspense>
+            </div>
+          </CollapsibleSection>
+        </div>
+      )}
 
       {/* Inline Oracle Widget */}
       <OracleWidget />
