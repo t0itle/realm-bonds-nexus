@@ -2084,7 +2084,7 @@ export default function WorldMap() {
 
         {/* Events */}
         {renderEvents.map((event) => {
-          if (!isWithinVision(event.x, event.y, 3000)) return null;
+          // No fog of war
           const { sx, sy } = worldToScreen(event.x, event.y);
           const evSprite = event.type === 'mystery' ? mapRuins : EVENT_SPRITES[event.type];
           return (
@@ -2111,7 +2111,7 @@ export default function WorldMap() {
 
         {/* Steel Mines */}
         {visibleChunks.map(chunk => chunk.data.steelMines.map(mine => {
-          if (!isWithinVision(mine.x, mine.y, 4000)) return null;
+          // No fog of war
           if (!isVisible(mine.x, mine.y, 60)) return null;
           const { sx, sy } = worldToScreen(mine.x, mine.y);
           const isCaptured = capturedMines.has(mine.id);
@@ -2140,7 +2140,7 @@ export default function WorldMap() {
             const isMe = pv.village.user_id === user?.id;
             return { pv, pos, sx, sy, isMe };
           }).filter(p => {
-            if (!isWithinVision(p.pos.x, p.pos.y, 5000)) return false;
+            // No fog of war - all players visible
             const margin = 80;
             return p.sx > -margin && p.sx < containerSize.w + margin && p.sy > -margin && p.sy < containerSize.h + margin;
           });
@@ -2272,7 +2272,7 @@ export default function WorldMap() {
           const progress = Math.min(1, Math.max(0, elapsed / totalDuration));
           const currentX = march.start_x + (march.target_x - march.start_x) * progress;
           const currentY = march.start_y + (march.target_y - march.start_y) * progress;
-          if (!isWithinVision(currentX, currentY, 3000)) return null;
+          // No fog of war
           const { sx, sy } = worldToScreen(currentX, currentY);
           // Visibility check
           if (sx < -80 || sx > containerSize.w + 80 || sy < -80 || sy > containerSize.h + 80) return null;
@@ -2459,7 +2459,7 @@ export default function WorldMap() {
           // Group outposts by owner
           const ownerGroups = new Map<string, typeof outposts>();
           for (const op of outposts) {
-            if (!isWithinVision(op.x, op.y, op.territory_radius + 5000)) continue;
+            // No fog of war
             const arr = ownerGroups.get(op.user_id) || [];
             arr.push(op);
             ownerGroups.set(op.user_id, arr);
@@ -2620,7 +2620,7 @@ export default function WorldMap() {
         {/* ── Outpost markers on the map ── */}
         {outposts.filter(o => o.outpost_type !== 'bridge').map(outpost => {
           const visibleRadius = Math.max(6000, outpost.territory_radius || 0);
-          if (!isWithinVision(outpost.x, outpost.y, visibleRadius)) return null;
+          // No fog of war
           if (!isVisible(outpost.x, outpost.y, 60)) return null;
           const { sx, sy } = worldToScreen(outpost.x, outpost.y);
           const opSize = Math.max(28, Math.min(52, camera.ppu * 9000));
