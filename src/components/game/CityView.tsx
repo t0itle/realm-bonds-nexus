@@ -179,9 +179,9 @@ export default function CityView() {
   const isCamp = settlementType === 'camp';
 
   // Separate into zones
-  const military = rest.filter(b => ['barracks', 'watchtower', 'spyguild'].includes(b.type));
-  const production = rest.filter(b => ['farm', 'lumbermill', 'quarry', 'goldmine'].includes(b.type));
-  const civic = rest.filter(b => ['house', 'temple', 'apothecary', 'warehouse', 'administrator'].includes(b.type));
+  const military = rest.filter(b => ['barracks', 'watchtower', 'spyguild', 'lookout'].includes(b.type));
+  const production = rest.filter(b => ['farm', 'lumbermill', 'quarry', 'goldmine', 'forager', 'woodpile', 'stone_cache'].includes(b.type));
+  const civic = rest.filter(b => ['house', 'tent', 'lean_to', 'temple', 'apothecary', 'warehouse', 'administrator'].includes(b.type));
 
   const totalTroops = Object.values(army).reduce((s: number, v: number) => s + v, 0);
   const civCount = Math.min(Math.floor(population.current * 0.3), 8);
