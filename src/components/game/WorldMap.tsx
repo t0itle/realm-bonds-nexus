@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { MapContainer, ImageOverlay, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -14,7 +14,7 @@ import NPCInteractionPanel from './NPCInteractionPanel';
 import { useTroopSkins } from '@/hooks/useTroopSkins';
 import AttackConfigPanel from './AttackConfigPanel';
 import TroopTransferPanel from './TroopTransferPanel';
-import { useAzgaarMap, azgaarToWorld, AZGAAR_SCALE } from '@/hooks/useAzgaarMap';
+import { useAzgaarMap, AZGAAR_SCALE } from '@/hooks/useAzgaarMap';
 
 // Leaflet coordinate system: we use CRS.Simple
 // Azgaar map pixels map directly to Leaflet lat/lng (y inverted)
@@ -90,6 +90,16 @@ function FlyTo({ position, zoom }: { position: L.LatLngExpression | null; zoom?:
   return null;
 }
 
+function MapInstanceBridge({ onMapReady }: { onMapReady: (map: L.Map) => void }) {
+  const map = useMap();
+
+  useEffect(() => {
+    onMapReady(map);
+  }, [map, onMapReady]);
+
+  return null;
+}
+
 type SelectedItem =
   | { kind: 'player'; data: any }
   | { kind: 'outpost'; data: any }
@@ -109,6 +119,7 @@ export default function WorldMap() {
   const [, forceRender] = useState(0);
   const [attackConfig, setAttackConfig] = useState<any>(null);
   const [flyTarget, setFlyTarget] = useState<L.LatLngExpression | null>(null);
+  const [leafletMap, setLeafletMap] = useState<L.Map | null>(null);
 
   const azgaarMap = useAzgaarMap();
 
@@ -343,7 +354,9 @@ export default function WorldMap() {
   const initialCenter = useMemo((): L.LatLngExpression => {
     const pos = getMyPos();
     return worldToLatLng(pos.x, pos.y);
-  }, []);
+  }, [getMyPos]);
+
+  const mapControlButtonClassName = 'w-9 h-9 bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-sm active:scale-90 transition-all hover:bg-background/95 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed';
 
   if (azgaarMap.loading) {
     return (
@@ -368,20 +381,31 @@ export default function WorldMap() {
 
       <div className="flex-1 relative">
         <MapContainer
+          className="world-leaflet-map"
           center={initialCenter}
           zoom={1}
-          minZoom={-2}
-          maxZoom={5}
+          minZoom={-1}
+          maxZoom={6}
           crs={L.CRS.Simple}
-          style={{ width: '100%', height: '100%', background: '#1a3a5c' }}
+          maxBounds={mapBounds}
+          maxBoundsViscosity={0.9}
+          scrollWheelZoom
+          touchZoom
+          doubleClickZoom
+          zoomSnap={0.25}
+          zoomDelta={0.5}
+          style={{ width: '100%', height: '100%', background: 'hsl(var(--map-bg-1))' }}
           attributionControl={false}
           zoomControl={false}
         >
+          <MapInstanceBridge onMapReady={setLeafletMap} />
+
           {/* Map background image from Azgaar cells */}
           {azgaarMap.mapImageUrl && (
             <ImageOverlay
               url={azgaarMap.mapImageUrl}
               bounds={mapBounds}
+              opacity={1}
             />
           )}
 
@@ -489,8 +513,15 @@ export default function WorldMap() {
 
         {/* Zoom controls */}
         <div className="absolute bottom-20 sm:bottom-16 right-3 flex flex-col gap-1 z-[1000]">
-          <button onClick={goHome}
-            className="w-9 h-9 bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-xs active:scale-90 transition-all hover:bg-background/95 shadow-sm">⌂</button>
+          <button type="button" aria-label="Zoom in" onClick={() => leafletMap?.zoomIn()}
+            disabled={!leafletMap}
+            className={mapControlButtonClassName}>+</button>
+          <button type="button" aria-label="Zoom out" onClick={() => leafletMap?.zoomOut()}
+            disabled={!leafletMap}
+            className={mapControlButtonClassName}>−</button>
+          <button type="button" aria-label="Center on home" onClick={goHome}
+            disabled={!leafletMap}
+            className={mapControlButtonClassName}>⌂</button>
         </div>
 
         {/* Selected item panel */}
