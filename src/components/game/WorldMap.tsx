@@ -13,6 +13,8 @@ import AttackConfigPanel from './AttackConfigPanel';
 import TroopTransferPanel from './TroopTransferPanel';
 import { FACTION_MAP_SPRITES, FACTION_SOLDIER_SPRITES, FACTION_FORT_SPRITES, FACTION_OUTPOST_SPRITES } from './factionMapSprites';
 import { getMineSteelPerTickForChunk } from '@/lib/mineProduction';
+import { useAzgaarMap, azgaarToWorld, AZGAAR_SCALE } from '@/hooks/useAzgaarMap';
+import { AzgaarMapCanvas } from './AzgaarMapCanvas';
 
 // Map sprites
 import mapCastleHostile from '@/assets/sprites/map-castle-hostile.png';
