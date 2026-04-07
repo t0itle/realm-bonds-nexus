@@ -51,8 +51,8 @@ export function useVillageDataLoader(user: { id: string } | null) {
   const [poisons, setPoisons] = useState(0);
   const [allianceTaxRate, setAllianceTaxRate] = useState(0);
   const [allianceId, setAllianceId] = useState<string | null>(null);
-  const settlementTypeRef = useRef<'village' | 'town' | 'city'>('village');
-  const [settlementType, setSettlementType] = useState<'village' | 'town' | 'city'>('village');
+  const settlementTypeRef = useRef<'camp' | 'village' | 'town' | 'city'>('camp');
+  const [settlementType, setSettlementType] = useState<'camp' | 'village' | 'town' | 'city'>('camp');
   const [settlementUpgradeFinishTime, setSettlementUpgradeFinishTime] = useState<number | null>(null);
 
   const refreshMineOutposts = useCallback(async () => {
