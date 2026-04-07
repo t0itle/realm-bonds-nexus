@@ -15,6 +15,8 @@ import { lazy, Suspense } from 'react';
 
 const MilitaryPanel = lazy(() => import('./MilitaryPanel'));
 const StatSheet = lazy(() => import('./StatSheet'));
+const SettlementUpgradePanel = lazy(() => import('./SettlementUpgradePanel'));
+const CampSkillsPanel = lazy(() => import('./CampSkillsPanel'));
 
 function getGridSize(settlementType: string): number {
   if (settlementType === 'city') return 25;
