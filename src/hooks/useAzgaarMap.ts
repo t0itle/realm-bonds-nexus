@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { buildDetailedAzgaarMapImage } from '@/lib/azgaarMapRenderer';
 
 export interface AzgaarCell {
   x: number;
@@ -143,6 +144,8 @@ export function useAzgaarMap(): AzgaarMapData & { mapImageUrl: string | null } {
 
       const mapWidth = worldJson.info?.width || 384;
       const mapHeight = worldJson.info?.height || 697;
+      const mapVertices: number[][] = Array.isArray(cellsJson.vp) ? cellsJson.vp : [];
+      const cellVertices: number[][] = Array.isArray(cellsJson.cv) ? cellsJson.cv : [];
 
       _stateColors = new Map();
       for (const s of states) {
@@ -151,8 +154,7 @@ export function useAzgaarMap(): AzgaarMapData & { mapImageUrl: string | null } {
 
       _cellsData = cells;
 
-      // Build offscreen canvas and convert to data URL
-      const url = buildMapImage(cells, states, mapWidth, mapHeight);
+      const url = buildDetailedAzgaarMapImage(cells, states, mapVertices, cellVertices, mapWidth, mapHeight) || null;
       _mapImageUrl = url;
       setMapImageUrl(url);
 
@@ -172,56 +174,4 @@ export function useAzgaarMap(): AzgaarMapData & { mapImageUrl: string | null } {
   }, []);
 
   return { ...data, mapImageUrl };
-}
-
-function buildMapImage(cells: AzgaarCell[], states: AzgaarState[], mapWidth: number, mapHeight: number): string {
-  const scale = 2;
-  const canvas = document.createElement('canvas');
-  canvas.width = mapWidth * scale;
-  canvas.height = mapHeight * scale;
-  const ctx = canvas.getContext('2d')!;
-
-  // Ocean background
-  ctx.fillStyle = '#1a3a5c';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  const stateColorMap = new Map<number, string>();
-  for (const s of states) {
-    stateColorMap.set(s.id, s.color);
-  }
-
-  const cellSize = 2.2 * scale;
-  for (const cell of cells) {
-    const cx = cell.x * scale;
-    const cy = cell.y * scale;
-
-    if (cell.stateId === 0) {
-      const depth = Math.max(0, 20 - cell.height) / 20;
-      const r = Math.floor(20 + depth * 10);
-      const g = Math.floor(45 + depth * 20);
-      const b = Math.floor(80 + depth * 30);
-      ctx.fillStyle = `rgb(${r},${g},${b})`;
-    } else {
-      const baseColor = stateColorMap.get(cell.stateId) || '#4a7c59';
-      const rgb = hexToRgb(baseColor);
-      const hMod = (cell.height - 20) / 54;
-      const brightness = 0.7 + hMod * 0.4;
-      ctx.fillStyle = `rgb(${clamp(rgb.r * brightness)},${clamp(rgb.g * brightness)},${clamp(rgb.b * brightness)})`;
-    }
-
-    ctx.fillRect(cx - cellSize / 2, cy - cellSize / 2, cellSize, cellSize);
-  }
-
-  return canvas.toDataURL('image/png');
-}
-
-function hexToRgb(hex: string): { r: number; g: number; b: number } {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result
-    ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) }
-    : { r: 100, g: 140, b: 100 };
-}
-
-function clamp(v: number): number {
-  return Math.max(0, Math.min(255, Math.round(v)));
 }

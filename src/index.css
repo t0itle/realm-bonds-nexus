@@ -182,6 +182,19 @@
   border: none !important;
 }
 
+.leaflet-container {
+  background: hsl(var(--map-bg-1)) !important;
+  font-family: 'Inter', sans-serif;
+}
+
+.leaflet-container img {
+  max-width: none !important;
+}
+
+.world-leaflet-map .leaflet-image-layer {
+  image-rendering: auto;
+}
+
 .leaflet-popup-content-wrapper {
   background: hsl(var(--background)) !important;
   color: hsl(var(--foreground)) !important;
