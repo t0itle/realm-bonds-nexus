@@ -15,9 +15,15 @@ function formatTime(s: number) {
 }
 
 export default function BuildModal({ position, onClose }: { position: number; onClose: () => void }) {
-  const { buildAt, canAfford, canAffordSteel, resources, steel, getBuildTime } = useGame();
+  const { buildAt, canAfford, canAffordSteel, resources, steel, getBuildTime, settlementType } = useGame();
   const { getBuildingSprite } = useTroopSkins();
   const [steelPopup, setSteelPopup] = useState(false);
+  const tier = SETTLEMENT_TIER_MAP[settlementType] || 1;
+  const BUILDABLE = useMemo(() => {
+    // Exclude the "core" building for each tier (campfire/townhall) from the build list
+    const coreBuildingTypes = ['campfire', 'townhall', 'castle'];
+    return getBuildingsForTier(tier).filter(t => !coreBuildingTypes.includes(t));
+  }, [tier]);
 
   const handleBuild = async (type: Exclude<BuildingType, 'empty'>) => {
     const cost = getUpgradeCost(type, 0);
