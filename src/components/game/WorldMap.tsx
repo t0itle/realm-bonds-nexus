@@ -2046,6 +2046,39 @@ export default function WorldMap() {
           );
         })}
 
+        {/* ── Azgaar NPC Burgs ── */}
+        {!azgaarMap.loading && azgaarMap.burgs.map(burg => {
+          const worldPos = azgaarToWorld(burg.x, burg.y);
+          if (!isVisible(worldPos.x, worldPos.y, 80)) return null;
+          const { sx, sy } = worldToScreen(worldPos.x, worldPos.y);
+          const burgSize = Math.max(16, Math.min(36, camera.ppu * 6000));
+          if (burgSize < 8) return null;
+          const state = azgaarMap.states.find(s => s.id === burg.state);
+          const isCapital = burg.capital;
+          return (
+            <div key={`burg-${burg.id}`}
+              className="absolute flex flex-col items-center pointer-events-none z-[8]"
+              style={{ left: sx, top: sy, transform: 'translate(-50%, -50%)' }}>
+              <div className="rounded-full border shadow-sm flex items-center justify-center"
+                style={{
+                  width: burgSize, height: burgSize,
+                  backgroundColor: state?.color || '#888',
+                  borderColor: isCapital ? 'gold' : 'rgba(255,255,255,0.3)',
+                  borderWidth: isCapital ? 2 : 1,
+                  opacity: 0.85,
+                }}>
+                <span style={{ fontSize: burgSize * 0.5 }}>{isCapital ? '👑' : burg.walls ? '🏰' : '🏘️'}</span>
+              </div>
+              {burgSize > 18 && (
+                <span className="text-foreground/70 font-display whitespace-nowrap mt-0.5 drop-shadow-sm"
+                  style={{ fontSize: Math.max(7, burgSize / 3.5) }}>
+                  {burg.name}
+                </span>
+              )}
+            </div>
+          );
+        })}
+
         {/* NPC Realms */}
         {renderRealms.map(realm => {
           // No fog of war - all realms visible
