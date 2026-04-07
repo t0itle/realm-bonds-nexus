@@ -158,7 +158,7 @@ function CityBuilding({ building, sprite, animDelay, workerAssigned }: {
 }
 
 export default function CityView() {
-  const { buildings, army, population, workerAssignments } = useGame();
+  const { buildings, army, population, workerAssignments, settlementType } = useGame();
   const { getBuildingSprite } = useTroopSkins();
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(384);
@@ -172,9 +172,11 @@ export default function CityView() {
   }, []);
 
   const nonEmpty = buildings.filter(b => b.type !== 'empty');
-  const townhall = nonEmpty.find(b => b.type === 'townhall');
+  // Handle both camp (campfire) and village+ (townhall) center buildings
+  const centerBuilding = nonEmpty.find(b => b.type === 'townhall' || b.type === 'campfire');
   const walls = nonEmpty.filter(b => b.type === 'wall');
-  const rest = nonEmpty.filter(b => b.type !== 'townhall' && b.type !== 'wall');
+  const rest = nonEmpty.filter(b => b.type !== 'townhall' && b.type !== 'campfire' && b.type !== 'wall');
+  const isCamp = settlementType === 'camp';
 
   // Separate into zones
   const military = rest.filter(b => ['barracks', 'watchtower', 'spyguild'].includes(b.type));
