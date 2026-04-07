@@ -194,7 +194,7 @@ export default function VillageGrid() {
   const [workerBuilding, setWorkerBuilding] = useState<Building | null>(null);
   const tick = useGameTicker();
 
-  const townhallLevel = buildings.find(b => b.type === 'townhall')?.level || 1;
+  const townhallLevel = buildings.find(b => b.type === 'townhall' || b.type === 'campfire')?.level || 1;
   const gridSize = getGridSize(settlementType);
   const gridCols = getGridCols(gridSize);
 
