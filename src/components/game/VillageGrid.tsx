@@ -371,6 +371,24 @@ export default function VillageGrid() {
         })()}
       </div>
 
+      {/* Settlement Sub-Level Upgrade */}
+      <Suspense fallback={null}>
+        <SettlementUpgradePanel />
+      </Suspense>
+
+      {/* Camp Skills (only show at camp tier) */}
+      {settlementType === 'camp' && (
+        <div className="px-3 pb-2">
+          <CollapsibleSection icon="🎓" title="Camp Skills" defaultOpen={false}>
+            <div className="game-panel border border-border/30 rounded-b-xl p-3">
+              <Suspense fallback={<div className="text-center text-muted-foreground text-xs py-4">Loading...</div>}>
+                <CampSkillsPanel />
+              </Suspense>
+            </div>
+          </CollapsibleSection>
+        </div>
+      )}
+
       {/* Inline Oracle Widget */}
       <OracleWidget />
 
