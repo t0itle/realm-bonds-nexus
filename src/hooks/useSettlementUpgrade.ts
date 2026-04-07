@@ -54,7 +54,7 @@ export function useSettlementUpgrade({
     if (!villageId || !user) return false;
     const upgrade = SETTLEMENT_UPGRADES[settlementType];
     if (!upgrade) { toast.error('Already at maximum settlement level!'); return false; }
-    if (townhallLevel < upgrade.thRequired) { toast.error(`Town Hall must be level ${upgrade.thRequired} to upgrade!`); return false; }
+    // Tier upgrade requires reaching max sub-level (checked elsewhere)
     if (!canAfford(upgrade.cost)) { toast.error('Not enough resources!'); return false; }
     if (upgrade.steelCost > 0 && !canAffordSteel(upgrade.steelCost)) { toast.error('Not enough steel!'); return false; }
     if (isSettlementUpgrading) { toast.error('Settlement upgrade already in progress!'); return false; }

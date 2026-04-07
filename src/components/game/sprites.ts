@@ -15,7 +15,7 @@ import administratorSprite from '@/assets/sprites/administrator.png';
 import workersSprite from '@/assets/sprites/workers.png';
 import type { BuildingType } from '@/lib/gameTypes';
 
-export const BUILDING_SPRITES: Record<Exclude<BuildingType, 'empty'>, string> = {
+export const BUILDING_SPRITES: Partial<Record<Exclude<BuildingType, 'empty'>, string>> = {
   townhall: townhallSprite,
   farm: farmSprite,
   lumbermill: lumbermillSprite,

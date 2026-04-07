@@ -312,7 +312,7 @@ export function useVillageDataLoader(user: { id: string } | null) {
 
           const profileMap = new Map((visibleProfiles || []).map(p => [p.user_id, { display_name: p.display_name, avatar_emoji: p.avatar_emoji }]));
           setAllVillages(villages.map(v => ({
-            village: { id: v.id, user_id: v.user_id, name: v.name, gold: Number(v.gold), wood: Number(v.wood), stone: Number(v.stone), food: Number(v.food), level: v.level, map_x: v.map_x, map_y: v.map_y, settlement_type: (v as any).settlement_type || 'village' },
+            village: { id: v.id, user_id: v.user_id, name: v.name, gold: Number(v.gold), wood: Number(v.wood), stone: Number(v.stone), food: Number(v.food), level: v.level, map_x: v.map_x, map_y: v.map_y, settlement_type: (v as any).settlement_type || 'camp', settlement_tier: (v as any).settlement_tier || 1, settlement_sub_level: (v as any).settlement_sub_level || 1 },
             profile: profileMap.get(v.user_id) || { display_name: 'Unknown', avatar_emoji: '🛡️' },
           })));
         }
