@@ -1,14 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/hooks/useGameState';
-import { BUILDING_INFO, getUpgradeCost } from '@/lib/gameConstants';
-import type { BuildingType } from '@/lib/gameTypes';
+import { BUILDING_INFO, getUpgradeCost, getBuildingsForTier } from '@/lib/gameConstants';
+import type { BuildingType, SettlementTier } from '@/lib/gameTypes';
 import { useTroopSkins } from '@/hooks/useTroopSkins';
 import ResourceIcon, { getResourceType } from './ResourceIcon';
 
-const BUILDABLE: Exclude<BuildingType, 'empty' | 'townhall'>[] = [
-  'house', 'farm', 'lumbermill', 'quarry', 'goldmine', 'barracks', 'wall', 'watchtower', 'temple', 'apothecary', 'warehouse', 'spyguild', 'administrator',
-];
+const SETTLEMENT_TIER_MAP: Record<string, SettlementTier> = { camp: 1, village: 2, town: 3, city: 4 };
 
 function formatTime(s: number) {
   const m = Math.floor(s / 60);
