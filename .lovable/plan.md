@@ -1,105 +1,64 @@
 
+# Game Rework Plan
 
-# Incoming Attack Warnings, Allied Defense, and Gratitude System
+## Phase 1: Parse & Store Azgaar Map Data
+- Parse the uploaded Azgaar JSON to extract: biomes, rivers, states/cultures, burgs (towns/cities), terrain heightmap
+- Create a `world_map_data` table to store parsed map features (NPC towns, biomes, regions)
+- Store map metadata (dimensions, coordinate system) for rendering
 
-## Overview
-Three interconnected features: (1) notify defenders when an attack march begins targeting them, (2) notify alliance members and let them send reinforcements, (3) post-battle gratitude resource sharing.
+## Phase 2: Data Wipe Migration
+- Delete all rows from: villages, buildings, build_queue, training_queue, armies, battle_reports, vassalages, outposts, caravans, trade_routes, roads, research_progress, active_marches, active_spy_missions, intel_reports, spy_training_queue, etc.
+- Keep: profiles, alliances (optional), auth users
+- Reset all player data to zero
 
----
+## Phase 3: Redesign Progression System (3-4 Tiers, Deep Sub-Levels)
+**Tier 1: Camp** (Sub-levels 1-20)
+- Start with a campfire and a tent. Each sub-level adds tiny improvements.
+- Sub-levels unlock: basic gathering → lean-to → firepit → storage cache → palisade stakes → scout post → herb garden → etc.
+- Very small resource gains per level (+2-5% per sub-level)
 
-## Feature 1: Incoming Attack Notification
+**Tier 2: Village** (Sub-levels 1-20)  
+- Transition from camp to permanent structures
+- Sub-levels unlock: wooden buildings, farming, basic military, simple walls
+- Moderate resource gains (+3-7% per sub-level)
 
-**Problem**: When a player launches a PvP attack, the march is saved to `active_marches` but the defender has no idea until troops arrive.
+**Tier 3: Town** (Sub-levels 1-20)
+- Stone construction, advanced military, trade, diplomacy
+- Sub-levels unlock: stone walls, barracks upgrades, market, temple
+- Larger gains (+5-10% per sub-level)
 
-**Approach**:
-- Add `target_user_id` column to `active_marches` so we know who's being attacked
-- Subscribe defenders to realtime changes on `active_marches` where they are the target
-- Show a toast + persistent alert in `NotificationsPanel` with attacker name, ETA, and troop count estimate
-- In `GameLayout.tsx`, listen for incoming attacks and display an urgent banner/toast
+**Tier 4: City** (Sub-levels 1-15)
+- Endgame: fortifications, siege, research, alliances at scale
+- Sub-levels: castle, university, grand temple, etc.
 
-**Database change**:
-- Migration: `ALTER TABLE active_marches ADD COLUMN target_user_id uuid;`
-- Add `sent_army jsonb DEFAULT '{}'` to `active_marches` so defenders (and allies) can see approximate threat level
-- Update the PvP march insert in `WorldMap.tsx` to include `target_user_id` and `sent_army`
+### Key Changes:
+- Replace `settlement_type` enum with tier + sub_level system
+- Each building has MORE levels (up to 20-30) with SMALLER incremental bonuses
+- Building costs scale gradually, not exponentially
+- New building types for early game: tent, campfire, lean-to, cache, etc.
 
-**UI**: A red pulsing toast: "⚠️ {attacker} is marching on your village! ETA: {time}" with option to switch to map tab.
+## Phase 4: World Map Rework
+- Render the Azgaar map as the game world (use extracted polygon/cell data)
+- Place NPC towns from the map's burgs data
+- Players spawn on the map at valid locations
+- Replace procedural world gen with fixed map geography
 
----
+## Phase 5: Update Game Constants & Types
+- New BuildingType additions for camp-tier buildings
+- Rebalance all costs, production rates, and progression curves
+- Update BUILDING_INFO with 20-30 level buildings
+- New sprites for camp-tier buildings
 
-## Feature 2: Alliance Defense Coordination
+## Phase 6: Update UI Components
+- Update CityView/VillageGrid for camp-tier visuals
+- Update settlement upgrade UI for sub-level system
+- Update world map rendering
+- Ensure mobile-first layout
 
-**Approach**:
-- When an incoming attack targets an alliance member, all online alliance members get notified via the same realtime subscription on `active_marches`
-- In `GameLayout.tsx` or a new `IncomingAttackAlert` component, check if the target is an alliance mate
-- Show a dialog: "Your ally {name} is under attack! ETA: {time}. Send reinforcements?" with the existing `AttackConfigPanel` troop selector
-- Calculate if the player's troops can reach the ally's village before the attacker arrives — display feasibility
-- If troops are sent, create a new march of type `reinforce` targeting the ally's village
-- Add `reinforcements` column (jsonb) to `villages` or track in a new lightweight approach: when reinforcement march arrives, temporarily add those troops to the defender's army counts for the duration of the battle
-
-**Database change**:
-- Add march_type `'reinforce'` support (already a text column, no schema change needed)
-- New table `active_reinforcements` to track allied troops stationed at another player's village:
-  ```sql
-  CREATE TABLE active_reinforcements (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    owner_id uuid NOT NULL,
-    host_village_id uuid NOT NULL,
-    troops jsonb NOT NULL DEFAULT '{}',
-    created_at timestamptz DEFAULT now(),
-    expires_at timestamptz -- auto-recall after X hours
-  );
-  ```
-- RLS: owner and host can view; owner can insert/delete; host can view
-
-**Battle resolution change**: When a player is attacked, also fetch `active_reinforcements` for their village and add those troops to their defense power. After battle, subtract losses from reinforcements first.
-
----
-
-## Feature 3: Post-Battle Gratitude (Resource Sharing)
-
-**Approach**:
-- After a successful defense where `active_reinforcements` were present, show a modal dialog to the defender
-- Dialog: "You successfully defended with help from {ally}! Would you like to send them a thank-you gift?"
-- For each resource (gold, wood, stone, food, steel), show a slider from 0 to current amount
-- On confirm, deduct resources from defender and add to the ally via a direct Supabase update (similar to `AllianceResourceSharing`)
-- Log the transfer in `alliance_resource_transfers` with a special message
-
-**UI Component**: New `GratitudeModal.tsx`
-- Slider for each resource type (using existing `Slider` component)
-- Shows current balance next to each slider
-- "Send Thanks" button that transfers resources
-- "Skip" button to dismiss
-
----
-
-## Technical Details
-
-### Files to create:
-- `src/components/game/IncomingAttackAlert.tsx` — realtime listener + alert UI for incoming attacks (own + ally)
-- `src/components/game/AllyDefenseModal.tsx` — troop selector dialog for sending reinforcements to allies
-- `src/components/game/GratitudeModal.tsx` — post-battle resource sharing modal
-
-### Files to modify:
-- `src/components/game/WorldMap.tsx` — update PvP `createMarch` to include `target_user_id` and `sent_army` in `active_marches` insert; handle `reinforce` march arrival; integrate reinforcement troops into defense calculations
-- `src/components/game/GameLayout.tsx` — mount `IncomingAttackAlert` component; show gratitude modal after successful allied defense
-- `src/components/game/NotificationsPanel.tsx` — show incoming attack warnings and allied defense events
-- `src/hooks/useGameState.tsx` — add helper to fetch active reinforcements for defense calculation; update `attackPlayer` to account for reinforcements
-
-### Database migrations:
-1. Add columns to `active_marches`: `target_user_id uuid`, `sent_army jsonb DEFAULT '{}'`
-2. Create `active_reinforcements` table with RLS policies
-3. Enable realtime on `active_marches` (if not already via the existing publication)
-
-### Flow summary:
-```text
-Player A attacks Player B
-  → active_marches INSERT with target_user_id = B, sent_army = {...}
-  → B gets realtime notification: "Incoming attack! ETA: Xs"
-  → B's alliance members get notification: "Ally B under attack!"
-  → Ally C opens defense modal, selects troops, sends reinforcement march
-  → Reinforcement arrives → stored in active_reinforcements
-  → Attack arrives → defense calc includes reinforcements
-  → If defense succeeds → B sees GratitudeModal to thank C
-  → Resources transferred via slider selection
-```
-
+## Execution Order:
+1. Migration: wipe data + add new columns (tier, sub_level)
+2. Parse Azgaar map → store key data
+3. Update gameTypes.ts and gameConstants.ts
+4. Update hooks (useSettlementUpgrade, useProduction, etc.)
+5. Update UI components
+6. Generate camp-tier sprites

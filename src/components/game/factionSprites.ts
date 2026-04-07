@@ -76,7 +76,7 @@ import pirateSpyguild from '@/assets/sprites/factions/pirate/spyguild.png';
 import type { BuildingType } from '@/lib/gameTypes';
 import administratorSprite from '@/assets/sprites/administrator.png';
 
-type BuildingSpriteMap = Record<Exclude<BuildingType, 'empty'>, string>;
+type BuildingSpriteMap = Partial<Record<Exclude<BuildingType, 'empty'>, string>>;
 
 export const FACTION_BUILDING_SPRITES: Record<string, BuildingSpriteMap> = {
   viking: {

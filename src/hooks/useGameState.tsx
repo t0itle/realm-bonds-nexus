@@ -25,6 +25,7 @@ export type {
   BattleLog, Vassalage, Village, PlayerVillage,
   RationsLevel, TroopType, TroopInfo,
   WorkerAssignments, PopulationStats,
+  SettlementTier, SubLevelUpgrade, WorldBurg, WorldState,
 } from '@/lib/gameTypes';
 
 export {
@@ -32,7 +33,7 @@ export {
   RATIONS_INFO, TROOP_INFO, SPY_MISSION_INFO, TROOP_COUNTERS,
   resolveCombat, MAX_MARCH_RANGE, SCOUT_RANGE_BONUS,
   getSlowestTroopSpeed, calcMarchTime, WATCHTOWER_RANGE_BONUS, getMaxRange,
-  SETTLEMENT_UPGRADES,
+  SETTLEMENT_UPGRADES, getBuildingsForTier, getSubLevelUpgrade,
 } from '@/lib/gameConstants';
 
 import type {
@@ -73,7 +74,7 @@ interface GameContextType {
   myVillages: { id: string; name: string; settlement_type: string }[];
   switchVillage: (id: string) => void; refreshVillages: () => Promise<void>; refreshMineOutposts: () => Promise<void>;
   abandonSettlement: (id: string) => Promise<boolean>;
-  settlementType: 'village' | 'town' | 'city'; upgradeSettlement: () => Promise<boolean>;
+  settlementType: 'camp' | 'village' | 'town' | 'city'; upgradeSettlement: () => Promise<boolean>;
   isSettlementUpgrading: boolean; settlementUpgradeFinishTime: number | null;
 }
 

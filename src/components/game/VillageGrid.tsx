@@ -19,13 +19,15 @@ const StatSheet = lazy(() => import('./StatSheet'));
 function getGridSize(settlementType: string): number {
   if (settlementType === 'city') return 25;
   if (settlementType === 'town') return 16;
-  return 9;
+  if (settlementType === 'village') return 9;
+  return 6; // camp
 }
 
 function getGridCols(gridSize: number): number {
   if (gridSize >= 25) return 5;
   if (gridSize >= 16) return 4;
-  return 3;
+  if (gridSize >= 9) return 3;
+  return 3; // camp: 3x2
 }
 
 function formatTime(ms: number) {

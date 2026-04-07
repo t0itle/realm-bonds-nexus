@@ -7,11 +7,11 @@ import { SETTLEMENT_UPGRADES } from '@/lib/gameConstants';
 interface UseSettlementUpgradeParams {
   villageId: string | null;
   user: { id: string } | null;
-  settlementType: 'village' | 'town' | 'city';
-  setSettlementType: React.Dispatch<React.SetStateAction<'village' | 'town' | 'city'>>;
+  settlementType: 'camp' | 'village' | 'town' | 'city';
+  setSettlementType: React.Dispatch<React.SetStateAction<'camp' | 'village' | 'town' | 'city'>>;
   settlementUpgradeFinishTime: number | null;
   setSettlementUpgradeFinishTime: React.Dispatch<React.SetStateAction<number | null>>;
-  settlementTypeRef: React.MutableRefObject<'village' | 'town' | 'city'>;
+  settlementTypeRef: React.MutableRefObject<'camp' | 'village' | 'town' | 'city'>;
   setMyVillages: React.Dispatch<React.SetStateAction<{ id: string; name: string; settlement_type: string }[]>>;
   resources: Resources;
   setResources: React.Dispatch<React.SetStateAction<Resources>>;
@@ -54,7 +54,7 @@ export function useSettlementUpgrade({
     if (!villageId || !user) return false;
     const upgrade = SETTLEMENT_UPGRADES[settlementType];
     if (!upgrade) { toast.error('Already at maximum settlement level!'); return false; }
-    if (townhallLevel < upgrade.thRequired) { toast.error(`Town Hall must be level ${upgrade.thRequired} to upgrade!`); return false; }
+    // Tier upgrade requires reaching max sub-level (checked elsewhere)
     if (!canAfford(upgrade.cost)) { toast.error('Not enough resources!'); return false; }
     if (upgrade.steelCost > 0 && !canAffordSteel(upgrade.steelCost)) { toast.error('Not enough steel!'); return false; }
     if (isSettlementUpgrading) { toast.error('Settlement upgrade already in progress!'); return false; }
