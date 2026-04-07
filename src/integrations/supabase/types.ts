@@ -983,6 +983,53 @@ export type Database = {
         }
         Relationships: []
       }
+      research_progress: {
+        Row: {
+          created_at: string
+          economic_points: number
+          id: string
+          military_points: number
+          research_focus: string
+          social_points: number
+          unlocked_nodes: Json
+          updated_at: string
+          user_id: string
+          village_id: string
+        }
+        Insert: {
+          created_at?: string
+          economic_points?: number
+          id?: string
+          military_points?: number
+          research_focus?: string
+          social_points?: number
+          unlocked_nodes?: Json
+          updated_at?: string
+          user_id: string
+          village_id: string
+        }
+        Update: {
+          created_at?: string
+          economic_points?: number
+          id?: string
+          military_points?: number
+          research_focus?: string
+          social_points?: number
+          unlocked_nodes?: Json
+          updated_at?: string
+          user_id?: string
+          village_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_progress_village_id_fkey"
+            columns: ["village_id"]
+            isOneToOne: false
+            referencedRelation: "villages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       roads: {
         Row: {
           building_finish_time: string | null
