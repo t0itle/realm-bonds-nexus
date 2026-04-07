@@ -2048,7 +2048,7 @@ export default function WorldMap() {
 
         {/* NPC Realms */}
         {renderRealms.map(realm => {
-          if (!isWithinVision(realm.x, realm.y, Math.max(8000, realm.territory * 0.2))) return null;
+          // No fog of war - all realms visible
           const { sx, sy } = worldToScreen(realm.x, realm.y);
           const npcRel = npcState.playerRelations.get(realm.id);
           const isVassal = npcRel?.status === 'vassal';
