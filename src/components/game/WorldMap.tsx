@@ -1276,7 +1276,9 @@ export default function WorldMap() {
     return () => clearInterval(interval);
   }, [tradeContracts.length]);
 
-  const DEFAULT_CAMERA = { cx: 100000, cy: 100000, ppu: 0.003 };
+  // Center on Azgaar map (roughly middle of the map)
+  const DEFAULT_CAMERA = { cx: 175000, cy: 330000, ppu: 0.002 };
+  const azgaarMap = useAzgaarMap();
   const initializedCamera = useRef(false);
   const [camera, setCamera] = useState(DEFAULT_CAMERA);
   const rafRef = useRef<number | null>(null);
