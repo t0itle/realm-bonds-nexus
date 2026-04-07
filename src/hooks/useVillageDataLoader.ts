@@ -109,7 +109,7 @@ export function useVillageDataLoader(user: { id: string } | null) {
         setVillageId(village.id);
         setVillageNameLocal(village.name);
         setPlayerLevel(village.level);
-        settlementTypeRef.current = ((village as any).settlement_type || 'village') as 'village' | 'town' | 'city';
+        settlementTypeRef.current = ((village as any).settlement_type || 'camp') as 'camp' | 'village' | 'town' | 'city';
         setSettlementType(settlementTypeRef.current);
         setResources({ gold: Number(village.gold), wood: Number(village.wood), stone: Number(village.stone), food: Number(village.food) });
         setSteel((village as any).steel ?? 0);
