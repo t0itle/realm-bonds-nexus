@@ -73,7 +73,7 @@ interface GameContextType {
   myVillages: { id: string; name: string; settlement_type: string }[];
   switchVillage: (id: string) => void; refreshVillages: () => Promise<void>; refreshMineOutposts: () => Promise<void>;
   abandonSettlement: (id: string) => Promise<boolean>;
-  settlementType: 'village' | 'town' | 'city'; upgradeSettlement: () => Promise<boolean>;
+  settlementType: 'camp' | 'village' | 'town' | 'city'; upgradeSettlement: () => Promise<boolean>;
   isSettlementUpgrading: boolean; settlementUpgradeFinishTime: number | null;
 }
 
