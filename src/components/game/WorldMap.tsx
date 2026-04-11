@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { MapContainer, ImageOverlay, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, Marker, Popup, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,6 +15,9 @@ import { useTroopSkins } from '@/hooks/useTroopSkins';
 import AttackConfigPanel from './AttackConfigPanel';
 import TroopTransferPanel from './TroopTransferPanel';
 import { useAzgaarMap, AZGAAR_SCALE } from '@/hooks/useAzgaarMap';
+import AzgaarVectorLayer from './AzgaarVectorLayer';
+import MapFilterPanel from './MapFilterPanel';
+import { resolvePolygons } from '@/lib/azgaarVectorTileLayer';
 
 // Leaflet coordinate system: we use CRS.Simple
 // Azgaar map pixels map directly to Leaflet lat/lng (y inverted)
