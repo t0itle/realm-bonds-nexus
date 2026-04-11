@@ -246,7 +246,7 @@ export function createAzgaarVectorLayer(options: VectorTileOptions): L.GridLayer
     },
   });
 
-  return new Layer({
+  return new (Layer as any)({
     tileSize: 256,
     ...gridOpts,
   });
