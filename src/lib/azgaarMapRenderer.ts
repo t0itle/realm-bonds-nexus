@@ -97,9 +97,8 @@ export function buildDetailedAzgaarMapImage(
 }
 
 function getRenderScale() {
-  if (typeof window === 'undefined') return 4;
-
-  return Math.min(5, Math.max(4, Math.ceil((window.devicePixelRatio || 1) * 1.75)));
+  // High scale for crisp detail when zooming in on the Leaflet map
+  return 10;
 }
 
 function resolvePolygon(indices: number[] = [], vertices: number[][]): Vertex[] | null {
