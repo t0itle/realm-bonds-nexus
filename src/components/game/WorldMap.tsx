@@ -425,7 +425,7 @@ export default function WorldMap() {
           center={initialCenter}
           zoom={1}
           minZoom={-1}
-          maxZoom={6}
+          maxZoom={10}
           crs={L.CRS.Simple}
           maxBounds={mapBounds}
           maxBoundsViscosity={0.9}
