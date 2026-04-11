@@ -15,6 +15,7 @@ import { useTroopSkins } from '@/hooks/useTroopSkins';
 import AttackConfigPanel from './AttackConfigPanel';
 import TroopTransferPanel from './TroopTransferPanel';
 import { useAzgaarMap, AZGAAR_SCALE } from '@/hooks/useAzgaarMap';
+import { KINGDOM_SPRITES, getKingdomByStateId } from '@/config/kingdomLore';
 
 // Leaflet coordinate system: we use CRS.Simple
 // Azgaar map pixels map directly to Leaflet lat/lng (y inverted)
@@ -54,14 +55,24 @@ function labelIcon(emoji: string, label: string, color?: string, size: number = 
   });
 }
 
-// Color dot icon for burg markers
-function burgIcon(stateColor: string, isCapital: boolean, hasWalls: boolean, size: number = 20): L.DivIcon {
-  const emoji = isCapital ? '👑' : hasWalls ? '🏰' : '🏘️';
-  const border = isCapital ? '2px solid gold' : '1px solid rgba(255,255,255,0.3)';
+// Illustrated sprite icon for NPC burgs
+function burgIcon(stateId: number, isCapital: boolean, size: number = 36): L.DivIcon {
+  const spriteUrl = KINGDOM_SPRITES[stateId];
+  const borderStyle = isCapital ? '2px solid gold' : 'none';
+  const shadow = isCapital ? 'box-shadow:0 0 8px 2px rgba(255,215,0,0.5);' : '';
+  if (spriteUrl) {
+    return L.divIcon({
+      html: `<div style="width:${size}px;height:${size}px;border-radius:4px;border:${borderStyle};${shadow}overflow:hidden">
+        <img src="${spriteUrl}" style="width:100%;height:100%;object-fit:cover" />
+      </div>`,
+      className: 'leaflet-burg-icon',
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2],
+    });
+  }
+  // Fallback
   return L.divIcon({
-    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${stateColor};border:${border};display:flex;align-items:center;justify-content:center;opacity:0.85">
-      <span style="font-size:${size * 0.5}px;line-height:1">${emoji}</span>
-    </div>`,
+    html: `<span style="font-size:${size * 0.6}px;line-height:1">${isCapital ? '👑' : '🏘️'}</span>`,
     className: 'leaflet-burg-icon',
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
@@ -414,22 +425,25 @@ export default function WorldMap() {
 
           {/* NPC Burgs from Azgaar data */}
           {azgaarMap.burgs.map(burg => {
+            const kingdom = getKingdomByStateId(burg.state);
             const state = azgaarMap.states.find(s => s.id === burg.state);
             return (
               <Marker
                 key={`burg-${burg.id}`}
                 position={azgaarToLatLng(burg.x, burg.y)}
-                icon={burgIcon(state?.color || '#888', burg.capital, burg.walls)}
+                icon={burgIcon(burg.state, burg.capital, burg.capital ? 44 : 32)}
               >
-                <Popup className="leaflet-burg-popup">
-                  <div className="text-center">
-                    <strong>{burg.name}</strong>
-                    <br />
-                    <span className="text-xs text-gray-400">
-                      {state?.name || 'Unknown'} · Pop: {burg.population}
+                <Popup className="leaflet-burg-popup" maxWidth={240}>
+                  <div className="text-center space-y-1">
+                    <strong className="text-sm">{burg.name}</strong>
+                    <div className="text-[10px] opacity-70">
+                      {kingdom?.name || state?.name || 'Unknown'} · Pop: {burg.population}
                       {burg.capital && ' · 👑 Capital'}
                       {burg.port && ' · ⚓ Port'}
-                    </span>
+                    </div>
+                    {kingdom && (
+                      <p className="text-[9px] italic opacity-60 leading-tight mt-1">{kingdom.lore}</p>
+                    )}
                   </div>
                 </Popup>
               </Marker>
