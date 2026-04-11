@@ -566,8 +566,21 @@ export default function WorldMap() {
           })}
         </MapContainer>
 
-        {/* Zoom controls */}
-        <div className="absolute bottom-20 sm:bottom-16 right-3 flex flex-col gap-1 z-[1000]">
+        {/* Map filter + zoom controls */}
+        <div className="absolute bottom-20 sm:bottom-16 right-3 flex flex-col gap-1 z-[1000] relative">
+          <MapFilterPanel
+            states={azgaarMap.states}
+            hiddenStates={hiddenStates}
+            onToggleState={(id) => setHiddenStates(prev => {
+              const next = new Set(prev);
+              if (next.has(id)) next.delete(id); else next.add(id);
+              return next;
+            })}
+            showRoads={showRoads}
+            onToggleRoads={() => setShowRoads(p => !p)}
+            showBurgs={showBurgs}
+            onToggleBurgs={() => setShowBurgs(p => !p)}
+          />
           <button type="button" aria-label="Zoom in" onClick={() => leafletMap?.zoomIn()}
             disabled={!leafletMap}
             className={mapControlButtonClassName}>+</button>
