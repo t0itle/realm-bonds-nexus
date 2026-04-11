@@ -468,7 +468,7 @@ export default function WorldMap() {
           {flyTarget && <FlyTo position={flyTarget} />}
 
           {/* NPC Burgs from Azgaar data */}
-          {azgaarMap.burgs.map(burg => {
+          {showBurgs && azgaarMap.burgs.filter(b => !hiddenStates.has(b.state)).map(burg => {
             const state = azgaarMap.states.find(s => s.id === burg.state);
             return (
               <Marker
