@@ -440,14 +440,29 @@ export default function WorldMap() {
         >
           <MapInstanceBridge onMapReady={setLeafletMap} />
 
-          {/* Map background image from Azgaar cells */}
-          {azgaarMap.mapImageUrl && (
-            <ImageOverlay
-              url={azgaarMap.mapImageUrl}
-              bounds={mapBounds}
-              opacity={1}
+          {/* Vector tile layer - infinite resolution */}
+          {azgaarMap.vectorCells.length > 0 && (
+            <AzgaarVectorLayer
+              cells={azgaarMap.vectorCells}
+              stateColors={azgaarMap.stateColorMap}
+              hiddenStates={hiddenStates}
+              showBorders
             />
           )}
+
+          {/* Roads connecting burgs */}
+          {roads.map((road, i) => (
+            <Polyline
+              key={`road-${i}`}
+              positions={road.positions}
+              pathOptions={{
+                color: road.color,
+                weight: 1.5,
+                opacity: 0.5,
+                dashArray: '4 4',
+              }}
+            />
+          ))}
 
           <MapClickHandler onEmptyClick={handleEmptyClick} />
           {flyTarget && <FlyTo position={flyTarget} />}
