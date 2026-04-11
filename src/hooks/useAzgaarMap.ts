@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { resolvePolygons } from '@/lib/azgaarVectorTileLayer';
+import { buildDetailedAzgaarMapImage } from '@/lib/azgaarMapRenderer';
 
 export interface AzgaarCell {
   x: number;
@@ -42,13 +42,6 @@ export interface AzgaarBiome {
   color: string;
 }
 
-export type VectorCell = {
-  height: number;
-  stateId: number;
-  polygon: [number, number][] | null;
-  biomeId?: number;
-};
-
 export interface AzgaarMapData {
   cells: AzgaarCell[];
   burgs: AzgaarBurg[];
@@ -57,8 +50,6 @@ export interface AzgaarMapData {
   mapWidth: number;
   mapHeight: number;
   loading: boolean;
-  vectorCells: VectorCell[];
-  stateColorMap: Map<number, string>;
 }
 
 // Scale factor: Azgaar pixels -> world coordinates
@@ -72,8 +63,14 @@ export function worldToAzgaar(wx: number, wy: number): { x: number; y: number } 
   return { x: wx / AZGAAR_SCALE, y: wy / AZGAAR_SCALE };
 }
 
+// Offscreen canvas data URL for Leaflet ImageOverlay
+let _mapImageUrl: string | null = null;
 let _stateColors: Map<number, string> = new Map();
 let _cellsData: AzgaarCell[] = [];
+
+export function getMapImageUrl() {
+  return _mapImageUrl;
+}
 
 export function getStateColors() {
   return _stateColors;
@@ -83,7 +80,7 @@ export function getCellsData() {
   return _cellsData;
 }
 
-export function useAzgaarMap(): AzgaarMapData {
+export function useAzgaarMap(): AzgaarMapData & { mapImageUrl: string | null } {
   const [data, setData] = useState<AzgaarMapData>({
     cells: [],
     burgs: [],
@@ -92,9 +89,8 @@ export function useAzgaarMap(): AzgaarMapData {
     mapWidth: 384,
     mapHeight: 697,
     loading: true,
-    vectorCells: [],
-    stateColorMap: new Map(),
   });
+  const [mapImageUrl, setMapImageUrl] = useState<string | null>(_mapImageUrl);
   const loaded = useRef(false);
 
   useEffect(() => {
@@ -115,18 +111,35 @@ export function useAzgaarMap(): AzgaarMapData {
       }));
 
       const burgs: AzgaarBurg[] = (worldJson.burgs || []).map((b: any) => ({
-        id: b.id, name: b.name, x: b.x, y: b.y,
-        state: b.state, culture: b.culture, population: b.population,
-        capital: b.capital === 1, port: b.port === 1, citadel: b.citadel === 1,
-        walls: b.walls === 1, temple: b.temple === 1, type: b.type, group: b.group,
+        id: b.id,
+        name: b.name,
+        x: b.x,
+        y: b.y,
+        state: b.state,
+        culture: b.culture,
+        population: b.population,
+        capital: b.capital === 1,
+        port: b.port === 1,
+        citadel: b.citadel === 1,
+        walls: b.walls === 1,
+        temple: b.temple === 1,
+        type: b.type,
+        group: b.group,
       }));
 
       const states: AzgaarState[] = (worldJson.states || []).map((s: any) => ({
-        id: s.id, name: s.name, color: s.color, capital: s.capital, culture: s.culture, type: s.type,
+        id: s.id,
+        name: s.name,
+        color: s.color,
+        capital: s.capital,
+        culture: s.culture,
+        type: s.type,
       }));
 
       const biomes: AzgaarBiome[] = (worldJson.biomes || []).map((b: any) => ({
-        id: b.id, name: b.name, color: b.color,
+        id: b.id,
+        name: b.name,
+        color: b.color,
       }));
 
       const mapWidth = worldJson.info?.width || 384;
@@ -134,17 +147,25 @@ export function useAzgaarMap(): AzgaarMapData {
       const mapVertices: number[][] = Array.isArray(cellsJson.vp) ? cellsJson.vp : [];
       const cellVertices: number[][] = Array.isArray(cellsJson.cv) ? cellsJson.cv : [];
 
-      const stateColorMap = new Map<number, string>();
-      for (const s of states) stateColorMap.set(s.id, s.color);
-      _stateColors = stateColorMap;
+      _stateColors = new Map();
+      for (const s of states) {
+        _stateColors.set(s.id, s.color);
+      }
+
       _cellsData = cells;
 
-      // Build vector cell data for the tile layer
-      const vectorCells = resolvePolygons(cellsJson.cells, mapVertices, cellVertices);
+      const url = buildDetailedAzgaarMapImage(cells, states, mapVertices, cellVertices, mapWidth, mapHeight) || null;
+      _mapImageUrl = url;
+      setMapImageUrl(url);
 
       setData({
-        cells, burgs, states, biomes, mapWidth, mapHeight,
-        loading: false, vectorCells, stateColorMap,
+        cells,
+        burgs,
+        states,
+        biomes,
+        mapWidth,
+        mapHeight,
+        loading: false,
       });
     }).catch(err => {
       console.error('Failed to load Azgaar map data:', err);
@@ -152,5 +173,5 @@ export function useAzgaarMap(): AzgaarMapData {
     });
   }, []);
 
-  return data;
+  return { ...data, mapImageUrl };
 }

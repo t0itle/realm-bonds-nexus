@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { MapContainer, Marker, Popup, Polyline, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, ImageOverlay, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,9 +15,6 @@ import { useTroopSkins } from '@/hooks/useTroopSkins';
 import AttackConfigPanel from './AttackConfigPanel';
 import TroopTransferPanel from './TroopTransferPanel';
 import { useAzgaarMap, AZGAAR_SCALE } from '@/hooks/useAzgaarMap';
-import AzgaarVectorLayer from './AzgaarVectorLayer';
-import MapFilterPanel from './MapFilterPanel';
-import { resolvePolygons } from '@/lib/azgaarVectorTileLayer';
 
 // Leaflet coordinate system: we use CRS.Simple
 // Azgaar map pixels map directly to Leaflet lat/lng (y inverted)
@@ -123,9 +120,6 @@ export default function WorldMap() {
   const [attackConfig, setAttackConfig] = useState<any>(null);
   const [flyTarget, setFlyTarget] = useState<L.LatLngExpression | null>(null);
   const [leafletMap, setLeafletMap] = useState<L.Map | null>(null);
-  const [hiddenStates, setHiddenStates] = useState<Set<number>>(new Set());
-  const [showRoads, setShowRoads] = useState(true);
-  const [showBurgs, setShowBurgs] = useState(true);
 
   const azgaarMap = useAzgaarMap();
 
@@ -348,49 +342,15 @@ export default function WorldMap() {
 
   const power = totalArmyPower();
 
-  // Build roads: connect burgs within same state to their capital
-  const roads = useMemo(() => {
-    if (!showRoads) return [];
-    const lines: { positions: L.LatLngExpression[]; color: string }[] = [];
-    const stateCapitals = new Map<number, typeof azgaarMap.burgs[0]>();
-    for (const b of azgaarMap.burgs) {
-      if (b.capital) stateCapitals.set(b.state, b);
-    }
-    // Connect each burg to its state capital
-    for (const b of azgaarMap.burgs) {
-      if (b.capital || b.state === 0 || hiddenStates.has(b.state)) continue;
-      const cap = stateCapitals.get(b.state);
-      if (!cap) continue;
-      const state = azgaarMap.states.find(s => s.id === b.state);
-      lines.push({
-        positions: [azgaarToLatLng(b.x, b.y), azgaarToLatLng(cap.x, cap.y)],
-        color: state?.color || '#888',
-      });
-    }
-    // Connect capitals to each other (trade routes)
-    const caps = Array.from(stateCapitals.values()).filter(c => !hiddenStates.has(c.state));
-    for (let i = 0; i < caps.length; i++) {
-      for (let j = i + 1; j < caps.length; j++) {
-        const dist = Math.hypot(caps[i].x - caps[j].x, caps[i].y - caps[j].y);
-        if (dist < 150) { // Only connect nearby capitals
-          lines.push({
-            positions: [azgaarToLatLng(caps[i].x, caps[i].y), azgaarToLatLng(caps[j].x, caps[j].y)],
-            color: 'rgba(255,215,0,0.4)',
-          });
-        }
-      }
-    }
-    return lines;
-  }, [azgaarMap.burgs, azgaarMap.states, showRoads, hiddenStates]);
-
   // Map bounds based on Azgaar map dimensions
   const mapBounds = useMemo((): L.LatLngBoundsExpression => {
     return [
-      [-azgaarMap.mapHeight, 0],
-      [0, azgaarMap.mapWidth],
+      [-azgaarMap.mapHeight, 0],  // south-west
+      [0, azgaarMap.mapWidth],     // north-east
     ];
   }, [azgaarMap.mapWidth, azgaarMap.mapHeight]);
 
+  // Initial center on player's village
   const initialCenter = useMemo((): L.LatLngExpression => {
     const pos = getMyPos();
     return worldToLatLng(pos.x, pos.y);
@@ -425,7 +385,7 @@ export default function WorldMap() {
           center={initialCenter}
           zoom={1}
           minZoom={-1}
-          maxZoom={10}
+          maxZoom={6}
           crs={L.CRS.Simple}
           maxBounds={mapBounds}
           maxBoundsViscosity={0.9}
@@ -440,35 +400,20 @@ export default function WorldMap() {
         >
           <MapInstanceBridge onMapReady={setLeafletMap} />
 
-          {/* Vector tile layer - infinite resolution */}
-          {azgaarMap.vectorCells.length > 0 && (
-            <AzgaarVectorLayer
-              cells={azgaarMap.vectorCells}
-              stateColors={azgaarMap.stateColorMap}
-              hiddenStates={hiddenStates}
-              showBorders
+          {/* Map background image from Azgaar cells */}
+          {azgaarMap.mapImageUrl && (
+            <ImageOverlay
+              url={azgaarMap.mapImageUrl}
+              bounds={mapBounds}
+              opacity={1}
             />
           )}
-
-          {/* Roads connecting burgs */}
-          {roads.map((road, i) => (
-            <Polyline
-              key={`road-${i}`}
-              positions={road.positions}
-              pathOptions={{
-                color: road.color,
-                weight: 1.5,
-                opacity: 0.5,
-                dashArray: '4 4',
-              }}
-            />
-          ))}
 
           <MapClickHandler onEmptyClick={handleEmptyClick} />
           {flyTarget && <FlyTo position={flyTarget} />}
 
           {/* NPC Burgs from Azgaar data */}
-          {showBurgs && azgaarMap.burgs.filter(b => !hiddenStates.has(b.state)).map(burg => {
+          {azgaarMap.burgs.map(burg => {
             const state = azgaarMap.states.find(s => s.id === burg.state);
             return (
               <Marker
@@ -566,21 +511,8 @@ export default function WorldMap() {
           })}
         </MapContainer>
 
-        {/* Map filter + zoom controls */}
-        <div className="absolute bottom-20 sm:bottom-16 right-3 flex flex-col gap-1 z-[1000] relative">
-          <MapFilterPanel
-            states={azgaarMap.states}
-            hiddenStates={hiddenStates}
-            onToggleState={(id) => setHiddenStates(prev => {
-              const next = new Set(prev);
-              if (next.has(id)) next.delete(id); else next.add(id);
-              return next;
-            })}
-            showRoads={showRoads}
-            onToggleRoads={() => setShowRoads(p => !p)}
-            showBurgs={showBurgs}
-            onToggleBurgs={() => setShowBurgs(p => !p)}
-          />
+        {/* Zoom controls */}
+        <div className="absolute bottom-20 sm:bottom-16 right-3 flex flex-col gap-1 z-[1000]">
           <button type="button" aria-label="Zoom in" onClick={() => leafletMap?.zoomIn()}
             disabled={!leafletMap}
             className={mapControlButtonClassName}>+</button>
