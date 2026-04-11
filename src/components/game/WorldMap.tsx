@@ -123,6 +123,9 @@ export default function WorldMap() {
   const [attackConfig, setAttackConfig] = useState<any>(null);
   const [flyTarget, setFlyTarget] = useState<L.LatLngExpression | null>(null);
   const [leafletMap, setLeafletMap] = useState<L.Map | null>(null);
+  const [hiddenStates, setHiddenStates] = useState<Set<number>>(new Set());
+  const [showRoads, setShowRoads] = useState(true);
+  const [showBurgs, setShowBurgs] = useState(true);
 
   const azgaarMap = useAzgaarMap();
 
