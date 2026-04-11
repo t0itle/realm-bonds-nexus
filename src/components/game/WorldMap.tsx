@@ -55,13 +55,19 @@ function labelIcon(emoji: string, label: string, color?: string, size: number = 
   });
 }
 
-// Illustrated sprite icon for NPC burgs
+// Illustrated sprite icon for NPC burgs — cached to prevent blinking on re-render
+const _burgIconCache = new Map<string, L.DivIcon>();
 function burgIcon(stateId: number, isCapital: boolean, size: number = 36): L.DivIcon {
+  const key = `${stateId}-${isCapital}-${size}`;
+  const cached = _burgIconCache.get(key);
+  if (cached) return cached;
+
   const spriteUrl = KINGDOM_SPRITES[stateId];
   const borderStyle = isCapital ? '2px solid gold' : 'none';
   const shadow = isCapital ? 'box-shadow:0 0 8px 2px rgba(255,215,0,0.5);' : '';
+  let icon: L.DivIcon;
   if (spriteUrl) {
-    return L.divIcon({
+    icon = L.divIcon({
       html: `<div style="width:${size}px;height:${size}px;border-radius:4px;border:${borderStyle};${shadow}overflow:hidden">
         <img src="${spriteUrl}" style="width:100%;height:100%;object-fit:cover" />
       </div>`,
@@ -69,14 +75,16 @@ function burgIcon(stateId: number, isCapital: boolean, size: number = 36): L.Div
       iconSize: [size, size],
       iconAnchor: [size / 2, size / 2],
     });
+  } else {
+    icon = L.divIcon({
+      html: `<span style="font-size:${size * 0.6}px;line-height:1">${isCapital ? '👑' : '🏘️'}</span>`,
+      className: 'leaflet-burg-icon',
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2],
+    });
   }
-  // Fallback
-  return L.divIcon({
-    html: `<span style="font-size:${size * 0.6}px;line-height:1">${isCapital ? '👑' : '🏘️'}</span>`,
-    className: 'leaflet-burg-icon',
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-  });
+  _burgIconCache.set(key, icon);
+  return icon;
 }
 
 // Component to handle map click on empty space
