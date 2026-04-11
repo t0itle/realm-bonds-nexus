@@ -348,15 +348,49 @@ export default function WorldMap() {
 
   const power = totalArmyPower();
 
+  // Build roads: connect burgs within same state to their capital
+  const roads = useMemo(() => {
+    if (!showRoads) return [];
+    const lines: { positions: L.LatLngExpression[]; color: string }[] = [];
+    const stateCapitals = new Map<number, typeof azgaarMap.burgs[0]>();
+    for (const b of azgaarMap.burgs) {
+      if (b.capital) stateCapitals.set(b.state, b);
+    }
+    // Connect each burg to its state capital
+    for (const b of azgaarMap.burgs) {
+      if (b.capital || b.state === 0 || hiddenStates.has(b.state)) continue;
+      const cap = stateCapitals.get(b.state);
+      if (!cap) continue;
+      const state = azgaarMap.states.find(s => s.id === b.state);
+      lines.push({
+        positions: [azgaarToLatLng(b.x, b.y), azgaarToLatLng(cap.x, cap.y)],
+        color: state?.color || '#888',
+      });
+    }
+    // Connect capitals to each other (trade routes)
+    const caps = Array.from(stateCapitals.values()).filter(c => !hiddenStates.has(c.state));
+    for (let i = 0; i < caps.length; i++) {
+      for (let j = i + 1; j < caps.length; j++) {
+        const dist = Math.hypot(caps[i].x - caps[j].x, caps[i].y - caps[j].y);
+        if (dist < 150) { // Only connect nearby capitals
+          lines.push({
+            positions: [azgaarToLatLng(caps[i].x, caps[i].y), azgaarToLatLng(caps[j].x, caps[j].y)],
+            color: 'rgba(255,215,0,0.4)',
+          });
+        }
+      }
+    }
+    return lines;
+  }, [azgaarMap.burgs, azgaarMap.states, showRoads, hiddenStates]);
+
   // Map bounds based on Azgaar map dimensions
   const mapBounds = useMemo((): L.LatLngBoundsExpression => {
     return [
-      [-azgaarMap.mapHeight, 0],  // south-west
-      [0, azgaarMap.mapWidth],     // north-east
+      [-azgaarMap.mapHeight, 0],
+      [0, azgaarMap.mapWidth],
     ];
   }, [azgaarMap.mapWidth, azgaarMap.mapHeight]);
 
-  // Initial center on player's village
   const initialCenter = useMemo((): L.LatLngExpression => {
     const pos = getMyPos();
     return worldToLatLng(pos.x, pos.y);
