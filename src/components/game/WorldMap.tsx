@@ -55,11 +55,14 @@ function labelIcon(emoji: string, label: string, color?: string, size: number = 
   });
 }
 
-// Simple, fixed-size NPC burg icon — transparent, no boxes, no zoom-scaling
+// NPC burg icon — scales with zoom: small when zoomed out, larger when zoomed in
 const _burgIconCache = new Map<string, L.DivIcon>();
-function burgIcon(stateId: number, _population: number, isCapital: boolean): L.DivIcon {
-  const size = isCapital ? 20 : 14;
-  const key = `${stateId}-${isCapital ? 'cap' : 'reg'}`;
+function burgIcon(stateId: number, _population: number, isCapital: boolean, zoom: number = 5): L.DivIcon {
+  // Base size at zoom 5; grow ~25% per zoom level in, shrink down to a readable floor when out
+  const baseSize = isCapital ? 18 : 12;
+  const scale = Math.pow(1.25, zoom - 5);
+  const size = Math.round(Math.max(isCapital ? 12 : 9, Math.min(isCapital ? 56 : 42, baseSize * scale)));
+  const key = `${stateId}-${isCapital ? 'cap' : 'reg'}-${size}`;
   const cached = _burgIconCache.get(key);
   if (cached) return cached;
 
@@ -130,6 +133,14 @@ function MapInstanceBridge({ onMapReady }: { onMapReady: (map: L.Map) => void })
   return null;
 }
 
+function ZoomTracker({ onZoom }: { onZoom: (z: number) => void }) {
+  const map = useMapEvents({
+    zoomend: () => onZoom(map.getZoom()),
+  });
+  useEffect(() => { onZoom(map.getZoom()); }, [map, onZoom]);
+  return null;
+}
+
 type SelectedItem =
   | { kind: 'player'; data: any }
   | { kind: 'outpost'; data: any }
@@ -150,6 +161,7 @@ export default function WorldMap() {
   const [attackConfig, setAttackConfig] = useState<any>(null);
   const [flyTarget, setFlyTarget] = useState<L.LatLngExpression | null>(null);
   const [leafletMap, setLeafletMap] = useState<L.Map | null>(null);
+  const [mapZoom, setMapZoom] = useState<number>(5);
 
   const azgaarMap = useAzgaarMap();
 
@@ -429,6 +441,7 @@ export default function WorldMap() {
           zoomControl={false}
         >
           <MapInstanceBridge onMapReady={setLeafletMap} />
+          <ZoomTracker onZoom={setMapZoom} />
 
           {/* Map background image from Azgaar cells */}
           {azgaarMap.mapImageUrl && (
@@ -450,7 +463,7 @@ export default function WorldMap() {
               <Marker
                 key={`burg-${burg.id}`}
                 position={azgaarToLatLng(burg.x, burg.y)}
-                icon={burgIcon(burg.state, burg.population, burg.capital)}
+                icon={burgIcon(burg.state, burg.population, burg.capital, mapZoom)}
               >
                 <Popup className="leaflet-burg-popup" maxWidth={240}>
                   <div className="text-center space-y-1">
