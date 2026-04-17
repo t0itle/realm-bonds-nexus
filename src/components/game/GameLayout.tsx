@@ -438,7 +438,7 @@ export default function GameLayout() {
                     </span>
                   )}
                 </motion.span>
-                <span className={`text-[9px] font-semibold ${activeTab === tab.id ? 'font-display' : ''}`}>
+                <span className={`text-[10px] font-semibold ${activeTab === tab.id ? 'font-display text-primary' : 'text-foreground'}`}>
                   {tab.label}
                 </span>
               </motion.button>
