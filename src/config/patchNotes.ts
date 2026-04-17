@@ -1,5 +1,5 @@
 // Patch notes configuration — update this when pushing new versions
-export const CURRENT_VERSION = '0.7.1';
+export const CURRENT_VERSION = '0.8.0';
 
 export interface PatchNote {
   version: string;
@@ -9,6 +9,19 @@ export interface PatchNote {
 }
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: '0.8.0',
+    date: '2026-04-17',
+    title: 'World Reset & Heartlands',
+    changes: [
+      '🔄 Full world reset — every realm starts fresh as a Camp',
+      '🗺️ All players now spawn in the central continent with room to expand',
+      '🏰 16 illustrated kingdom sprites mark NPC burgs across the world',
+      '📜 Each kingdom now has its own brief lore — click any NPC burg to read it',
+      '👑 Capital cities are highlighted with golden borders on the map',
+      '✨ Cached map sprites — no more flickering when panning or zooming',
+    ],
+  },
   {
     version: '0.7.1',
     date: '2026-04-01',
