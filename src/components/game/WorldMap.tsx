@@ -475,7 +475,7 @@ export default function WorldMap() {
               <Marker
                 key={`burg-${burg.id}`}
                 position={azgaarToLatLng(burg.x, burg.y)}
-                icon={burgIcon(burg.state, burg.capital, burg.capital ? 44 : 32)}
+                icon={burgIcon(burg.state, burg.population, burg.capital)}
               >
                 <Popup className="leaflet-burg-popup" maxWidth={240}>
                   <div className="text-center space-y-1">
