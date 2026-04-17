@@ -438,7 +438,7 @@ export default function WorldMap() {
         <MapContainer
           className="world-leaflet-map"
           center={initialCenter}
-          zoom={2}
+          zoom={5}
           minZoom={-1}
           maxZoom={10}
           crs={L.CRS.Simple}
