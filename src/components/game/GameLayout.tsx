@@ -396,7 +396,7 @@ export default function GameLayout() {
 
       {/* ── Mobile Bottom Nav ── */}
       {isMobile && (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 px-3 pb-3 safe-bottom">
+        <nav className="fixed bottom-0 left-0 right-0 z-[1200] px-3 pb-3 safe-bottom">
           <div className="relative flex items-center rounded-full border border-border/60 backdrop-blur-md overflow-hidden"
             style={{
               background: 'linear-gradient(135deg, hsl(var(--card) / 0.75) 0%, hsl(var(--card) / 0.6) 100%)',
