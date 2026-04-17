@@ -55,11 +55,14 @@ function labelIcon(emoji: string, label: string, color?: string, size: number = 
   });
 }
 
-// Simple, fixed-size NPC burg icon — transparent, no boxes, no zoom-scaling
+// NPC burg icon — scales with zoom: small when zoomed out, larger when zoomed in
 const _burgIconCache = new Map<string, L.DivIcon>();
-function burgIcon(stateId: number, _population: number, isCapital: boolean): L.DivIcon {
-  const size = isCapital ? 20 : 14;
-  const key = `${stateId}-${isCapital ? 'cap' : 'reg'}`;
+function burgIcon(stateId: number, _population: number, isCapital: boolean, zoom: number = 5): L.DivIcon {
+  // Base size at zoom 5; grow ~25% per zoom level in, shrink down to a readable floor when out
+  const baseSize = isCapital ? 18 : 12;
+  const scale = Math.pow(1.25, zoom - 5);
+  const size = Math.round(Math.max(isCapital ? 12 : 9, Math.min(isCapital ? 56 : 42, baseSize * scale)));
+  const key = `${stateId}-${isCapital ? 'cap' : 'reg'}-${size}`;
   const cached = _burgIconCache.get(key);
   if (cached) return cached;
 
