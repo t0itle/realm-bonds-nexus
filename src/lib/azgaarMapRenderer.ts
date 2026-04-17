@@ -97,7 +97,7 @@ export function buildDetailedAzgaarMapImage(
 }
 
 function getRenderScale() {
-  return Math.min(16, Math.max(12, Math.ceil(window.devicePixelRatio * 8)));
+  return Math.min(28, Math.max(20, Math.ceil(window.devicePixelRatio * 14)));
 }
 
 function resolvePolygon(indices: number[] = [], vertices: number[][]): Vertex[] | null {
