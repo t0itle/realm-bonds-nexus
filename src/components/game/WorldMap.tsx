@@ -26,11 +26,11 @@ function azgaarToLatLng(ax: number, ay: number): L.LatLngExpression {
 }
 
 function worldToLatLng(wx: number, wy: number): L.LatLngExpression {
-  return [-wy / AZGAAR_SCALE, wx / AZGAAR_SCALE];
+  return [-wy, wx];
 }
 
 function latLngToWorld(latlng: L.LatLng): { x: number; y: number } {
-  return { x: latlng.lng * AZGAAR_SCALE, y: -latlng.lat * AZGAAR_SCALE };
+  return { x: latlng.lng, y: -latlng.lat };
 }
 
 // Create emoji/text-based divIcon
@@ -402,9 +402,9 @@ export default function WorldMap() {
         <MapContainer
           className="world-leaflet-map"
           center={initialCenter}
-          zoom={1}
+          zoom={2}
           minZoom={-1}
-          maxZoom={6}
+          maxZoom={10}
           crs={L.CRS.Simple}
           maxBounds={mapBounds}
           maxBoundsViscosity={0.9}
@@ -468,7 +468,7 @@ export default function WorldMap() {
               <Marker
                 key={`player-${pv.village.id}`}
                 position={worldToLatLng(pos.x, pos.y)}
-                icon={labelIcon(emoji, isMe ? `⭐ ${pv.profile.display_name}` : pv.profile.display_name, isMe ? '#ffd700' : '#aaa', isMe ? 32 : 24)}
+                icon={labelIcon(emoji, isMe ? `⭐ ${pv.profile.display_name}` : pv.profile.display_name, isMe ? '#ffd700' : '#aaa', isMe ? 36 : 24)}
                 eventHandlers={{
                   click: () => {
                     if (isMe) {

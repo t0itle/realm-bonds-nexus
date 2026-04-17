@@ -52,7 +52,7 @@ export interface AzgaarMapData {
   loading: boolean;
 }
 
-// Scale factor: Azgaar pixels -> world coordinates
+// Scale factor retained for legacy world-distance systems; map markers now use raw stored village coordinates
 export const AZGAAR_SCALE = 1000;
 
 export function azgaarToWorld(ax: number, ay: number): { x: number; y: number } {

@@ -15,8 +15,8 @@ function lazyRetry<T extends { default: React.ComponentType<any> }>(
   });
 }
 
-const MessagesPanel = lazy(() => lazyRetry(() => import('./MessagesPanel')));
-const AlliancePanel = lazy(() => lazyRetry(() => import('./AlliancePanel')));
+const MessagesPanel = lazy(() => lazyRetry(() => import('./MessagesPanel').then(module => ({ default: module.default as React.ComponentType<any> }))));
+const AlliancePanel = lazy(() => lazyRetry(() => import('./AlliancePanel').then(module => ({ default: module.default as React.ComponentType<any> }))));
 
 function TabFallback() {
   return (
