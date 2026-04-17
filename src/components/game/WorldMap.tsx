@@ -504,7 +504,10 @@ export default function WorldMap() {
               <Marker
                 key={`player-${pv.village.id}`}
                 position={worldToLatLng(pos.x, pos.y)}
-                icon={labelIcon(emoji, isMe ? `⭐ ${pv.profile.display_name}` : pv.profile.display_name, isMe ? '#ffd700' : '#aaa', isMe ? 36 : 24)}
+                icon={isMe
+                  ? selfMarkerIcon(emoji, pv.profile.display_name, 38)
+                  : labelIcon(emoji, pv.profile.display_name, '#aaa', 24)}
+                zIndexOffset={isMe ? 1000 : 0}
                 eventHandlers={{
                   click: () => {
                     if (isMe) {
