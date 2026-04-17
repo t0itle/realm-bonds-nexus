@@ -55,21 +55,43 @@ function labelIcon(emoji: string, label: string, color?: string, size: number = 
   });
 }
 
-// Illustrated sprite icon for NPC burgs — cached to prevent blinking on re-render
+// Illustrated sprite icon for NPC burgs — sized by population tier, themed via kingdom sprite
 const _burgIconCache = new Map<string, L.DivIcon>();
-function burgIcon(stateId: number, isCapital: boolean, size: number = 36): L.DivIcon {
-  const key = `${stateId}-${isCapital}-${size}`;
+type BurgTier = 'hamlet' | 'village' | 'town' | 'city' | 'capital';
+function burgTierFor(population: number, isCapital: boolean): BurgTier {
+  if (isCapital) return 'capital';
+  if (population >= 30) return 'city';
+  if (population >= 12) return 'town';
+  if (population >= 4) return 'village';
+  return 'hamlet';
+}
+const TIER_SIZE: Record<BurgTier, number> = { hamlet: 18, village: 24, town: 32, city: 40, capital: 46 };
+const TIER_FALLBACK_EMOJI: Record<BurgTier, string> = {
+  hamlet: '🛖', village: '🏘️', town: '🏯', city: '🏛️', capital: '👑',
+};
+function burgIcon(stateId: number, population: number, isCapital: boolean): L.DivIcon {
+  const tier = burgTierFor(population, isCapital);
+  const size = TIER_SIZE[tier];
+  const key = `${stateId}-${tier}`;
   const cached = _burgIconCache.get(key);
   if (cached) return cached;
 
   const spriteUrl = KINGDOM_SPRITES[stateId];
-  const borderStyle = isCapital ? '2px solid gold' : 'none';
-  const shadow = isCapital ? 'box-shadow:0 0 8px 2px rgba(255,215,0,0.5);' : '';
+  const ringColor = tier === 'capital' ? 'gold' : tier === 'city' ? 'rgba(255,210,140,0.7)' : tier === 'town' ? 'rgba(200,180,140,0.55)' : 'rgba(140,120,90,0.45)';
+  const ringWidth = tier === 'capital' || tier === 'city' ? 2 : 1;
+  const shadow = tier === 'capital'
+    ? 'box-shadow:0 0 10px 2px rgba(255,215,0,0.55);'
+    : tier === 'city'
+      ? 'box-shadow:0 0 6px 1px rgba(255,200,120,0.35);'
+      : 'box-shadow:0 1px 3px rgba(0,0,0,0.5);';
+
   let icon: L.DivIcon;
   if (spriteUrl) {
+    const radius = tier === 'hamlet' || tier === 'village' ? '50%' : '6px';
+    const filter = tier === 'hamlet' ? 'brightness(0.85) saturate(0.85)' : 'none';
     icon = L.divIcon({
-      html: `<div style="width:${size}px;height:${size}px;border-radius:4px;border:${borderStyle};${shadow}overflow:hidden">
-        <img src="${spriteUrl}" style="width:100%;height:100%;object-fit:cover" />
+      html: `<div style="width:${size}px;height:${size}px;border-radius:${radius};border:${ringWidth}px solid ${ringColor};${shadow}overflow:hidden;background:#222">
+        <img src="${spriteUrl}" style="width:100%;height:100%;object-fit:cover;filter:${filter}" />
       </div>`,
       className: 'leaflet-burg-icon',
       iconSize: [size, size],
@@ -77,7 +99,7 @@ function burgIcon(stateId: number, isCapital: boolean, size: number = 36): L.Div
     });
   } else {
     icon = L.divIcon({
-      html: `<span style="font-size:${size * 0.6}px;line-height:1">${isCapital ? '👑' : '🏘️'}</span>`,
+      html: `<span style="font-size:${size * 0.7}px;line-height:1;text-shadow:0 1px 3px #000">${TIER_FALLBACK_EMOJI[tier]}</span>`,
       className: 'leaflet-burg-icon',
       iconSize: [size, size],
       iconAnchor: [size / 2, size / 2],
@@ -85,6 +107,20 @@ function burgIcon(stateId: number, isCapital: boolean, size: number = 36): L.Div
   }
   _burgIconCache.set(key, icon);
   return icon;
+}
+
+// Glowing pulse icon to mark the player's own settlement
+function selfMarkerIcon(emoji: string, label: string, size: number = 40): L.DivIcon {
+  return L.divIcon({
+    html: `<div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:1px">
+      <span class="leaflet-self-pulse" style="position:absolute;top:50%;left:50%;width:${size * 1.8}px;height:${size * 1.8}px;margin:-${size * 0.9}px 0 0 -${size * 0.9}px;border-radius:50%;border:2px solid rgba(255,215,0,0.9);box-shadow:0 0 16px 4px rgba(255,215,0,0.45);pointer-events:none"></span>
+      <span style="font-size:${size}px;line-height:1;filter:drop-shadow(0 0 6px rgba(255,215,0,0.8))">${emoji}</span>
+      <span style="font-size:10px;color:#ffd700;white-space:nowrap;text-shadow:0 1px 3px #000;font-family:var(--font-display,serif);font-weight:bold">⭐ ${label}</span>
+    </div>`,
+    className: 'leaflet-self-icon',
+    iconSize: [size * 3, size + 20],
+    iconAnchor: [size * 1.5, size / 2],
+  });
 }
 
 // Component to handle map click on empty space
