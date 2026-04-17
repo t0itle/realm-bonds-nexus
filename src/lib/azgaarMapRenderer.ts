@@ -55,6 +55,7 @@ export function buildDetailedAzgaarMapImage(
   const polygons = cellVertices.map((indices) => resolvePolygon(indices, vertices));
   const stateColors = new Map<number, Rgb>(states.map((state) => [state.id, hexToRgb(state.color)]));
 
+  // Pass 1: fill cells only (no per-cell stroke — eliminates fat seams)
   for (let index = 0; index < cells.length; index += 1) {
     const polygon = polygons[index];
     if (!polygon) continue;
@@ -67,29 +68,31 @@ export function buildDetailedAzgaarMapImage(
     tracePolygon(ctx, polygon);
     ctx.fillStyle = fill;
     ctx.fill();
-
-    ctx.strokeStyle = fill;
-    ctx.lineWidth = 0.6;
-    ctx.stroke();
   }
 
+  // Pass 2: single hairline outline around every land cell.
+  // Because adjacent land cells share edges, overlapping strokes blend into one
+  // clean network of borders without the fat double-stroke seams.
+  ctx.strokeStyle = 'rgba(25, 25, 30, 0.32)';
+  ctx.lineWidth = 0.08;
   for (let index = 0; index < cells.length; index += 1) {
     const polygon = polygons[index];
     if (!polygon) continue;
-
     const cell = cells[index];
     if (cell.stateId === 0) continue;
-
-    const coastal = cell.height <= 24;
-    const mountainous = cell.height >= 58;
-
     tracePolygon(ctx, polygon);
-    ctx.lineWidth = coastal ? 0.55 : 0.32;
-    ctx.strokeStyle = coastal
-      ? rgbaToCss(COAST_HIGHLIGHT, 0.45)
-      : mountainous
-        ? rgbaToCss(RIDGE_HIGHLIGHT, 0.32)
-        : 'rgba(20, 18, 12, 0.22)';
+    ctx.stroke();
+  }
+
+  // Pass 3: crisp coastline — slightly stronger stroke on cells touching ocean (height boundary)
+  ctx.strokeStyle = 'rgba(15, 20, 30, 0.9)';
+  ctx.lineWidth = 0.22;
+  for (let index = 0; index < cells.length; index += 1) {
+    const polygon = polygons[index];
+    if (!polygon) continue;
+    const cell = cells[index];
+    if (cell.stateId === 0 || cell.height > 22) continue;
+    tracePolygon(ctx, polygon);
     ctx.stroke();
   }
 
