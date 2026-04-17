@@ -55,6 +55,7 @@ export function buildDetailedAzgaarMapImage(
   const polygons = cellVertices.map((indices) => resolvePolygon(indices, vertices));
   const stateColors = new Map<number, Rgb>(states.map((state) => [state.id, hexToRgb(state.color)]));
 
+  // Pass 1: fill cells only (no per-cell stroke — eliminates fat seams)
   for (let index = 0; index < cells.length; index += 1) {
     const polygon = polygons[index];
     if (!polygon) continue;
@@ -67,30 +68,31 @@ export function buildDetailedAzgaarMapImage(
     tracePolygon(ctx, polygon);
     ctx.fillStyle = fill;
     ctx.fill();
-
-    ctx.strokeStyle = fill;
-    ctx.lineWidth = 0.6;
-    ctx.stroke();
   }
 
+  // Pass 2: crisp coastline only — single hairline where land meets ocean
+  ctx.strokeStyle = 'rgba(30, 35, 45, 0.85)';
+  ctx.lineWidth = 0.18;
   for (let index = 0; index < cells.length; index += 1) {
     const polygon = polygons[index];
     if (!polygon) continue;
-
     const cell = cells[index];
     if (cell.stateId === 0) continue;
 
-    const coastal = cell.height <= 24;
-    const mountainous = cell.height >= 58;
+    const neighbors = cellVertices[index] ? cells[index] : null;
+    // Draw edges that border ocean cells
+    drawCoastalEdges(ctx, polygon, index, cells, cellVertices, vertices);
+  }
 
-    tracePolygon(ctx, polygon);
-    ctx.lineWidth = coastal ? 0.55 : 0.32;
-    ctx.strokeStyle = coastal
-      ? rgbaToCss(COAST_HIGHLIGHT, 0.45)
-      : mountainous
-        ? rgbaToCss(RIDGE_HIGHLIGHT, 0.32)
-        : 'rgba(20, 18, 12, 0.22)';
-    ctx.stroke();
+  // Pass 3: state borders — thin, slightly darker than fill
+  ctx.strokeStyle = 'rgba(20, 18, 25, 0.55)';
+  ctx.lineWidth = 0.12;
+  for (let index = 0; index < cells.length; index += 1) {
+    const polygon = polygons[index];
+    if (!polygon) continue;
+    const cell = cells[index];
+    if (cell.stateId === 0) continue;
+    drawStateBorderEdges(ctx, polygon, index, cells);
   }
 
   return canvas.toDataURL('image/png');
