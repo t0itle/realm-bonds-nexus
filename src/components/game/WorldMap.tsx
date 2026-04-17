@@ -161,6 +161,7 @@ export default function WorldMap() {
   const [attackConfig, setAttackConfig] = useState<any>(null);
   const [flyTarget, setFlyTarget] = useState<L.LatLngExpression | null>(null);
   const [leafletMap, setLeafletMap] = useState<L.Map | null>(null);
+  const [mapZoom, setMapZoom] = useState<number>(5);
 
   const azgaarMap = useAzgaarMap();
 
