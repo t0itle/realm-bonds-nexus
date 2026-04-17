@@ -395,6 +395,12 @@ export function useVillageDataLoader(user: { id: string } | null) {
         if (v.id !== villageIdRef.current) return;
         setVillageNameLocal(v.name as string);
         setPlayerLevel(v.level as number);
+        setResources({
+          gold: Number((v as any).gold ?? 0),
+          wood: Number((v as any).wood ?? 0),
+          stone: Number((v as any).stone ?? 0),
+          food: Number((v as any).food ?? 0),
+        });
         setSteel((v as any).steel ?? 0);
         setPopulationBase((v as any).population ?? 10);
         setMaxPopBase((v as any).max_population ?? 20);
