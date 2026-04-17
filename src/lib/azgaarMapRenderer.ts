@@ -69,7 +69,7 @@ export function buildDetailedAzgaarMapImage(
     ctx.fill();
 
     ctx.strokeStyle = fill;
-    ctx.lineWidth = 0.42;
+    ctx.lineWidth = 0.6;
     ctx.stroke();
   }
 
@@ -84,12 +84,12 @@ export function buildDetailedAzgaarMapImage(
     const mountainous = cell.height >= 58;
 
     tracePolygon(ctx, polygon);
-    ctx.lineWidth = coastal ? 0.36 : 0.16;
+    ctx.lineWidth = coastal ? 0.55 : 0.32;
     ctx.strokeStyle = coastal
-      ? rgbaToCss(COAST_HIGHLIGHT, 0.24)
+      ? rgbaToCss(COAST_HIGHLIGHT, 0.45)
       : mountainous
-        ? rgbaToCss(RIDGE_HIGHLIGHT, 0.18)
-        : 'rgba(0, 0, 0, 0.08)';
+        ? rgbaToCss(RIDGE_HIGHLIGHT, 0.32)
+        : 'rgba(20, 18, 12, 0.22)';
     ctx.stroke();
   }
 
