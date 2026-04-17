@@ -70,29 +70,30 @@ export function buildDetailedAzgaarMapImage(
     ctx.fill();
   }
 
-  // Pass 2: crisp coastline only — single hairline where land meets ocean
-  ctx.strokeStyle = 'rgba(30, 35, 45, 0.85)';
-  ctx.lineWidth = 0.18;
+  // Pass 2: single hairline outline around every land cell.
+  // Because adjacent land cells share edges, overlapping strokes blend into one
+  // clean network of borders without the fat double-stroke seams.
+  ctx.strokeStyle = 'rgba(25, 25, 30, 0.32)';
+  ctx.lineWidth = 0.08;
   for (let index = 0; index < cells.length; index += 1) {
     const polygon = polygons[index];
     if (!polygon) continue;
     const cell = cells[index];
     if (cell.stateId === 0) continue;
-
-    const neighbors = cellVertices[index] ? cells[index] : null;
-    // Draw edges that border ocean cells
-    drawCoastalEdges(ctx, polygon, index, cells, cellVertices, vertices);
+    tracePolygon(ctx, polygon);
+    ctx.stroke();
   }
 
-  // Pass 3: state borders — thin, slightly darker than fill
-  ctx.strokeStyle = 'rgba(20, 18, 25, 0.55)';
-  ctx.lineWidth = 0.12;
+  // Pass 3: crisp coastline — slightly stronger stroke on cells touching ocean (height boundary)
+  ctx.strokeStyle = 'rgba(15, 20, 30, 0.9)';
+  ctx.lineWidth = 0.22;
   for (let index = 0; index < cells.length; index += 1) {
     const polygon = polygons[index];
     if (!polygon) continue;
     const cell = cells[index];
-    if (cell.stateId === 0) continue;
-    drawStateBorderEdges(ctx, polygon, index, cells);
+    if (cell.stateId === 0 || cell.height > 22) continue;
+    tracePolygon(ctx, polygon);
+    ctx.stroke();
   }
 
   return canvas.toDataURL('image/png');
