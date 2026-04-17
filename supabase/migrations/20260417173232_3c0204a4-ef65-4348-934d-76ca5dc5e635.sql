@@ -1,0 +1,12 @@
+UPDATE villages SET map_x=268.8, map_y=247.1 WHERE id='f81712e5-465d-4921-b5cc-109b5e18fb76';
+UPDATE villages SET map_x=218.7, map_y=234.1 WHERE id='0ccbdf5f-0d2f-4e1d-8230-d73f1448dc10';
+UPDATE villages SET map_x=278.7, map_y=275.4 WHERE id='1140f3ae-21e4-4a12-acc4-fb9b46c976c1';
+UPDATE villages SET map_x=69.6, map_y=336.7 WHERE id='75ad0e5e-80a4-479e-8db7-e59715a1c4a3';
+UPDATE villages SET map_x=84.8, map_y=211.1 WHERE id='7fd71c91-52fe-47cd-9b4f-6a5c0b5ad394';
+UPDATE villages SET map_x=98.2, map_y=442.9 WHERE id='e4adc75f-0682-4adf-9e5b-d8d1a964e517';
+UPDATE villages SET map_x=265.7, map_y=159.7 WHERE id='f0f97d34-0b0c-4943-9c23-77c0c6d33390';
+UPDATE villages SET map_x=278.9, map_y=242.1 WHERE id='115d2389-32f1-4f04-8b31-394968d43caa';
+UPDATE villages SET map_x=233.8, map_y=360.4 WHERE id='27ec248e-02df-4432-ab2b-e379ba00e0e2';
+UPDATE villages SET map_x=99.9, map_y=186.6 WHERE id='230fd9ce-ebb0-462e-8447-ba149f62ffb6';
+UPDATE villages SET map_x=159.2, map_y=360.3 WHERE id='288baaa3-fd65-4b55-bbe6-fa8dc830fdd8';
+UPDATE villages SET map_x=244.8, map_y=222.3 WHERE id='7c5dd6da-f51f-414b-9cfe-8d54ef366331';
