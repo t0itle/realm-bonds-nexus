@@ -55,51 +55,26 @@ function labelIcon(emoji: string, label: string, color?: string, size: number = 
   });
 }
 
-// Illustrated sprite icon for NPC burgs — sized by population tier, themed via kingdom sprite
+// Simple, fixed-size NPC burg icon — transparent, no boxes, no zoom-scaling
 const _burgIconCache = new Map<string, L.DivIcon>();
-type BurgTier = 'hamlet' | 'village' | 'town' | 'city' | 'capital';
-function burgTierFor(population: number, isCapital: boolean): BurgTier {
-  if (isCapital) return 'capital';
-  if (population >= 30) return 'city';
-  if (population >= 12) return 'town';
-  if (population >= 4) return 'village';
-  return 'hamlet';
-}
-const TIER_SIZE: Record<BurgTier, number> = { hamlet: 18, village: 24, town: 32, city: 40, capital: 46 };
-const TIER_FALLBACK_EMOJI: Record<BurgTier, string> = {
-  hamlet: '🛖', village: '🏘️', town: '🏯', city: '🏛️', capital: '👑',
-};
-function burgIcon(stateId: number, population: number, isCapital: boolean): L.DivIcon {
-  const tier = burgTierFor(population, isCapital);
-  const size = TIER_SIZE[tier];
-  const key = `${stateId}-${tier}`;
+function burgIcon(stateId: number, _population: number, isCapital: boolean): L.DivIcon {
+  const size = isCapital ? 20 : 14;
+  const key = `${stateId}-${isCapital ? 'cap' : 'reg'}`;
   const cached = _burgIconCache.get(key);
   if (cached) return cached;
 
   const spriteUrl = KINGDOM_SPRITES[stateId];
-  const ringColor = tier === 'capital' ? 'gold' : tier === 'city' ? 'rgba(255,210,140,0.7)' : tier === 'town' ? 'rgba(200,180,140,0.55)' : 'rgba(140,120,90,0.45)';
-  const ringWidth = tier === 'capital' || tier === 'city' ? 2 : 1;
-  const shadow = tier === 'capital'
-    ? 'box-shadow:0 0 10px 2px rgba(255,215,0,0.55);'
-    : tier === 'city'
-      ? 'box-shadow:0 0 6px 1px rgba(255,200,120,0.35);'
-      : 'box-shadow:0 1px 3px rgba(0,0,0,0.5);';
-
   let icon: L.DivIcon;
   if (spriteUrl) {
-    const radius = tier === 'hamlet' || tier === 'village' ? '50%' : '6px';
-    const filter = tier === 'hamlet' ? 'brightness(0.85) saturate(0.85)' : 'none';
     icon = L.divIcon({
-      html: `<div style="width:${size}px;height:${size}px;border-radius:${radius};border:${ringWidth}px solid ${ringColor};${shadow}overflow:hidden;background:#222">
-        <img src="${spriteUrl}" style="width:100%;height:100%;object-fit:cover;filter:${filter}" />
-      </div>`,
+      html: `<img src="${spriteUrl}" style="width:${size}px;height:${size}px;object-fit:contain;background:transparent;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6))" />`,
       className: 'leaflet-burg-icon',
       iconSize: [size, size],
       iconAnchor: [size / 2, size / 2],
     });
   } else {
     icon = L.divIcon({
-      html: `<span style="font-size:${size * 0.7}px;line-height:1;text-shadow:0 1px 3px #000">${TIER_FALLBACK_EMOJI[tier]}</span>`,
+      html: `<span style="font-size:${size}px;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,0.7)">${isCapital ? '👑' : '🏘️'}</span>`,
       className: 'leaflet-burg-icon',
       iconSize: [size, size],
       iconAnchor: [size / 2, size / 2],
