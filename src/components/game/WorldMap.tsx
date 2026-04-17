@@ -133,6 +133,14 @@ function MapInstanceBridge({ onMapReady }: { onMapReady: (map: L.Map) => void })
   return null;
 }
 
+function ZoomTracker({ onZoom }: { onZoom: (z: number) => void }) {
+  const map = useMapEvents({
+    zoomend: () => onZoom(map.getZoom()),
+  });
+  useEffect(() => { onZoom(map.getZoom()); }, [map, onZoom]);
+  return null;
+}
+
 type SelectedItem =
   | { kind: 'player'; data: any }
   | { kind: 'outpost'; data: any }
