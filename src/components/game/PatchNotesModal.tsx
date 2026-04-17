@@ -29,7 +29,7 @@ export default function PatchNotesModal() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 px-4"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-4"
           onClick={dismiss}
         >
           <motion.div
