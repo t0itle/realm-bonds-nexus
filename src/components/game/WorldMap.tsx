@@ -441,6 +441,7 @@ export default function WorldMap() {
           zoomControl={false}
         >
           <MapInstanceBridge onMapReady={setLeafletMap} />
+          <ZoomTracker onZoom={setMapZoom} />
 
           {/* Map background image from Azgaar cells */}
           {azgaarMap.mapImageUrl && (
@@ -462,7 +463,7 @@ export default function WorldMap() {
               <Marker
                 key={`burg-${burg.id}`}
                 position={azgaarToLatLng(burg.x, burg.y)}
-                icon={burgIcon(burg.state, burg.population, burg.capital)}
+                icon={burgIcon(burg.state, burg.population, burg.capital, mapZoom)}
               >
                 <Popup className="leaflet-burg-popup" maxWidth={240}>
                   <div className="text-center space-y-1">
