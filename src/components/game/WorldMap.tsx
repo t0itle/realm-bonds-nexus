@@ -111,13 +111,10 @@ function labelIcon(emoji: string, label: string, color: string = MAP_ICON_LABEL_
   return icon;
 }
 
-// NPC burg icon — scales with zoom: small when zoomed out, larger when zoomed in
+// NPC burg icon — STATIC size based on population/capital tier (no zoom scaling)
 const _burgIconCache = new Map<string, L.DivIcon>();
-function burgIcon(stateId: number, _population: number, isCapital: boolean, zoom: number = 5): L.DivIcon {
-  // Bigger, more visible NPC sprites that still scale with zoom
-  const baseSize = isCapital ? 32 : 24;
-  const scale = Math.pow(1.35, Math.max(0, zoom - 5));
-  const size = Math.round(Math.max(isCapital ? 22 : 16, Math.min(isCapital ? 96 : 72, baseSize * scale)));
+function burgIcon(stateId: number, population: number, isCapital: boolean): L.DivIcon {
+  const { size } = getBurgTier(population, isCapital);
   const key = `${stateId}-${isCapital ? 'cap' : 'reg'}-${size}`;
   const cached = _burgIconCache.get(key);
   if (cached) return cached;
@@ -133,7 +130,7 @@ function burgIcon(stateId: number, _population: number, isCapital: boolean, zoom
     });
   } else {
     icon = L.divIcon({
-      html: `<span style="font-size:${size}px;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,0.7)">${isCapital ? '👑' : '🏘️'}</span>`,
+      html: `<span style="font-size:${size}px;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,0.7)">${isCapital ? '👑' : population >= 3000 ? '🏰' : population >= 1000 ? '🏘️' : '🏠'}</span>`,
       className: 'leaflet-burg-icon',
       iconSize: [size, size],
       iconAnchor: [size / 2, size / 2],
@@ -143,8 +140,8 @@ function burgIcon(stateId: number, _population: number, isCapital: boolean, zoom
   return icon;
 }
 
-// Glowing pulse icon to mark the player's own settlement
-function selfMarkerIcon(emoji: string, label: string, size: number = 40, showLabel: boolean = true): L.DivIcon {
+// Glowing pulse icon to mark the player's own settlement (STATIC size by tier)
+function selfMarkerIcon(emoji: string, label: string, size: number = 28, showLabel: boolean = true): L.DivIcon {
   const key = `${emoji}-${label}-${size}-${showLabel ? 'label' : 'icon'}`;
   const cached = _selfIconCache.get(key);
   if (cached) return cached;
