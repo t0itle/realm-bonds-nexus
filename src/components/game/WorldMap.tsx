@@ -111,31 +111,53 @@ function labelIcon(emoji: string, label: string, color: string = MAP_ICON_LABEL_
   return icon;
 }
 
-// NPC burg icon — STATIC size based on population/capital tier (no zoom scaling)
+// NPC burg icon — STATIC size by population tier × culture × trait overlays.
+// Tier sets size; kingdom sprite sets culture theme; trait badges (port/walls/citadel/temple) accent the silhouette.
 const _burgIconCache = new Map<string, L.DivIcon>();
-function burgIcon(stateId: number, population: number, isCapital: boolean): L.DivIcon {
-  const { size } = getBurgTier(population, isCapital);
-  const key = `${stateId}-${isCapital ? 'cap' : 'reg'}-${size}`;
+interface BurgTraits {
+  isCapital: boolean;
+  hasWalls: boolean;
+  hasCitadel: boolean;
+  hasPort: boolean;
+  hasTemple: boolean;
+}
+function burgIcon(stateId: number, population: number, traits: BurgTraits): L.DivIcon {
+  const { size } = getBurgTier(population, traits.isCapital);
+  const key = `${stateId}-${size}-${traits.isCapital ? 'C' : ''}${traits.hasWalls ? 'W' : ''}${traits.hasCitadel ? 'K' : ''}${traits.hasPort ? 'P' : ''}${traits.hasTemple ? 'T' : ''}`;
   const cached = _burgIconCache.get(key);
   if (cached) return cached;
 
   const spriteUrl = KINGDOM_SPRITES[stateId];
-  let icon: L.DivIcon;
-  if (spriteUrl) {
-    icon = L.divIcon({
-      html: `<img src="${spriteUrl}" style="width:${size}px;height:${size}px;object-fit:contain;background:transparent;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6))" />`,
-      className: 'leaflet-burg-icon',
-      iconSize: [size, size],
-      iconAnchor: [size / 2, size / 2],
-    });
-  } else {
-    icon = L.divIcon({
-      html: `<span style="font-size:${size}px;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,0.7)">${isCapital ? '👑' : population >= 3000 ? '🏰' : population >= 1000 ? '🏘️' : '🏠'}</span>`,
-      className: 'leaflet-burg-icon',
-      iconSize: [size, size],
-      iconAnchor: [size / 2, size / 2],
-    });
-  }
+  // Wrapper big enough to hold trait badge corners
+  const pad = 6;
+  const wrap = size + pad * 2;
+  // Soft halo for fortified settlements
+  const ringStyle = traits.hasWalls || traits.hasCitadel
+    ? `box-shadow:inset 0 0 0 1.5px hsla(45,70%,55%,0.7),0 0 4px hsla(45,70%,55%,0.4);border-radius:${traits.hasCitadel ? '4px' : '50%'};`
+    : '';
+
+  // Trait badge emojis positioned at corners — gives "culture × trait matrix" variety
+  const badgeSize = Math.max(8, Math.round(size * 0.42));
+  const badge = (emoji: string, pos: string) =>
+    `<span style="position:absolute;${pos};font-size:${badgeSize}px;line-height:1;text-shadow:0 1px 1.5px rgba(0,0,0,0.8);pointer-events:none">${emoji}</span>`;
+
+  const overlays: string[] = [];
+  if (traits.isCapital) overlays.push(badge('👑', 'top:-2px;left:50%;transform:translateX(-50%)'));
+  if (traits.hasCitadel && !traits.isCapital) overlays.push(badge('🏰', 'top:-2px;right:-1px'));
+  if (traits.hasWalls && !traits.hasCitadel) overlays.push(badge('🛡️', 'bottom:-1px;right:-1px'));
+  if (traits.hasPort) overlays.push(badge('⚓', 'bottom:-1px;left:-1px'));
+  if (traits.hasTemple) overlays.push(badge('✨', 'top:-1px;left:-1px'));
+
+  const inner = spriteUrl
+    ? `<img src="${spriteUrl}" style="width:${size}px;height:${size}px;object-fit:contain;background:transparent;display:block;${ringStyle}filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6))" />`
+    : `<span style="font-size:${size}px;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,0.7);${ringStyle}display:inline-block">${traits.isCapital ? '👑' : population >= 3000 ? '🏰' : population >= 1000 ? '🏘️' : '🏠'}</span>`;
+
+  const icon = L.divIcon({
+    html: `<div style="position:relative;width:${wrap}px;height:${wrap}px;display:flex;align-items:center;justify-content:center">${inner}${overlays.join('')}</div>`,
+    className: 'leaflet-burg-icon',
+    iconSize: [wrap, wrap],
+    iconAnchor: [wrap / 2, wrap / 2],
+  });
   _burgIconCache.set(key, icon);
   return icon;
 }
@@ -348,7 +370,8 @@ export default function WorldMap() {
     return () => clearInterval(interval);
   }, [npcState.playerRelations, addResources]);
 
-  // Load outposts
+  // Load outposts + roads (roads extend envoy range)
+  const [roads, setRoads] = useState<any[]>([]);
   useEffect(() => {
     if (!user) return;
     supabase.from('outposts').select('*').then(({ data }) => {
@@ -356,6 +379,9 @@ export default function WorldMap() {
     });
     supabase.from('wall_segments').select('*').then(({ data }) => {
       if (data) setWallSegments(data);
+    });
+    supabase.from('roads').select('*').eq('user_id', user.id).then(({ data }) => {
+      if (data) setRoads(data);
     });
   }, [user]);
 
@@ -395,7 +421,9 @@ export default function WorldMap() {
 
   const isInRange = useCallback((targetX: number, targetY: number) => {
     const wtLevel = getWatchtowerLevel();
-    const maxRange = getMaxRange(army, wtLevel);
+    // Roads extend envoy reach: +3000 per owned road, capped at +15000
+    const roadBonus = Math.min(15000, roads.length * 3000);
+    const maxRange = getMaxRange(army, wtLevel) + roadBonus;
     const dist = getDistance(targetX, targetY);
     if (dist <= maxRange) return true;
     const myOutposts = outposts.filter((o: any) => o.user_id === user?.id);
@@ -404,7 +432,7 @@ export default function WorldMap() {
       if (opDist <= maxRange) return true;
     }
     return false;
-  }, [getDistance, army, outposts, user?.id, getWatchtowerLevel]);
+  }, [getDistance, army, outposts, user?.id, getWatchtowerLevel, roads.length]);
 
   const createMarch = useCallback((id: string, targetName: string, targetX: number, targetY: number, _travelSec: number, action: () => void, sentArmy?: Partial<Record<string, number>>) => {
     const myPos = getMyPos();
@@ -482,6 +510,13 @@ export default function WorldMap() {
 
   const npcBurgMarkers = useMemo(() => azgaarMap.burgs.map((burg) => {
     const state = stateById.get(burg.state);
+    const traits: BurgTraits = {
+      isCapital: burg.capital,
+      hasWalls: burg.walls,
+      hasCitadel: burg.citadel,
+      hasPort: burg.port,
+      hasTemple: burg.temple,
+    };
     const burgPayload = {
       burg_id: burg.id,
       burg_name: burg.name,
@@ -496,18 +531,41 @@ export default function WorldMap() {
       has_citadel: burg.citadel,
       is_capital: burg.capital,
     };
+    // Convert Azgaar map coords -> world coords for envoy distance/range checks
+    const worldPos = { x: burg.x * AZGAAR_SCALE, y: burg.y * AZGAAR_SCALE };
+    const inEnvoyRange = isInRange(worldPos.x, worldPos.y);
+    const travelSec = calcTravelTime(worldPos.x, worldPos.y);
+    // Long-distance envoy fee scales with population importance
+    const extendCostGold = traits.isCapital ? 500 : burg.population >= 3000 ? 300 : burg.population >= 1000 ? 200 : 120;
+    const envoyCtx = {
+      inRange: inEnvoyRange,
+      travelSec,
+      extendCostGold,
+      canAffordExtend: resources.gold >= extendCostGold,
+      onSendEnvoy: async (mode: 'instant' | 'travel' | 'paid') => {
+        if (mode === 'paid') {
+          if (resources.gold < extendCostGold) throw new Error('Not enough gold');
+          addResources({ gold: -extendCostGold });
+          toast.success(`💰 Courier hired to ${burg.name}`);
+        } else if (mode === 'instant') {
+          toast.success(`🕊️ Envoy sent to ${burg.name}`);
+        }
+        // 'travel' mode handled in popup with delayed lore reveal
+      },
+    };
     return (
       <Marker
         key={`burg-${burg.id}`}
         position={azgaarToLatLng(burg.x, burg.y)}
-        icon={burgIcon(burg.state, burg.population, burg.capital)}
+        icon={burgIcon(burg.state, burg.population, traits)}
       >
         <Popup className="leaflet-burg-popup" maxWidth={300} minWidth={240}>
-          <BurgLorePopup burg={burgPayload} />
+          <BurgLorePopup burg={burgPayload} envoy={envoyCtx} />
         </Popup>
       </Marker>
     );
-  }), [azgaarMap.burgs, stateById]);
+  }), [azgaarMap.burgs, stateById, isInRange, calcTravelTime, resources.gold, addResources]);
+
 
   const playerSettlementMarkers = useMemo(() => allVillages.map((pv) => {
     const pos = getPlayerPos(pv.village.id);
