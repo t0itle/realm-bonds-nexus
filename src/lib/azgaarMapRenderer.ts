@@ -135,11 +135,14 @@ export function buildDetailedAzgaarMapImage(
   return canvas.toDataURL('image/png');
 }
 
-function getRenderScale() {
-  // Much higher resolution texture so the map stays crisp at full Leaflet zoom.
-  // Capped to avoid blowing past browser canvas limits (~16k px).
-  const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
-  return Math.min(48, Math.max(32, Math.ceil(dpr * 24)));
+function getRenderScale(mapWidth = 384, mapHeight = 697) {
+  // Browsers cap canvas around 16384px per side and ~268M pixels total.
+  // Stay well under that to guarantee the texture renders.
+  const MAX_DIM = 8192;
+  const desired = 22;
+  const maxByWidth = Math.floor(MAX_DIM / mapWidth);
+  const maxByHeight = Math.floor(MAX_DIM / mapHeight);
+  return Math.max(8, Math.min(desired, maxByWidth, maxByHeight));
 }
 
 function resolvePolygon(indices: number[] = [], vertices: number[][]): Vertex[] | null {
