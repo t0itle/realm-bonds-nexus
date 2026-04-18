@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { MapContainer, ImageOverlay, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, ImageOverlay, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -33,26 +33,57 @@ function latLngToWorld(latlng: L.LatLng): { x: number; y: number } {
   return { x: latlng.lng, y: -latlng.lat };
 }
 
-// Create emoji/text-based divIcon
-function emojiIcon(emoji: string, size: number = 24, className?: string): L.DivIcon {
-  return L.divIcon({
+const MAP_ICON_LABEL_COLOR = 'hsl(var(--muted-foreground))';
+const MAP_ICON_PRIMARY_COLOR = 'hsl(var(--primary))';
+const MAP_ICON_DESTRUCTIVE_COLOR = 'hsl(var(--destructive))';
+
+function getZoomScaledSize(
+  base: number,
+  zoom: number,
+  options?: { min?: number; max?: number; anchorZoom?: number; zoomStep?: number },
+) {
+  const { min = Math.round(base * 0.75), max = Math.round(base * 2), anchorZoom = 5, zoomStep = 1.18 } = options ?? {};
+  const scaled = base * Math.pow(zoomStep, zoom - anchorZoom);
+  return Math.round(Math.max(min, Math.min(max, scaled)));
+}
+
+const _emojiIconCache = new Map<string, L.DivIcon>();
+const _labelIconCache = new Map<string, L.DivIcon>();
+const _selfIconCache = new Map<string, L.DivIcon>();
+
+function emojiIcon(emoji: string, size: number = 24, className: string = 'leaflet-emoji-icon'): L.DivIcon {
+  const key = `${className}-${emoji}-${size}`;
+  const cached = _emojiIconCache.get(key);
+  if (cached) return cached;
+
+  const icon = L.divIcon({
     html: `<span style="font-size:${size}px;line-height:1;display:block;text-align:center">${emoji}</span>`,
-    className: className || 'leaflet-emoji-icon',
+    className,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
   });
+  _emojiIconCache.set(key, icon);
+  return icon;
 }
 
-function labelIcon(emoji: string, label: string, color?: string, size: number = 28): L.DivIcon {
-  return L.divIcon({
-    html: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px">
-      <span style="font-size:${size}px;line-height:1">${emoji}</span>
-      <span style="font-size:9px;color:${color || '#ccc'};white-space:nowrap;text-shadow:0 1px 3px #000;font-family:var(--font-display,serif)">${label}</span>
-    </div>`,
+function labelIcon(emoji: string, label: string, color: string = MAP_ICON_LABEL_COLOR, size: number = 28, showLabel: boolean = true): L.DivIcon {
+  const key = `${emoji}-${label}-${color}-${size}-${showLabel ? 'label' : 'icon'}`;
+  const cached = _labelIconCache.get(key);
+  if (cached) return cached;
+
+  const icon = L.divIcon({
+    html: showLabel
+      ? `<div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+          <span style="font-size:${size}px;line-height:1">${emoji}</span>
+          <span style="font-size:9px;color:${color};white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,0.85);font-family:var(--font-display,serif)">${label}</span>
+        </div>`
+      : `<span style="font-size:${size}px;line-height:1;display:block;text-align:center;text-shadow:0 1px 2px rgba(0,0,0,0.75)">${emoji}</span>`,
     className: 'leaflet-label-icon',
-    iconSize: [size * 3, size + 16],
-    iconAnchor: [size * 1.5, size / 2],
+    iconSize: showLabel ? [size * 3, size + 16] : [size, size],
+    iconAnchor: showLabel ? [size * 1.5, size / 2] : [size / 2, size / 2],
   });
+  _labelIconCache.set(key, icon);
+  return icon;
 }
 
 // NPC burg icon — scales with zoom: small when zoomed out, larger when zoomed in
@@ -88,28 +119,23 @@ function burgIcon(stateId: number, _population: number, isCapital: boolean, zoom
 }
 
 // Glowing pulse icon to mark the player's own settlement
-function selfMarkerIcon(emoji: string, label: string, size: number = 40): L.DivIcon {
-  return L.divIcon({
+function selfMarkerIcon(emoji: string, label: string, size: number = 40, showLabel: boolean = true): L.DivIcon {
+  const key = `${emoji}-${label}-${size}-${showLabel ? 'label' : 'icon'}`;
+  const cached = _selfIconCache.get(key);
+  if (cached) return cached;
+
+  const icon = L.divIcon({
     html: `<div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:1px">
-      <span class="leaflet-self-pulse" style="position:absolute;top:50%;left:50%;width:${size * 1.8}px;height:${size * 1.8}px;margin:-${size * 0.9}px 0 0 -${size * 0.9}px;border-radius:50%;border:2px solid rgba(255,215,0,0.9);box-shadow:0 0 16px 4px rgba(255,215,0,0.45);pointer-events:none"></span>
-      <span style="font-size:${size}px;line-height:1;filter:drop-shadow(0 0 6px rgba(255,215,0,0.8))">${emoji}</span>
-      <span style="font-size:10px;color:#ffd700;white-space:nowrap;text-shadow:0 1px 3px #000;font-family:var(--font-display,serif);font-weight:bold">⭐ ${label}</span>
+      <span class="leaflet-self-pulse" style="position:absolute;top:50%;left:50%;width:${size * 1.8}px;height:${size * 1.8}px;margin:-${size * 0.9}px 0 0 -${size * 0.9}px;border-radius:50%;border:2px solid ${MAP_ICON_PRIMARY_COLOR};box-shadow:0 0 16px 4px color-mix(in srgb, ${MAP_ICON_PRIMARY_COLOR} 45%, transparent);pointer-events:none"></span>
+      <span style="font-size:${size}px;line-height:1;filter:drop-shadow(0 0 6px color-mix(in srgb, ${MAP_ICON_PRIMARY_COLOR} 75%, transparent))">${emoji}</span>
+      ${showLabel ? `<span style="font-size:10px;color:${MAP_ICON_PRIMARY_COLOR};white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,0.9);font-family:var(--font-display,serif);font-weight:bold">⭐ ${label}</span>` : ''}
     </div>`,
     className: 'leaflet-self-icon',
-    iconSize: [size * 3, size + 20],
-    iconAnchor: [size * 1.5, size / 2],
+    iconSize: showLabel ? [size * 3, size + 20] : [size, size],
+    iconAnchor: showLabel ? [size * 1.5, size / 2] : [size / 2, size / 2],
   });
-}
-
-// Component to handle map click on empty space
-function MapClickHandler({ onEmptyClick }: { onEmptyClick: (worldX: number, worldY: number) => void }) {
-  useMapEvents({
-    click(e) {
-      const world = latLngToWorld(e.latlng);
-      onEmptyClick(world.x, world.y);
-    },
-  });
-  return null;
+  _selfIconCache.set(key, icon);
+  return icon;
 }
 
 // Component to fly to a position
@@ -123,21 +149,40 @@ function FlyTo({ position, zoom }: { position: L.LatLngExpression | null; zoom?:
   return null;
 }
 
-function MapInstanceBridge({ onMapReady }: { onMapReady: (map: L.Map) => void }) {
+function MapInteractionBridge({
+  onEmptyClick,
+  onMapReady,
+  onZoom,
+}: {
+  onEmptyClick: (worldX: number, worldY: number) => void;
+  onMapReady: (map: L.Map) => void;
+  onZoom: (z: number) => void;
+}) {
   const map = useMap();
 
   useEffect(() => {
     onMapReady(map);
   }, [map, onMapReady]);
 
-  return null;
-}
+  useEffect(() => {
+    const handleClick = (e: L.LeafletMouseEvent) => {
+      const world = latLngToWorld(e.latlng);
+      onEmptyClick(world.x, world.y);
+    };
+    const handleZoom = () => onZoom(map.getZoom());
 
-function ZoomTracker({ onZoom }: { onZoom: (z: number) => void }) {
-  const map = useMapEvents({
-    zoomend: () => onZoom(map.getZoom()),
-  });
-  useEffect(() => { onZoom(map.getZoom()); }, [map, onZoom]);
+    map.on('click', handleClick);
+    map.on('zoom', handleZoom);
+    map.on('zoomend', handleZoom);
+    handleZoom();
+
+    return () => {
+      map.off('click', handleClick);
+      map.off('zoom', handleZoom);
+      map.off('zoomend', handleZoom);
+    };
+  }, [map, onEmptyClick, onZoom]);
+
   return null;
 }
 
@@ -398,7 +443,88 @@ export default function WorldMap() {
     return worldToLatLng(pos.x, pos.y);
   }, [getMyPos]);
 
-  const mapControlButtonClassName = 'w-9 h-9 bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-sm active:scale-90 transition-all hover:bg-background/95 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed';
+  const stateById = useMemo(() => new Map(azgaarMap.states.map((state) => [state.id, state])), [azgaarMap.states]);
+  const playerLabelsVisible = mapZoom >= 4.75;
+  const outpostLabelsVisible = mapZoom >= 5.25;
+  const marchLabelsVisible = mapZoom >= 5.5;
+
+  const npcBurgMarkers = useMemo(() => azgaarMap.burgs.map((burg) => {
+    const kingdom = getKingdomByStateId(burg.state);
+    const state = stateById.get(burg.state);
+    return (
+      <Marker
+        key={`burg-${burg.id}`}
+        position={azgaarToLatLng(burg.x, burg.y)}
+        icon={burgIcon(burg.state, burg.population, burg.capital, mapZoom)}
+      >
+        <Popup className="leaflet-burg-popup" maxWidth={240}>
+          <div className="text-center space-y-1">
+            <strong className="text-sm">{burg.name}</strong>
+            <div className="text-[10px] opacity-70">
+              {kingdom?.name || state?.name || 'Unknown'} · Pop: {burg.population}
+              {burg.capital && ' · 👑 Capital'}
+              {burg.port && ' · ⚓ Port'}
+            </div>
+            {kingdom && (
+              <p className="text-[9px] italic opacity-60 leading-tight mt-1">{kingdom.lore}</p>
+            )}
+          </div>
+        </Popup>
+      </Marker>
+    );
+  }), [azgaarMap.burgs, mapZoom, stateById]);
+
+  const playerSettlementMarkers = useMemo(() => allVillages.map((pv) => {
+    const pos = getPlayerPos(pv.village.id);
+    const isMe = pv.village.user_id === user?.id;
+    const tier = pv.village.settlement_type || 'camp';
+    const emoji = tier === 'city' ? '🏰' : tier === 'town' ? '🏘️' : tier === 'village' ? '🏠' : '🏕️';
+    const size = getZoomScaledSize(isMe ? 38 : 24, mapZoom, {
+      min: isMe ? 26 : 15,
+      max: isMe ? 64 : 42,
+      zoomStep: 1.24,
+    });
+
+    return (
+      <Marker
+        key={`player-${pv.village.id}`}
+        position={worldToLatLng(pos.x, pos.y)}
+        icon={isMe
+          ? selfMarkerIcon(emoji, pv.profile.display_name, size, true)
+          : labelIcon(emoji, pv.profile.display_name, MAP_ICON_LABEL_COLOR, size, playerLabelsVisible)}
+        zIndexOffset={isMe ? 1000 : 0}
+        eventHandlers={{
+          click: () => {
+            if (isMe) {
+              if (pv.village.id !== villageId) switchVillage(pv.village.id);
+              window.dispatchEvent(new CustomEvent('switch-tab', { detail: 'village' }));
+            } else {
+              setSelected({ kind: 'player', data: pv });
+            }
+          },
+        }}
+      />
+    );
+  }), [allVillages, getPlayerPos, mapZoom, playerLabelsVisible, switchVillage, user?.id, villageId]);
+
+  const outpostMarkers = useMemo(() => outposts.map((op: any) => {
+    const isOwn = op.user_id === user?.id;
+    const emoji = op.outpost_type === 'bridge' ? '🌉' : op.outpost_type === 'fort' ? '🏰' : op.outpost_type === 'mine' ? '⛏️' : '🏕️';
+    const size = getZoomScaledSize(22, mapZoom, { min: 14, max: 36, zoomStep: 1.22 });
+
+    return (
+      <Marker
+        key={`outpost-${op.id}`}
+        position={worldToLatLng(op.x, op.y)}
+        icon={labelIcon(emoji, op.name, isOwn ? MAP_ICON_PRIMARY_COLOR : MAP_ICON_DESTRUCTIVE_COLOR, size, outpostLabelsVisible)}
+        eventHandlers={{
+          click: () => setSelected({ kind: 'outpost', data: op }),
+        }}
+      />
+    );
+  }), [mapZoom, outpostLabelsVisible, outposts, user?.id]);
+
+  const mapControlButtonClassName = 'w-9 h-9 bg-background/88 border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-sm active:scale-90 transition-all hover:bg-background shadow-sm disabled:opacity-40 disabled:cursor-not-allowed';
 
   if (azgaarMap.loading) {
     return (
@@ -440,8 +566,7 @@ export default function WorldMap() {
           attributionControl={false}
           zoomControl={false}
         >
-          <MapInstanceBridge onMapReady={setLeafletMap} />
-          <ZoomTracker onZoom={setMapZoom} />
+          <MapInteractionBridge onEmptyClick={handleEmptyClick} onMapReady={setLeafletMap} onZoom={setMapZoom} />
 
           {/* Map background image from Azgaar cells */}
           {azgaarMap.mapImageUrl && (
@@ -452,79 +577,16 @@ export default function WorldMap() {
             />
           )}
 
-          <MapClickHandler onEmptyClick={handleEmptyClick} />
           {flyTarget && <FlyTo position={flyTarget} />}
 
           {/* NPC Burgs from Azgaar data */}
-          {azgaarMap.burgs.map(burg => {
-            const kingdom = getKingdomByStateId(burg.state);
-            const state = azgaarMap.states.find(s => s.id === burg.state);
-            return (
-              <Marker
-                key={`burg-${burg.id}`}
-                position={azgaarToLatLng(burg.x, burg.y)}
-                icon={burgIcon(burg.state, burg.population, burg.capital, mapZoom)}
-              >
-                <Popup className="leaflet-burg-popup" maxWidth={240}>
-                  <div className="text-center space-y-1">
-                    <strong className="text-sm">{burg.name}</strong>
-                    <div className="text-[10px] opacity-70">
-                      {kingdom?.name || state?.name || 'Unknown'} · Pop: {burg.population}
-                      {burg.capital && ' · 👑 Capital'}
-                      {burg.port && ' · ⚓ Port'}
-                    </div>
-                    {kingdom && (
-                      <p className="text-[9px] italic opacity-60 leading-tight mt-1">{kingdom.lore}</p>
-                    )}
-                  </div>
-                </Popup>
-              </Marker>
-            );
-          })}
+          {npcBurgMarkers}
 
           {/* Player settlements */}
-          {allVillages.map(pv => {
-            const pos = getPlayerPos(pv.village.id);
-            const isMe = pv.village.user_id === user?.id;
-            const tier = pv.village.settlement_type || 'camp';
-            const emoji = tier === 'city' ? '🏰' : tier === 'town' ? '🏘️' : tier === 'village' ? '🏠' : '🏕️';
-            return (
-              <Marker
-                key={`player-${pv.village.id}`}
-                position={worldToLatLng(pos.x, pos.y)}
-                icon={isMe
-                  ? selfMarkerIcon(emoji, pv.profile.display_name, 38)
-                  : labelIcon(emoji, pv.profile.display_name, '#aaa', 24)}
-                zIndexOffset={isMe ? 1000 : 0}
-                eventHandlers={{
-                  click: () => {
-                    if (isMe) {
-                      if (pv.village.id !== villageId) switchVillage(pv.village.id);
-                      window.dispatchEvent(new CustomEvent('switch-tab', { detail: 'village' }));
-                    } else {
-                      setSelected({ kind: 'player', data: pv });
-                    }
-                  },
-                }}
-              />
-            );
-          })}
+          {playerSettlementMarkers}
 
           {/* Outposts */}
-          {outposts.map((op: any) => {
-            const isOwn = op.user_id === user?.id;
-            const emoji = op.outpost_type === 'bridge' ? '🌉' : op.outpost_type === 'fort' ? '🏰' : op.outpost_type === 'mine' ? '⛏️' : '🏕️';
-            return (
-              <Marker
-                key={`outpost-${op.id}`}
-                position={worldToLatLng(op.x, op.y)}
-                icon={labelIcon(emoji, op.name, isOwn ? '#4ade80' : '#ef4444', 22)}
-                eventHandlers={{
-                  click: () => setSelected({ kind: 'outpost', data: op }),
-                }}
-              />
-            );
-          })}
+          {outpostMarkers}
 
           {/* Active marches (own) */}
           {marches.map((m: any) => {
@@ -537,7 +599,13 @@ export default function WorldMap() {
               <Marker
                 key={`march-${m.id}`}
                 position={worldToLatLng(curX, curY)}
-                icon={labelIcon('⚔️', `→ ${m.targetName} (${remainingSec}s)`, '#fbbf24', 20)}
+                icon={labelIcon(
+                  '⚔️',
+                  `→ ${m.targetName} (${remainingSec}s)`,
+                  MAP_ICON_PRIMARY_COLOR,
+                  getZoomScaledSize(20, mapZoom, { min: 14, max: 30, zoomStep: 1.14 }),
+                  marchLabelsVisible,
+                )}
               />
             );
           })}
@@ -554,7 +622,7 @@ export default function WorldMap() {
               <Marker
                 key={`other-march-${m.id}`}
                 position={worldToLatLng(curX, curY)}
-                icon={emojiIcon('🚶', 16)}
+                icon={emojiIcon('🚶', getZoomScaledSize(16, mapZoom, { min: 12, max: 24, zoomStep: 1.14 }))}
               />
             );
           })}
