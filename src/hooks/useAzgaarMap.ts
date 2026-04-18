@@ -67,6 +67,7 @@ export function worldToAzgaar(wx: number, wy: number): { x: number; y: number } 
 let _mapImageUrl: string | null = null;
 let _stateColors: Map<number, string> = new Map();
 let _cellsData: AzgaarCell[] = [];
+let _cachedMapData: Omit<AzgaarMapData, 'loading'> | null = null;
 
 export function getMapImageUrl() {
   return _mapImageUrl;
@@ -81,21 +82,29 @@ export function getCellsData() {
 }
 
 export function useAzgaarMap(): AzgaarMapData & { mapImageUrl: string | null } {
-  const [data, setData] = useState<AzgaarMapData>({
-    cells: [],
-    burgs: [],
-    states: [],
-    biomes: [],
-    mapWidth: 384,
-    mapHeight: 697,
-    loading: true,
-  });
+  const [data, setData] = useState<AzgaarMapData>(() => _cachedMapData
+    ? { ..._cachedMapData, loading: false }
+    : {
+        cells: [],
+        burgs: [],
+        states: [],
+        biomes: [],
+        mapWidth: 384,
+        mapHeight: 697,
+        loading: true,
+      });
   const [mapImageUrl, setMapImageUrl] = useState<string | null>(_mapImageUrl);
   const loaded = useRef(false);
 
   useEffect(() => {
     if (loaded.current) return;
     loaded.current = true;
+
+    if (_cachedMapData) {
+      setData({ ..._cachedMapData, loading: false });
+      setMapImageUrl(_mapImageUrl);
+      return;
+    }
 
     Promise.all([
       fetch('/map_cells.json').then(r => r.json()),
@@ -153,19 +162,21 @@ export function useAzgaarMap(): AzgaarMapData & { mapImageUrl: string | null } {
       }
 
       _cellsData = cells;
-
-      const url = buildDetailedAzgaarMapImage(cells, states, mapVertices, cellVertices, mapWidth, mapHeight) || null;
-      _mapImageUrl = url;
-      setMapImageUrl(url);
-
-      setData({
+      _cachedMapData = {
         cells,
         burgs,
         states,
         biomes,
         mapWidth,
         mapHeight,
-        loading: false,
+      };
+
+      setData({ ..._cachedMapData, loading: false });
+
+      window.requestAnimationFrame(() => {
+        const url = buildDetailedAzgaarMapImage(cells, states, mapVertices, cellVertices, mapWidth, mapHeight) || null;
+        _mapImageUrl = url;
+        setMapImageUrl(url);
       });
     }).catch(err => {
       console.error('Failed to load Azgaar map data:', err);
