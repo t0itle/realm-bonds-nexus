@@ -421,7 +421,9 @@ export default function WorldMap() {
 
   const isInRange = useCallback((targetX: number, targetY: number) => {
     const wtLevel = getWatchtowerLevel();
-    const maxRange = getMaxRange(army, wtLevel);
+    // Roads extend envoy reach: +3000 per owned road, capped at +15000
+    const roadBonus = Math.min(15000, roads.length * 3000);
+    const maxRange = getMaxRange(army, wtLevel) + roadBonus;
     const dist = getDistance(targetX, targetY);
     if (dist <= maxRange) return true;
     const myOutposts = outposts.filter((o: any) => o.user_id === user?.id);
@@ -430,7 +432,7 @@ export default function WorldMap() {
       if (opDist <= maxRange) return true;
     }
     return false;
-  }, [getDistance, army, outposts, user?.id, getWatchtowerLevel]);
+  }, [getDistance, army, outposts, user?.id, getWatchtowerLevel, roads.length]);
 
   const createMarch = useCallback((id: string, targetName: string, targetX: number, targetY: number, _travelSec: number, action: () => void, sentArmy?: Partial<Record<string, number>>) => {
     const myPos = getMyPos();
