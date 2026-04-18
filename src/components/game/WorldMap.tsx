@@ -639,7 +639,7 @@ export default function WorldMap() {
                   '⚔️',
                   `→ ${m.targetName} (${remainingSec}s)`,
                   MAP_ICON_PRIMARY_COLOR,
-                  getZoomScaledSize(20, mapZoom, { min: 14, max: 30, zoomStep: 1.14 }),
+                  18,
                   marchLabelsVisible,
                 )}
               />
@@ -658,7 +658,7 @@ export default function WorldMap() {
               <Marker
                 key={`other-march-${m.id}`}
                 position={worldToLatLng(curX, curY)}
-                icon={emojiIcon('🚶', getZoomScaledSize(16, mapZoom, { min: 12, max: 24, zoomStep: 1.14 }))}
+                icon={emojiIcon('🚶', 14)}
               />
             );
           })}
