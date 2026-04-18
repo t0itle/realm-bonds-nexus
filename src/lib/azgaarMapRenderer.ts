@@ -31,7 +31,7 @@ export function buildDetailedAzgaarMapImage(
   mapWidth: number,
   mapHeight: number,
 ): string {
-  const scale = getRenderScale();
+  const scale = getRenderScale(mapWidth, mapHeight);
   const canvas = document.createElement('canvas');
   canvas.width = Math.ceil(mapWidth * scale);
   canvas.height = Math.ceil(mapHeight * scale);
