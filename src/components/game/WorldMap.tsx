@@ -481,41 +481,42 @@ export default function WorldMap() {
   const marchLabelsVisible = mapZoom >= 5.5;
 
   const npcBurgMarkers = useMemo(() => azgaarMap.burgs.map((burg) => {
-    const kingdom = getKingdomByStateId(burg.state);
     const state = stateById.get(burg.state);
+    const burgPayload = {
+      burg_id: burg.id,
+      burg_name: burg.name,
+      state_id: burg.state,
+      state_name: state?.name || 'Unknown',
+      culture_name: '',
+      burg_type: burg.type || 'Generic',
+      population: burg.population,
+      has_walls: burg.walls,
+      has_port: burg.port,
+      has_temple: burg.temple,
+      has_citadel: burg.citadel,
+      is_capital: burg.capital,
+    };
     return (
       <Marker
         key={`burg-${burg.id}`}
         position={azgaarToLatLng(burg.x, burg.y)}
-        icon={burgIcon(burg.state, burg.population, burg.capital, mapZoom)}
+        icon={burgIcon(burg.state, burg.population, burg.capital)}
       >
-        <Popup className="leaflet-burg-popup" maxWidth={240}>
-          <div className="text-center space-y-1">
-            <strong className="text-sm">{burg.name}</strong>
-            <div className="text-[10px] opacity-70">
-              {kingdom?.name || state?.name || 'Unknown'} · Pop: {burg.population}
-              {burg.capital && ' · 👑 Capital'}
-              {burg.port && ' · ⚓ Port'}
-            </div>
-            {kingdom && (
-              <p className="text-[9px] italic opacity-60 leading-tight mt-1">{kingdom.lore}</p>
-            )}
-          </div>
+        <Popup className="leaflet-burg-popup" maxWidth={300} minWidth={240}>
+          <BurgLorePopup burg={burgPayload} />
         </Popup>
       </Marker>
     );
-  }), [azgaarMap.burgs, mapZoom, stateById]);
+  }), [azgaarMap.burgs, stateById]);
 
   const playerSettlementMarkers = useMemo(() => allVillages.map((pv) => {
     const pos = getPlayerPos(pv.village.id);
     const isMe = pv.village.user_id === user?.id;
     const tier = pv.village.settlement_type || 'camp';
     const emoji = tier === 'city' ? '🏰' : tier === 'town' ? '🏘️' : tier === 'village' ? '🏠' : '🏕️';
-    const size = getZoomScaledSize(isMe ? 38 : 24, mapZoom, {
-      min: isMe ? 26 : 15,
-      max: isMe ? 64 : 42,
-      zoomStep: 1.24,
-    });
+    // STATIC size by settlement tier (no zoom scaling). Player's own settlement gets a small bump.
+    const baseSize = getPlayerTier(tier);
+    const size = isMe ? baseSize + 4 : baseSize;
 
     return (
       <Marker
@@ -537,12 +538,13 @@ export default function WorldMap() {
         }}
       />
     );
-  }), [allVillages, getPlayerPos, mapZoom, playerLabelsVisible, switchVillage, user?.id, villageId]);
+  }), [allVillages, getPlayerPos, playerLabelsVisible, switchVillage, user?.id, villageId]);
 
   const outpostMarkers = useMemo(() => outposts.map((op: any) => {
     const isOwn = op.user_id === user?.id;
     const emoji = op.outpost_type === 'bridge' ? '🌉' : op.outpost_type === 'fort' ? '🏰' : op.outpost_type === 'mine' ? '⛏️' : '🏕️';
-    const size = getZoomScaledSize(22, mapZoom, { min: 14, max: 36, zoomStep: 1.22 });
+    // STATIC size by outpost type
+    const size = op.outpost_type === 'fort' ? 22 : 16;
 
     return (
       <Marker
@@ -554,7 +556,7 @@ export default function WorldMap() {
         }}
       />
     );
-  }), [mapZoom, outpostLabelsVisible, outposts, user?.id]);
+  }), [outpostLabelsVisible, outposts, user?.id]);
 
   const mapControlButtonClassName = 'w-9 h-9 bg-background/88 border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-sm active:scale-90 transition-all hover:bg-background shadow-sm disabled:opacity-40 disabled:cursor-not-allowed';
 
