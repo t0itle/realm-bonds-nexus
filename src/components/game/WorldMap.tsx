@@ -58,10 +58,10 @@ function labelIcon(emoji: string, label: string, color?: string, size: number = 
 // NPC burg icon — scales with zoom: small when zoomed out, larger when zoomed in
 const _burgIconCache = new Map<string, L.DivIcon>();
 function burgIcon(stateId: number, _population: number, isCapital: boolean, zoom: number = 5): L.DivIcon {
-  // Base size at zoom 5; grow ~25% per zoom level in, shrink down to a readable floor when out
-  const baseSize = isCapital ? 18 : 12;
-  const scale = Math.pow(1.25, zoom - 5);
-  const size = Math.round(Math.max(isCapital ? 12 : 9, Math.min(isCapital ? 56 : 42, baseSize * scale)));
+  // Bigger, more visible NPC sprites that still scale with zoom
+  const baseSize = isCapital ? 32 : 24;
+  const scale = Math.pow(1.35, Math.max(0, zoom - 5));
+  const size = Math.round(Math.max(isCapital ? 22 : 16, Math.min(isCapital ? 96 : 72, baseSize * scale)));
   const key = `${stateId}-${isCapital ? 'cap' : 'reg'}-${size}`;
   const cached = _burgIconCache.get(key);
   if (cached) return cached;
