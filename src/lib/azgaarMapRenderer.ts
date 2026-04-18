@@ -70,37 +70,76 @@ export function buildDetailedAzgaarMapImage(
     ctx.fill();
   }
 
-  // Pass 2: single hairline outline around every land cell.
-  // Because adjacent land cells share edges, overlapping strokes blend into one
-  // clean network of borders without the fat double-stroke seams.
-  ctx.strokeStyle = 'rgba(25, 25, 30, 0.32)';
-  ctx.lineWidth = 0.08;
-  for (let index = 0; index < cells.length; index += 1) {
-    const polygon = polygons[index];
-    if (!polygon) continue;
-    const cell = cells[index];
-    if (cell.stateId === 0) continue;
-    tracePolygon(ctx, polygon);
-    ctx.stroke();
+  // Pass 2: ultra-thin state border outlines — only stroke edges between
+  // cells of DIFFERENT states (true political borders). This avoids drawing
+  // the dense interior cell mesh that creates the "fat lines" effect.
+  ctx.strokeStyle = 'rgba(25, 25, 30, 0.55)';
+  ctx.lineWidth = 1 / scale; // exactly 1 device pixel — true hairline at any zoom
+  // Build a quick lookup: edge "ax,ay|bx,by" → first cell index that owns it
+  const edgeOwner = new Map<string, number>();
+  const edgeKey = (a: Vertex, b: Vertex) => {
+    const k1 = `${a[0].toFixed(3)},${a[1].toFixed(3)}`;
+    const k2 = `${b[0].toFixed(3)},${b[1].toFixed(3)}`;
+    return k1 < k2 ? `${k1}|${k2}` : `${k2}|${k1}`;
+  };
+  for (let i = 0; i < cells.length; i++) {
+    const poly = polygons[i];
+    if (!poly) continue;
+    for (let v = 0; v < poly.length; v++) {
+      const a = poly[v];
+      const b = poly[(v + 1) % poly.length];
+      const key = edgeKey(a, b);
+      const other = edgeOwner.get(key);
+      if (other === undefined) {
+        edgeOwner.set(key, i);
+      } else {
+        const sA = cells[i].stateId;
+        const sB = cells[other].stateId;
+        if (sA !== sB && sA !== 0 && sB !== 0) {
+          ctx.beginPath();
+          ctx.moveTo(a[0], a[1]);
+          ctx.lineTo(b[0], b[1]);
+          ctx.stroke();
+        }
+      }
+    }
   }
 
-  // Pass 3: crisp coastline — slightly stronger stroke on cells touching ocean (height boundary)
-  ctx.strokeStyle = 'rgba(15, 20, 30, 0.9)';
-  ctx.lineWidth = 0.22;
-  for (let index = 0; index < cells.length; index += 1) {
-    const polygon = polygons[index];
-    if (!polygon) continue;
-    const cell = cells[index];
-    if (cell.stateId === 0 || cell.height > 22) continue;
-    tracePolygon(ctx, polygon);
-    ctx.stroke();
+  // Pass 3: crisp coastline — only the edge between land and ocean cells
+  ctx.strokeStyle = 'rgba(15, 20, 30, 0.95)';
+  ctx.lineWidth = 1.6 / scale;
+  edgeOwner.clear();
+  for (let i = 0; i < cells.length; i++) {
+    const poly = polygons[i];
+    if (!poly) continue;
+    for (let v = 0; v < poly.length; v++) {
+      const a = poly[v];
+      const b = poly[(v + 1) % poly.length];
+      const key = edgeKey(a, b);
+      const other = edgeOwner.get(key);
+      if (other === undefined) {
+        edgeOwner.set(key, i);
+      } else {
+        const landA = cells[i].stateId !== 0;
+        const landB = cells[other].stateId !== 0;
+        if (landA !== landB) {
+          ctx.beginPath();
+          ctx.moveTo(a[0], a[1]);
+          ctx.lineTo(b[0], b[1]);
+          ctx.stroke();
+        }
+      }
+    }
   }
 
   return canvas.toDataURL('image/png');
 }
 
 function getRenderScale() {
-  return Math.min(28, Math.max(20, Math.ceil(window.devicePixelRatio * 14)));
+  // Much higher resolution texture so the map stays crisp at full Leaflet zoom.
+  // Capped to avoid blowing past browser canvas limits (~16k px).
+  const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+  return Math.min(48, Math.max(32, Math.ceil(dpr * 24)));
 }
 
 function resolvePolygon(indices: number[] = [], vertices: number[][]): Vertex[] | null {
