@@ -183,7 +183,7 @@
 }
 
 .leaflet-container {
-  background: hsl(var(--map-bg-1)) !important;
+  background: #eadaa6 !important;
   font-family: 'Inter', sans-serif;
 }
 
