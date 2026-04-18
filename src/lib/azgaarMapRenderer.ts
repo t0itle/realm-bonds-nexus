@@ -446,11 +446,12 @@ function polyCentroidY(poly: Vertex[]): number {
 // Helpers
 // ─────────────────────────────────────────────────────────────
 function getRenderScale(mapWidth = 384, mapHeight = 697) {
-  const MAX_DIM = 8192;
-  const desired = 22;
+  // Browsers cap canvas around 16384px per side; stay under to ensure render.
+  const MAX_DIM = 16384;
+  const desired = 42;
   const maxByWidth = Math.floor(MAX_DIM / mapWidth);
   const maxByHeight = Math.floor(MAX_DIM / mapHeight);
-  return Math.max(8, Math.min(desired, maxByWidth, maxByHeight));
+  return Math.max(12, Math.min(desired, maxByWidth, maxByHeight));
 }
 
 function resolvePolygon(indices: number[] = [], vertices: number[][]): Vertex[] | null {
