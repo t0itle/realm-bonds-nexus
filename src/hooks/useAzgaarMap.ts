@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { buildDetailedAzgaarMapImage } from '@/lib/azgaarMapRenderer';
 
 export interface AzgaarCell {
   x: number;
@@ -47,6 +46,8 @@ export interface AzgaarMapData {
   burgs: AzgaarBurg[];
   states: AzgaarState[];
   biomes: AzgaarBiome[];
+  vertices: number[][];
+  cellVertices: number[][];
   mapWidth: number;
   mapHeight: number;
   loading: boolean;
@@ -63,15 +64,9 @@ export function worldToAzgaar(wx: number, wy: number): { x: number; y: number } 
   return { x: wx / AZGAAR_SCALE, y: wy / AZGAAR_SCALE };
 }
 
-// Offscreen canvas data URL for Leaflet ImageOverlay
-let _mapImageUrl: string | null = null;
 let _stateColors: Map<number, string> = new Map();
 let _cellsData: AzgaarCell[] = [];
 let _cachedMapData: Omit<AzgaarMapData, 'loading'> | null = null;
-
-export function getMapImageUrl() {
-  return _mapImageUrl;
-}
 
 export function getStateColors() {
   return _stateColors;
@@ -81,7 +76,7 @@ export function getCellsData() {
   return _cellsData;
 }
 
-export function useAzgaarMap(): AzgaarMapData & { mapImageUrl: string | null } {
+export function useAzgaarMap(): AzgaarMapData {
   const [data, setData] = useState<AzgaarMapData>(() => _cachedMapData
     ? { ..._cachedMapData, loading: false }
     : {
@@ -89,11 +84,12 @@ export function useAzgaarMap(): AzgaarMapData & { mapImageUrl: string | null } {
         burgs: [],
         states: [],
         biomes: [],
+        vertices: [],
+        cellVertices: [],
         mapWidth: 384,
         mapHeight: 697,
         loading: true,
       });
-  const [mapImageUrl, setMapImageUrl] = useState<string | null>(_mapImageUrl);
   const loaded = useRef(false);
 
   useEffect(() => {
@@ -102,7 +98,6 @@ export function useAzgaarMap(): AzgaarMapData & { mapImageUrl: string | null } {
 
     if (_cachedMapData) {
       setData({ ..._cachedMapData, loading: false });
-      setMapImageUrl(_mapImageUrl);
       return;
     }
 
@@ -167,22 +162,18 @@ export function useAzgaarMap(): AzgaarMapData & { mapImageUrl: string | null } {
         burgs,
         states,
         biomes,
+        vertices: mapVertices,
+        cellVertices,
         mapWidth,
         mapHeight,
       };
 
       setData({ ..._cachedMapData, loading: false });
-
-      window.requestAnimationFrame(() => {
-        const url = buildDetailedAzgaarMapImage(cells, states, mapVertices, cellVertices, mapWidth, mapHeight) || null;
-        _mapImageUrl = url;
-        setMapImageUrl(url);
-      });
     }).catch(err => {
       console.error('Failed to load Azgaar map data:', err);
       setData(prev => ({ ...prev, loading: false }));
     });
   }, []);
 
-  return { ...data, mapImageUrl };
+  return data;
 }
