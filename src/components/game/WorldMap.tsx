@@ -645,7 +645,7 @@ export default function WorldMap() {
           center={initialCenter}
           zoom={5}
           minZoom={-1}
-          maxZoom={10}
+          maxZoom={13}
           crs={L.CRS.Simple}
           maxBounds={mapBounds}
           maxBoundsViscosity={0.9}
@@ -653,7 +653,7 @@ export default function WorldMap() {
           touchZoom
           doubleClickZoom
           zoomSnap={0.25}
-          zoomDelta={0.5}
+          zoomDelta={0.25}
           style={{ width: '100%', height: '100%', background: 'hsl(var(--map-bg-1))' }}
           attributionControl={false}
           zoomControl={false}
