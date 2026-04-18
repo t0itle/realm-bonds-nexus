@@ -24,12 +24,12 @@ import BurgLorePopup from './BurgLorePopup';
 // All settlement markers use a fixed pixel size determined by population tier.
 // Markers do NOT scale with zoom — they stay the same size on screen.
 function getBurgTier(population: number, isCapital: boolean): { size: number; iconSize: number; tier: string } {
-  if (isCapital) return { size: 30, iconSize: 28, tier: 'capital' };       // 👑
-  if (population >= 8000) return { size: 26, iconSize: 24, tier: 'metropolis' };
-  if (population >= 3000) return { size: 22, iconSize: 20, tier: 'city' };
-  if (population >= 1000) return { size: 18, iconSize: 16, tier: 'town' };
-  if (population >= 300)  return { size: 15, iconSize: 13, tier: 'village' };
-  return { size: 12, iconSize: 11, tier: 'hamlet' };
+  if (isCapital) return { size: 52, iconSize: 48, tier: 'capital' };       // 👑
+  if (population >= 8000) return { size: 46, iconSize: 42, tier: 'metropolis' };
+  if (population >= 3000) return { size: 40, iconSize: 36, tier: 'city' };
+  if (population >= 1000) return { size: 34, iconSize: 30, tier: 'town' };
+  if (population >= 300)  return { size: 28, iconSize: 24, tier: 'village' };
+  return { size: 22, iconSize: 20, tier: 'hamlet' };
 }
 
 function getPlayerTier(settlementType: string): number {
