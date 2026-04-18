@@ -111,31 +111,53 @@ function labelIcon(emoji: string, label: string, color: string = MAP_ICON_LABEL_
   return icon;
 }
 
-// NPC burg icon — STATIC size based on population/capital tier (no zoom scaling)
+// NPC burg icon — STATIC size by population tier × culture × trait overlays.
+// Tier sets size; kingdom sprite sets culture theme; trait badges (port/walls/citadel/temple) accent the silhouette.
 const _burgIconCache = new Map<string, L.DivIcon>();
-function burgIcon(stateId: number, population: number, isCapital: boolean): L.DivIcon {
-  const { size } = getBurgTier(population, isCapital);
-  const key = `${stateId}-${isCapital ? 'cap' : 'reg'}-${size}`;
+interface BurgTraits {
+  isCapital: boolean;
+  hasWalls: boolean;
+  hasCitadel: boolean;
+  hasPort: boolean;
+  hasTemple: boolean;
+}
+function burgIcon(stateId: number, population: number, traits: BurgTraits): L.DivIcon {
+  const { size } = getBurgTier(population, traits.isCapital);
+  const key = `${stateId}-${size}-${traits.isCapital ? 'C' : ''}${traits.hasWalls ? 'W' : ''}${traits.hasCitadel ? 'K' : ''}${traits.hasPort ? 'P' : ''}${traits.hasTemple ? 'T' : ''}`;
   const cached = _burgIconCache.get(key);
   if (cached) return cached;
 
   const spriteUrl = KINGDOM_SPRITES[stateId];
-  let icon: L.DivIcon;
-  if (spriteUrl) {
-    icon = L.divIcon({
-      html: `<img src="${spriteUrl}" style="width:${size}px;height:${size}px;object-fit:contain;background:transparent;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6))" />`,
-      className: 'leaflet-burg-icon',
-      iconSize: [size, size],
-      iconAnchor: [size / 2, size / 2],
-    });
-  } else {
-    icon = L.divIcon({
-      html: `<span style="font-size:${size}px;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,0.7)">${isCapital ? '👑' : population >= 3000 ? '🏰' : population >= 1000 ? '🏘️' : '🏠'}</span>`,
-      className: 'leaflet-burg-icon',
-      iconSize: [size, size],
-      iconAnchor: [size / 2, size / 2],
-    });
-  }
+  // Wrapper big enough to hold trait badge corners
+  const pad = 6;
+  const wrap = size + pad * 2;
+  // Soft halo for fortified settlements
+  const ringStyle = traits.hasWalls || traits.hasCitadel
+    ? `box-shadow:inset 0 0 0 1.5px hsla(45,70%,55%,0.7),0 0 4px hsla(45,70%,55%,0.4);border-radius:${traits.hasCitadel ? '4px' : '50%'};`
+    : '';
+
+  // Trait badge emojis positioned at corners — gives "culture × trait matrix" variety
+  const badgeSize = Math.max(8, Math.round(size * 0.42));
+  const badge = (emoji: string, pos: string) =>
+    `<span style="position:absolute;${pos};font-size:${badgeSize}px;line-height:1;text-shadow:0 1px 1.5px rgba(0,0,0,0.8);pointer-events:none">${emoji}</span>`;
+
+  const overlays: string[] = [];
+  if (traits.isCapital) overlays.push(badge('👑', 'top:-2px;left:50%;transform:translateX(-50%)'));
+  if (traits.hasCitadel && !traits.isCapital) overlays.push(badge('🏰', 'top:-2px;right:-1px'));
+  if (traits.hasWalls && !traits.hasCitadel) overlays.push(badge('🛡️', 'bottom:-1px;right:-1px'));
+  if (traits.hasPort) overlays.push(badge('⚓', 'bottom:-1px;left:-1px'));
+  if (traits.hasTemple) overlays.push(badge('✨', 'top:-1px;left:-1px'));
+
+  const inner = spriteUrl
+    ? `<img src="${spriteUrl}" style="width:${size}px;height:${size}px;object-fit:contain;background:transparent;display:block;${ringStyle}filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6))" />`
+    : `<span style="font-size:${size}px;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,0.7);${ringStyle}display:inline-block">${traits.isCapital ? '👑' : population >= 3000 ? '🏰' : population >= 1000 ? '🏘️' : '🏠'}</span>`;
+
+  const icon = L.divIcon({
+    html: `<div style="position:relative;width:${wrap}px;height:${wrap}px;display:flex;align-items:center;justify-content:center">${inner}${overlays.join('')}</div>`,
+    className: 'leaflet-burg-icon',
+    iconSize: [wrap, wrap],
+    iconAnchor: [wrap / 2, wrap / 2],
+  });
   _burgIconCache.set(key, icon);
   return icon;
 }
