@@ -504,6 +504,13 @@ export default function WorldMap() {
 
   const npcBurgMarkers = useMemo(() => azgaarMap.burgs.map((burg) => {
     const state = stateById.get(burg.state);
+    const traits: BurgTraits = {
+      isCapital: burg.capital,
+      hasWalls: burg.walls,
+      hasCitadel: burg.citadel,
+      hasPort: burg.port,
+      hasTemple: burg.temple,
+    };
     const burgPayload = {
       burg_id: burg.id,
       burg_name: burg.name,
@@ -518,18 +525,41 @@ export default function WorldMap() {
       has_citadel: burg.citadel,
       is_capital: burg.capital,
     };
+    // Convert Azgaar map coords -> world coords for envoy distance/range checks
+    const worldPos = { x: burg.x * AZGAAR_SCALE, y: burg.y * AZGAAR_SCALE };
+    const inEnvoyRange = isInRange(worldPos.x, worldPos.y);
+    const travelSec = calcTravelTime(worldPos.x, worldPos.y);
+    // Long-distance envoy fee scales with population importance
+    const extendCostGold = traits.isCapital ? 500 : burg.population >= 3000 ? 300 : burg.population >= 1000 ? 200 : 120;
+    const envoyCtx = {
+      inRange: inEnvoyRange,
+      travelSec,
+      extendCostGold,
+      canAffordExtend: resources.gold >= extendCostGold,
+      onSendEnvoy: async (mode: 'instant' | 'travel' | 'paid') => {
+        if (mode === 'paid') {
+          if (resources.gold < extendCostGold) throw new Error('Not enough gold');
+          addResources({ gold: -extendCostGold });
+          toast.success(`💰 Courier hired to ${burg.name}`);
+        } else if (mode === 'instant') {
+          toast.success(`🕊️ Envoy sent to ${burg.name}`);
+        }
+        // 'travel' mode handled in popup with delayed lore reveal
+      },
+    };
     return (
       <Marker
         key={`burg-${burg.id}`}
         position={azgaarToLatLng(burg.x, burg.y)}
-        icon={burgIcon(burg.state, burg.population, burg.capital)}
+        icon={burgIcon(burg.state, burg.population, traits)}
       >
         <Popup className="leaflet-burg-popup" maxWidth={300} minWidth={240}>
-          <BurgLorePopup burg={burgPayload} />
+          <BurgLorePopup burg={burgPayload} envoy={envoyCtx} />
         </Popup>
       </Marker>
     );
-  }), [azgaarMap.burgs, stateById]);
+  }), [azgaarMap.burgs, stateById, isInRange, calcTravelTime, resources.gold, addResources]);
+
 
   const playerSettlementMarkers = useMemo(() => allVillages.map((pv) => {
     const pos = getPlayerPos(pv.village.id);
