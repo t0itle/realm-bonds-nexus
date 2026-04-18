@@ -38,15 +38,29 @@ interface BurgPayload {
   is_capital: boolean;
 }
 
-export default function BurgLorePopup({ burg }: { burg: BurgPayload }) {
+export interface EnvoyContext {
+  inRange: boolean;
+  travelSec: number;          // estimated travel time if not in range
+  extendCostGold: number;     // gold cost to send long-distance envoy
+  canAffordExtend: boolean;
+  /** Called when the player confirms sending an envoy. payGold = true means pay the long-distance fee for instant arrival. */
+  onSendEnvoy: (mode: 'instant' | 'travel' | 'paid') => Promise<void> | void;
+}
+
+export default function BurgLorePopup({
+  burg,
+  envoy,
+}: {
+  burg: BurgPayload;
+  envoy?: EnvoyContext;
+}) {
   const [lore, setLore] = useState<SettlementLore | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasFetched, setHasFetched] = useState(false);
+  const [envoyDispatched, setEnvoyDispatched] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    // Try cache first (cheap read)
     supabase
       .from('npc_settlement_lore')
       .select('*')
@@ -70,7 +84,6 @@ export default function BurgLorePopup({ burg }: { burg: BurgPayload }) {
       if (fnErr) throw fnErr;
       if (data?.error) throw new Error(data.error);
       setLore(data.lore);
-      setHasFetched(true);
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Failed to summon ruler';
       setError(msg);
@@ -80,27 +93,71 @@ export default function BurgLorePopup({ burg }: { burg: BurgPayload }) {
     }
   }
 
-  if (!lore && !loading && !hasFetched) {
+  async function dispatchEnvoy(mode: 'instant' | 'travel' | 'paid') {
+    if (!envoy) return;
+    try {
+      await envoy.onSendEnvoy(mode);
+      setEnvoyDispatched(true);
+      if (mode === 'instant' || mode === 'paid') {
+        // Lore unlocks immediately
+        await fetchLore();
+      } else {
+        // Travel mode: lore arrives after travelSec
+        toast(`📜 Envoy riding to ${burg.burg_name}… ETA ${envoy.travelSec}s`);
+        setTimeout(() => { fetchLore(); }, envoy.travelSec * 1000);
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Envoy failed';
+      toast.error(msg);
+    }
+  }
+
+  // ─── Stage 1: no lore yet, show envoy options ───
+  if (!lore && !loading && !envoyDispatched) {
     return (
-      <div className="text-center space-y-2 min-w-[220px]">
+      <div className="text-center space-y-2 min-w-[240px]">
         <strong className="text-sm block">{burg.burg_name}</strong>
         <p className="text-[10px] opacity-70">
           {burg.state_name} · Pop {burg.population.toLocaleString()}
           {burg.is_capital && ' · 👑 Capital'}
         </p>
-        <button
-          onClick={fetchLore}
-          className="w-full bg-primary/20 hover:bg-primary/30 text-primary text-[11px] font-display py-1.5 rounded-md transition-colors"
-        >
-          🗣️ Speak with the Ruler
-        </button>
+
+        {!envoy ? (
+          <p className="text-[10px] italic opacity-60">No envoy data available.</p>
+        ) : envoy.inRange ? (
+          <button
+            onClick={() => dispatchEnvoy('instant')}
+            className="w-full bg-primary/20 hover:bg-primary/30 text-primary text-[11px] font-display py-1.5 rounded-md transition-colors"
+          >
+            🕊️ Send Envoy (instant)
+          </button>
+        ) : (
+          <div className="space-y-1.5">
+            <p className="text-[10px] opacity-70">
+              ⚠️ Out of envoy range — herald must ride
+            </p>
+            <button
+              onClick={() => dispatchEnvoy('travel')}
+              className="w-full bg-muted/40 hover:bg-muted/60 text-foreground text-[11px] font-display py-1.5 rounded-md transition-colors"
+            >
+              🐎 Send Envoy ({envoy.travelSec}s travel)
+            </button>
+            <button
+              onClick={() => dispatchEnvoy('paid')}
+              disabled={!envoy.canAffordExtend}
+              className="w-full bg-primary/20 hover:bg-primary/30 text-primary text-[11px] font-display py-1.5 rounded-md transition-colors disabled:opacity-40"
+            >
+              💰 Hire Courier ({envoy.extendCostGold}g, instant)
+            </button>
+          </div>
+        )}
       </div>
     );
   }
 
-  if (loading) {
+  if (loading || (envoyDispatched && !lore && !error)) {
     return (
-      <div className="text-center space-y-1 min-w-[220px] py-3">
+      <div className="text-center space-y-1 min-w-[240px] py-3">
         <div className="text-xl animate-pulse">📜</div>
         <p className="text-[10px] opacity-70">A herald rides forth…</p>
       </div>
@@ -109,7 +166,7 @@ export default function BurgLorePopup({ burg }: { burg: BurgPayload }) {
 
   if (error && !lore) {
     return (
-      <div className="text-center space-y-2 min-w-[220px]">
+      <div className="text-center space-y-2 min-w-[240px]">
         <p className="text-[11px] text-destructive">{error}</p>
         <button onClick={fetchLore} className="text-[10px] underline opacity-70">Try again</button>
       </div>
