@@ -18,6 +18,29 @@ import { useAzgaarMap, AZGAAR_SCALE } from '@/hooks/useAzgaarMap';
 import { KINGDOM_SPRITES, getKingdomByStateId } from '@/config/kingdomLore';
 import AzgaarTileLayer from './AzgaarTileLayer';
 import OuroborosBoundary from './OuroborosBoundary';
+import BurgLorePopup from './BurgLorePopup';
+
+// ─── STATIC TIER-BASED MARKER SIZING ───────────────────────────────
+// All settlement markers use a fixed pixel size determined by population tier.
+// Markers do NOT scale with zoom — they stay the same size on screen.
+function getBurgTier(population: number, isCapital: boolean): { size: number; iconSize: number; tier: string } {
+  if (isCapital) return { size: 30, iconSize: 28, tier: 'capital' };       // 👑
+  if (population >= 8000) return { size: 26, iconSize: 24, tier: 'metropolis' };
+  if (population >= 3000) return { size: 22, iconSize: 20, tier: 'city' };
+  if (population >= 1000) return { size: 18, iconSize: 16, tier: 'town' };
+  if (population >= 300)  return { size: 15, iconSize: 13, tier: 'village' };
+  return { size: 12, iconSize: 11, tier: 'hamlet' };
+}
+
+function getPlayerTier(settlementType: string): number {
+  switch (settlementType) {
+    case 'city': return 30;
+    case 'town': return 24;
+    case 'village': return 20;
+    case 'camp':
+    default: return 18;
+  }
+}
 
 // Leaflet coordinate system: we use CRS.Simple
 // Azgaar map pixels map directly to Leaflet lat/lng (y inverted)
