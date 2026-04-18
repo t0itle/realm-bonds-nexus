@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { MapContainer, ImageOverlay, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -16,6 +16,8 @@ import AttackConfigPanel from './AttackConfigPanel';
 import TroopTransferPanel from './TroopTransferPanel';
 import { useAzgaarMap, AZGAAR_SCALE } from '@/hooks/useAzgaarMap';
 import { KINGDOM_SPRITES, getKingdomByStateId } from '@/config/kingdomLore';
+import AzgaarTileLayer from './AzgaarTileLayer';
+import OuroborosBoundary from './OuroborosBoundary';
 
 // Leaflet coordinate system: we use CRS.Simple
 // Azgaar map pixels map directly to Leaflet lat/lng (y inverted)
@@ -153,10 +155,12 @@ function MapInteractionBridge({
   onEmptyClick,
   onMapReady,
   onZoom,
+  onViewportChange,
 }: {
   onEmptyClick: (worldX: number, worldY: number) => void;
   onMapReady: (map: L.Map) => void;
   onZoom: (z: number) => void;
+  onViewportChange: (bounds: L.LatLngBounds) => void;
 }) {
   const map = useMap();
 
@@ -169,19 +173,26 @@ function MapInteractionBridge({
       const world = latLngToWorld(e.latlng);
       onEmptyClick(world.x, world.y);
     };
-    const handleZoom = () => onZoom(map.getZoom());
+    const updateViewport = () => onViewportChange(map.getBounds());
+    const handleZoom = () => {
+      onZoom(map.getZoom());
+      updateViewport();
+    };
 
     map.on('click', handleClick);
+    map.on('moveend', updateViewport);
     map.on('zoom', handleZoom);
     map.on('zoomend', handleZoom);
     handleZoom();
+    updateViewport();
 
     return () => {
       map.off('click', handleClick);
+      map.off('moveend', updateViewport);
       map.off('zoom', handleZoom);
       map.off('zoomend', handleZoom);
     };
-  }, [map, onEmptyClick, onZoom]);
+  }, [map, onEmptyClick, onViewportChange, onZoom]);
 
   return null;
 }
@@ -207,6 +218,7 @@ export default function WorldMap() {
   const [flyTarget, setFlyTarget] = useState<L.LatLngExpression | null>(null);
   const [leafletMap, setLeafletMap] = useState<L.Map | null>(null);
   const [mapZoom, setMapZoom] = useState<number>(5);
+  const [viewportBounds, setViewportBounds] = useState<L.LatLngBounds | null>(null);
 
   const azgaarMap = useAzgaarMap();
 
@@ -566,16 +578,18 @@ export default function WorldMap() {
           attributionControl={false}
           zoomControl={false}
         >
-          <MapInteractionBridge onEmptyClick={handleEmptyClick} onMapReady={setLeafletMap} onZoom={setMapZoom} />
-
-          {/* Map background image from Azgaar cells */}
-          {azgaarMap.mapImageUrl && (
-            <ImageOverlay
-              url={azgaarMap.mapImageUrl}
-              bounds={mapBounds}
-              opacity={1}
-            />
-          )}
+          <MapInteractionBridge onEmptyClick={handleEmptyClick} onMapReady={setLeafletMap} onViewportChange={setViewportBounds} onZoom={setMapZoom} />
+          <AzgaarTileLayer
+            cells={azgaarMap.cells}
+            cellVertices={azgaarMap.cellVertices}
+            mapHeight={azgaarMap.mapHeight}
+            mapWidth={azgaarMap.mapWidth}
+            states={azgaarMap.states}
+            vertices={azgaarMap.vertices}
+            viewportBounds={viewportBounds}
+            zoom={mapZoom}
+          />
+          <OuroborosBoundary mapHeight={azgaarMap.mapHeight} mapWidth={azgaarMap.mapWidth} />
 
           {flyTarget && <FlyTo position={flyTarget} />}
 
