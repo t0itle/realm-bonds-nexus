@@ -111,5 +111,7 @@ function getTileScale(zoom: number) {
   if (zoom <= 3) return 12;
   if (zoom <= 5) return 16;
   if (zoom <= 7) return 22;
-  return 28;
+  if (zoom <= 9) return 28;
+  if (zoom <= 11) return 36;
+  return 48;
 }
