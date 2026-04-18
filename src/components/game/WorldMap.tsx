@@ -18,6 +18,29 @@ import { useAzgaarMap, AZGAAR_SCALE } from '@/hooks/useAzgaarMap';
 import { KINGDOM_SPRITES, getKingdomByStateId } from '@/config/kingdomLore';
 import AzgaarTileLayer from './AzgaarTileLayer';
 import OuroborosBoundary from './OuroborosBoundary';
+import BurgLorePopup from './BurgLorePopup';
+
+// ─── STATIC TIER-BASED MARKER SIZING ───────────────────────────────
+// All settlement markers use a fixed pixel size determined by population tier.
+// Markers do NOT scale with zoom — they stay the same size on screen.
+function getBurgTier(population: number, isCapital: boolean): { size: number; iconSize: number; tier: string } {
+  if (isCapital) return { size: 30, iconSize: 28, tier: 'capital' };       // 👑
+  if (population >= 8000) return { size: 26, iconSize: 24, tier: 'metropolis' };
+  if (population >= 3000) return { size: 22, iconSize: 20, tier: 'city' };
+  if (population >= 1000) return { size: 18, iconSize: 16, tier: 'town' };
+  if (population >= 300)  return { size: 15, iconSize: 13, tier: 'village' };
+  return { size: 12, iconSize: 11, tier: 'hamlet' };
+}
+
+function getPlayerTier(settlementType: string): number {
+  switch (settlementType) {
+    case 'city': return 30;
+    case 'town': return 24;
+    case 'village': return 20;
+    case 'camp':
+    default: return 18;
+  }
+}
 
 // Leaflet coordinate system: we use CRS.Simple
 // Azgaar map pixels map directly to Leaflet lat/lng (y inverted)
@@ -88,13 +111,10 @@ function labelIcon(emoji: string, label: string, color: string = MAP_ICON_LABEL_
   return icon;
 }
 
-// NPC burg icon — scales with zoom: small when zoomed out, larger when zoomed in
+// NPC burg icon — STATIC size based on population/capital tier (no zoom scaling)
 const _burgIconCache = new Map<string, L.DivIcon>();
-function burgIcon(stateId: number, _population: number, isCapital: boolean, zoom: number = 5): L.DivIcon {
-  // Bigger, more visible NPC sprites that still scale with zoom
-  const baseSize = isCapital ? 32 : 24;
-  const scale = Math.pow(1.35, Math.max(0, zoom - 5));
-  const size = Math.round(Math.max(isCapital ? 22 : 16, Math.min(isCapital ? 96 : 72, baseSize * scale)));
+function burgIcon(stateId: number, population: number, isCapital: boolean): L.DivIcon {
+  const { size } = getBurgTier(population, isCapital);
   const key = `${stateId}-${isCapital ? 'cap' : 'reg'}-${size}`;
   const cached = _burgIconCache.get(key);
   if (cached) return cached;
@@ -110,7 +130,7 @@ function burgIcon(stateId: number, _population: number, isCapital: boolean, zoom
     });
   } else {
     icon = L.divIcon({
-      html: `<span style="font-size:${size}px;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,0.7)">${isCapital ? '👑' : '🏘️'}</span>`,
+      html: `<span style="font-size:${size}px;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,0.7)">${isCapital ? '👑' : population >= 3000 ? '🏰' : population >= 1000 ? '🏘️' : '🏠'}</span>`,
       className: 'leaflet-burg-icon',
       iconSize: [size, size],
       iconAnchor: [size / 2, size / 2],
@@ -120,8 +140,8 @@ function burgIcon(stateId: number, _population: number, isCapital: boolean, zoom
   return icon;
 }
 
-// Glowing pulse icon to mark the player's own settlement
-function selfMarkerIcon(emoji: string, label: string, size: number = 40, showLabel: boolean = true): L.DivIcon {
+// Glowing pulse icon to mark the player's own settlement (STATIC size by tier)
+function selfMarkerIcon(emoji: string, label: string, size: number = 28, showLabel: boolean = true): L.DivIcon {
   const key = `${emoji}-${label}-${size}-${showLabel ? 'label' : 'icon'}`;
   const cached = _selfIconCache.get(key);
   if (cached) return cached;
@@ -461,41 +481,42 @@ export default function WorldMap() {
   const marchLabelsVisible = mapZoom >= 5.5;
 
   const npcBurgMarkers = useMemo(() => azgaarMap.burgs.map((burg) => {
-    const kingdom = getKingdomByStateId(burg.state);
     const state = stateById.get(burg.state);
+    const burgPayload = {
+      burg_id: burg.id,
+      burg_name: burg.name,
+      state_id: burg.state,
+      state_name: state?.name || 'Unknown',
+      culture_name: '',
+      burg_type: burg.type || 'Generic',
+      population: burg.population,
+      has_walls: burg.walls,
+      has_port: burg.port,
+      has_temple: burg.temple,
+      has_citadel: burg.citadel,
+      is_capital: burg.capital,
+    };
     return (
       <Marker
         key={`burg-${burg.id}`}
         position={azgaarToLatLng(burg.x, burg.y)}
-        icon={burgIcon(burg.state, burg.population, burg.capital, mapZoom)}
+        icon={burgIcon(burg.state, burg.population, burg.capital)}
       >
-        <Popup className="leaflet-burg-popup" maxWidth={240}>
-          <div className="text-center space-y-1">
-            <strong className="text-sm">{burg.name}</strong>
-            <div className="text-[10px] opacity-70">
-              {kingdom?.name || state?.name || 'Unknown'} · Pop: {burg.population}
-              {burg.capital && ' · 👑 Capital'}
-              {burg.port && ' · ⚓ Port'}
-            </div>
-            {kingdom && (
-              <p className="text-[9px] italic opacity-60 leading-tight mt-1">{kingdom.lore}</p>
-            )}
-          </div>
+        <Popup className="leaflet-burg-popup" maxWidth={300} minWidth={240}>
+          <BurgLorePopup burg={burgPayload} />
         </Popup>
       </Marker>
     );
-  }), [azgaarMap.burgs, mapZoom, stateById]);
+  }), [azgaarMap.burgs, stateById]);
 
   const playerSettlementMarkers = useMemo(() => allVillages.map((pv) => {
     const pos = getPlayerPos(pv.village.id);
     const isMe = pv.village.user_id === user?.id;
     const tier = pv.village.settlement_type || 'camp';
     const emoji = tier === 'city' ? '🏰' : tier === 'town' ? '🏘️' : tier === 'village' ? '🏠' : '🏕️';
-    const size = getZoomScaledSize(isMe ? 38 : 24, mapZoom, {
-      min: isMe ? 26 : 15,
-      max: isMe ? 64 : 42,
-      zoomStep: 1.24,
-    });
+    // STATIC size by settlement tier (no zoom scaling). Player's own settlement gets a small bump.
+    const baseSize = getPlayerTier(tier);
+    const size = isMe ? baseSize + 4 : baseSize;
 
     return (
       <Marker
@@ -517,12 +538,13 @@ export default function WorldMap() {
         }}
       />
     );
-  }), [allVillages, getPlayerPos, mapZoom, playerLabelsVisible, switchVillage, user?.id, villageId]);
+  }), [allVillages, getPlayerPos, playerLabelsVisible, switchVillage, user?.id, villageId]);
 
   const outpostMarkers = useMemo(() => outposts.map((op: any) => {
     const isOwn = op.user_id === user?.id;
     const emoji = op.outpost_type === 'bridge' ? '🌉' : op.outpost_type === 'fort' ? '🏰' : op.outpost_type === 'mine' ? '⛏️' : '🏕️';
-    const size = getZoomScaledSize(22, mapZoom, { min: 14, max: 36, zoomStep: 1.22 });
+    // STATIC size by outpost type
+    const size = op.outpost_type === 'fort' ? 22 : 16;
 
     return (
       <Marker
@@ -534,7 +556,7 @@ export default function WorldMap() {
         }}
       />
     );
-  }), [mapZoom, outpostLabelsVisible, outposts, user?.id]);
+  }), [outpostLabelsVisible, outposts, user?.id]);
 
   const mapControlButtonClassName = 'w-9 h-9 bg-background/88 border border-border/40 rounded-lg flex items-center justify-center text-foreground/80 text-sm active:scale-90 transition-all hover:bg-background shadow-sm disabled:opacity-40 disabled:cursor-not-allowed';
 
@@ -617,7 +639,7 @@ export default function WorldMap() {
                   '⚔️',
                   `→ ${m.targetName} (${remainingSec}s)`,
                   MAP_ICON_PRIMARY_COLOR,
-                  getZoomScaledSize(20, mapZoom, { min: 14, max: 30, zoomStep: 1.14 }),
+                  18,
                   marchLabelsVisible,
                 )}
               />
@@ -636,7 +658,7 @@ export default function WorldMap() {
               <Marker
                 key={`other-march-${m.id}`}
                 position={worldToLatLng(curX, curY)}
-                icon={emojiIcon('🚶', getZoomScaledSize(16, mapZoom, { min: 12, max: 24, zoomStep: 1.14 }))}
+                icon={emojiIcon('🚶', 14)}
               />
             );
           })}

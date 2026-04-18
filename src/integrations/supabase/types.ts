@@ -740,6 +740,60 @@ export type Database = {
         }
         Relationships: []
       }
+      npc_settlement_lore: {
+        Row: {
+          burg_id: number
+          burg_name: string
+          created_at: string
+          dynasty_name: string
+          id: string
+          kingdom_hierarchy: Json
+          lineage: Json
+          notable_facts: Json
+          ruler_name: string
+          ruler_personality: string
+          ruler_title: string
+          settlement_history: string
+          state_id: number
+          state_name: string
+          updated_at: string
+        }
+        Insert: {
+          burg_id: number
+          burg_name: string
+          created_at?: string
+          dynasty_name: string
+          id?: string
+          kingdom_hierarchy?: Json
+          lineage?: Json
+          notable_facts?: Json
+          ruler_name: string
+          ruler_personality: string
+          ruler_title: string
+          settlement_history: string
+          state_id: number
+          state_name: string
+          updated_at?: string
+        }
+        Update: {
+          burg_id?: number
+          burg_name?: string
+          created_at?: string
+          dynasty_name?: string
+          id?: string
+          kingdom_hierarchy?: Json
+          lineage?: Json
+          notable_facts?: Json
+          ruler_name?: string
+          ruler_personality?: string
+          ruler_title?: string
+          settlement_history?: string
+          state_id?: number
+          state_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       npc_town_relations: {
         Row: {
           created_at: string
