@@ -370,7 +370,8 @@ export default function WorldMap() {
     return () => clearInterval(interval);
   }, [npcState.playerRelations, addResources]);
 
-  // Load outposts
+  // Load outposts + roads (roads extend envoy range)
+  const [roads, setRoads] = useState<any[]>([]);
   useEffect(() => {
     if (!user) return;
     supabase.from('outposts').select('*').then(({ data }) => {
@@ -378,6 +379,9 @@ export default function WorldMap() {
     });
     supabase.from('wall_segments').select('*').then(({ data }) => {
       if (data) setWallSegments(data);
+    });
+    supabase.from('roads').select('*').eq('user_id', user.id).then(({ data }) => {
+      if (data) setRoads(data);
     });
   }, [user]);
 
