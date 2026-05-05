@@ -141,14 +141,15 @@ export default function WorldMap({ onTownSelect }: { onTownSelect: () => void })
     dragRef.current = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y };
   };
   const onPointerMove = (e: React.PointerEvent) => {
-    if (!dragRef.current) return;
-    const dxp = e.clientX - dragRef.current.x;
-    const dyp = e.clientY - dragRef.current.y;
+    const d = dragRef.current;
+    if (!d) return;
+    const dxp = e.clientX - d.x;
+    const dyp = e.clientY - d.y;
     // convert pixel delta to svg units (approx — viewBox 1000 over container width)
     const rect = svgRef.current?.getBoundingClientRect();
     if (!rect) return;
     const scale = MAP_W / rect.width;
-    setView(v => ({ ...v, x: dragRef.current!.vx + dxp * scale / v.k, y: dragRef.current!.vy + dyp * scale / v.k }));
+    setView(v => ({ ...v, x: d.vx + dxp * scale / v.k, y: d.vy + dyp * scale / v.k }));
   };
   const onPointerUp = () => { dragRef.current = null; };
 
