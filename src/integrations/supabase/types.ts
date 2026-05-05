@@ -14,134 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      active_marches: {
-        Row: {
-          arrives_at: string
-          created_at: string
-          id: string
-          march_type: string
-          player_name: string
-          sent_army: Json
-          start_x: number
-          start_y: number
-          started_at: string
-          target_name: string
-          target_user_id: string | null
-          target_x: number
-          target_y: number
-          user_id: string
-        }
-        Insert: {
-          arrives_at: string
-          created_at?: string
-          id?: string
-          march_type?: string
-          player_name?: string
-          sent_army?: Json
-          start_x: number
-          start_y: number
-          started_at?: string
-          target_name?: string
-          target_user_id?: string | null
-          target_x: number
-          target_y: number
-          user_id: string
-        }
-        Update: {
-          arrives_at?: string
-          created_at?: string
-          id?: string
-          march_type?: string
-          player_name?: string
-          sent_army?: Json
-          start_x?: number
-          start_y?: number
-          started_at?: string
-          target_name?: string
-          target_user_id?: string | null
-          target_x?: number
-          target_y?: number
-          user_id?: string
-        }
-        Relationships: []
-      }
-      active_reinforcements: {
-        Row: {
-          created_at: string
-          expires_at: string | null
-          host_village_id: string
-          id: string
-          owner_id: string
-          troops: Json
-        }
-        Insert: {
-          created_at?: string
-          expires_at?: string | null
-          host_village_id: string
-          id?: string
-          owner_id: string
-          troops?: Json
-        }
-        Update: {
-          created_at?: string
-          expires_at?: string | null
-          host_village_id?: string
-          id?: string
-          owner_id?: string
-          troops?: Json
-        }
-        Relationships: [
-          {
-            foreignKeyName: "active_reinforcements_host_village_id_fkey"
-            columns: ["host_village_id"]
-            isOneToOne: false
-            referencedRelation: "villages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      active_spy_missions: {
-        Row: {
-          arrival_time: string
-          created_at: string
-          depart_time: string
-          id: string
-          mission: string
-          spies_count: number
-          target_id: string
-          target_name: string
-          target_x: number
-          target_y: number
-          user_id: string
-        }
-        Insert: {
-          arrival_time: string
-          created_at?: string
-          depart_time: string
-          id?: string
-          mission: string
-          spies_count?: number
-          target_id: string
-          target_name: string
-          target_x?: number
-          target_y?: number
-          user_id: string
-        }
-        Update: {
-          arrival_time?: string
-          created_at?: string
-          depart_time?: string
-          id?: string
-          mission?: string
-          spies_count?: number
-          target_id?: string
-          target_name?: string
-          target_x?: number
-          target_y?: number
-          user_id?: string
-        }
-        Relationships: []
-      }
       alliance_contracts: {
         Row: {
           alliance_id: string
@@ -354,204 +226,52 @@ export type Database = {
         }
         Relationships: []
       }
-      battle_reports: {
+      goods: {
         Row: {
-          attacker_id: string
-          attacker_name: string
-          attacker_troops_lost: Json
-          attacker_troops_sent: Json
-          building_damage_levels: number | null
-          building_damaged: string | null
+          base_price: number
+          category: string
           created_at: string
-          defender_id: string
-          defender_name: string
-          defender_troops_lost: Json
+          description: string
+          icon: string
           id: string
-          resources_raided: Json
-          result: string
-          vassalized: boolean | null
+          name: string
+          origin_realm_id: string | null
+          rarity: number
+          slug: string
+          weight: number
         }
         Insert: {
-          attacker_id: string
-          attacker_name?: string
-          attacker_troops_lost?: Json
-          attacker_troops_sent?: Json
-          building_damage_levels?: number | null
-          building_damaged?: string | null
+          base_price: number
+          category: string
           created_at?: string
-          defender_id: string
-          defender_name?: string
-          defender_troops_lost?: Json
+          description: string
+          icon?: string
           id?: string
-          resources_raided?: Json
-          result?: string
-          vassalized?: boolean | null
+          name: string
+          origin_realm_id?: string | null
+          rarity?: number
+          slug: string
+          weight?: number
         }
         Update: {
-          attacker_id?: string
-          attacker_name?: string
-          attacker_troops_lost?: Json
-          attacker_troops_sent?: Json
-          building_damage_levels?: number | null
-          building_damaged?: string | null
+          base_price?: number
+          category?: string
           created_at?: string
-          defender_id?: string
-          defender_name?: string
-          defender_troops_lost?: Json
+          description?: string
+          icon?: string
           id?: string
-          resources_raided?: Json
-          result?: string
-          vassalized?: boolean | null
-        }
-        Relationships: []
-      }
-      build_queue: {
-        Row: {
-          building_id: string
-          building_type: string
-          created_at: string
-          finish_time: string
-          id: string
-          target_level: number
-          user_id: string
-          village_id: string | null
-        }
-        Insert: {
-          building_id: string
-          building_type: string
-          created_at?: string
-          finish_time: string
-          id?: string
-          target_level: number
-          user_id: string
-          village_id?: string | null
-        }
-        Update: {
-          building_id?: string
-          building_type?: string
-          created_at?: string
-          finish_time?: string
-          id?: string
-          target_level?: number
-          user_id?: string
-          village_id?: string | null
+          name?: string
+          origin_realm_id?: string | null
+          rarity?: number
+          slug?: string
+          weight?: number
         }
         Relationships: [
           {
-            foreignKeyName: "build_queue_village_id_fkey"
-            columns: ["village_id"]
+            foreignKeyName: "goods_origin_realm_id_fkey"
+            columns: ["origin_realm_id"]
             isOneToOne: false
-            referencedRelation: "villages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      buildings: {
-        Row: {
-          created_at: string
-          id: string
-          level: number
-          position: number
-          type: string
-          updated_at: string
-          user_id: string
-          village_id: string
-          workers: number
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          level?: number
-          position: number
-          type: string
-          updated_at?: string
-          user_id: string
-          village_id: string
-          workers?: number
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          level?: number
-          position?: number
-          type?: string
-          updated_at?: string
-          user_id?: string
-          village_id?: string
-          workers?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "buildings_village_id_fkey"
-            columns: ["village_id"]
-            isOneToOne: false
-            referencedRelation: "villages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      caravans: {
-        Row: {
-          arrives_at: string
-          created_at: string
-          departed_at: string
-          food: number
-          from_village_id: string
-          gold: number
-          id: string
-          raided_by: string | null
-          status: string
-          steel: number
-          stone: number
-          to_village_id: string
-          user_id: string
-          wood: number
-        }
-        Insert: {
-          arrives_at: string
-          created_at?: string
-          departed_at?: string
-          food?: number
-          from_village_id: string
-          gold?: number
-          id?: string
-          raided_by?: string | null
-          status?: string
-          steel?: number
-          stone?: number
-          to_village_id: string
-          user_id: string
-          wood?: number
-        }
-        Update: {
-          arrives_at?: string
-          created_at?: string
-          departed_at?: string
-          food?: number
-          from_village_id?: string
-          gold?: number
-          id?: string
-          raided_by?: string | null
-          status?: string
-          steel?: number
-          stone?: number
-          to_village_id?: string
-          user_id?: string
-          wood?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "caravans_from_village_id_fkey"
-            columns: ["from_village_id"]
-            isOneToOne: false
-            referencedRelation: "villages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "caravans_to_village_id_fkey"
-            columns: ["to_village_id"]
-            isOneToOne: false
-            referencedRelation: "villages"
+            referencedRelation: "realms"
             referencedColumns: ["id"]
           },
         ]
@@ -641,294 +361,6 @@ export type Database = {
           },
         ]
       }
-      intel_reports: {
-        Row: {
-          created_at: string
-          data: Json
-          id: string
-          mission: string
-          spies_lost: number
-          success: boolean
-          target_name: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          data?: Json
-          id?: string
-          mission: string
-          spies_lost?: number
-          success?: boolean
-          target_name: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          data?: Json
-          id?: string
-          mission?: string
-          spies_lost?: number
-          success?: boolean
-          target_name?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      npc_mercenary_contracts: {
-        Row: {
-          created_at: string
-          expires_at: string
-          gold_paid: number
-          id: string
-          npc_town_id: string
-          troops_hired: Json
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          expires_at: string
-          gold_paid?: number
-          id?: string
-          npc_town_id: string
-          troops_hired?: Json
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          expires_at?: string
-          gold_paid?: number
-          id?: string
-          npc_town_id?: string
-          troops_hired?: Json
-          user_id?: string
-        }
-        Relationships: []
-      }
-      npc_player_relations: {
-        Row: {
-          created_at: string
-          id: string
-          last_interaction: string | null
-          npc_town_id: string
-          sentiment: number
-          status: string
-          trades_completed: number
-          tribute_rate: number
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          last_interaction?: string | null
-          npc_town_id: string
-          sentiment?: number
-          status?: string
-          trades_completed?: number
-          tribute_rate?: number
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          last_interaction?: string | null
-          npc_town_id?: string
-          sentiment?: number
-          status?: string
-          trades_completed?: number
-          tribute_rate?: number
-          user_id?: string
-        }
-        Relationships: []
-      }
-      npc_settlement_lore: {
-        Row: {
-          burg_id: number
-          burg_name: string
-          created_at: string
-          dynasty_name: string
-          id: string
-          kingdom_hierarchy: Json
-          lineage: Json
-          notable_facts: Json
-          ruler_name: string
-          ruler_personality: string
-          ruler_title: string
-          settlement_history: string
-          state_id: number
-          state_name: string
-          updated_at: string
-        }
-        Insert: {
-          burg_id: number
-          burg_name: string
-          created_at?: string
-          dynasty_name: string
-          id?: string
-          kingdom_hierarchy?: Json
-          lineage?: Json
-          notable_facts?: Json
-          ruler_name: string
-          ruler_personality: string
-          ruler_title: string
-          settlement_history: string
-          state_id: number
-          state_name: string
-          updated_at?: string
-        }
-        Update: {
-          burg_id?: number
-          burg_name?: string
-          created_at?: string
-          dynasty_name?: string
-          id?: string
-          kingdom_hierarchy?: Json
-          lineage?: Json
-          notable_facts?: Json
-          ruler_name?: string
-          ruler_personality?: string
-          ruler_title?: string
-          settlement_history?: string
-          state_id?: number
-          state_name?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      npc_town_relations: {
-        Row: {
-          created_at: string
-          id: string
-          last_event: string | null
-          relation_type: string
-          strength: number
-          town_a_id: string
-          town_b_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          last_event?: string | null
-          relation_type?: string
-          strength?: number
-          town_a_id: string
-          town_b_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          last_event?: string | null
-          relation_type?: string
-          strength?: number
-          town_a_id?: string
-          town_b_id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      npc_town_state: {
-        Row: {
-          available_mercenaries: Json
-          claimed_regions: Json
-          created_at: string
-          current_power: number
-          id: string
-          last_action: string | null
-          last_action_at: string | null
-          last_regen_at: string
-          npc_town_id: string
-          stock_food: number
-          stock_gold: number
-          stock_steel: number
-          stock_stone: number
-          stock_wood: number
-          updated_at: string
-        }
-        Insert: {
-          available_mercenaries?: Json
-          claimed_regions?: Json
-          created_at?: string
-          current_power?: number
-          id?: string
-          last_action?: string | null
-          last_action_at?: string | null
-          last_regen_at?: string
-          npc_town_id: string
-          stock_food?: number
-          stock_gold?: number
-          stock_steel?: number
-          stock_stone?: number
-          stock_wood?: number
-          updated_at?: string
-        }
-        Update: {
-          available_mercenaries?: Json
-          claimed_regions?: Json
-          created_at?: string
-          current_power?: number
-          id?: string
-          last_action?: string | null
-          last_action_at?: string | null
-          last_regen_at?: string
-          npc_town_id?: string
-          stock_food?: number
-          stock_gold?: number
-          stock_steel?: number
-          stock_stone?: number
-          stock_wood?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      outposts: {
-        Row: {
-          created_at: string
-          garrison_power: number
-          garrison_troops: Json
-          has_wall: boolean
-          id: string
-          level: number
-          name: string
-          outpost_type: string
-          territory_radius: number
-          user_id: string
-          wall_level: number
-          x: number
-          y: number
-        }
-        Insert: {
-          created_at?: string
-          garrison_power?: number
-          garrison_troops?: Json
-          has_wall?: boolean
-          id?: string
-          level?: number
-          name?: string
-          outpost_type?: string
-          territory_radius?: number
-          user_id: string
-          wall_level?: number
-          x: number
-          y: number
-        }
-        Update: {
-          created_at?: string
-          garrison_power?: number
-          garrison_troops?: Json
-          has_wall?: boolean
-          id?: string
-          level?: number
-          name?: string
-          outpost_type?: string
-          territory_radius?: number
-          user_id?: string
-          wall_level?: number
-          x?: number
-          y?: number
-        }
-        Relationships: []
-      }
       player_messages: {
         Row: {
           content: string
@@ -953,30 +385,6 @@ export type Database = {
           read?: boolean
           receiver_id?: string
           sender_id?: string
-        }
-        Relationships: []
-      }
-      player_skins: {
-        Row: {
-          id: string
-          is_active: boolean
-          purchased_at: string
-          skin_id: string
-          user_id: string
-        }
-        Insert: {
-          id?: string
-          is_active?: boolean
-          purchased_at?: string
-          skin_id: string
-          user_id: string
-        }
-        Update: {
-          id?: string
-          is_active?: boolean
-          purchased_at?: string
-          skin_id?: string
-          user_id?: string
         }
         Relationships: []
       }
@@ -1037,585 +445,452 @@ export type Database = {
         }
         Relationships: []
       }
-      research_progress: {
+      realm_reputation: {
         Row: {
-          created_at: string
-          economic_points: number
           id: string
-          military_points: number
-          research_focus: string
-          social_points: number
-          unlocked_nodes: Json
-          updated_at: string
-          user_id: string
-          village_id: string
-        }
-        Insert: {
-          created_at?: string
-          economic_points?: number
-          id?: string
-          military_points?: number
-          research_focus?: string
-          social_points?: number
-          unlocked_nodes?: Json
-          updated_at?: string
-          user_id: string
-          village_id: string
-        }
-        Update: {
-          created_at?: string
-          economic_points?: number
-          id?: string
-          military_points?: number
-          research_focus?: string
-          social_points?: number
-          unlocked_nodes?: Json
-          updated_at?: string
-          user_id?: string
-          village_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "research_progress_village_id_fkey"
-            columns: ["village_id"]
-            isOneToOne: false
-            referencedRelation: "villages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      roads: {
-        Row: {
-          building_finish_time: string | null
-          created_at: string
-          from_village_id: string
-          id: string
-          road_level: number
-          to_village_id: string
+          realm_id: string
+          reputation: number
+          trades_in_realm: number
           updated_at: string
           user_id: string
         }
         Insert: {
-          building_finish_time?: string | null
-          created_at?: string
-          from_village_id: string
           id?: string
-          road_level?: number
-          to_village_id: string
+          realm_id: string
+          reputation?: number
+          trades_in_realm?: number
           updated_at?: string
           user_id: string
         }
         Update: {
-          building_finish_time?: string | null
-          created_at?: string
-          from_village_id?: string
           id?: string
-          road_level?: number
-          to_village_id?: string
+          realm_id?: string
+          reputation?: number
+          trades_in_realm?: number
           updated_at?: string
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "roads_from_village_id_fkey"
-            columns: ["from_village_id"]
+            foreignKeyName: "realm_reputation_realm_id_fkey"
+            columns: ["realm_id"]
             isOneToOne: false
-            referencedRelation: "villages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "roads_to_village_id_fkey"
-            columns: ["to_village_id"]
-            isOneToOne: false
-            referencedRelation: "villages"
+            referencedRelation: "realms"
             referencedColumns: ["id"]
           },
         ]
       }
-      spy_training_queue: {
-        Row: {
-          count: number
-          created_at: string
-          finish_time: string
-          id: string
-          user_id: string
-        }
-        Insert: {
-          count: number
-          created_at?: string
-          finish_time: string
-          id?: string
-          user_id: string
-        }
-        Update: {
-          count?: number
-          created_at?: string
-          finish_time?: string
-          id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      trade_routes: {
-        Row: {
-          active: boolean
-          created_at: string
-          food: number
-          from_village_id: string
-          gold: number
-          id: string
-          interval_seconds: number
-          next_run_at: string
-          stone: number
-          to_village_id: string
-          updated_at: string
-          user_id: string
-          wood: number
-        }
-        Insert: {
-          active?: boolean
-          created_at?: string
-          food?: number
-          from_village_id: string
-          gold?: number
-          id?: string
-          interval_seconds?: number
-          next_run_at?: string
-          stone?: number
-          to_village_id: string
-          updated_at?: string
-          user_id: string
-          wood?: number
-        }
-        Update: {
-          active?: boolean
-          created_at?: string
-          food?: number
-          from_village_id?: string
-          gold?: number
-          id?: string
-          interval_seconds?: number
-          next_run_at?: string
-          stone?: number
-          to_village_id?: string
-          updated_at?: string
-          user_id?: string
-          wood?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "trade_routes_from_village_id_fkey"
-            columns: ["from_village_id"]
-            isOneToOne: false
-            referencedRelation: "villages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "trade_routes_to_village_id_fkey"
-            columns: ["to_village_id"]
-            isOneToOne: false
-            referencedRelation: "villages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      training_queue: {
-        Row: {
-          count: number
-          created_at: string
-          finish_time: string
-          id: string
-          troop_type: string
-          user_id: string
-          village_id: string | null
-        }
-        Insert: {
-          count: number
-          created_at?: string
-          finish_time: string
-          id?: string
-          troop_type: string
-          user_id: string
-          village_id?: string | null
-        }
-        Update: {
-          count?: number
-          created_at?: string
-          finish_time?: string
-          id?: string
-          troop_type?: string
-          user_id?: string
-          village_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "training_queue_village_id_fkey"
-            columns: ["village_id"]
-            isOneToOne: false
-            referencedRelation: "villages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vassalages: {
+      realm_towns: {
         Row: {
           created_at: string
-          ended_at: string | null
-          id: string
-          lord_id: string
-          ransom_gold: number
-          rebellion_available_at: string
-          status: string
-          tribute_rate: number
-          vassal_id: string
-        }
-        Insert: {
-          created_at?: string
-          ended_at?: string | null
-          id?: string
-          lord_id: string
-          ransom_gold?: number
-          rebellion_available_at?: string
-          status?: string
-          tribute_rate?: number
-          vassal_id: string
-        }
-        Update: {
-          created_at?: string
-          ended_at?: string | null
-          id?: string
-          lord_id?: string
-          ransom_gold?: number
-          rebellion_available_at?: string
-          status?: string
-          tribute_rate?: number
-          vassal_id?: string
-        }
-        Relationships: []
-      }
-      villages: {
-        Row: {
-          army_archer: number
-          army_cavalry: number
-          army_knight: number
-          army_militia: number
-          army_scout: number
-          army_siege: number
-          created_at: string
-          food: number
-          gold: number
-          happiness: number
-          id: string
-          injured_archer: number
-          injured_cavalry: number
-          injured_knight: number
-          injured_militia: number
-          injured_scout: number
-          injured_siege: number
-          last_resource_tick: string
-          level: number
-          map_x: number
-          map_y: number
-          max_population: number
-          name: string
-          poisons: number
-          pop_tax_rate: number
-          population: number
-          rations: string
-          settlement_sub_level: number
-          settlement_tier: number
-          settlement_type: string
-          spies: number
-          steel: number
-          stone: number
-          storage_capacity: number
-          updated_at: string
-          user_id: string
-          wood: number
-        }
-        Insert: {
-          army_archer?: number
-          army_cavalry?: number
-          army_knight?: number
-          army_militia?: number
-          army_scout?: number
-          army_siege?: number
-          created_at?: string
-          food?: number
-          gold?: number
-          happiness?: number
-          id?: string
-          injured_archer?: number
-          injured_cavalry?: number
-          injured_knight?: number
-          injured_militia?: number
-          injured_scout?: number
-          injured_siege?: number
-          last_resource_tick?: string
-          level?: number
-          map_x?: number
-          map_y?: number
-          max_population?: number
-          name?: string
-          poisons?: number
-          pop_tax_rate?: number
-          population?: number
-          rations?: string
-          settlement_sub_level?: number
-          settlement_tier?: number
-          settlement_type?: string
-          spies?: number
-          steel?: number
-          stone?: number
-          storage_capacity?: number
-          updated_at?: string
-          user_id: string
-          wood?: number
-        }
-        Update: {
-          army_archer?: number
-          army_cavalry?: number
-          army_knight?: number
-          army_militia?: number
-          army_scout?: number
-          army_siege?: number
-          created_at?: string
-          food?: number
-          gold?: number
-          happiness?: number
-          id?: string
-          injured_archer?: number
-          injured_cavalry?: number
-          injured_knight?: number
-          injured_militia?: number
-          injured_scout?: number
-          injured_siege?: number
-          last_resource_tick?: string
-          level?: number
-          map_x?: number
-          map_y?: number
-          max_population?: number
-          name?: string
-          poisons?: number
-          pop_tax_rate?: number
-          population?: number
-          rations?: string
-          settlement_sub_level?: number
-          settlement_tier?: number
-          settlement_type?: string
-          spies?: number
-          steel?: number
-          stone?: number
-          storage_capacity?: number
-          updated_at?: string
-          user_id?: string
-          wood?: number
-        }
-        Relationships: []
-      }
-      wall_segments: {
-        Row: {
-          created_at: string
-          health: number
-          id: string
-          max_health: number
-          outpost_a_id: string
-          outpost_b_id: string
-          user_id: string
-          wall_level: number
-        }
-        Insert: {
-          created_at?: string
-          health?: number
-          id?: string
-          max_health?: number
-          outpost_a_id: string
-          outpost_b_id: string
-          user_id: string
-          wall_level?: number
-        }
-        Update: {
-          created_at?: string
-          health?: number
-          id?: string
-          max_health?: number
-          outpost_a_id?: string
-          outpost_b_id?: string
-          user_id?: string
-          wall_level?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "wall_segments_outpost_a_id_fkey"
-            columns: ["outpost_a_id"]
-            isOneToOne: false
-            referencedRelation: "outposts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wall_segments_outpost_b_id_fkey"
-            columns: ["outpost_b_id"]
-            isOneToOne: false
-            referencedRelation: "outposts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      world_boss_defeats: {
-        Row: {
-          boss_type: string
-          boss_week_seed: number
-          defeated_at: string
-          id: string
-          user_id: string
-        }
-        Insert: {
-          boss_type: string
-          boss_week_seed: number
-          defeated_at?: string
-          id?: string
-          user_id: string
-        }
-        Update: {
-          boss_type?: string
-          boss_week_seed?: number
-          defeated_at?: string
-          id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      world_burgs: {
-        Row: {
-          burg_group: string
-          burg_id: number
-          burg_type: string
-          color: string
-          created_at: string
-          culture_name: string
-          has_citadel: boolean
-          has_port: boolean
-          has_temple: boolean
-          has_walls: boolean
+          description: string | null
           id: string
           name: string
           population: number
-          state_id: number
-          state_name: string
+          realm_id: string
+          town_type: string
           x: number
           y: number
         }
         Insert: {
-          burg_group?: string
-          burg_id: number
-          burg_type?: string
-          color?: string
           created_at?: string
-          culture_name?: string
-          has_citadel?: boolean
-          has_port?: boolean
-          has_temple?: boolean
-          has_walls?: boolean
+          description?: string | null
           id?: string
           name: string
           population?: number
-          state_id?: number
-          state_name?: string
+          realm_id: string
+          town_type?: string
           x: number
           y: number
         }
         Update: {
-          burg_group?: string
-          burg_id?: number
-          burg_type?: string
-          color?: string
           created_at?: string
-          culture_name?: string
-          has_citadel?: boolean
-          has_port?: boolean
-          has_temple?: boolean
-          has_walls?: boolean
+          description?: string | null
           id?: string
           name?: string
           population?: number
-          state_id?: number
-          state_name?: string
+          realm_id?: string
+          town_type?: string
           x?: number
           y?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "realm_towns_realm_id_fkey"
+            columns: ["realm_id"]
+            isOneToOne: false
+            referencedRelation: "realms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-      world_events: {
+      realms: {
         Row: {
-          created_at: string
-          description: string
-          effects: Json
-          event_type: string
-          expires_at: string
-          id: string
-          resolved_at: string | null
-          status: string
-          title: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          description: string
-          effects?: Json
-          event_type?: string
-          expires_at?: string
-          id?: string
-          resolved_at?: string | null
-          status?: string
-          title: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          description?: string
-          effects?: Json
-          event_type?: string
-          expires_at?: string
-          id?: string
-          resolved_at?: string | null
-          status?: string
-          title?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      world_states: {
-        Row: {
-          capital_burg_id: number
+          aether: string
+          arc_index: number
+          capital_x: number
+          capital_y: number
           color: string
           created_at: string
-          culture_name: string
+          culture: string
+          epithet: string
           id: string
+          is_central: boolean
+          lore: string
           name: string
-          state_id: number
-          state_type: string
+          ruler_name: string
+          ruler_title: string
+          sigil: string
+          slug: string
         }
         Insert: {
-          capital_burg_id?: number
+          aether: string
+          arc_index: number
+          capital_x: number
+          capital_y: number
           color?: string
           created_at?: string
-          culture_name?: string
+          culture: string
+          epithet: string
           id?: string
+          is_central?: boolean
+          lore: string
           name: string
-          state_id: number
-          state_type?: string
+          ruler_name: string
+          ruler_title: string
+          sigil?: string
+          slug: string
         }
         Update: {
-          capital_burg_id?: number
+          aether?: string
+          arc_index?: number
+          capital_x?: number
+          capital_y?: number
           color?: string
           created_at?: string
-          culture_name?: string
+          culture?: string
+          epithet?: string
           id?: string
+          is_central?: boolean
+          lore?: string
           name?: string
-          state_id?: number
-          state_type?: string
+          ruler_name?: string
+          ruler_title?: string
+          sigil?: string
+          slug?: string
         }
         Relationships: []
+      }
+      town_market: {
+        Row: {
+          buy_price: number
+          demand: number
+          good_id: string
+          id: string
+          sell_price: number
+          stock: number
+          town_id: string
+          updated_at: string
+        }
+        Insert: {
+          buy_price: number
+          demand?: number
+          good_id: string
+          id?: string
+          sell_price: number
+          stock?: number
+          town_id: string
+          updated_at?: string
+        }
+        Update: {
+          buy_price?: number
+          demand?: number
+          good_id?: string
+          id?: string
+          sell_price?: number
+          stock?: number
+          town_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "town_market_good_id_fkey"
+            columns: ["good_id"]
+            isOneToOne: false
+            referencedRelation: "goods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "town_market_town_id_fkey"
+            columns: ["town_id"]
+            isOneToOne: false
+            referencedRelation: "realm_towns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trader_caravans: {
+        Row: {
+          arrives_at: string
+          cargo: Json
+          created_at: string
+          departed_at: string
+          destination_town_id: string
+          guards: number
+          id: string
+          origin_town_id: string
+          risk: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          arrives_at: string
+          cargo?: Json
+          created_at?: string
+          departed_at?: string
+          destination_town_id: string
+          guards?: number
+          id?: string
+          origin_town_id: string
+          risk?: number
+          status?: string
+          user_id: string
+        }
+        Update: {
+          arrives_at?: string
+          cargo?: Json
+          created_at?: string
+          departed_at?: string
+          destination_town_id?: string
+          guards?: number
+          id?: string
+          origin_town_id?: string
+          risk?: number
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trader_caravans_destination_town_id_fkey"
+            columns: ["destination_town_id"]
+            isOneToOne: false
+            referencedRelation: "realm_towns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trader_caravans_origin_town_id_fkey"
+            columns: ["origin_town_id"]
+            isOneToOne: false
+            referencedRelation: "realm_towns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trader_contracts: {
+        Row: {
+          created_at: string
+          deliver_to_town_id: string | null
+          description: string
+          expires_at: string | null
+          id: string
+          issuer_realm_id: string | null
+          required_good_id: string | null
+          required_quantity: number
+          reward_gold: number
+          reward_reputation: number
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deliver_to_town_id?: string | null
+          description: string
+          expires_at?: string | null
+          id?: string
+          issuer_realm_id?: string | null
+          required_good_id?: string | null
+          required_quantity?: number
+          reward_gold?: number
+          reward_reputation?: number
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deliver_to_town_id?: string | null
+          description?: string
+          expires_at?: string | null
+          id?: string
+          issuer_realm_id?: string | null
+          required_good_id?: string | null
+          required_quantity?: number
+          reward_gold?: number
+          reward_reputation?: number
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trader_contracts_deliver_to_town_id_fkey"
+            columns: ["deliver_to_town_id"]
+            isOneToOne: false
+            referencedRelation: "realm_towns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trader_contracts_issuer_realm_id_fkey"
+            columns: ["issuer_realm_id"]
+            isOneToOne: false
+            referencedRelation: "realms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trader_contracts_required_good_id_fkey"
+            columns: ["required_good_id"]
+            isOneToOne: false
+            referencedRelation: "goods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trader_inventory: {
+        Row: {
+          avg_cost: number
+          good_id: string
+          id: string
+          quantity: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avg_cost?: number
+          good_id: string
+          id?: string
+          quantity?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avg_cost?: number
+          good_id?: string
+          id?: string
+          quantity?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trader_inventory_good_id_fkey"
+            columns: ["good_id"]
+            isOneToOne: false
+            referencedRelation: "goods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trader_profiles: {
+        Row: {
+          caravan_slots: number
+          cart_capacity: number
+          created_at: string
+          current_town_id: string | null
+          gold: number
+          guild_standing: number
+          home_realm_id: string | null
+          id: string
+          tier: string
+          total_profit: number
+          trader_name: string
+          trades_completed: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          caravan_slots?: number
+          cart_capacity?: number
+          created_at?: string
+          current_town_id?: string | null
+          gold?: number
+          guild_standing?: number
+          home_realm_id?: string | null
+          id?: string
+          tier?: string
+          total_profit?: number
+          trader_name: string
+          trades_completed?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          caravan_slots?: number
+          cart_capacity?: number
+          created_at?: string
+          current_town_id?: string | null
+          gold?: number
+          guild_standing?: number
+          home_realm_id?: string | null
+          id?: string
+          tier?: string
+          total_profit?: number
+          trader_name?: string
+          trades_completed?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trader_profiles_current_town_id_fkey"
+            columns: ["current_town_id"]
+            isOneToOne: false
+            referencedRelation: "realm_towns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trader_profiles_home_realm_id_fkey"
+            columns: ["home_realm_id"]
+            isOneToOne: false
+            referencedRelation: "realms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trader_warehouses: {
+        Row: {
+          capacity: number
+          created_at: string
+          id: string
+          town_id: string
+          user_id: string
+        }
+        Insert: {
+          capacity?: number
+          created_at?: string
+          id?: string
+          town_id: string
+          user_id: string
+        }
+        Update: {
+          capacity?: number
+          created_at?: string
+          id?: string
+          town_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trader_warehouses_town_id_fkey"
+            columns: ["town_id"]
+            isOneToOne: false
+            referencedRelation: "realm_towns"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -1632,11 +907,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      deliver_caravan: {
-        Args: { p_caravan_id: string; p_user_id: string }
-        Returns: boolean
-      }
-      raze_outpost: { Args: { p_outpost_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
