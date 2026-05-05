@@ -4,6 +4,19 @@ import { useAuth } from '@/hooks/useAuth';
 import { lovable } from '@/integrations/lovable/index';
 import { useTheme } from '@/hooks/useTheme';
 
+function ThemeToggleInline() {
+  const { theme, toggleTheme } = useTheme();
+  return (
+    <button
+      onClick={toggleTheme}
+      className="absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-card/70 border border-border text-foreground hover:bg-card flex items-center justify-center"
+      aria-label="Toggle theme"
+    >
+      {theme === 'dark' ? '☀' : '☾'}
+    </button>
+  );
+}
+
 function InlineAuth() {
   const { signIn, signUp } = useAuth();
   const [expanded, setExpanded] = useState<'login' | 'signup' | null>(null);
